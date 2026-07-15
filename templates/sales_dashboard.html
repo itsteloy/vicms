@@ -1,0 +1,1636 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sales Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── reset / base ── */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    :root {
+        --ink: #101828;
+        --muted: #667085;
+        --line: #d0d5dd;
+        --brand: #0f766e;
+        --brand-dark: #134e4a;
+        --brand-light: #ecfdf3;
+        --panel: #ffffff;
+        --soft: #f8fafc;
+        --danger: #b42318;
+        --success: #027a48;
+        --sidebar-width: 300px;
+        --radius: 14px;
+        --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+    }
+
+    body {
+        display: block;
+        padding: 0;
+        margin: 0;
+        background: #f2f4f7;
+        color: var(--ink);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        min-height: 100vh;
+    }
+
+    /* ── dashboard wrapper ── */
+    .dashboard-wrapper {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* ── sidebar ── */
+    .sidebar {
+        position: sticky;
+        top: 0;
+        flex: 0 0 var(--sidebar-width);
+        width: var(--sidebar-width);
+        height: 100vh;
+        overflow-y: auto;
+        background: #1851a2;
+        color: #e6f0f0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        z-index: 100;
+    }
+
+    .sidebar-brand {
+        padding: 28px 24px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        flex-shrink: 0;
+    }
+
+    .sidebar-brand .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: #fff;
+    }
+
+    .sidebar-brand .logo-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.2rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .sidebar-brand .logo-text {
+        font-weight: 800;
+        font-size: 1.1rem;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+    }
+
+    .sidebar-brand .logo-text small {
+        display: block;
+        font-weight: 400;
+        font-size: 0.7rem;
+        opacity: 0.6;
+        letter-spacing: 0.04em;
+        margin-top: 2px;
+    }
+
+    .sidebar-nav {
+        padding: 20px 16px 12px;
+        flex-shrink: 0;
+    }
+
+    .sidebar-nav .nav-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.4;
+        padding: 0 12px 10px;
+        font-weight: 700;
+    }
+
+    .sidebar-nav .tab-button {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        font: inherit;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: left;
+        position: relative;
+    }
+
+    .sidebar-nav .tab-button .tab-icon {
+        font-size: 1.2rem;
+        width: 24px;
+        text-align: center;
+        flex-shrink: 0;
+        opacity: 0.7;
+    }
+
+    .sidebar-nav .tab-button:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+    }
+
+    .sidebar-nav .tab-button[aria-selected="true"] {
+        background: rgba(48, 118, 239, 0.3);
+        color: #fff;
+        box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+    }
+
+    .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
+        opacity: 1;
+    }
+
+    .sidebar-nav .tab-button .tab-badge {
+        margin-left: auto;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
+        background: rgba(15, 118, 110, 0.4);
+        color: #fff;
+    }
+
+    /* ── category performance in sidebar ── */
+    .sidebar-category {
+        padding: 16px 16px 24px;
+        flex: 1 1 auto;
+        overflow-y: auto;
+        min-height: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        margin-top: 4px;
+    }
+
+    .sidebar-category .cat-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 12px 12px;
+    }
+
+    .sidebar-category .cat-head h3 {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.4;
+        font-weight: 700;
+        margin: 0;
+        color: #fff;
+    }
+
+    .sidebar-category .cat-head .pill {
+        font-size: 0.6rem;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 3px 10px;
+        border-radius: 999px;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 600;
+    }
+
+    .sidebar-category .perf-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sidebar-category .perf-item {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 12px 14px;
+        transition: background 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .sidebar-category .perf-item:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-category .perf-item .perf-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .sidebar-category .perf-item .perf-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sidebar-category .perf-item .perf-stock {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: rgba(2, 122, 72, 0.2);
+        color: #6fcf97;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .sidebar-category .perf-item .perf-stock.low {
+        background: rgba(180, 35, 24, 0.2);
+        color: #f28b82;
+    }
+
+    .sidebar-category .perf-item .perf-metrics {
+        display: flex;
+        gap: 14px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .sidebar-category .perf-item .perf-metrics span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .sidebar-category .perf-item .perf-metrics strong {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+    }
+
+    .sidebar-category .perf-item .product-code-select {
+        width: 100%;
+        margin-top: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 4px 8px;
+        font: inherit;
+        font-size: 0.7rem;
+        color: #fff;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .sidebar-category .perf-item .product-code-select option {
+        background: #1a2e2e;
+        color: #fff;
+    }
+
+    .sidebar-category .empty-state-sm {
+        padding: 20px 12px;
+        text-align: center;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ── main content ── */
+    .main-content {
+        flex: 1;
+        min-width: 0;
+        padding: 0 32px 40px;
+        background: #f2f4f7;
+        overflow-x: hidden;
+    }
+
+    /* ── top bar ── */
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 0 16px;
+        border-bottom: 1px solid #eaecf0;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        background: transparent;
+        color: var(--ink);
+    }
+
+    .topbar .greeting h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .topbar .greeting p {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+    }
+
+    .topbar .top-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .topbar .top-actions a {
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.82rem;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        transition: 0.2s;
+    }
+
+    .topbar .top-actions a:hover {
+        background: var(--soft);
+    }
+
+    .topbar .top-actions .brand-link {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+    }
+
+    .topbar .top-actions .brand-link:hover {
+        background: var(--brand-dark);
+        border-color: var(--brand-dark);
+    }
+
+    /* ── hero stats ── */
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 14px;
+        margin-bottom: 28px;
+    }
+
+    .hero-stats .stat-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+    }
+
+    .hero-stats .stat-card .stat-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        font-weight: 700;
+    }
+
+    .hero-stats .stat-card .stat-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin-top: 4px;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+    }
+
+    .hero-stats .stat-card .stat-value .currency {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-right: 2px;
+    }
+
+    /* ── messages ── */
+    .messages {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .message {
+        padding: 13px 16px;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .message.success {
+        border-color: #abefc6;
+        background: #ecfdf3;
+        color: var(--success);
+    }
+
+    .message.error {
+        border-color: #fecdca;
+        background: #fef3f2;
+        color: var(--danger);
+    }
+
+    /* ── tab panels ── */
+    .tab-panel {
+        display: none;
+        animation: fadeUp 0.3s ease;
+    }
+
+    .tab-panel.is-active {
+        display: block;
+    }
+
+    @keyframes fadeUp {
+        0% {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .tab-panel .panel-header {
+        margin-bottom: 22px;
+    }
+
+    .tab-panel .panel-header h2 {
+        margin: 0 0 4px;
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .tab-panel .panel-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    /* ── cards / panels ── */
+    .card,
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 22px 24px;
+    }
+
+    .panel {
+        margin-bottom: 24px;
+    }
+
+    .card h2,
+    .panel h2 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .card p,
+    .panel p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 0.9rem;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    /* ── form ── */
+    form {
+        display: grid;
+        gap: 16px;
+    }
+
+    .field {
+        display: grid;
+        gap: 6px;
+    }
+
+    .field label {
+        color: #475467;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 10px 14px;
+        font: inherit;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: border 0.2s;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+        outline: none;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    .field textarea {
+        resize: vertical;
+        min-height: 72px;
+    }
+
+    .help-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .help-grid div {
+        border: 1px solid var(--line);
+        background: var(--soft);
+        padding: 10px 12px;
+        border-radius: 8px;
+    }
+
+    .help-grid strong {
+        display: block;
+        color: #344054;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 2px;
+    }
+
+    .help-grid span {
+        color: var(--ink);
+        font-weight: 800;
+        font-size: 1rem;
+    }
+
+    button,
+    .action {
+        border: 1px solid var(--brand);
+        background: var(--brand);
+        color: #fff;
+        padding: 10px 18px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: 0.2s;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    button:hover {
+        background: var(--brand-dark);
+        border-color: var(--brand-dark);
+    }
+
+    .action {
+        background: #fff;
+        color: var(--brand);
+        border-color: var(--line);
+        text-decoration: none;
+        padding: 8px 16px;
+        font-size: 0.82rem;
+        min-height: 38px;
+    }
+
+    .action:hover {
+        background: var(--soft);
+        border-color: var(--brand);
+    }
+
+    .action.primary {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+    }
+
+    .action.primary:hover {
+        background: var(--brand-dark);
+        border-color: var(--brand-dark);
+    }
+
+    /* ── tables ── */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+    }
+
+    table {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+    }
+
+    thead {
+        background: var(--soft);
+    }
+
+    th,
+    td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid #eaecf0;
+        vertical-align: middle;
+    }
+
+    th {
+        color: #475467;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .stock-ok {
+        color: var(--success);
+        font-weight: 700;
+    }
+
+    .stock-empty {
+        color: var(--danger);
+        font-weight: 700;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: #eff6ff;
+        color: #1d4ed8;
+        white-space: nowrap;
+    }
+
+    .status-chip.out-stock {
+        background: #fef3f2;
+        color: var(--danger);
+    }
+
+    .status-chip.completed {
+        background: #ecfdf3;
+        color: var(--success);
+    }
+
+    /* ── chart cards ── */
+    .chart-card .chart-svg {
+        width: 100%;
+        height: 120px;
+        margin-top: 8px;
+    }
+
+    .chart-card .chart-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        flex-wrap: wrap;
+    }
+
+    .chart-card .chart-rows {
+        margin-top: 10px;
+        display: grid;
+        gap: 4px;
+    }
+
+    .chart-card .chart-rows .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #344054;
+        padding: 2px 0;
+        border-bottom: 1px solid #f2f4f7;
+    }
+
+    .chart-card .chart-rows .row strong {
+        font-weight: 600;
+    }
+
+    /* ── pagination ── */
+    .pagination {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .pagination span {
+        color: #475467;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    /* ── refund form inline ── */
+    .refund-form {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .refund-form input[type="number"] {
+        width: 60px;
+        padding: 4px 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: inherit;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+    .refund-form input[type="text"] {
+        padding: 4px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: inherit;
+        font-size: 0.8rem;
+        min-width: 120px;
+    }
+
+    .refund-form button {
+        padding: 4px 12px;
+        font-size: 0.7rem;
+        background: var(--danger);
+        border-color: var(--danger);
+        border-radius: 6px;
+        min-height: 30px;
+    }
+
+    .refund-form button:hover {
+        background: #8f1c12;
+        border-color: #8f1c12;
+    }
+
+    /* ── responsive ── */
+    @media (max-width: 1200px) {
+        .grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .grid-3 {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 992px) {
+        :root {
+            --sidebar-width: 260px;
+        }
+        .main-content {
+            padding: 0 20px 32px;
+        }
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper {
+            flex-direction: column;
+        }
+
+        .sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+            max-height: 480px;
+            flex: none;
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 16px 20px 12px;
+        }
+
+        .sidebar-nav {
+            padding: 8px 12px;
+        }
+
+        .sidebar-nav .nav-label {
+            display: none;
+        }
+
+        .sidebar-nav .tab-button {
+            padding: 10px 14px;
+            font-size: 0.8rem;
+        }
+
+        .sidebar-category {
+            padding: 12px 12px 16px;
+            border-top: none;
+        }
+
+        .sidebar-category .perf-list {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .sidebar-category .perf-item {
+            flex: 1 1 calc(50% - 4px);
+            min-width: 140px;
+        }
+
+        .main-content {
+            padding: 0 16px 24px;
+        }
+
+        .hero-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        .grid-4 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .topbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .topbar .top-actions {
+            justify-content: flex-start;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hero-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .grid-4 {
+            grid-template-columns: 1fr;
+        }
+
+        .help-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar-category .perf-item {
+            flex: 1 1 100%;
+        }
+
+        .sidebar-nav .tab-button .tab-badge {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" role="navigation" aria-label="Sales dashboard navigation">
+        <div class="sidebar-brand">
+            <a href="{% url 'dashboard' %}" class="logo">
+                <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
+                <span class="logo-text">VERSATEC <small>Management System</small></span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Sales sections">
+            <div class="nav-label">Sales</div>
+            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}" data-tab-target="sales-tab">
+                <span class="tab-icon">🛒</span> Record Sale
+            </button>
+            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}" data-tab-target="history-tab">
+                <span class="tab-icon">📜</span> Sales History
+                <span class="tab-badge">{{ sales_orders|length }}</span>
+            </button>
+            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}" data-tab-target="refund-tab">
+                <span class="tab-icon">↩️</span> Refund History
+                <span class="tab-badge">{{ refund_history|length }}</span>
+            </button>
+            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}" data-tab-target="analytics-tab">
+                <span class="tab-icon">📈</span> Reporting & Analytics
+            </button>
+        </nav>
+
+        <!-- Category Performance -->
+        <section class="sidebar-category" aria-label="Category performance">
+                <div class="cat-head">
+                    <h3>Category Performance</h3>
+                    <span class="pill">Item-led</span>
+                </div>
+
+                {% if page_obj.object_list %}
+                <div class="perf-list">
+                    {% for category in page_obj.object_list %}
+                    <div class="perf-item" data-category-card>
+                        <div class="perf-top">
+                            <span class="perf-name">{{ category.name }}</span>
+                            <span class="perf-stock {% if category.stock == 0 %}low{% endif %}">
+                                {{ category.stock }} in stock
+                            </span>
+                        </div>
+
+                        {% if category.variants|length > 1 %}
+                        <select class="product-code-select" aria-label="Product codes for {{ category.name }}">
+                            {% for variant in category.variants %}
+                            <option
+                            value="{{ variant.code }}"
+                            data-quantity="{{ variant.quantity }}"
+                            data-revenue="{{ variant.revenue|floatformat:2 }}"
+                            data-orders="{{ variant.orders }}"
+                            data-stock="{{ variant.stock }}"
+                            >
+                            {{ variant.code|default:"No code" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);padding:2px 0;">
+                        {{ category.variants.0.code|default:"Item" }}
+                    </div>
+                    {% endif %}
+
+                    <div class="perf-metrics">
+                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2 }}</strong></span>
+                        <span>Sold <strong class="metric-quantity">{{ category.variants.0.quantity }}</strong></span>
+                        <span>Orders <strong class="metric-orders">{{ category.variants.0.orders }}</strong></span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if show_pagination %}
+            <div class="pagination" style="justify-content:center;margin-top:14px;">
+                {% if page_obj.has_previous %}
+                <a class="action" href="?page={{ page_obj.previous_page_number }}" style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">‹</a>
+                {% endif %}
+                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                <a class="action" href="?page={{ page_obj.next_page_number }}" style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">›</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state-sm">No sales recorded yet.</div>
+            {% endif %}
+        </section>
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="greeting">
+                <h2>Sales Dashboard</h2>
+                <p>Record sales from inventory items. Stock updates automatically.</p>
+            </div>
+            <div class="top-actions">
+                <a href="{% url 'inventory_dashboard' %}">📦 Inventory</a>
+                <a href="{% url 'logout' %}">🚪 Logout</a>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="hero-stats">
+            <div class="stat-card">
+                <div class="stat-label">Recent Sales</div>
+                <div class="stat-value">{{ sales_orders|length }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Items Sold</div>
+                <div class="stat-value">{{ total_quantity_sold }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value"><span class="currency">₱</span>{{ total_sales }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Inventory Items</div>
+                <div class="stat-value">{{ inventory_items|length }}</div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ─── TAB PANELS ─── -->
+
+        <!-- 1️⃣ SALES TAB (Record Sale) -->
+        <div id="sales-tab" class="tab-panel {% if active_tab == 'sales-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Record a Sale</h2>
+                <p>Select an inventory item and enter the quantity sold.</p>
+            </div>
+
+            <div class="grid-2">
+                <!-- Form -->
+                <section class="panel">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="field">
+                            <label for="customerName">Customer name</label>
+                            <input id="customerName" name="customerName" type="text" required placeholder="e.g. ABC Construction">
+                        </div>
+                        <div class="field">
+                            <label for="inventoryItem">Inventory item</label>
+                            <select id="inventoryItem" name="inventoryItem" required>
+                                <option value="">Select item from inventory</option>
+                                {% for item in inventory_items %}
+                                <option
+                                    value="{{ item.id }}"
+                                    data-price="{{ item.price }}"
+                                    data-stock="{{ item.stock_available }}"
+                                    data-code="{{ item.product_code }}"
+                                    {% if item.stock_available == 0 %}disabled{% endif %}
+                                >
+                                    {{ item.name }}{% if item.product_code %} - {{ item.product_code }}{% endif %} ({{ item.stock_available }} stock)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="quantity">Quantity sold</label>
+                            <input id="quantity" name="quantity" type="number" min="1" value="1" required>
+                        </div>
+                        <div class="field">
+                            <label for="customerContact">Customer Contact (Email / Phone)</label>
+                            <input id="customerContact" name="customerContact" type="text" placeholder="e.g. john@example.com or 09171234567">
+                        </div>
+
+                        <div class="field">
+                            <label for="paymentMethod">Payment Method</label>
+                            <select id="paymentMethod" name="paymentMethod">
+                                <option value="cash">Cash</option>
+                                <option value="credit_card">Credit Card</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="account_receivable">Account Receivable</option>
+                            </select>
+                        </div>
+                        <div class="help-grid" aria-label="Selected item details">
+                            <div>
+                                <strong>Stock available</strong>
+                                <span id="selectedStock">-</span>
+                            </div>
+                            <div>
+                                <strong>Unit price</strong>
+                                <span id="selectedPrice">-</span>
+                            </div>
+                            <div>
+                                <strong>Total amount</strong>
+                                <span id="selectedTotal">-</span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" name="notes" placeholder="Invoice number, delivery notes, or payment terms"></textarea>
+                        </div>
+                        <button type="submit">💳 Record Sale</button>
+                    </form>
+                </section>
+
+                <!-- Inventory availability -->
+                <section class="panel">
+                    <h2>Inventory Availability</h2>
+                    <p>Stock figures come from the Inventory Dashboard.</p>
+                    <div class="table-wrap" style="margin-top:14px;">
+                        <table aria-label="Inventory availability for sales">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Code</th>
+                                    <th>Stock</th>
+                                    <th>Unit price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventory_items %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.product_code|default:"-" }}</td>
+                                    <td class="{% if item.stock_available %}stock-ok{% else %}stock-empty{% endif %}">{{ item.stock_available }}</td>
+                                    <td>₱{{ item.price }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" style="text-align:center;color:#667085;padding:24px;">No inventory items yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- 2️⃣ HISTORY TAB (Sales History with filters, refund controls, and pagination) -->
+        <div id="history-tab" class="tab-panel {% if active_tab == 'history-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Sales History</h2>
+                <p>Latest recorded sales with refund controls and receipt access.</p>
+            </div>
+
+            <!-- Filter Form -->
+            <div class="panel" style="margin-bottom:20px;">
+                <form method="get" class="filter-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:12px;">
+                    <input type="hidden" name="tab" value="history-tab"> <!-- retain tab -->
+                    <div class="field">
+                        <label>From</label>
+                        <input type="date" name="start_date" value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="field">
+                        <label>To</label>
+                        <input type="date" name="end_date" value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="field">
+                        <label>Customer</label>
+                        <input type="text" name="customer" placeholder="Search customer" value="{{ request.GET.customer }}">
+                    </div>
+                    <div class="field">
+                        <label>Item</label>
+                        <input type="text" name="item" placeholder="Search item" value="{{ request.GET.item }}">
+                    </div>
+                    <div class="field">
+                        <label>Refund status</label>
+                        <select name="refund_status">
+                            <option value="all" {% if request.GET.refund_status == 'all' %}selected{% endif %}>All</option>
+                            <option value="none" {% if request.GET.refund_status == 'none' %}selected{% endif %}>No refund</option>
+                            <option value="partial" {% if request.GET.refund_status == 'partial' %}selected{% endif %}>Partial</option>
+                            <option value="full" {% if request.GET.refund_status == 'full' %}selected{% endif %}>Full</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; gap:8px;">
+                        <button type="submit" style="padding:8px 16px;">Apply</button>
+                        <a href="?tab=history-tab" class="action" style="padding:6px 14px;">Clear</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table aria-label="Sales history with refund and receipt">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Contact</th>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Unit price</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Notes</th>
+                            <th>Refund</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in sales_history_page_obj %}
+                        <tr>
+                            <td>#{{ order.invoice_number }}</td>
+                            <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ order.customer_name }}</td>
+                            <td>{{ order.customer_contact|default:"-" }}</td>
+                            <td>{{ order.inventory_item.name }}{% if order.inventory_item.product_code %} - {{ order.inventory_item.product_code }}{% endif %}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>₱{{ order.unit_price }}</td>
+                            <td>₱{{ order.total_amount }}</td>
+                            <td>{{ order.get_payment_method_display }}</td>
+                            <td>{{ order.notes|default:"-" }}</td>
+                            <td>
+                                {% if order.refund_quantity %}
+                                <div class="stock-empty" style="margin-bottom:4px;font-size:0.8rem;">{{ order.refund_status|title }} refund: {{ order.refund_quantity }} / {{ order.quantity }}</div>
+                                {% endif %}
+                                {% if order.remaining_quantity > 0 %}
+                                <form method="post" class="refund-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="refund">
+                                    <input type="hidden" name="orderId" value="{{ order.id }}">
+                                    <input type="number" name="refundQuantity" min="1" max="{{ order.remaining_quantity }}" value="1" required>
+                                    <input type="text" name="reason" placeholder="Reason (Optional)">
+                                    <button type="submit">Refund</button>
+                                </form>
+                                {% else %}
+                                <span class="stock-empty">Fully refunded</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="action" href="{% url 'sales_receipt' order.id %}" style="font-size:0.75rem;padding:4px 12px;">View</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" style="text-align:center;color:#667085;padding:24px;">No sales match your filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                {% if sales_history_page_obj.has_previous %}
+                    <a href="?history_page=1&{{ request.GET.urlencode }}&tab=history-tab">First</a>
+                    <a href="?history_page={{ sales_history_page_obj.previous_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Previous</a>
+                {% endif %}
+                <span>Page {{ sales_history_page_obj.number }} of {{ sales_history_page_obj.paginator.num_pages }}</span>
+                {% if sales_history_page_obj.has_next %}
+                    <a href="?history_page={{ sales_history_page_obj.next_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Next</a>
+                    <a href="?history_page={{ sales_history_page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}&tab=history-tab">Last</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3️⃣ REFUND HISTORY TAB -->
+        <div id="refund-tab" class="tab-panel {% if active_tab == 'refund-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Refund History</h2>
+                <p>All refund transactions recorded against sales orders.</p>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Item</th>
+                            <th>Quantity Refunded</th>
+                            <th>Amount</th>
+                            <th>Reason</th>
+                            <th>Processed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refund in refund_history %}
+                        <tr>
+                            <td>{{ refund.refund_date|date:"Y-m-d H:i" }}</td>
+                            <td>#{{ refund.sales_order.id }}</td>
+                            <td>{{ refund.sales_order.customer_name }}</td>
+                            <td>{{ refund.sales_order.inventory_item.name }}</td>
+                            <td>{{ refund.refund_quantity }}</td>
+                            <td>₱{{ refund.refund_amount }}</td>
+                            <td>{{ refund.reason|default:"-" }}</td>
+                            <td>{{ refund.processed_by.get_full_name|default:refund.processed_by.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No refunds recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4️⃣ ANALYTICS TAB -->
+        <div id="analytics-tab" class="tab-panel {% if active_tab == 'analytics-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Reporting &amp; Analytics</h2>
+                <p>Sales totals by day, week, month, peak hour, and per-purchase performance.</p>
+            </div>
+
+            <!-- Chart cards -->
+            <div class="grid-3">
+                <article class="card chart-card">
+                    <h2>📅 Daily Sales</h2>
+                    <p>{{ daily_summary|length }} day(s)</p>
+                    {% if daily_summary %}
+                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Daily sales line chart">
+                        <path d="M 20 100 C 60 85, 80 70, 120 78 S 180 105, 220 70 S 280 40, 300 30" fill="none" stroke="#0f766e" stroke-width="3" />
+                        <circle cx="300" cy="30" r="5" fill="#0f766e" />
+                    </svg>
+                    <div class="chart-labels">
+                        {% for item in daily_summary %}
+                        <span>{{ item.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="chart-rows">
+                        {% for item in daily_summary %}
+                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="margin-top:12px;">No daily sales yet.</p>
+                    {% endif %}
+                </article>
+
+                <article class="card chart-card">
+                    <h2>📆 Weekly Sales</h2>
+                    <p>{{ weekly_summary|length }} week(s)</p>
+                    {% if weekly_summary %}
+                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Weekly sales line chart">
+                        <path d="M 20 95 C 65 80, 90 65, 125 70 S 185 90, 220 60 S 275 35, 300 30" fill="none" stroke="#0f766e" stroke-width="3" />
+                        <circle cx="300" cy="30" r="5" fill="#0f766e" />
+                    </svg>
+                    <div class="chart-labels">
+                        {% for item in weekly_summary %}
+                        <span>{{ item.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="chart-rows">
+                        {% for item in weekly_summary %}
+                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="margin-top:12px;">No weekly sales yet.</p>
+                    {% endif %}
+                </article>
+
+                <article class="card chart-card">
+                    <h2>📊 Monthly Sales</h2>
+                    <p>{{ monthly_summary|length }} month(s)</p>
+                    {% if monthly_summary %}
+                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Monthly sales line chart">
+                        <path d="M 20 90 C 60 78, 95 55, 125 62 S 185 88, 220 55 S 285 28, 300 20" fill="none" stroke="#134e4a" stroke-width="3" />
+                        <circle cx="300" cy="20" r="5" fill="#134e4a" />
+                    </svg>
+                    <div class="chart-labels">
+                        {% for item in monthly_summary %}
+                        <span>{{ item.label }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="chart-rows">
+                        {% for item in monthly_summary %}
+                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="margin-top:12px;">No monthly sales yet.</p>
+                    {% endif %}
+                </article>
+            </div>
+
+            <!-- KPI cards -->
+            <div class="grid-3" style="margin-top:16px;">
+                <article class="card">
+                    <h2>⏰ Peak Sales Hour</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">{{ peak_hour|default:"No sales yet" }}</p>
+                </article>
+                <article class="card">
+                    <h2>💰 Total Revenue</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">₱{{ total_revenue }}</p>
+                </article>
+                <article class="card">
+                    <h2>📈 Estimated Profit</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">₱{{ total_profit }}</p>
+                </article>
+            </div>
+
+            <!-- Sales by Category Chart -->
+            <div class="panel" style="margin-top:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                    <h2 style="margin:0;">Sales by Category</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button class="action chart-toggle" data-view="revenue" style="padding:4px 12px; background:var(--brand); color:#fff; border-color:var(--brand);">Revenue</button>
+                        <button class="action chart-toggle" data-view="quantity" style="padding:4px 12px;">Quantity</button>
+                    </div>
+                </div>
+                <div id="categoryChart" style="display:flex; flex-direction:column; gap:8px;">
+                    {% for cat in category_chart_data %}
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:100px; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ cat.name }}">{{ cat.name }}</span>
+                        <div style="flex:1; background:#f2f4f7; height:24px; border-radius:4px; position:relative; overflow:hidden;">
+                            <div class="bar-revenue" style="height:100%; background:var(--brand); border-radius:4px; width:{{ cat.revenue_percent|floatformat:1 }}%; transition:width 0.3s;"></div>
+                            <div class="bar-quantity" style="display:none; height:100%; background:#f59e0b; border-radius:4px; width:{{ cat.quantity_percent|floatformat:1 }}%; transition:width 0.3s;"></div>
+                        </div>
+                        <span class="bar-label-revenue" style="font-weight:600; min-width:80px; text-align:right;">₱{{ cat.revenue|floatformat:0 }}</span>
+                        <span class="bar-label-quantity" style="display:none; font-weight:600; min-width:80px; text-align:right;">{{ cat.quantity }}</span>
+                    </div>
+                    {% empty %}
+                    <p style="color:var(--muted);">No sales data available for chart.</p>
+                    {% endfor %}
+                </div>
+            </div>            
+        </div>
+
+        <!-- Footer action -->
+        <div style="margin-top:12px;">
+            <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
+        </div>
+
+    </main>
+</div>
+
+<!-- ─── SCRIPTS ─── -->
+<script>
+    (function() {
+        // ── Tab switching (now using URL parameter or active_tab) ──
+        const tabs = document.querySelectorAll('.sidebar-nav .tab-button');
+        const panels = {
+            'sales-tab': document.getElementById('sales-tab'),
+            'history-tab': document.getElementById('history-tab'),
+            'refund-tab': document.getElementById('refund-tab'),
+            'analytics-tab': document.getElementById('analytics-tab'),
+        };
+
+        // Function to activate a tab
+        function activateTab(targetId) {
+            tabs.forEach((btn) => {
+                const isTarget = btn.dataset.tabTarget === targetId;
+                btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+            });
+            Object.keys(panels).forEach((id) => {
+                if (panels[id]) {
+                    panels[id].classList.toggle('is-active', id === targetId);
+                }
+            });
+        }
+
+        // Set initial active tab based on server-side active_tab (already set in HTML)
+        // We'll also ensure the URL has ?tab=... if missing
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && panels[tabParam]) {
+            activateTab(tabParam);
+        } else {
+            // If no tab param, use the active_tab from template (which is set by server)
+            const activeTab = '{{ active_tab|default:"sales-tab" }}';
+            if (panels[activeTab]) {
+                activateTab(activeTab);
+            }
+        }
+
+        // Click handlers: update URL with tab parameter
+        tabs.forEach((btn) => {
+            btn.addEventListener('click', function() {
+                const targetId = this.dataset.tabTarget;
+                // Update URL without reload
+                const url = new URL(window.location);
+                url.searchParams.set('tab', targetId);
+                window.history.pushState({}, '', url);
+                activateTab(targetId);
+            });
+        });
+
+        // ── Category performance select sync (unchanged) ──
+        document.querySelectorAll('.product-code-select').forEach((select) => {
+            const card = select.closest('[data-category-card]');
+            if (!card) return;
+            const revenueEl = card.querySelector('.metric-revenue');
+            const quantityEl = card.querySelector('.metric-quantity');
+            const ordersEl = card.querySelector('.metric-orders');
+            const stockEl = card.querySelector('.perf-stock');
+
+            function sync() {
+                const opt = select.options[select.selectedIndex];
+                if (!opt || !revenueEl || !quantityEl || !ordersEl || !stockEl) return;
+                revenueEl.textContent = '₱' + (opt.dataset.revenue || '0.00');
+                quantityEl.textContent = opt.dataset.quantity || '0';
+                ordersEl.textContent = opt.dataset.orders || '0';
+                const st = Number(opt.dataset.stock || 0);
+                stockEl.textContent = st + ' in stock';
+                stockEl.classList.toggle('low', st === 0);
+            }
+            select.addEventListener('change', sync);
+            sync();
+        });
+
+        // ── Sale preview ──
+        const itemSelect = document.getElementById('inventoryItem');
+        const quantityInput = document.getElementById('quantity');
+        const selectedStock = document.getElementById('selectedStock');
+        const selectedPrice = document.getElementById('selectedPrice');
+        const selectedTotal = document.getElementById('selectedTotal');
+
+        function fmt(v) {
+            const n = Number(v || 0);
+            return n.toFixed(2);
+        }
+
+        function updatePreview() {
+            const opt = itemSelect.options[itemSelect.selectedIndex];
+            const stock = Number(opt?.dataset?.stock || 0);
+            const price = Number(opt?.dataset?.price || 0);
+            const qty = Number(quantityInput.value || 0);
+
+            selectedStock.textContent = itemSelect.value ? stock : '-';
+            selectedPrice.textContent = itemSelect.value ? '₱' + fmt(price) : '-';
+            selectedTotal.textContent = (itemSelect.value && qty > 0) ? '₱' + fmt(price * qty) : '-';
+            if (itemSelect.value) {
+                quantityInput.max = stock;
+            }
+        }
+
+        if (itemSelect) {
+            itemSelect.addEventListener('change', updatePreview);
+            quantityInput.addEventListener('input', updatePreview);
+            updatePreview();
+        }
+
+        // ── Mobile scroll ──
+        if (window.innerWidth <= 768) {
+            tabs.forEach((btn) => {
+                btn.addEventListener('click', function() {
+                    document.querySelector('.main-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        }
+        
+        // ── Sales by Category chart toggle ──
+        const toggleBtns = document.querySelectorAll('.chart-toggle');
+        const chartContainer = document.getElementById('categoryChart');
+
+        function setChartView(view) {
+            // Update button styles
+            toggleBtns.forEach(btn => {
+                btn.style.background = btn.dataset.view === view ? 'var(--brand)' : '#fff';
+                btn.style.color = btn.dataset.view === view ? '#fff' : 'var(--brand)';
+                btn.style.borderColor = btn.dataset.view === view ? 'var(--brand)' : 'var(--line)';
+            });
+
+            // Toggle visibility of revenue vs quantity bars and labels
+            const barsRevenue = chartContainer.querySelectorAll('.bar-revenue');
+            const barsQuantity = chartContainer.querySelectorAll('.bar-quantity');
+            const labelsRevenue = chartContainer.querySelectorAll('.bar-label-revenue');
+            const labelsQuantity = chartContainer.querySelectorAll('.bar-label-quantity');
+
+            if (view === 'revenue') {
+                barsRevenue.forEach(b => b.style.display = 'block');
+                barsQuantity.forEach(b => b.style.display = 'none');
+                labelsRevenue.forEach(l => l.style.display = 'block');
+                labelsQuantity.forEach(l => l.style.display = 'none');
+            } else { // quantity
+                barsRevenue.forEach(b => b.style.display = 'none');
+                barsQuantity.forEach(b => b.style.display = 'block');
+                labelsRevenue.forEach(l => l.style.display = 'none');
+                labelsQuantity.forEach(l => l.style.display = 'block');
+            }
+        }
+
+        // Attach click events
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                setChartView(this.dataset.view);
+            });
+        });
+
+        // Default to revenue (already active)
+        setChartView('revenue');
+    })();
+</script>
+{% endblock %}

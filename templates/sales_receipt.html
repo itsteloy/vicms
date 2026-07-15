@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}Sales Receipt{% endblock %}
+
+{% block extra_head %}
+<style>
+  :root {
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+  }
+
+  body {
+    display: block;
+    padding: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+  }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 20px 32px;
+    background: #101828;
+    color: #ffffff;
+  }
+
+  .topbar strong {
+    color: #fef3c7;
+  }
+
+  .topbar nav {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .topbar a,
+  .button {
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .topbar a {
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 9px 12px;
+  }
+
+  .receipt-shell {
+    width: min(860px, calc(100% - 48px));
+    margin: 42px auto;
+    display: grid;
+    gap: 18px;
+  }
+
+  .receipt {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 42px rgba(16, 24, 40, 0.08);
+    padding: 34px;
+  }
+
+  .receipt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .company {
+    display: grid;
+    gap: 10px;
+  }
+
+  .company-logo {
+    display: block;
+    width: min(460px, 80vw);
+    max-height: 180px;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .company p,
+  .receipt-meta p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .receipt-meta {
+    text-align: right;
+    min-width: 180px;
+  }
+
+  .receipt-meta strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .detail-box {
+    border: 1px solid var(--line);
+    background: var(--soft);
+    padding: 16px;
+  }
+
+  .detail-box strong {
+    display: block;
+    color: #344054;
+    font-size: 0.84rem;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .detail-box span {
+    display: block;
+    font-weight: 800;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+
+  thead {
+    background: var(--soft);
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 14px;
+    border: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    color: #475467;
+    font-weight: 800;
+  }
+
+  .totals {
+    width: min(360px, 100%);
+    margin-left: auto;
+    margin-top: 20px;
+    border: 1px solid var(--line);
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .total-row:last-child {
+    border-bottom: 0;
+    background: #101828;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 900;
+  }
+
+  .notes {
+    margin-top: 24px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .button {
+    border: 1px solid var(--brand);
+    background: var(--brand);
+    color: #ffffff;
+    padding: 12px 16px;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .button.secondary {
+    background: #ffffff;
+    color: var(--brand);
+  }
+
+  @media (max-width: 680px) {
+    .topbar,
+    .receipt-header,
+    .details {
+      align-items: flex-start;
+      flex-direction: column;
+      grid-template-columns: 1fr;
+    }
+
+    .topbar {
+      padding: 18px 22px;
+    }
+
+    .receipt-shell {
+      width: calc(100% - 32px);
+      margin: 32px auto;
+    }
+
+    .receipt {
+      padding: 22px;
+    }
+
+    .receipt-meta {
+      text-align: left;
+    }
+  }
+
+  @media print {
+    body {
+      background: #ffffff;
+    }
+
+    .topbar,
+    .actions {
+      display: none;
+    }
+
+    .receipt-shell {
+      width: 100%;
+      margin: 0;
+    }
+
+    .receipt {
+      box-shadow: none;
+      border: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main>
+  <div class="topbar">
+    <div><strong>{{ company_name }}</strong> Management System</div>
+    <nav aria-label="Receipt navigation">
+      <a href="{% url 'sales_dashboard' %}">Sales</a>
+      <a href="{% url 'dashboard' %}">Dashboards</a>
+      <a href="{% url 'logout' %}">Logout</a>
+    </nav>
+  </div>
+
+  <section class="receipt-shell">
+    <article class="receipt" aria-label="Sales receipt">
+      <header class="receipt-header">
+        <div class="company">
+          <img class="company-logo" src="/media/inventory_pics/VERSATEC%20LOGO.png" alt="{{ company_name }} logo">
+          <p>Official Sales Receipt</p>
+        </div>
+        <div class="receipt-meta">
+          <strong>Receipt #{{ order.id|stringformat:"06d" }}</strong>
+          <p>{{ order.created_at|date:"F d, Y" }}</p>
+          <p>{{ order.created_at|date:"h:i A" }}</p>
+        </div>
+      </header>
+
+      <section class="details" aria-label="Receipt details">
+        <div class="detail-box">
+          <strong>Customer</strong>
+          <span>{{ order.customer_name }}</span>
+        </div>
+        <div class="detail-box">
+          <strong>Product Code</strong>
+          <span>{{ order.inventory_item.product_code|default:"-" }}</span>
+        </div>
+        {% if order.refund_quantity %}
+          <div class="detail-box">
+            <strong>Refund Status</strong>
+            <span>{{ order.refund_status|title }} ({{ order.refund_quantity }} of {{ order.quantity }} units)</span>
+          </div>
+        {% endif %}
+      </section>
+
+      <table aria-label="Sold item">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ order.inventory_item.name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>₱{{ order.unit_price }}</td>
+            <td>₱{{ order.total_amount }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="totals" aria-label="Receipt totals">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <strong>₱{{ order.total_amount }}</strong>
+        </div>
+        <div class="total-row">
+          <span>Total</span>
+          <strong>₱{{ order.total_amount }}</strong>
+        </div>
+      </div>
+
+      {% if order.notes %}
+        <p class="notes"><strong>Notes:</strong> {{ order.notes }}</p>
+      {% endif %}
+    </article>
+
+    <div class="actions">
+      <button class="button" type="button" onclick="window.print()">Print Receipt</button>
+      <a class="button secondary" href="{% url 'sales_dashboard' %}">Back to Sales</a>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,1264 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Inventory Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── reset / base (same as sales dashboard) ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  :root {
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #ecfdf3;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --danger: #b42318;
+    --success: #027a48;
+    --sidebar-width: 300px;
+    --radius: 14px;
+    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+  }
+  body {
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── sidebar (identical to sales) ── */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: #1851a2;
+    color: #e6f0f0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+  }
+  .sidebar-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .sidebar-brand .logo-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo-text {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .sidebar-brand .logo-text small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .sidebar-nav {
+    padding: 20px 16px 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-nav .nav-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+    padding: 0 12px 10px;
+    font-weight: 700;
+  }
+  .sidebar-nav .tab-button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+  }
+  .sidebar-nav .tab-button .tab-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .sidebar-nav .tab-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] {
+    background: rgba(48, 118, 239, 0.3);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
+    opacity: 1;
+  }
+  .sidebar-nav .tab-button .tab-badge {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
+    background: rgba(15, 118, 110, 0.4);
+    color: #fff;
+  }
+
+  /* sidebar summary stats */
+  .sidebar-stats {
+    padding: 16px 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-stats .stat-row strong {
+    color: #fff;
+    font-weight: 600;
+  }
+  .sidebar-stats .stat-row .badge {
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* ── main content ── */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 0 32px 40px;
+    background: #f2f4f7;
+    overflow-x: hidden;
+  }
+
+  /* topbar */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid #eaecf0;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    background: transparent;
+    color: var(--ink);
+  }
+  .topbar .greeting h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .topbar .greeting p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .topbar .top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .topbar .top-actions a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: 0.2s;
+  }
+  .topbar .top-actions a:hover {
+    background: var(--soft);
+  }
+  .topbar .top-actions .brand-link {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .topbar .top-actions .brand-link:hover {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+  }
+
+  /* hero stats */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .hero-stats .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .hero-stats .stat-card .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .hero-stats .stat-card .stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 4px;
+    color: var(--ink);
+  }
+
+  /* cards & panels */
+  .card,
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .panel {
+    margin-bottom: 24px;
+  }
+  .card h2,
+  .panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .card p,
+  .panel p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+
+  /* tabs (in main content) – we use sidebar tabs, but keep panels */
+  .tab-panel {
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .tab-panel.is-active {
+    display: block;
+  }
+  @keyframes fadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* form */
+  form {
+    display: grid;
+    gap: 16px;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+  }
+  .field label {
+    color: #475467;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    transition: border 0.2s;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .field.full {
+    grid-column: 1 / -1;
+  }
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .actions button {
+    border: 1px solid transparent;
+    padding: 10px 18px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .save {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
+  .save:hover {
+    background: var(--brand-dark);
+  }
+  .clear {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  .copy {
+    background: #fff;
+    color: var(--brand);
+    border-color: var(--line);
+  }
+  .delete {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+  }
+  table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead {
+    background: var(--soft);
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: middle;
+  }
+  th {
+    color: #475467;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+  .stock-ok {
+    color: var(--success);
+    font-weight: 700;
+  }
+  .stock-empty {
+    color: var(--danger);
+    font-weight: 700;
+  }
+
+  /* toolbar */
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .toolbar input,
+  .toolbar select {
+    border: 1px solid var(--line);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+    flex: 1 1 200px;
+  }
+  .toolbar button {
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .toolbar button:hover {
+    background: var(--soft);
+  }
+
+  .notice {
+    padding: 14px 18px;
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: #344054;
+  }
+
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--brand);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: 0.2s;
+  }
+  .action:hover {
+    background: var(--soft);
+    border-color: var(--brand);
+  }
+
+  /* responsive */
+  @media (max-width: 992px) {
+    :root {
+      --sidebar-width: 260px;
+    }
+    .main-content {
+      padding: 0 20px 32px;
+    }
+    .form-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 768px) {
+    .dashboard-wrapper {
+      flex-direction: column;
+    }
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-height: 420px;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 16px 20px 12px;
+    }
+    .sidebar-nav {
+      padding: 8px 12px;
+    }
+    .sidebar-nav .nav-label {
+      display: none;
+    }
+    .sidebar-nav .tab-button {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+    }
+    .sidebar-stats {
+      display: none;
+    }
+    .main-content {
+      padding: 0 16px 24px;
+    }
+    .hero-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .topbar .top-actions {
+      justify-content: flex-start;
+    }
+  }
+  @media (max-width: 480px) {
+    .hero-stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .toolbar input,
+    .toolbar select {
+      flex: none;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" role="navigation" aria-label="Inventory dashboard navigation">
+    <div class="sidebar-brand">
+      <a href="{% url 'dashboard' %}" class="logo">
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
+        <span class="logo-text">VERSATEC <small>Management System</small></span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Inventory sections">
+      <div class="nav-label">Inventory</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="managePanel">
+        <span class="tab-icon">📦</span>
+        Manage Item
+        <span class="tab-badge">{{ inventory_items|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="allItemsPanel">
+        <span class="tab-icon">📋</span>
+        All Items
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deliveriesPanel">
+        <span class="tab-icon">🚚</span>
+        Deliveries
+        <span class="tab-badge">{{ deliveries|length }}</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-stats">
+      <div class="stat-row">
+        <span>Total items</span>
+        <strong>{{ inventory_items|length }}</strong>
+      </div>
+      <div class="stat-row">
+        <span>Total stock</span>
+        <strong>{{ total_stock|default:0 }}</strong>
+      </div>
+      <div class="stat-row">
+        <span>Low stock (< 10)</span>
+        <strong>{{ low_stock_count|default:0 }}</strong>
+      </div>
+      <div class="stat-row">
+        <span>Deliveries</span>
+        <strong>{{ deliveries|length }}</strong>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- top bar -->
+    <header class="topbar">
+      <div class="greeting">
+        <h2>Inventory Dashboard</h2>
+        <p>Track products, carton details, weights, unit prices, and item images.</p>
+      </div>
+      <div class="top-actions">
+        <a href="{% url 'dashboard' %}">📊 Dashboards</a>
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
+
+    <!-- stats -->
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value">{{ inventory_items|length }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Units</div>
+        <div class="stat-value">{{ total_stock|default:0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Low Stock</div>
+        <div class="stat-value">{{ low_stock_count|default:0 }}</div>
+      </div>
+    </div>
+
+    <!-- TAB PANELS -->
+    <!-- Manage Item -->
+    <div id="managePanel" class="tab-panel is-active">
+      <div class="panel">
+        <h2 id="formTitle">Add Inventory Item</h2>
+        <p>Create or update an inventory record.</p>
+        <form id="inventoryForm" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" id="itemId" name="itemId" value="">
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="productCode">Product Code</label>
+              <input id="productCode" name="productCode" type="text" placeholder="PRD-001">
+            </div>
+            <div class="field">
+              <label for="itemName">Item</label>
+              <select id="itemName" name="itemName" required>
+                <option value="">Select item category</option>
+                {% for option in inventory_item_options %}
+                  <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label for="picture">Upload Image</label>
+              <input id="picture" name="picture" type="file" accept="image/*">
+            </div>
+            <div class="field">
+              <label for="size">Size</label>
+              <input id="size" name="size" type="text" placeholder="45x30x20 cm">
+            </div>
+            <div class="field">
+              <label for="stockAvailable">Stocks available</label>
+              <input id="stockAvailable" name="stockAvailable" type="number" min="0" value="0" required>
+            </div>
+            <div class="field">
+              <label for="pcsPerCtn">PCS/CTN</label>
+              <input id="pcsPerCtn" name="pcsPerCtn" type="number" min="0" value="0" required>
+            </div>
+            <div class="field">
+              <label for="cartonSize">Carton size (m)</label>
+              <input id="cartonSize" name="cartonSize" type="text" placeholder="0.45 x 0.30 x 0.20">
+            </div>
+            <div class="field">
+              <label for="netWeight">N.W (kg)</label>
+              <input id="netWeight" name="netWeight" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field">
+              <label for="grossWeight">G.W (kg)</label>
+              <input id="grossWeight" name="grossWeight" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field">
+              <label for="price">Unit price (PESO)</label>
+              <input id="price" name="price" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field full">
+              <label for="description">Notes</label>
+              <textarea id="description" name="description" placeholder="Additional details, location or supplier"></textarea>
+            </div>
+            <div class="field full">
+              <label>Image preview</label>
+              <div id="picturePreview" style="min-height:84px;color:#667085;">No image</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="save" type="submit">Save Item</button>
+            <button class="clear" id="resetBtn" type="button">Reset</button>
+            <button class="copy" id="viewItemsBtn" type="button">View All Items</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- All Items -->
+    <div id="allItemsPanel" class="tab-panel">
+      <div class="panel">
+        <h2>All Items</h2>
+        <p>View every inventory item and filter by category, code, size, or notes.</p>
+        <div class="toolbar">
+          <select id="categoryFilter" aria-label="Filter by category">
+            <option value="">All categories</option>
+            {% for option in inventory_item_options %}
+              <option value="{{ option }}">{{ option }}</option>
+            {% endfor %}
+          </select>
+          <input id="searchInput" type="search" placeholder="Search all items" aria-label="Search inventory">
+          <button id="clearSearchBtn" type="button">Clear</button>
+        </div>
+
+        <div class="notice" id="emptyNotice">
+          <strong>No inventory yet.</strong> Use the Manage Item tab to add the first record.
+        </div>
+
+        <div class="table-wrap">
+          <table aria-label="Inventory items">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Picture</th>
+                <th>Size</th>
+                <th>Stocks</th>
+                <th>PCS/CTN</th>
+                <th>Carton size</th>
+                <th>N.W (kg)</th>
+                <th>G.W (kg)</th>
+                <th>Unit price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              {% for item in inventory_items %}
+                <tr data-id="{{ item.id }}">
+                  <td>
+                    <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
+                    <strong>{{ item.name }}</strong>
+                  </td>
+                  <td>
+                    {% if item.picture %}
+                      <img src="{{ item.picture.url }}" alt="{{ item.name }}" style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
+                    {% else %}
+                      <span style="color:#667085;font-size:.88rem;">No image</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ item.size|default:"-" }}</td>
+                  <td>{{ item.stock_available }}</td>
+                  <td>{{ item.pcs_per_ctn }}</td>
+                  <td>{{ item.carton_size|default:"-" }}</td>
+                  <td>{{ item.net_weight }}</td>
+                  <td>{{ item.gross_weight }}</td>
+                  <td>₱{{ item.price }}</td>
+                  <td>
+                    <div class="actions" style="justify-content:flex-start;">
+                      <button class="copy" type="button" data-action="edit">Edit</button>
+                      <button class="delete" type="button" data-action="delete">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+              <tr data-empty-state>
+                <td colspan="10" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+        <!-- Deliveries Panel -->
+    <div id="deliveriesPanel" class="tab-panel">
+      <div class="panel">
+        <h2>Delivery Log</h2>
+        <p>Record incoming deliveries with items, carton quantities, and costs.</p>
+        <form id="deliveryForm" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_delivery">
+
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="field">
+              <label for="delivery_date">Delivery Date</label>
+              <input type="date" id="delivery_date" name="delivery_date" required>
+            </div>
+            <div class="field">
+              <label for="driver">Driver</label>
+              <input type="text" id="driver" name="driver" placeholder="Driver name" required>
+            </div>
+            <div class="field">
+              <label for="delivered_from">Delivered From</label>
+              <input type="text" id="delivered_from" name="delivered_from" placeholder="Supplier or source" required>
+            </div>
+            <div class="field">
+              <label for="delivered_to">Delivered To</label>
+              <input type="text" id="delivered_to" name="delivered_to" placeholder="Location" required>
+            </div>
+          </div>
+
+          <hr style="margin:16px 0;">
+          <h3 style="font-size:1rem;font-weight:700;">Items</h3>
+          <div id="deliveryItemsContainer">
+            <!-- First row (template) -->
+            <div class="delivery-item-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;margin-bottom:8px;align-items:end;">
+              <div class="field"><label>Item Type</label><input type="text" name="item_type[]" placeholder="e.g., ELBOW" required></div>
+              <div class="field"><label>Cartons</label><input type="number" name="quantity_cartons[]" min="1" value="1" required></div>
+              <div class="field"><label>Pcs per Carton</label><input type="number" name="pcs_per_carton[]" min="1" value="1" required></div>
+              <div class="field"><label>Cost per Carton (₱)</label><input type="number" name="cost_per_carton[]" min="0" step="0.01" value="0.00" required></div>
+              <div style="display:flex;gap:6px;padding-top:22px;">
+                <button type="button" class="remove-item-row" style="background:transparent;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;cursor:pointer;color:#b42318;">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" id="addItemRow" style="margin:8px 0 16px;padding:8px 16px;border:1px dashed #d0d5dd;background:transparent;border-radius:8px;cursor:pointer;">+ Add another item</button>
+
+          <div class="actions">
+            <button class="save" type="submit">Record Delivery</button>
+            <button class="clear" type="reset">Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Recent Deliveries</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Delivery #</th>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Items</th>
+                <th>Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for delivery in deliveries %}
+              <tr>
+                <td>{{ delivery.delivery_number }}</td>
+                <td>{{ delivery.delivery_date|date:"Y-m-d" }}</td>
+                <td>{{ delivery.driver }}</td>
+                <td>{{ delivery.delivered_from }}</td>
+                <td>{{ delivery.delivered_to }}</td>
+                <td>
+                  {% for line in delivery.lines.all %}
+                    {{ line.item_type }} ({{ line.quantity_cartons }} ctn × {{ line.pcs_per_carton }} pcs)<br>
+                  {% endfor %}
+                </td>
+                <td>₱{{ delivery.total_cost|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" style="text-align:center;color:#667085;">No deliveries recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
+    </div>
+  </main>
+
+  <!-- Delete confirmation modal with password visibility toggle -->
+  <div id="deleteModal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:30px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <h3 style="margin-top:0;font-size:1.2rem;">Confirm Deletion</h3>
+      <p style="color:#475467;margin-bottom:16px;">Please enter your password to delete this item.</p>
+      <div style="position:relative;">
+        <input type="password" id="deletePassword" placeholder="Enter password" style="width:100%;padding:10px 40px 10px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:0.95rem;margin-bottom:12px;box-sizing:border-box;">
+        <button type="button" id="togglePassword" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:1.2rem;padding:4px;color:#667085;" aria-label="Show password">
+          👁️
+        </button>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="deleteCancelBtn" style="padding:8px 16px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;cursor:pointer;">Cancel</button>
+        <button id="deleteConfirmBtn" style="padding:8px 16px;border:none;border-radius:8px;background:#b42318;color:#fff;cursor:pointer;">Delete</button>
+      </div>
+      <div id="deleteError" style="color:#b42318;margin-top:8px;font-size:0.9rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+{{ inventory_items_json|json_script:"inventory-data" }}
+
+<script>
+  (function() {
+    // ── Sidebar tab switching ──
+    const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
+    const panels = {
+      managePanel: document.getElementById('managePanel'),
+      allItemsPanel: document.getElementById('allItemsPanel'),
+      deliveriesPanel: document.getElementById('deliveriesPanel'),
+    };
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
+        this.setAttribute('aria-selected', 'true');
+        const targetId = this.dataset.tabTarget;
+        Object.keys(panels).forEach(id => {
+          panels[id].classList.toggle('is-active', id === targetId);
+        });
+      });
+    });
+
+    // ── Inventory management ──
+    const storageKey = 'inventory-management-data-v1';
+    const inventoryDataElement = document.getElementById('inventory-data');
+    const form = document.getElementById('inventoryForm');
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const viewItemsBtn = document.getElementById('viewItemsBtn');
+    const inventoryTableBody = document.getElementById('inventoryTableBody');
+    const emptyNotice = document.getElementById('emptyNotice');
+    const formTitle = document.getElementById('formTitle');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    const picturePreview = document.getElementById('picturePreview');
+    const fields = {
+      itemId: document.getElementById('itemId'),
+      productCode: document.getElementById('productCode'),
+      itemName: document.getElementById('itemName'),
+      picture: document.getElementById('picture'),
+      size: document.getElementById('size'),
+      stockAvailable: document.getElementById('stockAvailable'),
+      pcsPerCtn: document.getElementById('pcsPerCtn'),
+      cartonSize: document.getElementById('cartonSize'),
+      netWeight: document.getElementById('netWeight'),
+      grossWeight: document.getElementById('grossWeight'),
+      price: document.getElementById('price'),
+      description: document.getElementById('description'),
+    };
+
+    let inventory = [];
+    let editingId = null;
+    let currentPictureData = '';
+
+    function normalizeInventory(data) {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') {
+        if (Array.isArray(data.items)) return data.items;
+        if (Array.isArray(data.inventory)) return data.inventory;
+      }
+      return [];
+    }
+
+    function loadInventory() {
+      const raw = inventoryDataElement?.textContent;
+      if (!raw) { inventory = []; return; }
+      try { inventory = normalizeInventory(JSON.parse(raw)); } catch { inventory = []; }
+    }
+
+    function isRenderablePicture(src) {
+      return Boolean(src) && (/^https?:\/\//i.test(src) || /^data:image\//i.test(src) || src.startsWith('/'));
+    }
+
+    function renderPicturePreview(src) {
+      picturePreview.innerHTML = isRenderablePicture(src)
+        ? `<img src="${src}" alt="Preview" style="width:100%;max-width:180px;border:1px solid #eaecf0;object-fit:cover;border-radius:6px;">`
+        : '<span style="color:#667085;">No image</span>';
+    }
+
+    function getFilteredInventory() {
+      const items = Array.isArray(inventory) ? inventory : [];
+      const query = searchInput.value.trim().toLowerCase();
+      const category = categoryFilter.value.trim().toLowerCase();
+      return items.filter(item => {
+        const matchesCategory = !category || String(item.name || '').toLowerCase() === category;
+        const matchesSearch = !query || [item.productCode, item.name, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description]
+          .join(' ').toLowerCase().includes(query);
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function renderInventory() {
+      const items = getFilteredInventory();
+      const visibleIds = new Set(items.map(i => String(i.id)));
+      const rows = Array.from(inventoryTableBody.querySelectorAll('tr[data-id]'));
+      const noResultsRow = inventoryTableBody.querySelector('[data-empty-state]');
+      rows.forEach(row => {
+        row.style.display = visibleIds.has(String(row.dataset.id)) ? '' : 'none';
+      });
+      if (noResultsRow) noResultsRow.style.display = items.length ? 'none' : '';
+      emptyNotice.style.display = inventory.length ? 'none' : 'block';
+    }
+
+    function resetForm() {
+      form.reset();
+      fields.itemId.value = '';
+      editingId = null;
+      currentPictureData = '';
+      renderPicturePreview('');
+      formTitle.textContent = 'Add Inventory Item';
+      fields.stockAvailable.value = 0;
+      fields.pcsPerCtn.value = 0;
+      fields.netWeight.value = '0.00';
+      fields.grossWeight.value = '0.00';
+      fields.price.value = '0.00';
+    }
+
+    function fillForm(item) {
+      fields.itemId.value = item.id || '';
+      fields.productCode.value = item.productCode || '';
+      fields.itemName.value = item.name;
+      fields.picture.value = '';
+      currentPictureData = item.picture || '';
+      renderPicturePreview(currentPictureData);
+      fields.size.value = item.size;
+      fields.stockAvailable.value = item.stockAvailable;
+      fields.pcsPerCtn.value = item.pcsPerCtn;
+      fields.cartonSize.value = item.cartonSize;
+      fields.netWeight.value = item.netWeight;
+      fields.grossWeight.value = item.grossWeight;
+      fields.price.value = item.price;
+      fields.description.value = item.description;
+      editingId = item.id;
+      formTitle.textContent = 'Edit Inventory Item';
+      tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
+      document.querySelector('.sidebar-nav .tab-button[data-tab-target="managePanel"]').setAttribute('aria-selected', 'true');
+      Object.keys(panels).forEach(id => panels[id].classList.toggle('is-active', id === 'managePanel'));
+    }
+
+    function handlePictureChange() {
+      const file = fields.picture.files?.[0];
+      if (!file) { if (!currentPictureData) renderPicturePreview(''); return; }
+      const reader = new FileReader();
+      reader.onload = () => { currentPictureData = reader.result; renderPicturePreview(currentPictureData); };
+      reader.readAsDataURL(file);
+    }
+
+    let pendingDeleteId = null;
+
+    function showDeleteModal(itemId) {
+      pendingDeleteId = itemId;
+      const modal = document.getElementById('deleteModal');
+      const input = document.getElementById('deletePassword');
+      const errorDiv = document.getElementById('deleteError');
+      modal.style.display = 'flex';
+      input.value = '';
+      errorDiv.style.display = 'none';
+      input.focus();
+    }
+
+    function hideDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+      pendingDeleteId = null;
+    }
+
+    // ✅ FIXED: correct append and parameter name
+    async function performDelete(itemId, password) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('itemId', itemId);
+      formData.append('password', password);
+      formData.append('csrfmiddlewaretoken', csrfToken);
+
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Delete failed.');
+      }
+      return response.json();
+    }
+
+    async function handleTableClick(e) {
+      const button = e.target.closest('button');
+      if (!button) return;
+      const row = button.closest('tr');
+      const itemId = row?.dataset?.id;
+      if (!itemId) return;
+      const action = button.dataset.action;
+      const item = inventory.find(entry => String(entry.id) === String(itemId));
+      if (!item) return;
+
+      if (action === 'edit') { fillForm(item); }
+      if (action === 'delete') {
+        showDeleteModal(itemId);
+      }
+    }
+
+    document.getElementById('deleteConfirmBtn').addEventListener('click', async function () {
+      const passwordInput = document.getElementById('deletePassword');
+      const errorDiv = document.getElementById('deleteError');
+      const password = passwordInput.value.trim();
+      if (!password) {
+        errorDiv.textContent = 'Password is required.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      errorDiv.style.display = 'none';
+      const itemId = pendingDeleteId;
+      if (!itemId) return;
+      this.disabled = true;
+      try {
+        const result = await performDelete(itemId, password);
+        if (!result.deleted) throw new Error('Not deleted.');
+        inventory = inventory.filter(entry => String(entry.id) !== String(itemId));
+        localStorage.setItem(storageKey, JSON.stringify(inventory));
+        renderInventory();
+        hideDeleteModal();
+      } catch (err) {
+        errorDiv.textContent = err.message || 'An error occurred.';
+        errorDiv.style.display = 'block';
+      }
+      this.disabled = false;
+    });
+
+    document.getElementById('deleteCancelBtn').addEventListener('click', hideDeleteModal);
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        hideDeleteModal();
+      }
+    });
+
+    document.getElementById('deletePassword').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('deleteConfirmBtn').click();
+      }
+    });
+
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('deletePassword');
+
+    togglePassword.addEventListener('click', function() {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    function clearSearch() {
+      searchInput.value = '';
+      categoryFilter.value = '';
+      renderInventory();
+      searchInput.focus();
+    }
+
+    viewItemsBtn.addEventListener('click', () => {
+      document.querySelector('.sidebar-nav .tab-button[data-tab-target="allItemsPanel"]').click();
+    });
+    resetBtn.addEventListener('click', resetForm);
+    fields.picture.addEventListener('change', handlePictureChange);
+    inventoryTableBody.addEventListener('click', handleTableClick);
+    searchInput.addEventListener('input', renderInventory);
+    categoryFilter.addEventListener('change', renderInventory);
+    clearSearchBtn.addEventListener('click', clearSearch);
+
+    loadInventory();
+    renderInventory();
+    
+        // ── Delivery form: add/remove item rows ──
+    const deliveryContainer = document.getElementById('deliveryItemsContainer');
+    const addItemBtn = document.getElementById('addItemRow');
+
+    function createItemRow() {
+      const template = deliveryContainer.querySelector('.delivery-item-row');
+      const clone = template.cloneNode(true);
+      // Clear input values
+      clone.querySelectorAll('input').forEach(input => input.value = '');
+      // Set defaults
+      const qtyInput = clone.querySelector('input[name="quantity_cartons[]"]');
+      if (qtyInput) qtyInput.value = 1;
+      const pcsInput = clone.querySelector('input[name="pcs_per_carton[]"]');
+      if (pcsInput) pcsInput.value = 1;
+      const costInput = clone.querySelector('input[name="cost_per_carton[]"]');
+      if (costInput) costInput.value = '0.00';
+      // Attach remove event
+      const removeBtn = clone.querySelector('.remove-item-row');
+      removeBtn.addEventListener('click', function() {
+        if (deliveryContainer.children.length > 1) {
+          clone.remove();
+        } else {
+          alert('You need at least one item row.');
+        }
+      });
+      return clone;
+    }
+
+    addItemBtn.addEventListener('click', function() {
+      const newRow = createItemRow();
+      deliveryContainer.appendChild(newRow);
+      // Focus first input
+      newRow.querySelector('input')?.focus();
+    });
+
+    // Attach remove events to existing rows (except the first)
+    document.querySelectorAll('.delivery-item-row').forEach((row, index) => {
+      if (index > 0) {
+        const removeBtn = row.querySelector('.remove-item-row');
+        removeBtn.addEventListener('click', function() {
+          if (deliveryContainer.children.length > 1) {
+            row.remove();
+          } else {
+            alert('You need at least one item row.');
+          }
+        });
+      }
+    });
+
+    // Reset button: clear rows to only one
+    document.querySelector('#deliveryForm .clear')?.addEventListener('click', function(e) {
+      // Prevent default reset which may not clear all
+      e.preventDefault();
+      // Keep only first row
+      const rows = deliveryContainer.querySelectorAll('.delivery-item-row');
+      rows.forEach((row, idx) => {
+        if (idx === 0) {
+          row.querySelectorAll('input').forEach(inp => inp.value = '');
+          row.querySelector('input[name="quantity_cartons[]"]').value = 1;
+          row.querySelector('input[name="pcs_per_carton[]"]').value = 1;
+          row.querySelector('input[name="cost_per_carton[]"]').value = '0.00';
+        } else {
+          row.remove();
+        }
+      });
+      // Also reset header fields (they are not in this form's reset)
+      document.querySelector('#deliveryForm input[name="delivery_date"]').value = '';
+      document.querySelector('#deliveryForm input[name="driver"]').value = '';
+      document.querySelector('#deliveryForm input[name="delivered_from"]').value = '';
+      document.querySelector('#deliveryForm input[name="delivered_to"]').value = '';
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}HR Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── reset / base ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  :root {
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #ecfdf3;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --danger: #b42318;
+    --success: #027a48;
+    --sidebar-width: 300px;
+    --radius: 14px;
+    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+  }
+  body {
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── sidebar ── */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: #1851a2;
+    color: #e6f0f0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+  }
+  .sidebar-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .sidebar-brand .logo-icon {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo-text {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .sidebar-brand .logo-text small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .sidebar-nav {
+    padding: 20px 16px 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-nav .nav-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+    padding: 0 12px 10px;
+    font-weight: 700;
+  }
+  .sidebar-nav .tab-button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+  }
+  .sidebar-nav .tab-button .tab-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .sidebar-nav .tab-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] {
+    background: rgba(48, 118, 239, 0.3);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
+    opacity: 1;
+  }
+  .sidebar-nav .tab-button .tab-badge {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
+    background: rgba(15, 118, 110, 0.4);
+    color: #fff;
+  }
+
+  .sidebar-stats {
+    padding: 16px 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-stats .stat-row strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── main content ── */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 0 32px 40px;
+    background: #f2f4f7;
+    overflow-x: hidden;
+  }
+
+  /* topbar */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid #eaecf0;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    background: transparent;
+    color: var(--ink);
+  }
+  .topbar .greeting h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .topbar .greeting p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .topbar .top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .topbar .top-actions a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: 0.2s;
+  }
+  .topbar .top-actions a:hover {
+    background: var(--soft);
+  }
+
+  /* hero stats */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .hero-stats .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .hero-stats .stat-card .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .hero-stats .stat-card .stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 4px;
+    color: var(--ink);
+  }
+
+  /* cards & panels */
+  .card,
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .panel {
+    margin-bottom: 24px;
+  }
+  .card h2,
+  .panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .card p,
+  .panel p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+
+  /* tabs in content */
+  .tab-panel {
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .tab-panel.is-active {
+    display: block;
+  }
+  @keyframes fadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* table */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    margin-top: 12px;
+  }
+  table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead {
+    background: var(--soft);
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: middle;
+  }
+  th {
+    color: #475467;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--brand);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: 0.2s;
+  }
+  .action:hover {
+    background: var(--soft);
+    border-color: var(--brand);
+  }
+  .field-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+
+  /* responsive */
+  @media (max-width: 992px) {
+    :root {
+      --sidebar-width: 260px;
+    }
+    .main-content {
+      padding: 0 20px 32px;
+    }
+  }
+  @media (max-width: 768px) {
+    .dashboard-wrapper {
+      flex-direction: column;
+    }
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-height: 420px;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 16px 20px 12px;
+    }
+    .sidebar-nav {
+      padding: 8px 12px;
+    }
+    .sidebar-nav .nav-label {
+      display: none;
+    }
+    .sidebar-nav .tab-button {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+    }
+    .sidebar-stats {
+      display: none;
+    }
+    .main-content {
+      padding: 0 16px 24px;
+    }
+    .hero-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .topbar .top-actions {
+      justify-content: flex-start;
+    }
+  }
+  @media (max-width: 480px) {
+    .hero-stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    table {
+      min-width: 400px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <aside class="sidebar" role="navigation" aria-label="HR dashboard navigation">
+    <div class="sidebar-brand">
+      <a href="{% url 'dashboard' %}" class="logo">
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
+        <span class="logo-text">VERSATEC <small>Management System</small></span>
+      </a>
+    </div>
+    <nav class="sidebar-nav" aria-label="HR sections">
+      <div class="nav-label">Human Resources</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="employeesTab">
+        <span class="tab-icon">👤</span> Employee Records
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="attendanceTab">
+        <span class="tab-icon">⏰</span> Attendance
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="requestsTab">
+        <span class="tab-icon">📋</span> Requests
+        <span class="tab-badge">3</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="documentsTab">
+        <span class="tab-icon">📄</span> Documents
+        <span class="tab-badge">2</span>
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Total employees</span><strong>42</strong></div>
+      <div class="stat-row"><span>Present today</span><strong>38</strong></div>
+      <div class="stat-row"><span>Pending requests</span><strong>3</strong></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="greeting">
+        <h2>HR Dashboard</h2>
+        <p>Manage employee records, attendance, onboarding, staff requests, and documents.</p>
+      </div>
+      <div class="top-actions">
+        <a href="{% url 'dashboard' %}">📊 Dashboards</a>
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
+
+    <div class="hero-stats">
+      <div class="stat-card"><div class="stat-label">Total Employees</div><div class="stat-value">42</div></div>
+      <div class="stat-card"><div class="stat-label">Present Today</div><div class="stat-value">38</div></div>
+      <div class="stat-card"><div class="stat-label">Pending Requests</div><div class="stat-value">3</div></div>
+    </div>
+
+    <!-- Employee Records -->
+    <div id="employeesTab" class="tab-panel is-active">
+      <div class="panel">
+        <h2>Employee Records</h2>
+        <p>Profiles, departments, job titles, and employment status.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Department</th><th>Job Title</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Maria Santos</td><td>Operations</td><td>Supervisor</td><td>Active</td></tr>
+              <tr><td>John Dela Cruz</td><td>Logistics</td><td>Forklift Operator</td><td>Active</td></tr>
+              <tr><td>Liza Reyes</td><td>HR</td><td>Recruiter</td><td>On Leave</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance -->
+    <div id="attendanceTab" class="tab-panel">
+      <div class="panel">
+        <h2>Attendance</h2>
+        <p>Daily logs, absences, leaves, and schedule monitoring.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Employee</th><th>Status</th><th>Remarks</th></tr></thead>
+            <tbody>
+              <tr><td>2026-07-09</td><td>Maria Santos</td><td>Present</td><td>–</td></tr>
+              <tr><td>2026-07-09</td><td>John Dela Cruz</td><td>Absent</td><td>Sick leave</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Requests -->
+    <div id="requestsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Requests</h2>
+        <p>Leave requests, documents, and HR approvals.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Requestor</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Liza Reyes</td><td>Leave</td><td>2026-07-10</td><td>Pending</td></tr>
+              <tr><td>Mark Tan</td><td>Overtime</td><td>2026-07-09</td><td>Approved</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div id="documentsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Document Management</h2>
+        <p>Upload, view, and manage employee documents, contracts, and HR files.</p>
+
+        <!-- Upload Form -->
+        <div style="background: var(--soft); padding: 20px; border-radius: var(--radius); margin-bottom: 24px; border: 1px solid var(--line);">
+          <h3 style="margin: 0 0 12px; font-size: 1rem;">Upload New Document</h3>
+          <form method="post" enctype="multipart/form-data" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+            <div style="flex: 1 1 200px;">
+              <label for="docTitle" style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 4px;">Title</label>
+              <input type="text" name="title" id="docTitle" required class="field-input" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:6px;">
+            </div>
+            <div style="flex: 1 1 150px;">
+              <label for="docType" style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 4px;">Type</label>
+              <select name="document_type" id="docType" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:6px;">
+                {% for value, label in document_types %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="flex: 1 1 150px;">
+              <label for="docStatus" style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 4px;">Status</label>
+              <select name="status" id="docStatus" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:6px;">
+                {% for value, label in status_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="flex: 1 1 160px;">
+              <label for="docFile" style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 4px;">File</label>
+              <input type="file" name="file" id="docFile" required style="width:100%; padding:6px 0;">
+            </div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);padding:8px 20px;">Upload</button>
+          </form>
+        </div>
+
+        <!-- Document Table -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Uploaded</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in documents %}
+              <tr>
+                <td><a href="{{ doc.file.url }}" target="_blank">{{ doc.title }}</a></td>
+                <td>{{ doc.get_document_type_display }}</td>
+                <td>{{ doc.uploaded_at|date:"Y-m-d" }}</td>
+                <td>
+                  <span class="status-chip" style="background:
+                    {% if doc.status == 'approved' %}#ecfdf3;color:#027a48;
+                    {% elif doc.status == 'pending' %}#fffaeb;color:#b54708;
+                    {% else %}#fef3f2;color:#b42318;{% endif %}
+                    padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:700;">
+                    {{ doc.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <!-- Status update buttons -->
+                  {% if doc.status != 'approved' %}
+                  <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_status">
+                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                    <input type="hidden" name="status" value="approved">
+                    <button type="submit" class="action" style="padding:4px 10px; background:#ecfdf3; color:#027a48; border-color:#abefc6;">Approve</button>
+                  </form>
+                  {% endif %}
+                  {% if doc.status != 'rejected' %}
+                  <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_status">
+                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                    <input type="hidden" name="status" value="rejected">
+                    <button type="submit" class="action" style="padding:4px 10px; background:#fef3f2; color:#b42318; border-color:#fecdca;">Reject</button>
+                  </form>
+                  {% endif %}
+                  <!-- Delete -->
+                  <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                    <button type="submit" class="action" style="padding:4px 10px; color:var(--danger); border-color:var(--danger);" onclick="return confirm('Delete this document?')">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;color:#667085;padding:24px;">No documents uploaded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.querySelectorAll('.sidebar-nav .tab-button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sidebar-nav .tab-button').forEach(b => b.setAttribute('aria-selected', 'false'));
+      this.setAttribute('aria-selected', 'true');
+      const targetId = this.dataset.tabTarget;
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('is-active'));
+      document.getElementById(targetId).classList.add('is-active');
+    });
+  });
+</script>
+{% endblock %}

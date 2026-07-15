@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Payroll Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── reset / base ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  :root {
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #ecfdf3;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --danger: #b42318;
+    --success: #027a48;
+    --sidebar-width: 300px;
+    --radius: 14px;
+    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+  }
+  body {
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── sidebar ── */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: #1851a2;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+  }
+  .sidebar-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .sidebar-brand .logo-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo-text {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .sidebar-brand .logo-text small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .sidebar-nav {
+    padding: 20px 16px 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-nav .nav-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+    color: #fff;
+    padding: 0 12px 10px;
+    font-weight: 700;
+  }
+  .sidebar-nav .tab-button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    position: relative;
+  }
+  .sidebar-nav .tab-button .tab-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .sidebar-nav .tab-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] {
+    background: rgba(48, 118, 239, 0.3);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
+    opacity: 1;
+  }
+  .sidebar-nav .tab-button .tab-badge {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
+    background: rgba(15, 118, 110, 0.4);
+    color: #fff;
+  }
+
+  .sidebar-stats {
+    padding: 16px 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-stats .stat-row strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── main content ── */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 0 32px 40px;
+    background: #f2f4f7;
+    overflow-x: hidden;
+  }
+
+  /* topbar */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid #eaecf0;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    background: transparent;
+    color: var(--ink);
+  }
+  .topbar .greeting h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .topbar .greeting p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .topbar .top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .topbar .top-actions a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: 0.2s;
+  }
+  .topbar .top-actions a:hover {
+    background: var(--soft);
+  }
+
+  /* hero stats */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .hero-stats .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .hero-stats .stat-card .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .hero-stats .stat-card .stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 4px;
+    color: var(--ink);
+  }
+
+  /* cards & panels */
+  .card,
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .panel {
+    margin-bottom: 24px;
+  }
+  .card h2,
+  .panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .card p,
+  .panel p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+
+  /* tabs in content */
+  .tab-panel {
+    display: none;
+    animation: fadeUp 0.3s ease;
+  }
+  .tab-panel.is-active {
+    display: block;
+  }
+  @keyframes fadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* table */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    margin-top: 12px;
+  }
+  table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead {
+    background: var(--soft);
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: middle;
+  }
+  th {
+    color: #475467;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--brand);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    transition: 0.2s;
+  }
+  .action:hover {
+    background: var(--soft);
+    border-color: var(--brand);
+  }
+
+  /* responsive */
+  @media (max-width: 992px) {
+    :root {
+      --sidebar-width: 260px;
+    }
+    .main-content {
+      padding: 0 20px 32px;
+    }
+  }
+  @media (max-width: 768px) {
+    .dashboard-wrapper {
+      flex-direction: column;
+    }
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-height: 420px;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 16px 20px 12px;
+    }
+    .sidebar-nav {
+      padding: 8px 12px;
+    }
+    .sidebar-nav .nav-label {
+      display: none;
+    }
+    .sidebar-nav .tab-button {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+    }
+    .sidebar-stats {
+      display: none;
+    }
+    .main-content {
+      padding: 0 16px 24px;
+    }
+    .hero-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .topbar .top-actions {
+      justify-content: flex-start;
+    }
+  }
+  @media (max-width: 480px) {
+    .hero-stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    table {
+      min-width: 400px;
+    }
+  }
+  .field-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font: inherit;
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+  .badge-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge-draft { background: #f2f4f7; color: #475467; }
+  .badge-computed { background: #ecfdf3; color: #027a48; }
+  .badge-approved { background: #eff6ff; color: #1d4ed8; }
+  .badge-disbursed { background: #fef3f2; color: #b42318; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <aside class="sidebar" role="navigation" aria-label="Payroll dashboard navigation">
+    <div class="sidebar-brand">
+      <a href="{% url 'dashboard' %}" class="logo">
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
+        <span class="logo-text">VERSATEC <small>Management System</small></span>
+      </a>
+    </div>
+    <nav class="sidebar-nav" aria-label="Payroll sections">
+      <div class="nav-label">Payroll</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> Pay Runs
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> Deductions
+        <span class="tab-badge">{{ deduction_configs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> Approvals
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Total payroll (this month)</span><strong>₱{{ runs.0.total_net|default:"0"|floatformat:2 }}</strong></div>
+      <div class="stat-row"><span>Pending approvals</span><strong>{{ runs|length }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="greeting">
+        <h2>Payroll Dashboard</h2>
+        <p>Manage payroll runs, deductions, and approvals for VERSATEC.</p>
+      </div>
+      <div class="top-actions">
+        <a href="{% url 'dashboard' %}">📊 Dashboards</a>
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
+
+    <!-- Hero stats (dynamic) -->
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Payroll Runs</div>
+        <div class="stat-value">{{ runs|length }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Gross</div>
+        <div class="stat-value">₱{{ runs.0.total_gross|default:"0"|floatformat:2 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Net</div>
+        <div class="stat-value">₱{{ runs.0.total_net|default:"0"|floatformat:2 }}</div>
+      </div>
+    </div>
+
+    <!-- ==================== PAY RUNS TAB ==================== -->
+    <div id="payrunsTab" class="tab-panel is-active">
+      <div class="panel">
+        <h2>Pay Runs</h2>
+        <p>Create, compute, approve, and disburse payroll runs.</p>
+
+        <!-- Create new run -->
+        <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_payrun">
+            <div style="flex: 1 1 200px;">
+              <label style="font-weight:600;font-size:0.8rem;">Pay Period</label>
+              <select name="pay_period_id" required class="field-input">
+                <option value="">Select period</option>
+                {% for period in pay_periods %}
+                  <option value="{{ period.id }}" {% if period.is_closed %}disabled{% endif %}>
+                    {{ period.start_date }} – {{ period.end_date }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">+ Create Run</button>
+          </form>
+        </div>
+
+        <!-- List of runs -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Period</th>
+                <th>Cutoff</th>
+                <th>Employees</th>
+                <th>Gross</th>
+                <th>Net</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for run in runs %}
+              <tr>
+                <td>#{{ run.id }}</td>
+                <td>{{ run.pay_period.start_date|date:"Y-m-d" }} – {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                <td>{{ run.cutoff_start|date:"m/d" }} – {{ run.cutoff_end|date:"m/d" }}</td>
+                <td>{{ run.employee_count|default:"0" }}</td>
+                <td>₱{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                <td>₱{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                <td>
+                  <span class="badge-status badge-{{ run.status }}">
+                    {{ run.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    <!-- Compute -->
+                    {% if run.status == 'draft' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="compute_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#ecfdf3; color:#027a48; border-color:#abefc6;">Compute</button>
+                    </form>
+                    {% endif %}
+                    <!-- Approve -->
+                    {% if run.status == 'computed' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="approve_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#eff6ff; color:#1d4ed8; border-color:#93c5fd;">Approve</button>
+                    </form>
+                    {% endif %}
+                    <!-- Disburse -->
+                    {% if run.status == 'approved' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="disburse_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#fef3f2; color:#b42318; border-color:#fecdca;">Disburse</button>
+                    </form>
+                    {% endif %}
+                    <!-- Delete (only draft) -->
+                    {% if run.status == 'draft' %}
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Delete this payroll run?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_run">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; color:var(--danger); border-color:var(--danger);">Delete</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:#667085;padding:24px;">No payroll runs yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DEDUCTIONS TAB ==================== -->
+    <div id="deductionsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Deductions Management</h2>
+        <p>Configure deduction types and assign them to employees.</p>
+
+        <!-- Add Deduction Config -->
+        <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+          <h4 style="margin:0 0 10px;">Add Deduction Configuration</h4>
+          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_deduction">
+            <div><input type="text" name="code" placeholder="Code" required class="field-input" style="width:140px;"></div>
+            <div><input type="text" name="name" placeholder="Name" required class="field-input" style="width:160px;"></div>
+            <div>
+              <select name="ded_type" class="field-input" style="width:120px;">
+                <option value="statutory">Statutory</option>
+                <option value="loan">Loan</option>
+                <option value="voluntary">Voluntary</option>
+              </select>
+            </div>
+            <div><input type="number" name="fixed_amount" step="0.01" placeholder="Fixed amount" class="field-input" style="width:120px;"></div>
+            <div><input type="number" name="percentage" step="0.01" placeholder="% of gross" class="field-input" style="width:100px;"></div>
+            <div><input type="date" name="effective_date" required class="field-input" style="width:150px;"></div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Add</button>
+          </form>
+        </div>
+
+        <!-- List of configs -->
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Fixed</th><th>% of Gross</th><th>Active</th></tr></thead>
+            <tbody>
+              {% for config in deduction_configs %}
+              <tr>
+                <td>{{ config.code }}</td>
+                <td>{{ config.name }}</td>
+                <td>{{ config.get_type_display }}</td>
+                <td>₱{{ config.fixed_amount }}</td>
+                <td>{{ config.percentage_of_gross|floatformat:2 }}%</td>
+                <td>{% if config.is_active %}✅{% else %}❌{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deduction configurations.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Assign deduction to employee -->
+        <div style="margin-top:24px; background: var(--soft); padding: 16px; border-radius: var(--radius);">
+          <h4 style="margin:0 0 10px;">Assign Deduction to Employee</h4>
+          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_deduction">
+            <div>
+              <select name="employee_id" required class="field-input" style="width:180px;">
+                <option value="">Select Employee</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <select name="config_id" required class="field-input" style="width:160px;">
+                <option value="">Select Deduction</option>
+                {% for config in deduction_configs %}
+                <option value="{{ config.id }}">{{ config.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div><input type="number" name="amount" step="0.01" placeholder="Amount" required class="field-input" style="width:120px;"></div>
+            <div><input type="date" name="start_date" required class="field-input" style="width:150px;"></div>
+            <div><input type="date" name="end_date" placeholder="End date (optional)" class="field-input" style="width:150px;"></div>
+            <div><input type="number" name="total_remaining" step="0.01" placeholder="Remaining balance" class="field-input" style="width:130px;"></div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Assign</button>
+          </form>
+        </div>
+
+        <!-- Show assigned deductions -->
+        <div style="margin-top:24px;">
+          <h4>Assigned Employee Deductions</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Deduction</th><th>Amount</th><th>Start</th><th>End</th><th>Remaining</th></tr></thead>
+              <tbody>
+                {% for ad in assigned_deductions %}
+                <tr>
+                  <td>{{ ad.employee.full_name }}</td>
+                  <td>{{ ad.deduction_config.name }}</td>
+                  <td>₱{{ ad.amount }}</td>
+                  <td>{{ ad.start_date|date:"Y-m-d" }}</td>
+                  <td>{{ ad.end_date|date:"Y-m-d"|default:"-" }}</td>
+                  <td>₱{{ ad.total_remaining }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== APPROVALS TAB ==================== -->
+    <div id="approvalsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Approvals</h2>
+        <p>Review pending payroll runs and approve them.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Run ID</th><th>Period</th><th>Total Gross</th><th>Total Net</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for run in runs %}
+                {% if run.status == 'computed' or run.status == 'draft' %}
+                <tr>
+                  <td>#{{ run.id }}</td>
+                  <td>{{ run.pay_period.start_date|date:"Y-m-d" }} – {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                  <td>₱{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                  <td>₱{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                  <td><span class="badge-status badge-{{ run.status }}">{{ run.get_status_display }}</span></td>
+                  <td>
+                    {% if run.status == 'computed' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="approve_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 12px; background:#eff6ff; color:#1d4ed8; border-color:#93c5fd;">Approve</button>
+                    </form>
+                    {% endif %}
+                    {% if run.status == 'draft' %}
+                    <span style="color:var(--muted);font-size:0.8rem;">Compute first</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No runs pending approval.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Tab switching (same as before)
+  document.querySelectorAll('.sidebar-nav .tab-button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.sidebar-nav .tab-button').forEach(b => b.setAttribute('aria-selected', 'false'));
+      this.setAttribute('aria-selected', 'true');
+      const targetId = this.dataset.tabTarget;
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('is-active'));
+      document.getElementById(targetId).classList.add('is-active');
+    });
+  });
+</script>
+{% endblock %}
