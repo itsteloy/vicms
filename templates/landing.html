@@ -4,250 +4,656 @@
 
 {% block extra_head %}
 <style>
+  /* ── reset / base ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   :root {
-    --ink: #101828;
-    --muted: #667085;
-    --line: #d0d5dd;
-    --steel: #344054;
-    --brand: #0f766e;
-    --brand-dark: #134e4a;
+    --ink: #0b1a2e;
+    --ink-light: #1e2f44;
+    --muted: #5e6f8d;
+    --muted-light: #8a9bb8;
+    --line: #e2e8f0;
+    --steel: #2d3a4f;
+    --brand: #0d9488;
+    --brand-dark: #0f766e;
+    --brand-light: #ccfbf1;
+    --brand-glow: rgba(13, 148, 136, 0.25);
     --warning: #f59e0b;
     --panel: #ffffff;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 10px 40px -12px rgba(0, 0, 0, 0.18);
+    --shadow-lg: 0 20px 60px -16px rgba(0, 0, 0, 0.25);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --transition: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   body {
     display: block;
     padding: 0;
-    background: #f2f4f7;
+    margin: 0;
+    background: #f6f8fc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
+  /* ── landing grid ── */
   .landing {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+    grid-template-columns: 1fr 440px;
     color: var(--ink);
+    background: #f6f8fc;
   }
 
+  /* ── hero (left) ── */
   .hero {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 48px;
-    padding: 42px;
+    padding: 48px 56px 48px 56px;
     overflow: hidden;
     background:
-      linear-gradient(90deg, rgba(16, 24, 40, 0.92), rgba(35, 154, 146, 0.74)),
+      linear-gradient(145deg, rgba(11, 26, 46, 0.88) 0%, rgba(13, 148, 136, 0.70) 100%),
       url("/media/inventory_pics/BGVICMS.png") center / cover no-repeat;
     color: #ffffff;
+    border-radius: 0 32px 32px 0;
+    min-height: 100vh;
   }
 
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(13, 148, 136, 0.25) 0%, transparent 70%),
+      radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-
-  .brandbar,
-  .hero-copy,
-  .module-grid {
+  .hero>* {
     position: relative;
     z-index: 1;
   }
 
+  /* brand bar */
   .brandbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
+    padding-bottom: 8px;
   }
 
   .brand-mark {
     display: inline-grid;
     place-items: center;
-    width: 48px;
-    height: 48px;
-    font-weight: 800;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    flex-shrink: 0;
   }
 
-  .system-label {
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.88rem;
+  .brand-mark img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .brand-name {
+    font-size: 1.05rem;
     font-weight: 700;
-    text-transform: uppercase;
+    letter-spacing: -0.3px;
+    color: #fff;
   }
 
+  .brand-tag {
+    font-size: 0.70rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  /* hero copy */
   .hero-copy {
-    max-width: 760px;
-    padding: 8vh 0 4vh;
+    max-width: 660px;
+    padding: 2vh 0;
+  }
+
+  .hero-copy .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(8px);
+    padding: 6px 16px 6px 14px;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 28px;
+  }
+
+  .badge .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.5;
+      transform: scale(0.85);
+    }
   }
 
   .hero-copy h1 {
-    margin: 0 0 22px;
-    font-size: clamp(2.4rem, 5vw, 5.8rem);
-    line-height: 0.95;
-    letter-spacing: 0;
+    margin: 0 0 18px;
+    font-size: clamp(2.6rem, 5.5vw, 4.8rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
   }
 
-  .highlight-name {
-    display: inline;
-    color: #0fdbff;
-    text-shadow: 0 2px 24px rgba(11, 151, 245, 0.57);
+  .hero-copy h1 .highlight {
+    background: linear-gradient(135deg, #7dd3fc 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
   }
 
-  .hero-copy p {
+  .hero-copy .sub {
     margin: 0;
-    max-width: 620px;
-    color: rgba(255, 255, 255, 0.84);
+    max-width: 540px;
+    color: rgba(255, 255, 255, 0.80);
     font-size: 1.08rem;
     line-height: 1.7;
+    font-weight: 400;
   }
 
+  /* module grid */
   .module-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 12px;
-    max-width: 920px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    max-width: 820px;
+    margin-top: 8px;
   }
 
   .module-tile {
-    min-height: 128px;
-    padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(16, 24, 40, 0.48);
-    backdrop-filter: blur(10px);
+    padding: 20px 18px 18px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition: var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .module-tile:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.30);
+  }
+
+  .module-tile.is-active {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(52, 211, 153, 0.45);
+    box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.24);
+  }
+
+  .module-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .module-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .module-status.is-active {
+    background: rgba(52, 211, 153, 0.18);
+    color: #d1fae5;
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+
+  .module-tile .icon {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    display: block;
+    opacity: 0.9;
   }
 
   .module-tile h2 {
-    margin: 0 0 10px;
-    font-size: 1rem;
-    letter-spacing: 0;
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #fff;
   }
 
   .module-tile p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.74);
-    font-size: 0.86rem;
-    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.70);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    font-weight: 400;
   }
 
+  /* ── login panel (right) ── */
   .login-panel {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 42px;
+    padding: 40px 48px;
     background: #ffffff;
+    border-radius: 32px 0 0 32px;
+    box-shadow: var(--shadow-lg);
+    min-height: 100vh;
   }
 
   .login-card {
-    width: min(440px, 100%);
+    width: 100%;
+    max-width: 400px;
     display: grid;
-    gap: 24px;
+    gap: 28px;
   }
 
   .login-card header {
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 
-  .login-card h2 {
+  .login-card header .logo-sm {
+    display: none;
+  }
+
+  .login-card header h2 {
     margin: 0;
-    color: var(--ink);
     font-size: 1.65rem;
-    letter-spacing: 0;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
   }
 
-  .login-card p {
+  .login-card header p {
     margin: 0;
     color: var(--muted);
+    font-size: 0.95rem;
     line-height: 1.6;
   }
 
   .login-form {
     display: grid;
-    gap: 16px;
+    gap: 18px;
   }
 
   .field {
     display: grid;
-    gap: 8px;
+    gap: 6px;
   }
 
   .field label {
     color: var(--steel);
-    font-size: 0.92rem;
+    font-size: 0.82rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .field input {
     width: 100%;
     min-height: 48px;
-    border: 1px solid var(--line);
-    padding: 11px 13px;
+    padding: 10px 16px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
     font: inherit;
+    font-size: 0.95rem;
     color: var(--ink);
-    background: #ffffff;
+    background: #fafbfc;
+    transition: var(--transition);
+    outline: none;
+  }
+
+  .field input::placeholder {
+    color: var(--muted-light);
+    font-weight: 400;
+    font-size: 0.90rem;
   }
 
   .field input:focus {
     border-color: var(--brand);
-    outline: 3px solid rgba(15, 118, 110, 0.14);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px var(--brand-glow);
+  }
+
+  .field .errorlist {
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+    color: #dc2626;
+    font-size: 0.80rem;
+    font-weight: 500;
   }
 
   .login-button {
-    min-height: 50px;
+    min-height: 52px;
     border: 0;
+    border-radius: var(--radius-sm);
     background: var(--brand);
     color: #ffffff;
     font: inherit;
-    font-weight: 800;
+    font-size: 0.95rem;
+    font-weight: 700;
     cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    letter-spacing: 0.2px;
+    box-shadow: 0 4px 16px -4px rgba(13, 148, 136, 0.35);
   }
 
   .login-button:hover {
     background: var(--brand-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px -6px rgba(13, 148, 136, 0.45);
+  }
+
+  .login-button:active {
+    transform: translateY(0);
+  }
+
+  .login-button .arrow {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+
+  .login-button:hover .arrow {
+    transform: translateX(4px);
   }
 
   .form-errors {
     border-left: 4px solid #dc2626;
     background: #fef2f2;
     color: #991b1b;
-    padding: 12px 14px;
-    line-height: 1.45;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    line-height: 1.5;
   }
 
   .access-note {
     border-top: 1px solid var(--line);
-    padding-top: 18px;
+    padding-top: 20px;
     color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.55;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .access-note .icon-info {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--muted-light);
+  }
+
+  .access-note strong {
+    color: var(--ink-light);
+    font-weight: 600;
+  }
+
+  /* ── responsive ── */
+  @media (max-width: 1160px) {
+    .landing {
+      grid-template-columns: 1fr 380px;
+    }
+
+    .hero {
+      padding: 36px 40px;
+    }
+
+    .login-panel {
+      padding: 32px 36px;
+    }
   }
 
   @media (max-width: 1020px) {
     .landing {
       grid-template-columns: 1fr;
+      min-height: auto;
     }
 
     .hero {
-      min-height: 660px;
+      border-radius: 0;
+      min-height: 560px;
+      padding: 36px 40px;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(2.2rem, 6vw, 3.6rem);
+    }
+
+    .login-panel {
+      border-radius: 0;
+      min-height: auto;
+      padding: 48px 40px;
+      box-shadow: none;
+      border-top: 1px solid var(--line);
+    }
+
+    .login-card {
+      max-width: 440px;
+    }
+
+    .module-grid {
+      grid-template-columns: repeat(4, 1fr);
     }
   }
 
   @media (max-width: 720px) {
-    .hero,
-    .login-panel {
-      padding: 24px;
+    .hero {
+      padding: 28px 24px;
+      min-height: 480px;
     }
 
-    .brandbar {
-      align-items: flex-start;
+    .hero-copy .badge {
+      font-size: 0.65rem;
+      padding: 5px 14px 5px 12px;
+      margin-bottom: 20px;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+    }
+
+    .hero-copy .sub {
+      font-size: 0.95rem;
     }
 
     .module-grid {
       grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .module-tile {
+      padding: 16px 14px;
+    }
+
+    .module-tile h2 {
+      font-size: 0.85rem;
+    }
+
+    .module-tile p {
+      font-size: 0.72rem;
+    }
+
+    .login-panel {
+      padding: 36px 24px;
+    }
+
+    .login-card {
+      gap: 22px;
+    }
+
+    .login-card header h2 {
+      font-size: 1.35rem;
+    }
+
+    .brandbar .brand-name {
+      font-size: 0.90rem;
+    }
+
+    .brandbar .brand-tag {
+      font-size: 0.60rem;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+    }
+
+    .brand-mark img {
+      width: 28px;
+      height: 28px;
     }
   }
 
   @media (max-width: 480px) {
+    .hero {
+      padding: 20px 16px;
+      min-height: 420px;
+    }
+
+    .hero-copy h1 {
+      font-size: 1.6rem;
+    }
+
+    .hero-copy .sub {
+      font-size: 0.88rem;
+    }
+
     .module-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .module-tile {
+      padding: 12px 12px;
+      min-height: 80px;
+    }
+
+    .module-tile .icon {
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    .module-tile h2 {
+      font-size: 0.78rem;
+    }
+
+    .module-tile p {
+      font-size: 0.68rem;
+    }
+
+    .login-panel {
+      padding: 28px 16px;
+    }
+
+    .login-card header h2 {
+      font-size: 1.2rem;
+    }
+
+    .login-card header p {
+      font-size: 0.85rem;
+    }
+
+    .field input {
+      min-height: 42px;
+      font-size: 0.88rem;
+      padding: 8px 12px;
+    }
+
+    .login-button {
+      min-height: 44px;
+      font-size: 0.88rem;
+    }
+
+    .brandbar {
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+    }
+
+    .brand-mark img {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand-name {
+      font-size: 0.80rem;
+    }
+
+    .brand-tag {
+      font-size: 0.55rem;
+    }
+
+    .access-note {
+      font-size: 0.78rem;
     }
   }
 </style>
@@ -255,41 +661,63 @@
 
 {% block content %}
 <main class="landing">
+  <!-- ─── HERO ─── -->
   <section class="hero" aria-label="VERSATEC management system overview">
     <div class="brandbar">
       <div class="brand-mark">
-        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo">
       </div>
-      <div class="system-label">Industrial management portal</div>
+      <div class="brand-text">
+        <span class="brand-name">VERSATEC</span>
+        <span class="brand-tag">Industrial Management Portal</span>
+      </div>
     </div>
 
     <div class="hero-copy">
-      <h1><span class="highlight-name">VERSATEC Industrial Corporation</span> Management System</h1>
-      <p>Centralized access for HR, Inventory, Sales, and Payroll operations built around daily industrial workflows.</p>
+      <h1>
+        <span class="highlight">VERSATEC</span> Management<br>System
+      </h1>
+      <p class="sub">
+        Centralized access for HR, Inventory, Sales, and Payroll — built
+        around daily industrial workflows.
+      </p>
     </div>
 
     <div class="module-grid" aria-label="Management modules">
       {% for module in modules %}
-        <article class="module-tile">
+      {% url module.url_name as module_url %}
+      <a class="module-tile{% if module.status == 'Active' %} is-active{% endif %}" href="{{ module_url }}" aria-label="{{ module.name }} dashboard">
+        <span class="icon">
+          {% if module.name == "Human Resources" or module.name == "HR" %}👥
+          {% elif module.name == "Inventory" %}📦
+          {% elif module.name == "Sales" %}📈
+          {% elif module.name == "Payroll" %}💰
+          {% else %}⚙️
+          {% endif %}
+        </span>
+        <div class="module-head">
           <h2>{{ module.name }}</h2>
-          <p>{{ module.summary }}</p>
-        </article>
+          <span class="module-status{% if module.status == 'Active' %} is-active{% endif %}">{{ module.status }}</span>
+        </div>
+        <p>{{ module.summary }}</p>
+      </a>
       {% endfor %}
     </div>
   </section>
 
+  <!-- ─── LOGIN PANEL ─── -->
   <section class="login-panel" aria-label="Login">
     <div class="login-card">
       <header>
-        <h2>Sign in</h2>
-        <p>Use your VERSATEC account to open the management dashboard.</p>
+        <h2>Welcome back</h2>
+        <p>Sign in with your VERSATEC credentials to access the dashboard.</p>
       </header>
 
       <form class="login-form" method="post">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
-          <div class="form-errors">{{ form.non_field_errors }}</div>
+        <div class="form-errors">{{ form.non_field_errors }}</div>
         {% endif %}
 
         <div class="field">
@@ -304,11 +732,18 @@
           {{ form.password.errors }}
         </div>
 
-        <button class="login-button" type="submit">Login</button>
+        <button class="login-button" type="submit">
+          Sign in
+          <span class="arrow">→</span>
+        </button>
       </form>
 
       <div class="access-note">
-        Accounts are managed through the Administrator. Create a staff account before signing in.
+        <span class="icon-info">ℹ️</span>
+        <span>
+          <strong>Need an account?</strong> Contact your administrator to
+          create staff credentials before signing in.
+        </span>
       </div>
     </div>
   </section>

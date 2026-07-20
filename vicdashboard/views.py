@@ -1,25 +1,32 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.views.decorators.http import require_POST
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.templatetags.static import static
+from django.utils import timezone
+from .po_pdf import build_purchase_order_pdf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q
+import traceback
 import json
-
 
 MANAGEMENT_MODULES = [
     {
         'name': 'HR',
         'summary': 'Employee records, attendance, onboarding, and staff requests.',
-        'status': 'Ready for setup',
+        'status': 'Active',
         'url_name': 'hr_dashboard',
     },
     {
@@ -37,7 +44,7 @@ MANAGEMENT_MODULES = [
     {
         'name': 'Payroll',
         'summary': 'Salary records, deductions, approvals, and pay schedules.',
-        'status': 'Ready for setup',
+        'status': 'Active',
         'url_name': 'payroll_dashboard',
     },
 ]
@@ -455,6 +462,113 @@ def sales_receipt(request, order_id):
             'company_name': 'VERSATEC Industrial Corporation',
         },
     )
+
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@login_required
+@require_POST
+def save_quotation(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    def parse_date(value):
+        try:
+            return datetime.fromisoformat(value).date() if value else None
+        except (ValueError, TypeError):
+            return None
+
+    try:
+        # Create the Quotation
+        quotation = Quotation.objects.create(
+            quotation_number=payload.get("quotation_number", "").strip() or "UNNAMED",
+            quotation_date=parse_date(payload.get("quotation_date")),
+            valid_until=parse_date(payload.get("valid_until")),
+            currency=payload.get("currency", "PHP") or "PHP",
+            currency_other=payload.get("currency_other", "").strip(),
+            customer_company=payload.get("customer", {}).get("company", "").strip(),
+            customer_contact=payload.get("customer", {}).get("contact", "").strip(),
+            customer_address=payload.get("customer", {}).get("address", "").strip(),
+            customer_email=payload.get("customer", {}).get("email", "").strip(),
+            customer_phone=payload.get("customer", {}).get("phone", "").strip(),
+            payment_terms=payload.get("payment_terms", "").strip(),
+            delivery_terms=payload.get("delivery_terms", "").strip(),
+            warranty=payload.get("warranty", "").strip(),
+            other_terms=payload.get("other_terms", "").strip(),
+            subtotal=Decimal(payload.get("subtotal") or "0"),
+            tax=Decimal(payload.get("tax") or "0"),
+            discount=Decimal(payload.get("discount") or "0"),
+            shipping=Decimal(payload.get("shipping") or "0"),
+            grand_total=Decimal(payload.get("grand_total") or "0"),
+            prepared_name=payload.get("prepared_by", {}).get("name", "").strip(),
+            prepared_title=payload.get("prepared_by", {}).get("title", "").strip(),
+            prepared_signature=payload.get("prepared_by", {})
+            .get("signature", "")
+            .strip(),
+            prepared_date=parse_date(payload.get("prepared_by", {}).get("date")),
+            approved_signature=payload.get("approved_by", {})
+            .get("signature", "")
+            .strip(),
+            approved_date=parse_date(payload.get("approved_by", {}).get("date")),
+        )
+
+        # Create lines
+        items = payload.get("items", []) or []
+        for item in items:
+            try:
+                item_number = int(item.get("no") or 0)
+            except (TypeError, ValueError):
+                item_number = 0
+
+            QuotationLine.objects.create(
+                quotation=quotation,
+                item_number=item_number,
+                product_description=item.get("description", "").strip(),
+                quantity=max(int(item.get("qty") or 0), 0),
+                unit=item.get("unit", "").strip(),
+                unit_price=Decimal(item.get("unit_price") or "0"),
+                total_amount=Decimal(item.get("total") or "0"),
+            )
+
+        # Build download URL
+        download_url = reverse("download_quotation_pdf", args=[quotation.id])
+        return JsonResponse({"id": quotation.id, "download_url": download_url})
+
+    except Exception as e:
+        # Log the full traceback (check your console)
+        logger.exception("save_quotation error")
+        # Return a JSON error with the exact message
+        return JsonResponse(
+            {"error": str(e), "traceback": traceback.format_exc()},
+            status=500,
+        )
+
+
+@login_required
+def download_quotation_pdf(request, quotation_id):
+    from .po_pdf import build_quotation_pdf
+
+    quotation = get_object_or_404(Quotation, pk=quotation_id)
+    lines = quotation.lines.all()
+    generated_date = timezone.localtime(timezone.now())
+    total_amount = quotation.grand_total
+    company_name = "VERSATEC Industrial Corporation"
+
+    pdf_bytes = build_quotation_pdf(
+        quotation, lines, total_amount, generated_date, company_name
+    )
+    safe_name = "".join(
+        ch if ch.isalnum() or ch in "-_" else "_"
+        for ch in (quotation.quotation_number or "quotation")
+    )
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
+    return response
 
 
 @login_required
@@ -958,13 +1072,6 @@ def get_tax(employee, gross_pay, cutoff_date):
     if not bracket:
         return Decimal('0')
 
-    # For demonstration, we use a simplified progressive tax:
-    # Actually we need to iterate through brackets to compute tax.
-    # Since we have only one bracket per effective date in this simplified model,
-    # we assume a single bracket with base_tax and tax_rate.
-    # In production, you'd have multiple brackets per effective date and compute accordingly.
-    # For now, we'll just apply a flat rate from the latest bracket.
-    # But to make it realistic, let's implement a loop over brackets.
     brackets = TaxBracket.objects.filter(
         tax_type='withholding',
         effective_date__lte=cutoff_date
@@ -972,12 +1079,6 @@ def get_tax(employee, gross_pay, cutoff_date):
     if not brackets.exists():
         return Decimal('0')
 
-    # Compute annualized tax (simplified: annualize gross, compute, then prorate)
-    # For demo, we just take first bracket
-    # In real implementation, you iterate over brackets.
-    # We'll skip full implementation for brevity; we'll assume a simple 10% for now.
-    # But we'll read from the bracket.
-    # Let's use the most recent bracket's rate.
     latest = brackets.last()
     return gross_pay * latest.tax_rate
 
@@ -1018,3 +1119,24 @@ def get_voluntary_deductions(employee, cutoff_start, cutoff_end):
     for ded in deductions:
         total += ded.amount
     return total
+
+
+@login_required
+@require_POST
+def purchase_order_pdf(request):
+    """Generate a Long Bond (8.5×13) Purchase Order PDF via ReportLab."""
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    try:
+        pdf_bytes = build_purchase_order_pdf(payload)
+    except Exception as exc:
+        return JsonResponse({'error': f'Could not generate PDF: {exc}'}, status=500)
+
+    po_number = (payload.get('po_number') or 'purchase-order').strip()
+    safe_name = ''.join(ch if ch.isalnum() or ch in '-_' else '_' for ch in po_number) or 'purchase-order'
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{safe_name}.pdf"'
+    return response

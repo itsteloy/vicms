@@ -51,7 +51,7 @@
         width: var(--sidebar-width);
         height: 100vh;
         overflow-y: auto;
-        background: #1851a2;
+        background: var(--brand);
         color: #e6f0f0;
         padding: 0;
         display: flex;
@@ -126,7 +126,7 @@
         padding: 12px 16px;
         border: none;
         background: transparent;
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.836);
         font: inherit;
         font-weight: 600;
         font-size: 0.9rem;
@@ -151,9 +151,9 @@
     }
 
     .sidebar-nav .tab-button[aria-selected="true"] {
-        background: rgba(48, 118, 239, 0.3);
+        background: var(--brand-dark);
         color: #fff;
-        box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+        box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
     }
 
     .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
@@ -459,6 +459,7 @@
             opacity: 0;
             transform: translateY(10px);
         }
+
         100% {
             opacity: 1;
             transform: translateY(0);
@@ -791,6 +792,7 @@
         font-size: 0.8rem;
         text-align: center;
     }
+
     .refund-form input[type="text"] {
         padding: 4px 8px;
         border: 1px solid var(--line);
@@ -819,6 +821,7 @@
         .grid-4 {
             grid-template-columns: repeat(2, 1fr);
         }
+
         .grid-3 {
             grid-template-columns: 1fr 1fr;
         }
@@ -828,9 +831,11 @@
         :root {
             --sidebar-width: 260px;
         }
+
         .main-content {
             padding: 0 20px 32px;
         }
+
         .grid-2 {
             grid-template-columns: 1fr;
         }
@@ -944,57 +949,67 @@
     <aside class="sidebar" role="navigation" aria-label="Sales dashboard navigation">
         <div class="sidebar-brand">
             <a href="{% url 'dashboard' %}" class="logo">
-                <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
+                <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
+                    style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
                 <span class="logo-text">VERSATEC <small>Management System</small></span>
             </a>
         </div>
 
         <nav class="sidebar-nav" aria-label="Sales sections">
             <div class="nav-label">Sales</div>
-            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}" data-tab-target="sales-tab">
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="sales-tab">
                 <span class="tab-icon">🛒</span> Record Sale
             </button>
-            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}" data-tab-target="history-tab">
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="history-tab">
                 <span class="tab-icon">📜</span> Sales History
                 <span class="tab-badge">{{ sales_orders|length }}</span>
             </button>
-            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}" data-tab-target="refund-tab">
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="refund-tab">
                 <span class="tab-icon">↩️</span> Refund History
                 <span class="tab-badge">{{ refund_history|length }}</span>
             </button>
-            <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}" data-tab-target="analytics-tab">
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="analytics-tab">
                 <span class="tab-icon">📈</span> Reporting & Analytics
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'quotation-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="quotation-tab">
+                <span class="tab-icon">💬</span> Quotations
             </button>
         </nav>
 
         <!-- Category Performance -->
         <section class="sidebar-category" aria-label="Category performance">
-                <div class="cat-head">
-                    <h3>Category Performance</h3>
-                    <span class="pill">Item-led</span>
-                </div>
+            <div class="cat-head">
+                <h3>Category Performance</h3>
+                <span class="pill">Item-led</span>
+            </div>
 
-                {% if page_obj.object_list %}
-                <div class="perf-list">
-                    {% for category in page_obj.object_list %}
-                    <div class="perf-item" data-category-card>
-                        <div class="perf-top">
-                            <span class="perf-name">{{ category.name }}</span>
-                            <span class="perf-stock {% if category.stock == 0 %}low{% endif %}">
-                                {{ category.stock }} in stock
-                            </span>
-                        </div>
+            {% if page_obj.object_list %}
+            <div class="perf-list">
+                {% for category in page_obj.object_list %}
+                <div class="perf-item" data-category-card>
+                    <div class="perf-top">
+                        <span class="perf-name">{{ category.name }}</span>
+                        <span class="perf-stock {% if category.stock == 0 %}low{% endif %}">
+                            {{ category.stock }} in stock
+                        </span>
+                    </div>
 
-                        {% if category.variants|length > 1 %}
-                        <select class="product-code-select" aria-label="Product codes for {{ category.name }}">
-                            {% for variant in category.variants %}
-                            <option
-                            value="{{ variant.code }}"
-                            data-quantity="{{ variant.quantity }}"
-                            data-revenue="{{ variant.revenue|floatformat:2 }}"
-                            data-orders="{{ variant.orders }}"
-                            data-stock="{{ variant.stock }}"
-                            >
+                    {% if category.variants|length > 1 %}
+                    <select class="product-code-select" aria-label="Product codes for {{ category.name }}">
+                        {% for variant in category.variants %}
+                        <option value="{{ variant.code }}" data-quantity="{{ variant.quantity }}"
+                            data-revenue="{{ variant.revenue|floatformat:2 }}" data-orders="{{ variant.orders }}"
+                            data-stock="{{ variant.stock }}">
                             {{ variant.code|default:"No code" }}
                         </option>
                         {% endfor %}
@@ -1006,7 +1021,8 @@
                     {% endif %}
 
                     <div class="perf-metrics">
-                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2 }}</strong></span>
+                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2
+                                }}</strong></span>
                         <span>Sold <strong class="metric-quantity">{{ category.variants.0.quantity }}</strong></span>
                         <span>Orders <strong class="metric-orders">{{ category.variants.0.orders }}</strong></span>
                     </div>
@@ -1017,11 +1033,14 @@
             {% if show_pagination %}
             <div class="pagination" style="justify-content:center;margin-top:14px;">
                 {% if page_obj.has_previous %}
-                <a class="action" href="?page={{ page_obj.previous_page_number }}" style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">‹</a>
+                <a class="action" href="?page={{ page_obj.previous_page_number }}"
+                    style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">‹</a>
                 {% endif %}
-                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{
+                    paginator.num_pages }}</span>
                 {% if page_obj.has_next %}
-                <a class="action" href="?page={{ page_obj.next_page_number }}" style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">›</a>
+                <a class="action" href="?page={{ page_obj.next_page_number }}"
+                    style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">›</a>
                 {% endif %}
             </div>
             {% endif %}
@@ -1092,20 +1111,16 @@
                         {% csrf_token %}
                         <div class="field">
                             <label for="customerName">Customer name</label>
-                            <input id="customerName" name="customerName" type="text" required placeholder="e.g. ABC Construction">
+                            <input id="customerName" name="customerName" type="text" required
+                                placeholder="e.g. ABC Construction">
                         </div>
                         <div class="field">
                             <label for="inventoryItem">Inventory item</label>
                             <select id="inventoryItem" name="inventoryItem" required>
                                 <option value="">Select item from inventory</option>
                                 {% for item in inventory_items %}
-                                <option
-                                    value="{{ item.id }}"
-                                    data-price="{{ item.price }}"
-                                    data-stock="{{ item.stock_available }}"
-                                    data-code="{{ item.product_code }}"
-                                    {% if item.stock_available == 0 %}disabled{% endif %}
-                                >
+                                <option value="{{ item.id }}" data-price="{{ item.price }}"
+                                    data-stock="{{ item.stock_available }}" data-code="{{ item.product_code }}" {% if item.stock_available == 0 %}disabled{% endif %}>
                                     {{ item.name }}{% if item.product_code %} - {{ item.product_code }}{% endif %} ({{ item.stock_available }} stock)
                                 </option>
                                 {% endfor %}
@@ -1117,7 +1132,8 @@
                         </div>
                         <div class="field">
                             <label for="customerContact">Customer Contact (Email / Phone)</label>
-                            <input id="customerContact" name="customerContact" type="text" placeholder="e.g. john@example.com or 09171234567">
+                            <input id="customerContact" name="customerContact" type="text"
+                                placeholder="e.g. john@example.com or 09171234567">
                         </div>
 
                         <div class="field">
@@ -1145,7 +1161,8 @@
                         </div>
                         <div class="field">
                             <label for="notes">Notes</label>
-                            <textarea id="notes" name="notes" placeholder="Invoice number, delivery notes, or payment terms"></textarea>
+                            <textarea id="notes" name="notes"
+                                placeholder="Invoice number, delivery notes, or payment terms"></textarea>
                         </div>
                         <button type="submit">💳 Record Sale</button>
                     </form>
@@ -1175,7 +1192,8 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" style="text-align:center;color:#667085;padding:24px;">No inventory items yet.</td>
+                                    <td colspan="4" style="text-align:center;color:#667085;padding:24px;">No inventory
+                                        items yet.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -1194,7 +1212,8 @@
 
             <!-- Filter Form -->
             <div class="panel" style="margin-bottom:20px;">
-                <form method="get" class="filter-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:12px;">
+                <form method="get" class="filter-form"
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:12px;">
                     <input type="hidden" name="tab" value="history-tab"> <!-- retain tab -->
                     <div class="field">
                         <label>From</label>
@@ -1206,7 +1225,8 @@
                     </div>
                     <div class="field">
                         <label>Customer</label>
-                        <input type="text" name="customer" placeholder="Search customer" value="{{ request.GET.customer }}">
+                        <input type="text" name="customer" placeholder="Search customer"
+                            value="{{ request.GET.customer }}">
                     </div>
                     <div class="field">
                         <label>Item</label>
@@ -1215,10 +1235,14 @@
                     <div class="field">
                         <label>Refund status</label>
                         <select name="refund_status">
-                            <option value="all" {% if request.GET.refund_status == 'all' %}selected{% endif %}>All</option>
-                            <option value="none" {% if request.GET.refund_status == 'none' %}selected{% endif %}>No refund</option>
-                            <option value="partial" {% if request.GET.refund_status == 'partial' %}selected{% endif %}>Partial</option>
-                            <option value="full" {% if request.GET.refund_status == 'full' %}selected{% endif %}>Full</option>
+                            <option value="all" {% if request.GET.refund_status == 'all' %}selected{% endif %}>All
+                            </option>
+                            <option value="none" {% if request.GET.refund_status == 'none' %}selected{% endif %}>No refund
+                            </option>
+                            <option value="partial" {% if request.GET.refund_status == 'partial' %}selected{% endif %}>
+                                Partial</option>
+                            <option value="full" {% if request.GET.refund_status == 'full' %}selected{% endif %}>Full
+                            </option>
                         </select>
                     </div>
                     <div style="display:flex; align-items:flex-end; gap:8px;">
@@ -1262,14 +1286,16 @@
                             <td>{{ order.notes|default:"-" }}</td>
                             <td>
                                 {% if order.refund_quantity %}
-                                <div class="stock-empty" style="margin-bottom:4px;font-size:0.8rem;">{{ order.refund_status|title }} refund: {{ order.refund_quantity }} / {{ order.quantity }}</div>
+                                <div class="stock-empty" style="margin-bottom:4px;font-size:0.8rem;">{{
+                                    order.refund_status|title }} refund: {{ order.refund_quantity }} / {{ order.quantity }}</div>
                                 {% endif %}
                                 {% if order.remaining_quantity > 0 %}
                                 <form method="post" class="refund-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="refund">
                                     <input type="hidden" name="orderId" value="{{ order.id }}">
-                                    <input type="number" name="refundQuantity" min="1" max="{{ order.remaining_quantity }}" value="1" required>
+                                    <input type="number" name="refundQuantity" min="1"
+                                        max="{{ order.remaining_quantity }}" value="1" required>
                                     <input type="text" name="reason" placeholder="Reason (Optional)">
                                     <button type="submit">Refund</button>
                                 </form>
@@ -1278,12 +1304,14 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a class="action" href="{% url 'sales_receipt' order.id %}" style="font-size:0.75rem;padding:4px 12px;">View</a>
+                                <a class="action" href="{% url 'sales_receipt' order.id %}"
+                                    style="font-size:0.75rem;padding:4px 12px;">View</a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" style="text-align:center;color:#667085;padding:24px;">No sales match your filters.</td>
+                            <td colspan="9" style="text-align:center;color:#667085;padding:24px;">No sales match your
+                                filters.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1293,13 +1321,16 @@
             <!-- Pagination -->
             <div class="pagination">
                 {% if sales_history_page_obj.has_previous %}
-                    <a href="?history_page=1&{{ request.GET.urlencode }}&tab=history-tab">First</a>
-                    <a href="?history_page={{ sales_history_page_obj.previous_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Previous</a>
+                <a href="?history_page=1&{{ request.GET.urlencode }}&tab=history-tab">First</a>
+                <a
+                    href="?history_page={{ sales_history_page_obj.previous_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Previous</a>
                 {% endif %}
                 <span>Page {{ sales_history_page_obj.number }} of {{ sales_history_page_obj.paginator.num_pages }}</span>
                 {% if sales_history_page_obj.has_next %}
-                    <a href="?history_page={{ sales_history_page_obj.next_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Next</a>
-                    <a href="?history_page={{ sales_history_page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}&tab=history-tab">Last</a>
+                <a
+                    href="?history_page={{ sales_history_page_obj.next_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Next</a>
+                <a
+                    href="?history_page={{ sales_history_page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}&tab=history-tab">Last</a>
                 {% endif %}
             </div>
         </div>
@@ -1338,7 +1369,8 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No refunds recorded yet.</td>
+                            <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No refunds recorded
+                                yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1360,7 +1392,8 @@
                     <p>{{ daily_summary|length }} day(s)</p>
                     {% if daily_summary %}
                     <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Daily sales line chart">
-                        <path d="M 20 100 C 60 85, 80 70, 120 78 S 180 105, 220 70 S 280 40, 300 30" fill="none" stroke="#0f766e" stroke-width="3" />
+                        <path d="M 20 100 C 60 85, 80 70, 120 78 S 180 105, 220 70 S 280 40, 300 30" fill="none"
+                            stroke="#0f766e" stroke-width="3" />
                         <circle cx="300" cy="30" r="5" fill="#0f766e" />
                     </svg>
                     <div class="chart-labels">
@@ -1383,7 +1416,8 @@
                     <p>{{ weekly_summary|length }} week(s)</p>
                     {% if weekly_summary %}
                     <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Weekly sales line chart">
-                        <path d="M 20 95 C 65 80, 90 65, 125 70 S 185 90, 220 60 S 275 35, 300 30" fill="none" stroke="#0f766e" stroke-width="3" />
+                        <path d="M 20 95 C 65 80, 90 65, 125 70 S 185 90, 220 60 S 275 35, 300 30" fill="none"
+                            stroke="#0f766e" stroke-width="3" />
                         <circle cx="300" cy="30" r="5" fill="#0f766e" />
                     </svg>
                     <div class="chart-labels">
@@ -1406,7 +1440,8 @@
                     <p>{{ monthly_summary|length }} month(s)</p>
                     {% if monthly_summary %}
                     <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Monthly sales line chart">
-                        <path d="M 20 90 C 60 78, 95 55, 125 62 S 185 88, 220 55 S 285 28, 300 20" fill="none" stroke="#134e4a" stroke-width="3" />
+                        <path d="M 20 90 C 60 78, 95 55, 125 62 S 185 88, 220 55 S 285 28, 300 20" fill="none"
+                            stroke="#134e4a" stroke-width="3" />
                         <circle cx="300" cy="20" r="5" fill="#134e4a" />
                     </svg>
                     <div class="chart-labels">
@@ -1429,7 +1464,8 @@
             <div class="grid-3" style="margin-top:16px;">
                 <article class="card">
                     <h2>⏰ Peak Sales Hour</h2>
-                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">{{ peak_hour|default:"No sales yet" }}</p>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">{{ peak_hour|default:"No sales yet" }}
+                    </p>
                 </article>
                 <article class="card">
                     <h2>💰 Total Revenue</h2>
@@ -1443,29 +1479,300 @@
 
             <!-- Sales by Category Chart -->
             <div class="panel" style="margin-top:16px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                     <h2 style="margin:0;">Sales by Category</h2>
                     <div style="display:flex; gap:6px;">
-                        <button class="action chart-toggle" data-view="revenue" style="padding:4px 12px; background:var(--brand); color:#fff; border-color:var(--brand);">Revenue</button>
-                        <button class="action chart-toggle" data-view="quantity" style="padding:4px 12px;">Quantity</button>
+                        <button class="action chart-toggle" data-view="revenue"
+                            style="padding:4px 12px; background:var(--brand); color:#fff; border-color:var(--brand);">Revenue</button>
+                        <button class="action chart-toggle" data-view="quantity"
+                            style="padding:4px 12px;">Quantity</button>
                     </div>
                 </div>
                 <div id="categoryChart" style="display:flex; flex-direction:column; gap:8px;">
                     {% for cat in category_chart_data %}
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="width:100px; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ cat.name }}">{{ cat.name }}</span>
-                        <div style="flex:1; background:#f2f4f7; height:24px; border-radius:4px; position:relative; overflow:hidden;">
-                            <div class="bar-revenue" style="height:100%; background:var(--brand); border-radius:4px; width:{{ cat.revenue_percent|floatformat:1 }}%; transition:width 0.3s;"></div>
-                            <div class="bar-quantity" style="display:none; height:100%; background:#f59e0b; border-radius:4px; width:{{ cat.quantity_percent|floatformat:1 }}%; transition:width 0.3s;"></div>
+                        <span
+                            style="width:100px; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                            title="{{ cat.name }}">{{ cat.name }}</span>
+                        <div
+                            style="flex:1; background:#f2f4f7; height:24px; border-radius:4px; position:relative; overflow:hidden;">
+                            <div class="bar-revenue"
+                                style="height:100%; background:var(--brand); border-radius:4px; width:{{ cat.revenue_percent|floatformat:1 }}%; transition:width 0.3s;">
+                            </div>
+                            <div class="bar-quantity"
+                                style="display:none; height:100%; background:#f59e0b; border-radius:4px; width:{{ cat.quantity_percent|floatformat:1 }}%; transition:width 0.3s;">
+                            </div>
                         </div>
-                        <span class="bar-label-revenue" style="font-weight:600; min-width:80px; text-align:right;">₱{{ cat.revenue|floatformat:0 }}</span>
-                        <span class="bar-label-quantity" style="display:none; font-weight:600; min-width:80px; text-align:right;">{{ cat.quantity }}</span>
+                        <span class="bar-label-revenue" style="font-weight:600; min-width:80px; text-align:right;">₱{{
+                            cat.revenue|floatformat:0 }}</span>
+                        <span class="bar-label-quantity"
+                            style="display:none; font-weight:600; min-width:80px; text-align:right;">{{ cat.quantity }}</span>
                     </div>
                     {% empty %}
                     <p style="color:var(--muted);">No sales data available for chart.</p>
                     {% endfor %}
                 </div>
-            </div>            
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- QUOTATION TAB ──────────────────────────────────────────────── -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <div id="quotation-tab" class="tab-panel">
+            <div class="panel" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">💬 Create Quotation</h1>
+
+                <!-- Top controls -->
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" id="quotationDownloadPdf" style="padding:10px 16px;">📥 Download
+                        PDF</button>
+                    <button class="action" id="quotationPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" id="quotationReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <!-- Quotation details section -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <!-- Left column -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Quotation
+                            Number</label>
+                        <input type="text" id="quotationNumber" placeholder="QT-2026-001"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600;">
+
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Quotation
+                            Date</label>
+                        <input type="date" id="quotationDate"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+
+                    <!-- Right column -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Valid
+                            Until</label>
+                        <input type="date" id="quotationValidUntil"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Currency</label>
+                        <div style="display:flex; gap:8px;">
+                            <select id="quotationCurrency"
+                                style="flex:1; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                                <option value="PHP">PHP (₱)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                            <input type="text" id="quotationCurrencyOther" placeholder="e.g., GBP"
+                                style="width:80px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; display:none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer details -->
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Customer Information</legend>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Company</label>
+                            <input type="text" id="quotationCustomerCompany" placeholder="Customer Company Name"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Contact
+                                Person</label>
+                            <input type="text" id="quotationCustomerContact" placeholder="Name / Title"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Address</label>
+                            <textarea id="quotationCustomerAddress" placeholder="Full Address" rows="2"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Email</label>
+                            <input type="email" id="quotationCustomerEmail" placeholder="customer@example.com"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Phone</label>
+                            <input type="tel" id="quotationCustomerPhone" placeholder="+63 XXX XXXX XXX"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Quotation items table -->
+                <div style="overflow-x:auto; margin-bottom:16px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        <thead>
+                            <tr style="background:var(--brand); color:#fff;">
+                                <th style="padding:12px; text-align:left; border:none; font-weight:600;">No.</th>
+                                <th style="padding:12px; text-align:left; border:none; font-weight:600;">Product
+                                    Description</th>
+                                <th style="padding:12px; text-align:center; border:none; font-weight:600; width:80px;">
+                                    QTY</th>
+                                <th style="padding:12px; text-align:left; border:none; font-weight:600; width:70px;">
+                                    Unit</th>
+                                <th style="padding:12px; text-align:right; border:none; font-weight:600; width:110px;">
+                                    Unit Price</th>
+                                <th style="padding:12px; text-align:right; border:none; font-weight:600; width:110px;">
+                                    Total</th>
+                                <th style="padding:12px; text-align:center; border:none; font-weight:600; width:40px;">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="quotationItemsBody" style="border-bottom:2px solid var(--line);">
+                            <!-- Template row -->
+                            <tr style="border-top:1px solid var(--line);">
+                                <td style="padding:12px; text-align:left;"><input type="text" class="qt-col-no" readonly
+                                        style="width:40px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--soft); text-align:center;"
+                                        value="1"></td>
+                                <td style="padding:12px;"><textarea class="qt-col-desc"
+                                        placeholder="Description of product/service" rows="1"
+                                        style="width:100%; padding:6px; border:1px solid var(--line); border-radius:4px; font-family:inherit; resize:none;"></textarea>
+                                </td>
+                                <td style="padding:12px; text-align:center;"><input type="number" class="qt-qty"
+                                        value="1" min="1"
+                                        style="width:70px; padding:6px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                                </td>
+                                <td style="padding:12px;"><input type="text" class="qt-col-unit" placeholder="Unit"
+                                        value=""
+                                        style="width:60px; padding:6px; border:1px solid var(--line); border-radius:4px;">
+                                </td>
+                                <td style="padding:12px; text-align:right;"><input type="text" class="qt-unit-price"
+                                        placeholder="0.00" value="0.00"
+                                        style="width:100px; padding:6px; border:1px solid var(--line); border-radius:4px; text-align:right;">
+                                </td>
+                                <td style="padding:12px; text-align:right;"><input type="text" class="qt-line-total"
+                                        readonly value="0.00"
+                                        style="width:100px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--soft); text-align:right; font-weight:600;">
+                                </td>
+                                <td style="padding:12px; text-align:center;"><button class="qt-row-remove"
+                                        style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="action" id="quotationAddRow" style="padding:8px 14px; margin-bottom:16px;">+ Add
+                    Item</button>
+
+                <!-- Calculations section -->
+                <div style="display:grid; grid-template-columns:1fr 300px; gap:16px; margin-bottom:16px;">
+                    <!-- Terms section -->
+                    <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; grid-column:1;">
+                        <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Terms & Conditions</legend>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Payment
+                                Terms</label>
+                            <input type="text" id="quotationPaymentTerms" placeholder="e.g., Cash, Net 30"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Delivery
+                                Terms</label>
+                            <input type="text" id="quotationDeliveryTerms" placeholder="e.g., Within 30 days"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Warranty</label>
+                            <input type="text" id="quotationWarranty" placeholder="e.g., 1 year"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Additional
+                                Terms</label>
+                            <textarea id="quotationOtherTerms" placeholder="Any other terms or conditions" rows="4"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                        </div>
+                    </fieldset>
+
+                    <!-- Summary calculations -->
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">SUBTOTAL</label>
+                            <input type="text" id="quotationSubtotal" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right; font-weight:600; font-size:1rem;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">TAX</label>
+                            <input type="text" id="quotationTax" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">DISCOUNT</label>
+                            <input type="text" id="quotationDiscount" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">SHIPPING</label>
+                            <input type="text" id="quotationShipping" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--brand); color:#fff; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; font-weight:600; margin-bottom:4px;">TOTAL</label>
+                            <input type="text" id="quotationGrandTotal" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:4px; background:transparent; color:#fff; text-align:right; font-weight:700; font-size:1.2rem;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signature section -->
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Authorization</legend>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+                        <div style="text-align:center;">
+                            <div
+                                style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
+                                <input type="text" id="quotationPreparedSignature" placeholder="Signature"
+                                    style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
+                            </div>
+                            <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">
+                                <input type="text" id="quotationPreparedName" placeholder="Name"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--muted);">
+                                <input type="text" id="quotationPreparedPosition" placeholder="Title"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center; font-size:0.75rem;">
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
+                                <input type="date" id="quotationPreparedDate"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div
+                                style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
+                                <input type="text" id="quotationApprovedSignature" placeholder="Signature"
+                                    style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
+                            </div>
+                            <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">Engr. Arturo I. Davis,
+                                PME</div>
+                            <div style="font-size:0.75rem; color:var(--muted);">President / CEO</div>
+                            <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
+                                <input type="date" id="quotationApprovedDate"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
         </div>
 
         <!-- Footer action -->
@@ -1478,7 +1785,7 @@
 
 <!-- ─── SCRIPTS ─── -->
 <script>
-    (function() {
+    (function () {
         // ── Tab switching (now using URL parameter or active_tab) ──
         const tabs = document.querySelectorAll('.sidebar-nav .tab-button');
         const panels = {
@@ -1486,6 +1793,7 @@
             'history-tab': document.getElementById('history-tab'),
             'refund-tab': document.getElementById('refund-tab'),
             'analytics-tab': document.getElementById('analytics-tab'),
+            'quotation-tab': document.getElementById('quotation-tab'),
         };
 
         // Function to activate a tab
@@ -1517,7 +1825,7 @@
 
         // Click handlers: update URL with tab parameter
         tabs.forEach((btn) => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const targetId = this.dataset.tabTarget;
                 // Update URL without reload
                 const url = new URL(window.location);
@@ -1585,12 +1893,12 @@
         // ── Mobile scroll ──
         if (window.innerWidth <= 768) {
             tabs.forEach((btn) => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     document.querySelector('.main-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 });
             });
         }
-        
+
         // ── Sales by Category chart toggle ──
         const toggleBtns = document.querySelectorAll('.chart-toggle');
         const chartContainer = document.getElementById('categoryChart');
@@ -1624,13 +1932,356 @@
 
         // Attach click events
         toggleBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 setChartView(this.dataset.view);
             });
         });
 
         // Default to revenue (already active)
         setChartView('revenue');
+
+        // ══════════════════════════════════════════════════════════════
+        // QUOTATION FORM FUNCTIONALITY
+        // ══════════════════════════════════════════════════════════════
+
+        (function initQuotation() {
+            const itemsBody = document.getElementById('quotationItemsBody');
+            const subtotalInput = document.getElementById('quotationSubtotal');
+            const taxInput = document.getElementById('quotationTax');
+            const discountInput = document.getElementById('quotationDiscount');
+            const shippingInput = document.getElementById('quotationShipping');
+            const grandTotalInput = document.getElementById('quotationGrandTotal');
+            const addRowBtn = document.getElementById('quotationAddRow');
+            const downloadPdfBtn = document.getElementById('quotationDownloadPdf');
+            const printBtn = document.getElementById('quotationPrint');
+            const resetBtn = document.getElementById('quotationReset');
+            const currencySelect = document.getElementById('quotationCurrency');
+            const currencyOther = document.getElementById('quotationCurrencyOther');
+            const quotationDateInput = document.getElementById('quotationDate');
+
+            if (!itemsBody) return;
+
+            function money(num) {
+                return (Number(num) || 0).toFixed(2);
+            }
+
+            function todayISO() {
+                const d = new Date();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const date = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${month}-${date}`;
+            }
+
+            quotationDateInput.value = todayISO();
+
+            function recalcRow(row) {
+                const qty = parseFloat(row.querySelector('.qt-qty')?.value) || 0;
+                const cost = parseFloat(row.querySelector('.qt-unit-price')?.value) || 0;
+                const total = qty * cost;
+                const totalInput = row.querySelector('.qt-line-total');
+                if (totalInput) totalInput.value = money(total);
+            }
+
+            function recalcAll() {
+                let subtotal = 0;
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    recalcRow(row);
+                    subtotal += parseFloat(row.querySelector('.qt-line-total')?.value) || 0;
+                });
+                subtotalInput.value = money(subtotal);
+                const tax = parseFloat(taxInput.value) || 0;
+                const discount = parseFloat(discountInput.value) || 0;
+                const shipping = parseFloat(shippingInput.value) || 0;
+                const grand = subtotal + tax + shipping - discount;
+                grandTotalInput.value = money(grand);
+            }
+
+            function renumberRows() {
+                itemsBody.querySelectorAll('tr').forEach((row, idx) => {
+                    const noInput = row.querySelector('.qt-col-no');
+                    if (noInput) noInput.value = idx + 1;
+                });
+            }
+
+            function addRow() {
+                const template = itemsBody.querySelector('tr');
+                if (!template) return;
+
+                const clone = template.cloneNode(true);
+                clone.querySelectorAll('input, textarea').forEach(el => {
+                    if (el.classList.contains('qt-qty')) {
+                        el.value = 1;
+                        return;
+                    }
+                    if (el.classList.contains('qt-unit-price')) {
+                        el.value = '0.00';
+                        return;
+                    }
+                    if (el.classList.contains('qt-line-total')) {
+                        el.value = '0.00';
+                        return;
+                    }
+                    el.value = '';
+                });
+
+                const rowCount = itemsBody.querySelectorAll('tr').length + 1;
+                const noInput = clone.querySelector('.qt-col-no');
+                if (noInput) noInput.value = rowCount;
+
+                itemsBody.appendChild(clone);
+                renumberRows();
+                recalcAll();
+            }
+
+            function removeRow(row) {
+                const rows = itemsBody.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    alert('At least one line item is required.');
+                    return;
+                }
+                row.remove();
+                renumberRows();
+                recalcAll();
+            }
+
+            itemsBody.addEventListener('input', function (e) {
+                const row = e.target.closest('tr');
+                if (row) recalcRow(row), recalcAll();
+            });
+
+            itemsBody.addEventListener('click', function (e) {
+                const btn = e.target.closest('.qt-row-remove');
+                if (!btn) return;
+                removeRow(btn.closest('tr'));
+            });
+
+            addRowBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                addRow();
+            });
+
+            [taxInput, discountInput, shippingInput].forEach(el => {
+                el.addEventListener('input', recalcAll);
+            });
+
+            currencySelect.addEventListener('change', function () {
+                const isOther = this.value === 'OTHER';
+                currencyOther.hidden = !isOther;
+                if (isOther) currencyOther.focus();
+            });
+
+            function collectQtPayload() {
+                const currency = currencySelect?.value || 'PHP';
+                const items = [];
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    items.push({
+                        no: row.querySelector('.qt-col-no')?.value || '',
+                        description: row.querySelector('.qt-col-desc')?.value || '',
+                        qty: row.querySelector('.qt-qty')?.value || '0',
+                        unit: row.querySelector('.qt-col-unit')?.value || '',
+                        unit_price: row.querySelector('.qt-unit-price')?.value || '0',
+                        total: row.querySelector('.qt-line-total')?.value || '0',
+                    });
+                });
+
+                return {
+                    quotation_number: document.getElementById('quotationNumber')?.value || '',
+                    currency,
+                    currency_other: currencyOther?.value || '',
+                    quotation_date: document.getElementById('quotationDate')?.value || '',
+                    valid_until: document.getElementById('quotationValidUntil')?.value || '',
+                    customer: {
+                        company: document.getElementById('quotationCustomerCompany')?.value || '',
+                        contact: document.getElementById('quotationCustomerContact')?.value || '',
+                        address: document.getElementById('quotationCustomerAddress')?.value || '',
+                        email: document.getElementById('quotationCustomerEmail')?.value || '',
+                        phone: document.getElementById('quotationCustomerPhone')?.value || '',
+                    },
+                    items,
+                    subtotal: subtotalInput?.value || '0',
+                    tax: taxInput?.value || '0',
+                    discount: discountInput?.value || '0',
+                    shipping: shippingInput?.value || '0',
+                    grand_total: grandTotalInput?.value || '0',
+                    payment_terms: document.getElementById('quotationPaymentTerms')?.value || '',
+                    delivery_terms: document.getElementById('quotationDeliveryTerms')?.value || '',
+                    warranty: document.getElementById('quotationWarranty')?.value || '',
+                    other_terms: document.getElementById('quotationOtherTerms')?.value || '',
+                    prepared_by: {
+                        name: document.getElementById('quotationPreparedName')?.value || '',
+                        title: document.getElementById('quotationPreparedPosition')?.value || '',
+                        signature: document.getElementById('quotationPreparedSignature')?.value || '',
+                        date: document.getElementById('quotationPreparedDate')?.value || '',
+                    },
+                    approved_by: {
+                        name: 'Engr. Arturo I. Davis, PME',
+                        title: 'President / CEO',
+                        signature: document.getElementById('quotationApprovedSignature')?.value || '',
+                        date: document.getElementById('quotationApprovedDate')?.value || '',
+                    },
+                };
+            }
+
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return '';
+            }
+
+            downloadPdfBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const payload = collectQtPayload();
+                downloadPdfBtn.disabled = true;
+
+                fetch('{% url "save_quotation" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                })
+                    .then(async (response) => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            const data = await response.json();
+                            return { status: response.status, body: data };
+                        }
+                        const text = await response.text();
+                        const brief = text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server returned non-JSON response';
+                        throw new Error(brief);
+                    })
+                        .then(({ status, body }) => {
+                            if (status !== 200) {
+                                throw new Error(body && body.error ? body.error : 'Unable to save quotation.');
+                            }
+                            if (body.download_url) {
+                                window.location.href = body.download_url;
+                            } else {
+                                alert('Quotation saved successfully.');
+                            }
+                        })
+                        .catch((error) => {
+                            alert('Unable to save quotation: ' + error.message);
+                        })
+                        .finally(() => {
+                        downloadPdfBtn.disabled = false;
+                    });
+            });
+
+            printBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const payload = collectQtPayload();
+
+                // Disable the button to prevent double clicks
+                printBtn.disabled = true;
+
+                fetch('{% url "save_quotation" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                })
+                    .then(async (response) => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (contentType.includes('application/json')) {
+                            const data = await response.json();
+                            return { status: response.status, body: data };
+                        }
+                        const text = await response.text();
+                        throw new Error(text.replace(/\s+/g, ' ').trim().slice(0, 200) || 'Server error');
+                    })
+                    .then(({ status, body }) => {
+                        if (status !== 200) {
+                            throw new Error(body?.error || 'Unable to save quotation.');
+                        }
+                        if (body.download_url) {
+                            // Open PDF in a new tab
+                            window.open(body.download_url, '_blank');
+                        } else {
+                            alert('Quotation saved, but no download URL returned.');
+                        }
+                    })
+                    .catch((error) => {
+                        alert('Unable to generate printable quotation: ' + error.message);
+                    })
+                    .finally(() => {
+                        printBtn.disabled = false;
+                    });
+            });
+
+            resetBtn.addEventListener('click', function () {
+                if (!confirm('Reset the Quotation form? All entered data will be cleared.')) return;
+                const rows = itemsBody.querySelectorAll('tr');
+                rows.forEach((row, idx) => { if (idx > 0) row.remove(); });
+                const first = itemsBody.querySelector('tr');
+                first.querySelectorAll('input, textarea').forEach(el => {
+                    if (el.classList.contains('qt-col-no')) return;
+                    if (el.classList.contains('qt-qty')) { el.value = 1; return; }
+                    if (el.classList.contains('qt-unit-price')) { el.value = '0.00'; return; }
+                    if (el.classList.contains('qt-line-total')) { el.value = '0.00'; return; }
+                    el.value = '';
+                });
+                first.querySelector('.qt-col-no').value = 1;
+                taxInput.value = '0.00';
+                discountInput.value = '0.00';
+                shippingInput.value = '0.00';
+                currencySelect.value = 'PHP';
+                currencyOther.hidden = true;
+                currencyOther.value = '';
+                quotationDateInput.value = todayISO();
+                document.getElementById('quotationValidUntil').value = '';
+                document.getElementById('quotationNumber').value = '';
+                document.getElementById('quotationCustomerCompany').value = '';
+                document.getElementById('quotationCustomerContact').value = '';
+                document.getElementById('quotationCustomerAddress').value = '';
+                document.getElementById('quotationCustomerEmail').value = '';
+                document.getElementById('quotationCustomerPhone').value = '';
+                document.getElementById('quotationPaymentTerms').value = '';
+                document.getElementById('quotationDeliveryTerms').value = '';
+                document.getElementById('quotationWarranty').value = '';
+                document.getElementById('quotationOtherTerms').value = '';
+                document.getElementById('quotationPreparedName').value = '';
+                document.getElementById('quotationPreparedPosition').value = '';
+                document.getElementById('quotationPreparedSignature').value = '';
+                document.getElementById('quotationPreparedDate').value = '';
+                document.getElementById('quotationApprovedSignature').value = '';
+                document.getElementById('quotationApprovedDate').value = '';
+                recalcAll();
+            });
+
+            recalcAll();
+        })();
+
     })();
+
+    // Global handler: capture unhandled promise rejections (helps surface extension errors)
+    window.addEventListener('unhandledrejection', function (event) {
+        try {
+            console.error('Unhandled promise rejection:', event.reason);
+            // small transient UI notice so users see something happened
+            var note = document.createElement('div');
+            note.textContent = 'An unexpected error occurred — check the console for details.';
+            note.style.position = 'fixed';
+            note.style.right = '16px';
+            note.style.bottom = '16px';
+            note.style.background = 'rgba(17,17,17,0.96)';
+            note.style.color = '#fff';
+            note.style.padding = '8px 12px';
+            note.style.borderRadius = '6px';
+            note.style.zIndex = 99999;
+            note.style.fontSize = '13px';
+            document.body.appendChild(note);
+            setTimeout(function () { try { note.remove(); } catch (e) {} }, 8000);
+        } catch (err) {
+            // swallow errors from the handler itself
+            console.error('Error in unhandledrejection handler', err);
+        }
+    });
 </script>
 {% endblock %}

@@ -73,7 +73,61 @@ class SalesOrder(models.Model):
 
     def __str__(self):
         return f'{self.customer_name} - {self.inventory_item}'
-    
+
+
+class Quotation(models.Model):
+    quotation_number = models.CharField(max_length=100)
+    quotation_date = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=10, default='PHP')
+    currency_other = models.CharField(max_length=20, blank=True, default='')
+    customer_company = models.CharField(max_length=200, blank=True, default='')
+    customer_contact = models.CharField(max_length=200, blank=True, default='')
+    customer_address = models.TextField(blank=True, default='')
+    customer_email = models.EmailField(blank=True, default='')
+    customer_phone = models.CharField(max_length=50, blank=True, default='')
+    subject = models.CharField(max_length=255, blank=True, default='')
+    payment_terms = models.CharField(max_length=255, blank=True, default='')
+    delivery_terms = models.CharField(max_length=255, blank=True, default='')
+    warranty = models.CharField(max_length=255, blank=True, default='')
+    other_terms = models.TextField(blank=True, default='')
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    shipping = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    prepared_name = models.CharField(max_length=200, blank=True, default='')
+    prepared_title = models.CharField(max_length=200, blank=True, default='')
+    prepared_signature = models.TextField(blank=True, default='')
+    prepared_date = models.DateField(null=True, blank=True)
+    approved_signature = models.TextField(blank=True, default='')
+    approved_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.quotation_number or f'Quotation {self.pk}'
+
+
+class QuotationLine(models.Model):
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='lines')
+    item_number = models.PositiveIntegerField(default=0)
+    product_description = models.TextField(blank=True, default='')
+    quantity = models.PositiveIntegerField(default=0)
+    unit = models.CharField(max_length=50, blank=True, default='')
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['item_number']
+
+    def __str__(self):
+        return f'{self.quotation} line {self.item_number}'
+
 
 class HRDocument(models.Model):
     DOCUMENT_TYPES = [
@@ -265,7 +319,7 @@ class TaxBracket(models.Model):
 
     def __str__(self):
         return f'{self.tax_type} – {self.effective_date}'
-    
+
 
 # ========== TIME & ATTENDANCE MODELS ==========
 
@@ -382,7 +436,7 @@ class RefundRecord(models.Model):
 
     def __str__(self):
         return f'Refund for {self.sales_order} - {self.refund_quantity} pcs'
-    
+
 class Delivery(models.Model):
     delivery_date = models.DateField()
     driver = models.CharField(max_length = 100)
@@ -412,7 +466,7 @@ class Delivery(models.Model):
     
     def __str__(self):
         return f"Delivery {self.delivery_number} - {self.delivery_date}"
-    
+
 class DeliveryLine(models.Model):
     delivery = models.ForeignKey(Delivery, on_delete=models.CASCADE, related_name="lines")
     item_type = models.CharField(max_length=200)
@@ -423,10 +477,12 @@ class DeliveryLine(models.Model):
     @property
     def total_pcs(self):
         return self.quantity_cartons * self.pcs_per_carton
-    
+
     @property
     def total_cost(self):
-        return self.quantity_cartons * self.cost_per_carton
-    
+        return self.quantity_cartons * self.pcs_per_carton  * self.cost_per_carton
+
     def __str__(self):
         return f"{self.item_type} - {self.quantity_cartons} ctn"
+
+

@@ -10,6 +10,7 @@
   *::after {
     box-sizing: border-box;
   }
+
   :root {
     --ink: #101828;
     --muted: #667085;
@@ -25,6 +26,7 @@
     --radius: 14px;
     --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
   }
+
   body {
     display: block;
     padding: 0;
@@ -34,6 +36,7 @@
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
   }
+
   .dashboard-wrapper {
     display: flex;
     min-height: 100vh;
@@ -47,7 +50,7 @@
     width: var(--sidebar-width);
     height: 100vh;
     overflow-y: auto;
-    background: #1851a2;
+    background: var(--brand);
     color: #e6f0f0;
     padding: 0;
     display: flex;
@@ -55,11 +58,13 @@
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     z-index: 100;
   }
+
   .sidebar-brand {
     padding: 28px 24px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
+
   .sidebar-brand .logo {
     display: flex;
     align-items: center;
@@ -67,6 +72,7 @@
     text-decoration: none;
     color: #fff;
   }
+
   .sidebar-brand .logo-icon {
     width: 38px;
     height: 38px;
@@ -80,12 +86,14 @@
     color: #fff;
     flex-shrink: 0;
   }
+
   .sidebar-brand .logo-text {
     font-weight: 800;
     font-size: 1.1rem;
     letter-spacing: -0.01em;
     line-height: 1.2;
   }
+
   .sidebar-brand .logo-text small {
     display: block;
     font-weight: 400;
@@ -94,10 +102,12 @@
     letter-spacing: 0.04em;
     margin-top: 2px;
   }
+
   .sidebar-nav {
     padding: 20px 16px 12px;
     flex-shrink: 0;
   }
+
   .sidebar-nav .nav-label {
     font-size: 0.65rem;
     text-transform: uppercase;
@@ -105,7 +115,9 @@
     opacity: 0.4;
     padding: 0 12px 10px;
     font-weight: 700;
+    color: #fff;
   }
+
   .sidebar-nav .tab-button {
     display: flex;
     align-items: center;
@@ -114,7 +126,7 @@
     padding: 12px 16px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.836);
     font: inherit;
     font-weight: 600;
     font-size: 0.9rem;
@@ -124,6 +136,7 @@
     text-align: left;
     position: relative;
   }
+
   .sidebar-nav .tab-button .tab-icon {
     font-size: 1.2rem;
     width: 24px;
@@ -131,18 +144,22 @@
     flex-shrink: 0;
     opacity: 0.7;
   }
+
   .sidebar-nav .tab-button:hover {
     background: rgba(255, 255, 255, 0.06);
     color: #fff;
   }
+
   .sidebar-nav .tab-button[aria-selected="true"] {
-    background: rgba(48, 118, 239, 0.3);
+    background: var(--brand-dark);
     color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
   }
+
   .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
     opacity: 1;
   }
+
   .sidebar-nav .tab-button .tab-badge {
     margin-left: auto;
     background: rgba(255, 255, 255, 0.08);
@@ -152,6 +169,7 @@
     font-weight: 700;
     color: rgba(255, 255, 255, 0.5);
   }
+
   .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
     background: rgba(15, 118, 110, 0.4);
     color: #fff;
@@ -164,6 +182,7 @@
     margin-top: 4px;
     flex-shrink: 0;
   }
+
   .sidebar-stats .stat-row {
     display: flex;
     justify-content: space-between;
@@ -171,10 +190,12 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.5);
   }
+
   .sidebar-stats .stat-row strong {
     color: #fff;
     font-weight: 600;
   }
+
   .sidebar-stats .stat-row .badge {
     background: rgba(255, 255, 255, 0.06);
     padding: 0 10px;
@@ -205,23 +226,27 @@
     background: transparent;
     color: var(--ink);
   }
+
   .topbar .greeting h2 {
     margin: 0;
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: -0.01em;
   }
+
   .topbar .greeting p {
     margin: 2px 0 0;
     color: var(--muted);
     font-size: 0.85rem;
   }
+
   .topbar .top-actions {
     display: flex;
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
   }
+
   .topbar .top-actions a {
     text-decoration: none;
     font-weight: 600;
@@ -233,14 +258,17 @@
     color: var(--ink);
     transition: 0.2s;
   }
+
   .topbar .top-actions a:hover {
     background: var(--soft);
   }
+
   .topbar .top-actions .brand-link {
     background: var(--brand);
     border-color: var(--brand);
     color: #fff;
   }
+
   .topbar .top-actions .brand-link:hover {
     background: var(--brand-dark);
     border-color: var(--brand-dark);
@@ -253,6 +281,7 @@
     gap: 14px;
     margin-bottom: 28px;
   }
+
   .hero-stats .stat-card {
     background: #fff;
     border: 1px solid var(--line);
@@ -260,6 +289,7 @@
     padding: 18px 20px;
     box-shadow: var(--shadow);
   }
+
   .hero-stats .stat-card .stat-label {
     font-size: 0.72rem;
     text-transform: uppercase;
@@ -267,6 +297,7 @@
     color: var(--muted);
     font-weight: 700;
   }
+
   .hero-stats .stat-card .stat-value {
     font-size: 1.6rem;
     font-weight: 800;
@@ -283,15 +314,18 @@
     box-shadow: var(--shadow);
     padding: 22px 24px;
   }
+
   .panel {
     margin-bottom: 24px;
   }
+
   .card h2,
   .panel h2 {
     margin: 0 0 8px;
     font-size: 1rem;
     font-weight: 700;
   }
+
   .card p,
   .panel p {
     margin: 0;
@@ -305,14 +339,17 @@
     display: none;
     animation: fadeUp 0.3s ease;
   }
+
   .tab-panel.is-active {
     display: block;
   }
+
   @keyframes fadeUp {
     0% {
       opacity: 0;
       transform: translateY(10px);
     }
+
     100% {
       opacity: 1;
       transform: translateY(0);
@@ -324,15 +361,18 @@
     display: grid;
     gap: 16px;
   }
+
   .field {
     display: grid;
     gap: 6px;
   }
+
   .field label {
     color: #475467;
     font-size: 0.82rem;
     font-weight: 700;
   }
+
   .field input,
   .field select,
   .field textarea {
@@ -345,6 +385,7 @@
     border-radius: 8px;
     transition: border 0.2s;
   }
+
   .field input:focus,
   .field select:focus,
   .field textarea:focus {
@@ -352,19 +393,23 @@
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
   }
+
   .form-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(180px, 1fr));
     gap: 16px;
   }
+
   .field.full {
     grid-column: 1 / -1;
   }
+
   .actions {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
   }
+
   .actions button {
     border: 1px solid transparent;
     padding: 10px 18px;
@@ -373,24 +418,29 @@
     cursor: pointer;
     border-radius: 8px;
   }
+
   .save {
     background: var(--brand);
     color: #fff;
     border-color: var(--brand);
   }
+
   .save:hover {
     background: var(--brand-dark);
   }
+
   .clear {
     background: #fff;
     color: var(--ink);
     border-color: var(--line);
   }
+
   .copy {
     background: #fff;
     color: var(--brand);
     border-color: var(--line);
   }
+
   .delete {
     background: var(--danger);
     color: #fff;
@@ -403,15 +453,18 @@
     border-radius: var(--radius);
     background: #fff;
   }
+
   table {
     width: 100%;
     min-width: 720px;
     border-collapse: collapse;
     font-size: 0.88rem;
   }
+
   thead {
     background: var(--soft);
   }
+
   th,
   td {
     text-align: left;
@@ -419,6 +472,7 @@
     border-bottom: 1px solid #eaecf0;
     vertical-align: middle;
   }
+
   th {
     color: #475467;
     font-weight: 700;
@@ -426,13 +480,16 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+
   tbody tr:hover {
     background: #f8fafc;
   }
+
   .stock-ok {
     color: var(--success);
     font-weight: 700;
   }
+
   .stock-empty {
     color: var(--danger);
     font-weight: 700;
@@ -446,6 +503,7 @@
     align-items: center;
     margin-bottom: 16px;
   }
+
   .toolbar input,
   .toolbar select {
     border: 1px solid var(--line);
@@ -455,6 +513,7 @@
     background: #fff;
     flex: 1 1 200px;
   }
+
   .toolbar button {
     padding: 10px 18px;
     border: 1px solid var(--line);
@@ -463,6 +522,7 @@
     font-weight: 600;
     cursor: pointer;
   }
+
   .toolbar button:hover {
     background: var(--soft);
   }
@@ -490,6 +550,7 @@
     font-size: 0.82rem;
     transition: 0.2s;
   }
+
   .action:hover {
     background: var(--soft);
     border-color: var(--brand);
@@ -500,17 +561,21 @@
     :root {
       --sidebar-width: 260px;
     }
+
     .main-content {
       padding: 0 20px 32px;
     }
+
     .form-grid {
       grid-template-columns: 1fr 1fr;
     }
   }
+
   @media (max-width: 768px) {
     .dashboard-wrapper {
       flex-direction: column;
     }
+
     .sidebar {
       position: relative;
       width: 100%;
@@ -521,51 +586,859 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       overflow-y: auto;
     }
+
     .sidebar-brand {
       padding: 16px 20px 12px;
     }
+
     .sidebar-nav {
       padding: 8px 12px;
     }
+
     .sidebar-nav .nav-label {
       display: none;
     }
+
     .sidebar-nav .tab-button {
       padding: 10px 14px;
       font-size: 0.8rem;
     }
+
     .sidebar-stats {
       display: none;
     }
+
     .main-content {
       padding: 0 16px 24px;
     }
+
     .hero-stats {
       grid-template-columns: repeat(2, 1fr);
     }
+
     .form-grid {
       grid-template-columns: 1fr;
     }
+
     .topbar {
       flex-direction: column;
       align-items: stretch;
       gap: 12px;
     }
+
     .topbar .top-actions {
       justify-content: flex-start;
     }
   }
+
   @media (max-width: 480px) {
     .hero-stats {
       grid-template-columns: 1fr 1fr;
     }
+
     .toolbar {
       flex-direction: column;
       align-items: stretch;
     }
+
     .toolbar input,
     .toolbar select {
       flex: none;
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     PURCHASE ORDER TAB
+     ══════════════════════════════════════════════ */
+  .po-toolbar-panel {
+    margin-bottom: 20px;
+  }
+
+  .po-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #eaecf0;
+  }
+
+  .po-toolbar-group label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .po-paper-badge {
+    display: inline-block;
+    padding: 9px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--soft);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .po-toolbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Long Bond Paper only: 8.5in × 13in */
+  :root {
+    --po-page-width: 8.5in;
+    --po-page-height: 13in;
+    --po-body-pad-y: 22px;
+    --po-body-pad-x: 34px;
+    --po-footer-reserve: 90px;
+  }
+
+  /* ── screen backdrop for the printable sheet ── */
+  .po-canvas {
+    background: #dfe3e8;
+    border-radius: var(--radius);
+    padding: 32px 16px;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  .po-print-area {
+    width: var(--po-page-width);
+    min-width: var(--po-page-width);
+    max-width: var(--po-page-width);
+    min-height: var(--po-page-height);
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.18);
+    color: #1d2939;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    position: relative;
+    box-sizing: border-box;
+    /* Pin footer to bottom of the long-bond sheet when content is short */
+    display: grid;
+    grid-template-rows: 1fr auto;
+  }
+
+  .po-page-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    align-self: stretch;
+  }
+
+  .po-page-table>thead>tr>td,
+  .po-page-table>tbody>tr>td {
+    padding: 0;
+  }
+
+  .po-header-band img,
+  .po-footer-fixed img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .po-header-band {
+    border-bottom: 3px solid #0b3f73;
+  }
+
+  /* Footer sits at bottom of the page sheet (screen + print) */
+  .po-footer-fixed {
+    border-top: 1px solid #d0d5dd;
+    background: #fff;
+    width: 100%;
+    align-self: end;
+  }
+
+  .po-footer-fixed img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ── Body content (same padding for preview, print, and PDF) ── */
+  .po-body {
+    padding: var(--po-body-pad-y) var(--po-body-pad-x) calc(10px + var(--po-footer-reserve));
+    box-sizing: border-box;
+  }
+
+  .po-print-area.pdf-export .po-no-print,
+  .po-print-area.pdf-export .po-row-remove {
+    display: none !important;
+  }
+
+  .po-print-area.pdf-export .po-items-wrap {
+    padding-right: 0 !important;
+  }
+
+  /* Body is captured alone for PDF — no footer reserve needed */
+  .po-print-area.pdf-export .po-body {
+    padding-bottom: 10px !important;
+  }
+
+  /* -- doc title & meta -- */
+  .po-doctitle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .po-doctitle h1 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #0b3f73;
+  }
+
+  .po-doctitle p {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: #667085;
+  }
+
+  .po-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    gap: 8px 20px;
+    min-width: 300px;
+  }
+
+  .po-meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .po-meta-field label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #667085;
+  }
+
+  .po-meta-field input,
+  .po-meta-field select {
+    border: none;
+    border-bottom: 1.4px solid #98a2b3;
+    background: transparent;
+    padding: 4px 2px 6px;
+    font: inherit;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    min-height: 1.6em;
+    height: auto;
+    box-sizing: border-box;
+    font-weight: 600;
+    color: #1d2939;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .po-meta-field input:focus,
+  .po-meta-field select:focus {
+    outline: none;
+    border-bottom-color: #0b3f73;
+  }
+
+  .po-currency-other[hidden] {
+    display: none;
+  }
+
+  /* -- buyer / seller -- */
+  .po-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 6px 0 18px;
+  }
+
+  .po-party {
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 12px 14px;
+    break-inside: avoid;
+  }
+
+  .po-party h3 {
+    margin: 0 0 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0b3f73;
+    border-bottom: 1px solid #eaecf0;
+    padding-bottom: 6px;
+  }
+
+  .po-party .field-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .po-party .field-line label {
+    flex: 0 0 82px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #667085;
+  }
+
+  .po-party .field-line input,
+  .po-party .field-line textarea {
+    flex: 1;
+    border: none;
+    border-bottom: 1px solid #d0d5dd;
+    background: transparent;
+    padding: 4px 2px 6px;
+    font: inherit;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    min-height: 1.6em;
+    height: auto;
+    box-sizing: border-box;
+    color: #1d2939;
+    resize: none;
+    overflow: visible;
+  }
+
+  .po-party .field-line textarea {
+    min-height: 40px;
+    line-height: 1.45;
+  }
+
+  .po-party .field-line input:focus,
+  .po-party .field-line textarea:focus {
+    outline: none;
+    border-bottom-color: #0b3f73;
+  }
+
+  /* -- items table -- */
+  table.po-items {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.82rem;
+  }
+
+  table.po-items thead th {
+    background: #0b3f73;
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    padding: 8px 8px;
+    border: 1px solid #0b3f73;
+  }
+
+  table.po-items tbody td {
+    border: 1px solid #d0d5dd;
+    padding: 8px 6px;
+    vertical-align: middle;
+    overflow: visible;
+  }
+
+  table.po-items tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    position: relative;
+  }
+
+  table.po-items input,
+  table.po-items textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    padding: 4px 2px;
+    min-height: 1.45em;
+    height: auto;
+    box-sizing: border-box;
+    resize: none;
+    color: #1d2939;
+    overflow: visible;
+    vertical-align: middle;
+  }
+
+  table.po-items textarea {
+    min-height: 36px;
+    line-height: 1.45;
+  }
+
+  table.po-items input:focus,
+  table.po-items textarea:focus {
+    outline: none;
+    background: #f0f7ff;
+  }
+
+  /* Percentages sum to 100% so widths match print/PDF when the action column is hidden */
+  table.po-items .col-no {
+    width: 7%;
+    text-align: center;
+  }
+
+  table.po-items .col-code {
+    width: 13%;
+  }
+
+  table.po-items .col-desc {
+    width: 34%;
+  }
+
+  table.po-items .col-qty {
+    width: 8%;
+    text-align: center;
+  }
+
+  table.po-items .col-unit {
+    width: 8%;
+    text-align: center;
+  }
+
+  table.po-items .col-cost {
+    width: 15%;
+    text-align: right;
+  }
+
+  table.po-items .col-total {
+    width: 15%;
+    text-align: right;
+  }
+
+  table.po-items .po-no-print {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible;
+    background: transparent !important;
+  }
+
+  table.po-items thead th.po-no-print {
+    background: transparent !important;
+  }
+
+  table.po-items .po-row-remove {
+    position: absolute;
+    right: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: #fff;
+    color: #b42318;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.12);
+    border-radius: 4px;
+  }
+
+  table.po-items input.right,
+  table.po-items .amount-cell {
+    text-align: right;
+  }
+
+  table.po-items .col-no input,
+  table.po-items .col-qty input,
+  table.po-items .col-unit input {
+    text-align: center;
+  }
+
+  .po-items-wrap {
+    margin: 4px 0 14px;
+    padding-right: 28px;
+  }
+
+  .po-row-remove:hover {
+    text-decoration: underline;
+  }
+
+  @media print {
+
+    .po-row-remove,
+    .po-no-print {
+      display: none !important;
+    }
+
+    .po-items-wrap {
+      padding-right: 0 !important;
+    }
+  }
+
+  /* -- totals -- */
+  .po-totals-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 18px;
+  }
+
+  .po-totals {
+    width: 100%;
+    max-width: 300px;
+    font-size: 0.85rem;
+  }
+
+  .po-totals .trow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 2px;
+    border-bottom: 1px solid #eaecf0;
+    gap: 10px;
+  }
+
+  .po-totals .trow span:first-child {
+    color: #475467;
+    font-weight: 600;
+  }
+
+  .po-totals .trow input {
+    width: 110px;
+    text-align: right;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.45;
+    min-height: 1.6em;
+    padding: 2px 0;
+    box-sizing: border-box;
+    color: #1d2939;
+    overflow: visible;
+  }
+
+  .po-totals .trow input:focus {
+    outline: none;
+    background: #f0f7ff;
+  }
+
+  .po-totals .grand {
+    background: #0b3f73;
+    color: #fff;
+    border-radius: 6px;
+    padding: 9px 10px;
+    margin-top: 4px;
+    border-bottom: none;
+  }
+
+  .po-totals .grand span:first-child {
+    color: #fff;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .po-totals .grand input {
+    color: #fff;
+    font-size: 1rem;
+  }
+
+  /* -- payment terms / T&C -- */
+  .po-section {
+    margin-bottom: 16px;
+    break-inside: avoid;
+  }
+
+  .po-section h3 {
+    margin: 0 0 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0b3f73;
+    border-bottom: 1px solid #eaecf0;
+    padding-bottom: 6px;
+  }
+
+  .po-payment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .po-terms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .po-tc-field label,
+  .po-meta-field label {
+    display: block;
+  }
+
+  .po-tc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .po-tc-field label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #667085;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .po-tc-field textarea,
+  .po-tc-field input {
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    padding: 10px 11px;
+    font: inherit;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #1d2939;
+    resize: vertical;
+    min-height: 48px;
+    height: auto;
+    box-sizing: border-box;
+    background: #fbfcfd;
+    overflow: visible;
+  }
+
+  .po-tc-field input {
+    min-height: 42px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .po-tc-field textarea:focus,
+  .po-tc-field input:focus {
+    outline: none;
+    border-color: #0b3f73;
+    background: #fff;
+  }
+
+  /* -- signatures -- */
+  .po-sign-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 22px;
+    padding-top: 6px;
+    break-inside: avoid;
+    align-items: start;
+  }
+
+  .po-sign-block {
+    text-align: left;
+    display: grid;
+    grid-template-rows: auto 52px auto auto auto;
+    row-gap: 6px;
+  }
+
+  .po-sign-block .sign-role {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0b3f73;
+    margin: 0;
+    min-height: 1.1em;
+  }
+
+  .po-sign-block .sign-space {
+    min-height: 52px;
+    margin: 0;
+  }
+
+  .po-sign-block input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #98a2b3;
+    background: transparent;
+    font: inherit;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    font-weight: 600;
+    padding: 4px 2px 4px;
+    min-height: 1.6em;
+    height: auto;
+    box-sizing: border-box;
+    margin: 0;
+    color: #1d2939;
+    overflow: visible;
+  }
+
+  .po-sign-block input.sign-space {
+    min-height: 52px;
+    padding-bottom: 8px;
+    border-bottom: none;
+    align-self: stretch;
+  }
+
+  .po-sign-block input.sign-position {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #475467;
+    min-height: 1.35em;
+    padding-top: 0;
+  }
+
+  .po-sign-block input:focus {
+    outline: none;
+    border-bottom-color: #0b3f73;
+  }
+
+  .po-sign-block .sign-name-fixed {
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 4px 2px;
+    margin: 0;
+    min-height: 1.6em;
+    box-sizing: border-box;
+    color: #1d2939;
+    display: flex;
+    align-items: center;
+  }
+
+  .po-sign-block .sign-title-fixed {
+    font-size: 0.76rem;
+    color: #475467;
+    margin: 0;
+    padding: 0 2px 4px;
+    min-height: 1.35em;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+  }
+
+  .po-sign-block input[type="date"] {
+    min-height: 1.6em;
+  }
+
+  .po-footnote {
+    text-align: center;
+    font-size: 0.68rem;
+    color: #98a2b3;
+    padding: 6px 0 4px;
+  }
+
+  /* Long Bond Paper — print / Save as PDF */
+  @page {
+    size: 8.5in 13in;
+    margin: 0;
+  }
+
+  /* ── print rules (layout must match on-screen preview) ── */
+  @media print {
+
+    /* Hide everything except the print area */
+    body * {
+      visibility: hidden !important;
+    }
+
+    .po-print-area,
+    .po-print-area * {
+      visibility: visible !important;
+    }
+
+    .po-print-area {
+      position: static !important;
+      box-shadow: none !important;
+      width: var(--po-page-width) !important;
+      min-width: var(--po-page-width) !important;
+      max-width: var(--po-page-width) !important;
+      min-height: var(--po-page-height) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: grid !important;
+      grid-template-rows: 1fr auto !important;
+    }
+
+    /* Hide sidebar, topbar, stats, toolbars */
+    .sidebar,
+    .topbar,
+    .hero-stats,
+    .po-toolbar-panel {
+      display: none !important;
+    }
+
+    .po-canvas {
+      display: block !important;
+      padding: 0 !important;
+      background: #fff !important;
+      overflow: visible !important;
+    }
+
+    html,
+    body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: var(--po-page-width);
+    }
+
+    /* Keep same padding as screen preview */
+    .po-body {
+      padding: var(--po-body-pad-y) var(--po-body-pad-x) calc(10px + var(--po-footer-reserve)) !important;
+    }
+
+    table.po-items thead {
+      display: table-header-group;
+    }
+
+    .po-page-table > thead {
+      display: table-header-group;
+    }
+
+    .po-party,
+    table.po-items tbody tr,
+    .po-section,
+    .po-sign-grid {
+      break-inside: avoid;
+    }
+
+    /* Footer pinned to bottom of each printed long-bond page */
+    .po-footer-fixed {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: var(--po-page-width) !important;
+      margin-top: 0 !important;
+      background: #fff !important;
+      border-top: 1px solid #d0d5dd !important;
+      z-index: 9999 !important;
+    }
+
+    .po-footer-fixed img {
+      width: 100% !important;
+      height: auto !important;
+    }
+  }
+
+  @media (max-width: 900px) {
+
+    .po-parties,
+    .po-payment-grid,
+    .po-terms-grid,
+    .po-sign-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .po-meta-grid {
+      grid-template-columns: 1fr 1fr;
     }
   }
 </style>
@@ -577,7 +1450,8 @@
   <aside class="sidebar" role="navigation" aria-label="Inventory dashboard navigation">
     <div class="sidebar-brand">
       <a href="{% url 'dashboard' %}" class="logo">
-        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
+          style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </a>
     </div>
@@ -598,6 +1472,12 @@
         Deliveries
         <span class="tab-badge">{{ deliveries|length }}</span>
       </button>
+
+      <div class="nav-label" style="margin-top:14px;">Documents</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="purchaseOrderPanel">
+        <span class="tab-icon">🧾</span>
+        Purchase Order
+      </button>
     </nav>
 
     <div class="sidebar-stats">
@@ -611,7 +1491,7 @@
       </div>
       <div class="stat-row">
         <span>Low stock (< 10)</span>
-        <strong>{{ low_stock_count|default:0 }}</strong>
+            <strong>{{ low_stock_count|default:0 }}</strong>
       </div>
       <div class="stat-row">
         <span>Deliveries</span>
@@ -670,7 +1550,7 @@
               <select id="itemName" name="itemName" required>
                 <option value="">Select item category</option>
                 {% for option in inventory_item_options %}
-                  <option value="{{ option }}">{{ option }}</option>
+                <option value="{{ option }}">{{ option }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -708,7 +1588,8 @@
             </div>
             <div class="field full">
               <label for="description">Notes</label>
-              <textarea id="description" name="description" placeholder="Additional details, location or supplier"></textarea>
+              <textarea id="description" name="description"
+                placeholder="Additional details, location or supplier"></textarea>
             </div>
             <div class="field full">
               <label>Image preview</label>
@@ -734,7 +1615,7 @@
           <select id="categoryFilter" aria-label="Filter by category">
             <option value="">All categories</option>
             {% for option in inventory_item_options %}
-              <option value="{{ option }}">{{ option }}</option>
+            <option value="{{ option }}">{{ option }}</option>
             {% endfor %}
           </select>
           <input id="searchInput" type="search" placeholder="Search all items" aria-label="Search inventory">
@@ -763,32 +1644,34 @@
             </thead>
             <tbody id="inventoryTableBody">
               {% for item in inventory_items %}
-                <tr data-id="{{ item.id }}">
-                  <td>
-                    <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
-                    <strong>{{ item.name }}</strong>
-                  </td>
-                  <td>
-                    {% if item.picture %}
-                      <img src="{{ item.picture.url }}" alt="{{ item.name }}" style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
-                    {% else %}
-                      <span style="color:#667085;font-size:.88rem;">No image</span>
-                    {% endif %}
-                  </td>
-                  <td>{{ item.size|default:"-" }}</td>
-                  <td>{{ item.stock_available }}</td>
-                  <td>{{ item.pcs_per_ctn }}</td>
-                  <td>{{ item.carton_size|default:"-" }}</td>
-                  <td>{{ item.net_weight }}</td>
-                  <td>{{ item.gross_weight }}</td>
-                  <td>₱{{ item.price }}</td>
-                  <td>
-                    <div class="actions" style="justify-content:flex-start;">
-                      <button class="copy" type="button" data-action="edit">Edit</button>
-                      <button class="delete" type="button" data-action="delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
+              <tr data-id="{{ item.id }}">
+                <td>
+                  <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{
+                    item.product_code|default:"-" }}</span>
+                  <strong>{{ item.name }}</strong>
+                </td>
+                <td>
+                  {% if item.picture %}
+                  <img src="{{ item.picture.url }}" alt="{{ item.name }}"
+                    style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
+                  {% else %}
+                  <span style="color:#667085;font-size:.88rem;">No image</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.size|default:"-" }}</td>
+                <td>{{ item.stock_available }}</td>
+                <td>{{ item.pcs_per_ctn }}</td>
+                <td>{{ item.carton_size|default:"-" }}</td>
+                <td>{{ item.net_weight }}</td>
+                <td>{{ item.gross_weight }}</td>
+                <td>₱{{ item.price }}</td>
+                <td>
+                  <div class="actions" style="justify-content:flex-start;">
+                    <button class="copy" type="button" data-action="edit">Edit</button>
+                    <button class="delete" type="button" data-action="delete">Delete</button>
+                  </div>
+                </td>
+              </tr>
               {% endfor %}
               <tr data-empty-state>
                 <td colspan="10" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
@@ -798,7 +1681,7 @@
         </div>
       </div>
     </div>
-        <!-- Deliveries Panel -->
+    <!-- Deliveries Panel -->
     <div id="deliveriesPanel" class="tab-panel">
       <div class="panel">
         <h2>Delivery Log</h2>
@@ -830,18 +1713,26 @@
           <h3 style="font-size:1rem;font-weight:700;">Items</h3>
           <div id="deliveryItemsContainer">
             <!-- First row (template) -->
-            <div class="delivery-item-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;margin-bottom:8px;align-items:end;">
-              <div class="field"><label>Item Type</label><input type="text" name="item_type[]" placeholder="e.g., ELBOW" required></div>
-              <div class="field"><label>Cartons</label><input type="number" name="quantity_cartons[]" min="1" value="1" required></div>
-              <div class="field"><label>Pcs per Carton</label><input type="number" name="pcs_per_carton[]" min="1" value="1" required></div>
-              <div class="field"><label>Cost per Carton (₱)</label><input type="number" name="cost_per_carton[]" min="0" step="0.01" value="0.00" required></div>
+            <div class="delivery-item-row"
+              style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;margin-bottom:8px;align-items:end;">
+              <div class="field"><label>Item Type</label><input type="text" name="item_type[]" placeholder="e.g., ELBOW"
+                  required></div>
+              <div class="field"><label>Cartons</label><input type="number" name="quantity_cartons[]" min="1" value="1"
+                  required></div>
+              <div class="field"><label>Pcs per Carton</label><input type="number" name="pcs_per_carton[]" min="1"
+                  value="1" required></div>
+              <div class="field"><label>Cost per Carton (₱)</label><input type="number" name="cost_per_carton[]" min="0"
+                  step="0.01" value="0.00" required></div>
               <div style="display:flex;gap:6px;padding-top:22px;">
-                <button type="button" class="remove-item-row" style="background:transparent;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;cursor:pointer;color:#b42318;">✕</button>
+                <button type="button" class="remove-item-row"
+                  style="background:transparent;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;cursor:pointer;color:#b42318;">✕</button>
               </div>
             </div>
           </div>
 
-          <button type="button" id="addItemRow" style="margin:8px 0 16px;padding:8px 16px;border:1px dashed #d0d5dd;background:transparent;border-radius:8px;cursor:pointer;">+ Add another item</button>
+          <button type="button" id="addItemRow"
+            style="margin:8px 0 16px;padding:8px 16px;border:1px dashed #d0d5dd;background:transparent;border-radius:8px;cursor:pointer;">+
+            Add another item</button>
 
           <div class="actions">
             <button class="save" type="submit">Record Delivery</button>
@@ -875,18 +1766,240 @@
                 <td>{{ delivery.delivered_to }}</td>
                 <td>
                   {% for line in delivery.lines.all %}
-                    {{ line.item_type }} ({{ line.quantity_cartons }} ctn × {{ line.pcs_per_carton }} pcs)<br>
+                  {{ line.item_type }} ({{ line.quantity_cartons }} ctn × {{ line.pcs_per_carton }} pcs)<br>
                   {% endfor %}
                 </td>
                 <td>₱{{ delivery.total_cost|floatformat:2 }}</td>
               </tr>
               {% empty %}
-              <tr><td colspan="7" style="text-align:center;color:#667085;">No deliveries recorded yet.</td></tr>
+              <tr>
+                <td colspan="7" style="text-align:center;color:#667085;">No deliveries recorded yet.</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
+    </div>
+
+
+    <!-- Purchase Order Panel -->
+    <div id="purchaseOrderPanel" class="tab-panel">
+      <div class="panel po-toolbar-panel">
+        <h2>Purchase Order</h2>
+        <p>Fill in the fields below to generate a print-ready Purchase Order on Long Bond Paper
+          (8.5&quot; × 13&quot;). Add as many line items as needed — the header, footer, and column headings
+          repeat automatically on every printed page.</p>
+        <div class="po-toolbar">
+          <div class="po-toolbar-group">
+            <label>Paper size</label>
+            <div class="po-paper-badge">Long Bond Paper (8.5&quot; × 13&quot;)</div>
+          </div>
+          <div class="po-toolbar-actions">
+            <button type="button" class="save" id="poPrintBtn">Print / Save as PDF</button>
+            <button type="button" class="copy" id="poDownloadPdfBtn">Download as PDF</button>
+            <button type="button" class="copy" id="poAddRowBtn">+ Add Line Item</button>
+            <button type="button" class="clear" id="poResetBtn">Reset Form</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="po-canvas">
+        <div class="po-print-area" id="poPrintArea">
+          <!-- Table with header and body; footer is moved outside the table to allow fixed positioning -->
+          <table class="po-page-table">
+            <thead>
+              <tr>
+                <td>
+                  <div class="po-header-band">
+                    <img src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation header">
+                  </div>
+                </td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="po-body">
+
+                    <div class="po-doctitle-row">
+                      <div class="po-doctitle">
+                        <h1>PURCHASE ORDER</h1>
+                        <p>Versatec Industrial Corporation</p>
+                      </div>
+                      <div class="po-meta-grid">
+                        <div class="po-meta-field">
+                          <label>PO Number</label>
+                          <input type="text" id="poNumber" value="PO-2026-0001" placeholder="PO-YYYY-####">
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Currency</label>
+                          <select id="poCurrency">
+                            <option value="PHP" selected>PHP / PESO</option>
+                            <option value="USD">USD</option>
+                            <option value="RMB">RMB</option>
+                            <option value="OTHER">Other</option>
+                          </select>
+                          <input type="text" id="poCurrencyOther" class="po-currency-other"
+                            placeholder="Specify currency" hidden>
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Order Date</label>
+                          <input type="date" id="poOrderDate">
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Required Delivery Date</label>
+                          <input type="date" id="poDeliveryDate">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-parties">
+                      <div class="po-party" id="poBuyer">
+                        <h3>Buyer</h3>
+                        <div class="field-line"><label>Company</label><input type="text" id="poBuyerCompany"
+                            value="Versatec Industrial Corporation"></div>
+                        <div class="field-line"><label>Address</label><textarea id="poBuyerAddress"
+                            rows="2">Lot30-B, Prk. Batong, Brgy. Nanyo, Panabo City, Davao del Norte, 8105, Philippines</textarea>
+                        </div>
+                        <div class="field-line"><label>Contact No.</label><input type="text" id="poBuyerContact" value="(+63) 917 704-4563">
+                        </div>
+                        <div class="field-line"><label>Email</label><input type="text" id="poBuyerEmail" value="it.versatec@gmail.com">
+                        </div>
+                      </div>
+                      <div class="po-party" id="poSeller">
+                        <h3>Seller</h3>
+                        <div class="field-line"><label>Company</label><input type="text" id="poSellerCompany"
+                            placeholder="Supplier company name"></div>
+                        <div class="field-line"><label>Address</label><textarea id="poSellerAddress" rows="2"
+                            placeholder="Complete address"></textarea></div>
+                        <div class="field-line"><label>Contact No.</label><input type="text" id="poSellerContact"
+                            placeholder="Contact number"></div>
+                        <div class="field-line"><label>Email</label><input type="text" id="poSellerEmail" placeholder="Email address">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-items-wrap">
+                      <table class="po-items" id="poItemsTable">
+                        <thead>
+                          <tr>
+                            <th class="col-no">Item No.</th>
+                            <th class="col-code">Product Code</th>
+                            <th class="col-desc">Description</th>
+                            <th class="col-qty">Qty</th>
+                            <th class="col-unit">Unit</th>
+                            <th class="col-cost">Unit Cost</th>
+                            <th class="col-total">Total Amount</th>
+                            <th class="po-no-print"></th>
+                          </tr>
+                        </thead>
+                        <tbody id="poItemsBody">
+                          <tr>
+                            <td class="col-no"><input type="text" value="1"></td>
+                            <td class="col-code"><input type="text" placeholder="e.g. PRD-001"></td>
+                            <td class="col-desc"><textarea rows="1" placeholder="Item description"></textarea></td>
+                            <td class="col-qty"><input type="number" class="po-qty" min="0" step="1" value="1"></td>
+                            <td class="col-unit"><input type="text" placeholder="pcs"></td>
+                            <td class="col-cost"><input type="number" class="po-cost right" min="0" step="0.01"
+                                value="0.00"></td>
+                            <td class="col-total"><input type="text" class="po-line-total right" value="0.00" readonly>
+                            </td>
+                            <td class="po-no-print"><button type="button"
+                                class="po-row-remove" title="Remove row">x</button></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="po-totals-wrap">
+                      <div class="po-totals">
+                        <div class="trow"><span>Subtotal</span><input type="text" id="poSubtotal" value="0.00" readonly>
+                        </div>
+                        <div class="trow"><span>Tax</span><input type="number" id="poTax" min="0" step="0.01"
+                            value="0.00"></div>
+                        <div class="trow"><span>Discount</span><input type="number" id="poDiscount" min="0" step="0.01"
+                            value="0.00"></div>
+                        <div class="trow"><span>Shipping / Other Charges</span><input type="number" id="poShipping"
+                            min="0" step="0.01" value="0.00"></div>
+                        <div class="trow grand"><span>Grand Total</span><input type="text" id="poGrandTotal"
+                            value="0.00" readonly></div>
+                      </div>
+                    </div>
+
+                    <div class="po-section">
+                      <h3>Payment Terms</h3>
+                      <div class="po-payment-grid">
+                        <div class="po-tc-field">
+                          <label>Payment Terms</label>
+                          <input type="text" id="poPaymentTerms" placeholder="e.g. Net 30 Days">
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Payment Method</label>
+                          <input type="text" id="poPaymentMethod" placeholder="e.g. Bank Transfer">
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Payment Due Date</label>
+                          <input type="date" id="poPaymentDueDate">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-section">
+                      <h3>Terms and Conditions</h3>
+                      <div class="po-terms-grid">
+                        <div class="po-tc-field">
+                          <label>Return Policy</label>
+                          <textarea id="poReturnPolicy" rows="2" placeholder="State the return policy"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Warranty (optional)</label>
+                          <textarea id="poWarranty" rows="2" placeholder="State warranty coverage, if any"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Delivery Conditions</label>
+                          <textarea id="poDeliveryConditions" rows="2" placeholder="State delivery conditions"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Other Terms and Conditions</label>
+                          <textarea id="poOtherTerms" rows="2" placeholder="Any additional terms"></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-sign-grid">
+                      <div class="po-sign-block">
+                        <div class="sign-role">Prepared by</div>
+                        <input type="text" id="poPreparedSignature" class="sign-space" placeholder="Signature" aria-label="Prepared by signature">
+                        <input type="text" id="poPreparedName" placeholder="Name">
+                        <input type="text" id="poPreparedPosition" class="sign-position" placeholder="Position">
+                        <input type="date" id="poPreparedDate">
+                      </div>
+                      <div class="po-sign-block">
+                        <div class="sign-role">Approved by</div>
+                        <input type="text" id="poApprovedSignature" class="sign-space" placeholder="Signature" aria-label="Approved by signature">
+                        <div class="sign-name-fixed">Engr. Arturo I. Davis, PME</div>
+                        <div class="sign-title-fixed">President / CEO</div>
+                        <input type="date" id="poApprovedDate">
+                      </div>
+                    </div>
+
+                    <div class="po-footnote">This Purchase Order is generated by Versatec Industrial Corporation and is
+                      subject to the terms and conditions stated above.</div>
+
+                  </div> <!-- .po-body -->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- FOOTER: outside the table to allow fixed positioning at the bottom of each printed page -->
+          <div class="po-footer-fixed">
+            <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec Industrial Corporation footer">
+          </div>
+
+        </div> <!-- .po-print-area -->
+      </div> <!-- .po-canvas -->
     </div>
 
     <div style="margin-top:12px;">
@@ -895,19 +2008,26 @@
   </main>
 
   <!-- Delete confirmation modal with password visibility toggle -->
-  <div id="deleteModal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:12px;padding:30px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+  <div id="deleteModal" class="modal-overlay"
+    style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div
+      style="background:#fff;border-radius:12px;padding:30px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
       <h3 style="margin-top:0;font-size:1.2rem;">Confirm Deletion</h3>
       <p style="color:#475467;margin-bottom:16px;">Please enter your password to delete this item.</p>
       <div style="position:relative;">
-        <input type="password" id="deletePassword" placeholder="Enter password" style="width:100%;padding:10px 40px 10px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:0.95rem;margin-bottom:12px;box-sizing:border-box;">
-        <button type="button" id="togglePassword" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:1.2rem;padding:4px;color:#667085;" aria-label="Show password">
+        <input type="password" id="deletePassword" placeholder="Enter password"
+          style="width:100%;padding:10px 40px 10px 14px;border:1px solid #d0d5dd;border-radius:8px;font-size:0.95rem;margin-bottom:12px;box-sizing:border-box;">
+        <button type="button" id="togglePassword"
+          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:1.2rem;padding:4px;color:#667085;"
+          aria-label="Show password">
           👁️
         </button>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end;">
-        <button id="deleteCancelBtn" style="padding:8px 16px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;cursor:pointer;">Cancel</button>
-        <button id="deleteConfirmBtn" style="padding:8px 16px;border:none;border-radius:8px;background:#b42318;color:#fff;cursor:pointer;">Delete</button>
+        <button id="deleteCancelBtn"
+          style="padding:8px 16px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;cursor:pointer;">Cancel</button>
+        <button id="deleteConfirmBtn"
+          style="padding:8px 16px;border:none;border-radius:8px;background:#b42318;color:#fff;cursor:pointer;">Delete</button>
       </div>
       <div id="deleteError" style="color:#b42318;margin-top:8px;font-size:0.9rem;display:none;"></div>
     </div>
@@ -917,24 +2037,51 @@
 {{ inventory_items_json|json_script:"inventory-data" }}
 
 <script>
-  (function() {
+  (function () {
     // ── Sidebar tab switching ──
     const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
     const panels = {
       managePanel: document.getElementById('managePanel'),
       allItemsPanel: document.getElementById('allItemsPanel'),
       deliveriesPanel: document.getElementById('deliveriesPanel'),
+      purchaseOrderPanel: document.getElementById('purchaseOrderPanel'),
     };
 
-    tabButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
-        this.setAttribute('aria-selected', 'true');
-        const targetId = this.dataset.tabTarget;
-        Object.keys(panels).forEach(id => {
-          panels[id].classList.toggle('is-active', id === targetId);
-        });
+    function activateTab(targetId) {
+      tabButtons.forEach(b => {
+        const isTarget = b.dataset.tabTarget === targetId;
+        b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
       });
+      Object.keys(panels).forEach(id => {
+        if (panels[id]) {
+          panels[id].classList.toggle('is-active', id === targetId);
+        }
+      });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const defaultTab = 'managePanel';
+    const initialTab = tabParam && panels[tabParam] ? tabParam : defaultTab;
+    activateTab(initialTab);
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', function () {
+        const targetId = this.dataset.tabTarget;
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', targetId);
+        window.history.pushState({}, '', url);
+        activateTab(targetId);
+      });
+    });
+
+    window.addEventListener('popstate', function () {
+      const activeTab = new URLSearchParams(window.location.search).get('tab');
+      if (activeTab && panels[activeTab]) {
+        activateTab(activeTab);
+      } else {
+        activateTab(defaultTab);
+      }
     });
 
     // ── Inventory management ──
@@ -1051,9 +2198,7 @@
       fields.description.value = item.description;
       editingId = item.id;
       formTitle.textContent = 'Edit Inventory Item';
-      tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
-      document.querySelector('.sidebar-nav .tab-button[data-tab-target="managePanel"]').setAttribute('aria-selected', 'true');
-      Object.keys(panels).forEach(id => panels[id].classList.toggle('is-active', id === 'managePanel'));
+      activateTab('managePanel');
     }
 
     function handlePictureChange() {
@@ -1082,7 +2227,6 @@
       pendingDeleteId = null;
     }
 
-    // ✅ FIXED: correct append and parameter name
     async function performDelete(itemId, password) {
       const formData = new FormData();
       formData.append('action', 'delete');
@@ -1147,13 +2291,13 @@
     });
 
     document.getElementById('deleteCancelBtn').addEventListener('click', hideDeleteModal);
-    document.getElementById('deleteModal').addEventListener('click', function(e) {
+    document.getElementById('deleteModal').addEventListener('click', function (e) {
       if (e.target === this) {
         hideDeleteModal();
       }
     });
 
-    document.getElementById('deletePassword').addEventListener('keydown', function(e) {
+    document.getElementById('deletePassword').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         document.getElementById('deleteConfirmBtn').click();
       }
@@ -1162,7 +2306,7 @@
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('deletePassword');
 
-    togglePassword.addEventListener('click', function() {
+    togglePassword.addEventListener('click', function () {
       const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
       passwordInput.setAttribute('type', type);
       this.textContent = type === 'password' ? '👁️' : '🙈';
@@ -1187,8 +2331,8 @@
 
     loadInventory();
     renderInventory();
-    
-        // ── Delivery form: add/remove item rows ──
+
+    // ── Delivery form: add/remove item rows ──
     const deliveryContainer = document.getElementById('deliveryItemsContainer');
     const addItemBtn = document.getElementById('addItemRow');
 
@@ -1206,7 +2350,7 @@
       if (costInput) costInput.value = '0.00';
       // Attach remove event
       const removeBtn = clone.querySelector('.remove-item-row');
-      removeBtn.addEventListener('click', function() {
+      removeBtn.addEventListener('click', function () {
         if (deliveryContainer.children.length > 1) {
           clone.remove();
         } else {
@@ -1216,7 +2360,7 @@
       return clone;
     }
 
-    addItemBtn.addEventListener('click', function() {
+    addItemBtn.addEventListener('click', function () {
       const newRow = createItemRow();
       deliveryContainer.appendChild(newRow);
       // Focus first input
@@ -1227,7 +2371,7 @@
     document.querySelectorAll('.delivery-item-row').forEach((row, index) => {
       if (index > 0) {
         const removeBtn = row.querySelector('.remove-item-row');
-        removeBtn.addEventListener('click', function() {
+        removeBtn.addEventListener('click', function () {
           if (deliveryContainer.children.length > 1) {
             row.remove();
           } else {
@@ -1238,7 +2382,7 @@
     });
 
     // Reset button: clear rows to only one
-    document.querySelector('#deliveryForm .clear')?.addEventListener('click', function(e) {
+    document.querySelector('#deliveryForm .clear')?.addEventListener('click', function (e) {
       // Prevent default reset which may not clear all
       e.preventDefault();
       // Keep only first row
@@ -1259,6 +2403,316 @@
       document.querySelector('#deliveryForm input[name="delivered_from"]').value = '';
       document.querySelector('#deliveryForm input[name="delivered_to"]').value = '';
     });
+
+    // ── Purchase Order tab ──
+    (function () {
+      const printArea = document.getElementById('poPrintArea');
+      const itemsBody = document.getElementById('poItemsBody');
+      const addRowBtn = document.getElementById('poAddRowBtn');
+      const printBtn = document.getElementById('poPrintBtn');
+      const downloadPdfBtn = document.getElementById('poDownloadPdfBtn');
+      const resetBtn = document.getElementById('poResetBtn');
+      const currencySelect = document.getElementById('poCurrency');
+      const currencyOther = document.getElementById('poCurrencyOther');
+      const orderDateInput = document.getElementById('poOrderDate');
+      const subtotalInput = document.getElementById('poSubtotal');
+      const taxInput = document.getElementById('poTax');
+      const discountInput = document.getElementById('poDiscount');
+      const shippingInput = document.getElementById('poShipping');
+      const grandTotalInput = document.getElementById('poGrandTotal');
+
+      if (!printArea) return; // panel not present
+
+      function todayISO() {
+        const d = new Date();
+        return d.toISOString().slice(0, 10);
+      }
+      if (orderDateInput && !orderDateInput.value) orderDateInput.value = todayISO();
+
+      function money(n) {
+        n = Number(n) || 0;
+        return n.toFixed(2);
+      }
+
+      function recalcRow(row) {
+        const qty = parseFloat(row.querySelector('.po-qty')?.value) || 0;
+        const cost = parseFloat(row.querySelector('.po-cost')?.value) || 0;
+        const totalField = row.querySelector('.po-line-total');
+        if (totalField) totalField.value = money(qty * cost);
+      }
+
+      function recalcAll() {
+        let subtotal = 0;
+        itemsBody.querySelectorAll('tr').forEach(row => {
+          recalcRow(row);
+          subtotal += parseFloat(row.querySelector('.po-line-total')?.value) || 0;
+        });
+        subtotalInput.value = money(subtotal);
+        const tax = parseFloat(taxInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        const shipping = parseFloat(shippingInput.value) || 0;
+        const grand = subtotal + tax + shipping - discount;
+        grandTotalInput.value = money(grand);
+      }
+
+      function renumberRows() {
+        itemsBody.querySelectorAll('tr').forEach((row, idx) => {
+          const noInput = row.querySelector('.col-no input');
+          if (noInput) noInput.value = idx + 1;
+        });
+      }
+
+      function addRow() {
+        const template = itemsBody.querySelector('tr');
+        if (!template) return;
+
+        const clone = template.cloneNode(true);
+        clone.querySelectorAll('input, textarea').forEach(el => {
+          if (el.classList.contains('po-qty')) {
+            el.value = 1;
+            return;
+          }
+          if (el.classList.contains('po-cost')) {
+            el.value = '0.00';
+            return;
+          }
+          if (el.classList.contains('po-line-total')) {
+            el.value = '0.00';
+            return;
+          }
+          el.value = '';
+        });
+
+        const rowCount = itemsBody.querySelectorAll('tr').length + 1;
+        const noInput = clone.querySelector('.col-no input');
+        if (noInput) noInput.value = rowCount;
+
+        itemsBody.appendChild(clone);
+        renumberRows();
+        recalcAll();
+      }
+
+      function removeRow(row) {
+        const rows = itemsBody.querySelectorAll('tr');
+        if (rows.length <= 1) {
+          alert('At least one line item is required.');
+          return;
+        }
+        row.remove();
+        renumberRows();
+        recalcAll();
+      }
+
+      itemsBody.addEventListener('input', function (e) {
+        const row = e.target.closest('tr');
+        if (row) recalcRow(row), recalcAll();
+      });
+
+      itemsBody.addEventListener('click', function (e) {
+        const btn = e.target.closest('.po-row-remove');
+        if (!btn) return;
+        removeRow(btn.closest('tr'));
+      });
+
+      addRowBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        addRow();
+      });
+
+      [taxInput, discountInput, shippingInput].forEach(el => {
+        el.addEventListener('input', recalcAll);
+      });
+
+      currencySelect.addEventListener('change', function () {
+        const isOther = this.value === 'OTHER';
+        currencyOther.hidden = !isOther;
+        if (isOther) currencyOther.focus();
+      });
+
+      // ── Python (ReportLab) PDF download — accurate Long Bond pagination ──
+      function collectPoPayload() {
+        const currency = currencySelect?.value || 'PHP';
+        const items = [];
+        itemsBody.querySelectorAll('tr').forEach(row => {
+          items.push({
+            no: row.querySelector('.col-no input')?.value || '',
+            code: row.querySelector('.col-code input')?.value || '',
+            description: row.querySelector('.col-desc textarea')?.value || '',
+            qty: row.querySelector('.po-qty')?.value || '0',
+            unit: row.querySelector('.col-unit input')?.value || '',
+            unit_cost: row.querySelector('.po-cost')?.value || '0',
+            total: row.querySelector('.po-line-total')?.value || '0',
+          });
+        });
+
+        return {
+          po_number: document.getElementById('poNumber')?.value || '',
+          currency,
+          currency_other: currencyOther?.value || '',
+          order_date: orderDateInput?.value || '',
+          delivery_date: document.getElementById('poDeliveryDate')?.value || '',
+          buyer: {
+            company: document.getElementById('poBuyerCompany')?.value || '',
+            address: document.getElementById('poBuyerAddress')?.value || '',
+            contact: document.getElementById('poBuyerContact')?.value || '',
+            email: document.getElementById('poBuyerEmail')?.value || '',
+          },
+          seller: {
+            company: document.getElementById('poSellerCompany')?.value || '',
+            address: document.getElementById('poSellerAddress')?.value || '',
+            contact: document.getElementById('poSellerContact')?.value || '',
+            email: document.getElementById('poSellerEmail')?.value || '',
+          },
+          items,
+          subtotal: subtotalInput?.value || '0',
+          tax: taxInput?.value || '0',
+          discount: discountInput?.value || '0',
+          shipping: shippingInput?.value || '0',
+          grand_total: grandTotalInput?.value || '0',
+          payment_terms: document.getElementById('poPaymentTerms')?.value || '',
+          payment_method: document.getElementById('poPaymentMethod')?.value || '',
+          payment_due_date: document.getElementById('poPaymentDueDate')?.value || '',
+          return_policy: document.getElementById('poReturnPolicy')?.value || '',
+          warranty: document.getElementById('poWarranty')?.value || '',
+          delivery_conditions: document.getElementById('poDeliveryConditions')?.value || '',
+          other_terms: document.getElementById('poOtherTerms')?.value || '',
+          prepared_by: {
+            name: document.getElementById('poPreparedName')?.value || '',
+            title: document.getElementById('poPreparedPosition')?.value || '',
+            signature: document.getElementById('poPreparedSignature')?.value || '',
+            date: document.getElementById('poPreparedDate')?.value || '',
+          },
+          approved_by: {
+            name: 'Engr. Arturo I. Davis, PME',
+            title: 'President / CEO',
+            signature: document.getElementById('poApprovedSignature')?.value || '',
+            date: document.getElementById('poApprovedDate')?.value || '',
+          },
+        };
+      }
+
+      async function fetchPoPdfBlob() {
+        const payload = collectPoPayload();
+        const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || csrfToken || '';
+
+        const response = await fetch('{% url "purchase_order_pdf" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': token,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          let message = 'Could not generate the PDF.';
+          try {
+            const err = await response.json();
+            if (err.error) message = err.error;
+          } catch (_) { /* ignore */ }
+          throw new Error(message);
+        }
+
+        const blob = await response.blob();
+        return { blob, payload };
+      }
+
+      async function downloadPdf() {
+        try {
+          const { blob, payload } = await fetchPoPdfBlob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const fileName = (payload.po_number || 'purchase-order').replace(/[^a-zA-Z0-9-_]/g, '_');
+          a.href = url;
+          a.download = `${fileName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } catch (error) {
+          console.error('PDF generation error:', error);
+          alert(error && error.message ? error.message : 'Could not generate the PDF.');
+        }
+      }
+
+      async function printPoPdf() {
+        try {
+          const { blob } = await fetchPoPdfBlob();
+          const url = URL.createObjectURL(blob);
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.right = '0';
+          iframe.style.bottom = '0';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = '0';
+          iframe.src = url;
+          document.body.appendChild(iframe);
+
+          const cleanup = () => {
+            setTimeout(() => {
+              iframe.remove();
+              URL.revokeObjectURL(url);
+            }, 1500);
+          };
+
+          iframe.onload = function () {
+            try {
+              const win = iframe.contentWindow;
+              if (!win) throw new Error('Print frame unavailable.');
+              win.focus();
+              win.print();
+            } catch (err) {
+              // Fallback: open PDF in a new tab for print / save
+              window.open(url, '_blank');
+            } finally {
+              cleanup();
+            }
+          };
+        } catch (error) {
+          console.error('PDF print error:', error);
+          alert(error && error.message ? error.message : 'Could not generate the PDF for printing.');
+        }
+      }
+
+      downloadPdfBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        downloadPdf();
+      });
+
+      // Same Python PDF as Download — open browser print dialog on that file
+      printBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        printPoPdf();
+      });
+
+      resetBtn.addEventListener('click', function () {
+        if (!confirm('Reset the Purchase Order form? All entered data will be cleared.')) return;
+        const rows = itemsBody.querySelectorAll('tr');
+        rows.forEach((row, idx) => { if (idx > 0) row.remove(); });
+        const first = itemsBody.querySelector('tr');
+        first.querySelectorAll('input, textarea').forEach(el => {
+          if (el.classList.contains('col-no')) return;
+          if (el.classList.contains('po-qty')) { el.value = 1; return; }
+          if (el.classList.contains('po-cost')) { el.value = '0.00'; return; }
+          if (el.classList.contains('po-line-total')) { el.value = '0.00'; return; }
+          el.value = '';
+        });
+        first.querySelector('.col-no input').value = 1;
+        taxInput.value = '0.00';
+        discountInput.value = '0.00';
+        shippingInput.value = '0.00';
+        currencySelect.value = 'PHP';
+        currencyOther.hidden = true;
+        currencyOther.value = '';
+        orderDateInput.value = todayISO();
+        document.getElementById('poDeliveryDate').value = '';
+        recalcAll();
+      });
+
+      recalcAll();
+    })();
+
   })();
 </script>
 {% endblock %}

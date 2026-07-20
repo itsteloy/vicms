@@ -47,7 +47,7 @@
     width: var(--sidebar-width);
     height: 100vh;
     overflow-y: auto;
-    background: #1851a2;
+    background: var(--brand);
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -113,7 +113,7 @@
     padding: 12px 16px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.836);
     font: inherit;
     font-weight: 600;
     font-size: 0.9rem;
@@ -135,9 +135,9 @@
     color: #fff;
   }
   .sidebar-nav .tab-button[aria-selected="true"] {
-    background: rgba(48, 118, 239, 0.3);
+    background: var(--brand-dark);
     color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(48, 118, 239, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
   }
   .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
     opacity: 1;
@@ -760,15 +760,51 @@
 </div>
 
 <script>
-  // Tab switching (same as before)
-  document.querySelectorAll('.sidebar-nav .tab-button').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.sidebar-nav .tab-button').forEach(b => b.setAttribute('aria-selected', 'false'));
-      this.setAttribute('aria-selected', 'true');
-      const targetId = this.dataset.tabTarget;
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('is-active'));
-      document.getElementById(targetId).classList.add('is-active');
+  (function() {
+    const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
+    const panels = {
+      payrunsTab: document.getElementById('payrunsTab'),
+      deductionsTab: document.getElementById('deductionsTab'),
+      approvalsTab: document.getElementById('approvalsTab'),
+    };
+    const defaultTab = 'payrunsTab';
+
+    function activateTab(targetId) {
+      tabButtons.forEach(btn => {
+        const isTarget = btn.dataset.tabTarget === targetId;
+        btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      });
+
+      Object.keys(panels).forEach(id => {
+        if (panels[id]) {
+          panels[id].classList.toggle('is-active', id === targetId);
+        }
+      });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const initialTab = tabParam && panels[tabParam] ? tabParam : defaultTab;
+    activateTab(initialTab);
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const targetId = this.dataset.tabTarget;
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', targetId);
+        window.history.pushState({}, '', url);
+        activateTab(targetId);
+      });
     });
-  });
+
+    window.addEventListener('popstate', function() {
+      const activeTab = new URLSearchParams(window.location.search).get('tab');
+      if (activeTab && panels[activeTab]) {
+        activateTab(activeTab);
+      } else {
+        activateTab(defaultTab);
+      }
+    });
+  })();
 </script>
 {% endblock %}

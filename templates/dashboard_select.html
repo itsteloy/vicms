@@ -1,171 +1,610 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Select Dashboard{% endblock %}
 
 {% block extra_head %}
 <style>
+  /* ── reset / base ── */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   :root {
-    --ink: #101828;
-    --muted: #667085;
-    --line: #d0d5dd;
+    --ink: #0b1a2e;
+    --ink-light: #1e2f44;
+    --muted: #5e6f8d;
+    --muted-light: #8a9bb8;
+    --line: #e2e8f0;
     --panel: #ffffff;
-    --brand: #0f766e;
-    --brand-dark: #134e4a;
+    --brand: #0d9488;
+    --brand-dark: #0f766e;
+    --brand-light: #ccfbf1;
+    --brand-glow: rgba(13, 148, 136, 0.20);
     --gold: #f59e0b;
-    --radius: 14px;
-    --shadow: 0 18px 42px rgba(16, 24, 40, 0.08);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 10px 40px -12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 20px 60px -16px rgba(0, 0, 0, 0.20);
+    --transition: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   body {
     display: block;
     padding: 0;
     margin: 0;
-    background: #f2f4f7;
+    background: #f6f8fc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
     color: var(--ink);
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 
+    .brand-icon .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .brand-icon .logo-icon {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── shell ── */
   .shell {
     min-height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1fr;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(ellipse at 80% 0%, rgba(13, 148, 136, 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 100%, rgba(13, 148, 136, 0.03) 0%, transparent 50%),
+      #f6f8fc;
   }
 
+  /* ── topbar ── */
   .topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 18px;
-    padding: 20px 32px;
-    background: #101828;
-    color: #ffffff;
+    gap: 24px;
+    padding: 16px 40px;
+    background: var(--brand);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-wrap: wrap;
   }
 
-  .topbar strong {
-    color: #4cedff;
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
   }
 
-  .topbar a {
-    color: #ffffff;
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     text-decoration: none;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    padding: 9px 12px;
+    color: var(--ink);
+  }
+
+  .topbar-brand .brand-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--brand);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+    flex-shrink: 0;
+  }
+
+  .topbar-brand .brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .topbar-brand .brand-text .company {
     font-weight: 700;
-    border-radius: 8px;
-    transition: background 0.2s;
-  }
-  .topbar a:hover {
-    background: rgba(255,255,255,0.06);
+    font-size: 0.95rem;
+    letter-spacing: -0.3px;
+    color: var(--line);
   }
 
+  .topbar-brand .brand-text .tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--brand-light);
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .topbar-actions .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px 6px 10px;
+    border-radius: 100px;
+    background: #f1f4f9;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink-light);
+  }
+
+  .topbar-actions .user-badge .avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .topbar-actions .logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 100px;
+    background: transparent;
+    color: var(--line);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+    border: 1.5px solid var(--line);
+    transition: var(--transition);
+  }
+
+  .topbar-actions .logout-btn:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+  }
+
+  .topbar-actions .logout-btn .icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* ── content ── */
   .content {
-    width: min(1180px, calc(100% - 48px));
+    flex: 1;
+    width: min(1240px, calc(100% - 48px));
     margin: 0 auto;
-    padding: 48px 0;
+    padding: 48px 0 64px;
   }
 
+  /* intro */
   .intro {
     display: grid;
-    gap: 12px;
-    margin-bottom: 28px;
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+
+  .intro .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .intro .breadcrumb span {
+    color: var(--brand);
   }
 
   .intro h1 {
     margin: 0;
-    font-size: clamp(2rem, 4vw, 4.2rem);
-    letter-spacing: 0;
-    line-height: 1;
+    font-size: clamp(2rem, 4vw, 3.6rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: var(--ink);
+  }
+
+  .intro h1 .highlight {
+    background: linear-gradient(135deg, var(--brand) 0%, #14b8a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .intro p {
-    margin: 0;
-    max-width: 720px;
+    margin: 4px 0 0;
+    max-width: 640px;
     color: var(--muted);
     font-size: 1.02rem;
-    line-height: 1.65;
+    line-height: 1.7;
   }
 
+  /* ── dashboard grid ── */
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(180px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 
   .dashboard-card {
-    min-height: 260px;
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 28px;
-    padding: 22px;
+    gap: 20px;
+    padding: 28px 24px 24px;
     background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--ink);
-    text-decoration: none;
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    overflow: hidden;
+    min-height: 240px;
+  }
+
+  .dashboard-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    padding: 1.5px;
+    background: linear-gradient(135deg, transparent 40%, var(--brand) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
   }
 
   .dashboard-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-6px);
     border-color: var(--brand);
-    box-shadow: 0 24px 48px rgba(16, 24, 40, 0.12);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .dashboard-card:hover::before {
+    opacity: 1;
+  }
+
+  .dashboard-card .card-top {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .dashboard-card .card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    font-size: 1.4rem;
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    margin-bottom: 4px;
+    transition: var(--transition);
+  }
+
+  .dashboard-card:hover .card-icon {
+    transform: scale(1.05) rotate(-2deg);
+    background: var(--brand);
+    color: #fff;
   }
 
   .dashboard-card h2 {
-    margin: 0 0 12px;
-    font-size: 1.35rem;
-    letter-spacing: 0;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--ink);
   }
 
   .dashboard-card p {
     margin: 0;
     color: var(--muted);
-    line-height: 1.55;
+    font-size: 0.88rem;
+    line-height: 1.6;
   }
 
-  .status {
+  .dashboard-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+
+  .dashboard-card .status {
     display: inline-flex;
     align-items: center;
-    width: fit-content;
-    padding: 7px 10px;
+    gap: 6px;
+    padding: 4px 12px 4px 8px;
+    border-radius: 100px;
+    font-size: 0.70rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
     background: #ecfdf3;
     color: #027a48;
-    font-size: 0.82rem;
-    font-weight: 800;
-    border-radius: 999px;
   }
 
-  .dashboard-card:first-child .status,
-  .dashboard-card:nth-child(4) .status {
+  .dashboard-card .status .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #027a48;
+  }
+
+  .dashboard-card .status.warning {
     background: #fffaeb;
     color: #b54708;
   }
 
-  .open-label {
+  .dashboard-card .status.warning .dot {
+    background: #b54708;
+  }
+
+  .dashboard-card .status.maintenance {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .dashboard-card .status.maintenance .dot {
+    background: #b91c1c;
+  }
+
+  .dashboard-card .open-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+
+  .dashboard-card:hover .open-arrow {
+    background: var(--brand);
+    color: #fff;
+    transform: translateX(4px);
+  }
+
+  .dashboard-card .open-label {
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--muted);
+    transition: var(--transition);
+  }
+
+  .dashboard-card:hover .open-label {
     color: var(--brand);
-    font-weight: 800;
-    margin-top: 8px;
   }
 
-  @media (max-width: 980px) {
+  /* card variants (accent colors) */
+  .dashboard-card:nth-child(1) .card-icon {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .dashboard-card:nth-child(1):hover .card-icon {
+    background: #1d4ed8;
+    color: #fff;
+  }
+
+  .dashboard-card:nth-child(2) .card-icon {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  .dashboard-card:nth-child(2):hover .card-icon {
+    background: #047857;
+    color: #fff;
+  }
+
+  .dashboard-card:nth-child(3) .card-icon {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  .dashboard-card:nth-child(3):hover .card-icon {
+    background: #b45309;
+    color: #fff;
+  }
+
+  .dashboard-card:nth-child(4) .card-icon {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+
+  .dashboard-card:nth-child(4):hover .card-icon {
+    background: #4338ca;
+    color: #fff;
+  }
+
+  /* ── responsive ── */
+  @media (max-width: 1100px) {
     .dashboard-grid {
-      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
     }
-  }
 
-  @media (max-width: 560px) {
-    .topbar {
-      align-items: flex-start;
-      flex-direction: column;
-      padding: 18px 22px;
-    }
     .content {
       width: calc(100% - 32px);
-      padding: 32px 0;
+      padding: 36px 0 48px;
     }
+
+    .topbar {
+      padding: 14px 28px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .topbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding: 14px 20px;
+    }
+
+    .topbar-left {
+      justify-content: space-between;
+    }
+
+    .topbar-actions {
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .topbar-actions .user-badge {
+      padding: 4px 12px 4px 8px;
+      font-size: 0.75rem;
+    }
+
+    .topbar-actions .user-badge .avatar {
+      width: 26px;
+      height: 26px;
+      font-size: 0.65rem;
+    }
+
+    .topbar-actions .logout-btn {
+      padding: 6px 14px;
+      font-size: 0.75rem;
+    }
+
+    .content {
+      padding: 28px 0 40px;
+    }
+
+    .intro h1 {
+      font-size: 1.8rem;
+    }
+
+    .intro p {
+      font-size: 0.92rem;
+    }
+
     .dashboard-grid {
       grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .dashboard-card {
+      min-height: 180px;
+      padding: 22px 20px 20px;
+    }
+
+    .dashboard-card .card-icon {
+      width: 38px;
+      height: 38px;
+      font-size: 1.2rem;
+    }
+
+    .dashboard-card h2 {
+      font-size: 1.05rem;
+    }
+
+    .topbar-brand .brand-text .company {
+      font-size: 0.85rem;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .topbar {
+      padding: 12px 16px;
+    }
+
+    .topbar-actions .user-badge {
+      font-size: 0.68rem;
+      padding: 3px 10px 3px 6px;
+    }
+
+    .topbar-actions .user-badge .avatar {
+      width: 22px;
+      height: 22px;
+      font-size: 0.55rem;
+    }
+
+    .topbar-actions .logout-btn {
+      font-size: 0.68rem;
+      padding: 5px 12px;
+    }
+
+    .content {
+      padding: 20px 0 32px;
+      width: calc(100% - 20px);
+    }
+
+    .intro h1 {
+      font-size: 1.5rem;
+    }
+
+    .dashboard-card {
+      padding: 18px 16px 16px;
+      min-height: 160px;
+    }
+
+    .dashboard-card .card-icon {
+      width: 34px;
+      height: 34px;
+      font-size: 1rem;
+    }
+
+    .dashboard-card h2 {
+      font-size: 0.95rem;
+    }
+
+    .dashboard-card p {
+      font-size: 0.80rem;
+    }
+
+    .dashboard-card .status {
+      font-size: 0.60rem;
+      padding: 3px 10px 3px 6px;
+    }
+
+    .dashboard-card .open-arrow {
+      width: 28px;
+      height: 28px;
+      font-size: 0.9rem;
+    }
+
+    .dashboard-card .open-label {
+      font-size: 0.70rem;
     }
   }
 </style>
@@ -173,29 +612,75 @@
 
 {% block content %}
 <main class="shell">
-  <div class="topbar">
-    <div><strong>VERSATEC Industrial Corporation</strong> Management System</div>
-    <a href="{% url 'logout' %}">Logout</a>
-  </div>
+  <!-- ─── TOPBAR ─── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="#" class="topbar-brand">
+        <span class="brand-icon">
+          <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
+        </span>
+        <span class="brand-text">
+          <span class="company">VERSATEC Industrial Corporation</span>
+          <span class="tag">Management System</span>
+        </span>
+      </a>
+    </div>
+    <div class="topbar-actions">
+      <span class="user-badge">
+        <span class="avatar">
+          {% if user.first_name and user.last_name %}
+          {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+          {% else %}
+          {{ user.username|slice:":1"|upper }}
+          {% endif %}
+        </span>
+        {{ user.get_full_name|default:user.username }}
+      </span>
+      <a href="{% url 'logout' %}" class="logout-btn">
+        <span class="icon">⏻</span> Logout
+      </a>
+    </div>
+  </header>
 
+  <!-- ─── CONTENT ─── -->
   <section class="content" aria-label="Dashboard selection">
     <div class="intro">
-      <h1>Select Dashboard</h1>
-      <p>Choose the VERSATEC workspace you want to open for this session.</p>
+      <div class="breadcrumb">
+        <span>Home</span> / <span>Dashboards</span>
+      </div>
+      <h1>
+        Choose your <span class="highlight">workspace</span>
+      </h1>
+      <p>
+        Select the VERSATEC module you need to access. Each dashboard
+        is tailored for specific operational workflows.
+      </p>
     </div>
 
     <div class="dashboard-grid">
       {% for module in modules %}
-        <a class="dashboard-card" href="{% url module.url_name %}">
-          <div>
-            <h2>{{ module.name }}</h2>
-            <p>{{ module.summary }}</p>
-          </div>
-          <div>
-            <span class="status">{{ module.status }}</span>
-            <p class="open-label">Open {{ module.name }}</p>
-          </div>
-        </a>
+      <a class="dashboard-card" href="{% url module.url_name %}">
+        <div class="card-top">
+          <span class="card-icon">
+            {% if module.name == "Human Resources" %}👥
+            {% elif module.name == "Inventory" %}📦
+            {% elif module.name == "Sales" %}📈
+            {% elif module.name == "Payroll" %}💰
+            {% else %}⚙️
+            {% endif %}
+          </span>
+          <h2>{{ module.name }}</h2>
+          <p>{{ module.summary }}</p>
+        </div>
+        <div class="card-footer">
+          <span
+            class="status {% if module.status == 'Active' %}active{% elif module.status == 'Maintenance' %}maintenance{% else %}warning{% endif %}">
+            <span class="dot"></span>
+            {{ module.status }}
+          </span>
+          <span class="open-label">Open <span class="open-arrow">→</span></span>
+        </div>
+      </a>
       {% endfor %}
     </div>
   </section>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation {{ quotation.quotation_number }}</title>
+    <style>
+        /* ── reset & base ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #fff;
+            color: #101828;
+            padding: 40px 50px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ── header ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #0f766e;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            color: #0f766e;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header-left p {
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .header-right .quotation-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f766e;
+        }
+
+        .header-right .date {
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .header-image {
+            max-height: 80px;
+            margin-bottom: 10px;
+        }
+
+        /* ── customer info ── */
+        .customer-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .customer-block strong {
+            display: block;
+            color: #475467;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .customer-block .value {
+            font-weight: 600;
+            color: #101828;
+        }
+
+        /* ── table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0 30px;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #0f766e;
+            color: #fff;
+        }
+
+        th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #eaecf0;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* ── totals ── */
+        .totals {
+            width: 300px;
+            margin-left: auto;
+            margin-top: 20px;
+        }
+
+        .totals .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #eaecf0;
+        }
+
+        .totals .row:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 18px;
+            color: #0f766e;
+            padding-top: 12px;
+            border-top: 2px solid #0f766e;
+        }
+
+        .totals .row .label {
+            color: #667085;
+        }
+
+        /* ── terms ── */
+        .terms {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eaecf0;
+            font-size: 13px;
+            color: #475467;
+        }
+
+        .terms strong {
+            display: block;
+            color: #101828;
+            margin-bottom: 4px;
+        }
+
+        /* ── signatures ── */
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eaecf0;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-box .sig-line {
+            border-bottom: 2px solid #101828;
+            height: 50px;
+            margin-bottom: 8px;
+        }
+
+        .signature-box .sig-name {
+            font-weight: 600;
+        }
+
+        .signature-box .sig-title {
+            font-size: 12px;
+            color: #667085;
+        }
+
+        /* ── footer ── */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #667085;
+            font-size: 12px;
+            border-top: 1px solid #eaecf0;
+            padding-top: 20px;
+        }
+
+        .footer-image {
+            max-height: 40px;
+            margin-bottom: 6px;
+        }
+
+        /* ── print helpers ── */
+        @media print {
+            body {
+                padding: 20px;
+            }
+
+            .header {
+                border-bottom-width: 2px;
+            }
+
+            thead {
+                background: #0f766e !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .customer-block {
+                background: #f8fafc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─── HEADER ─── -->
+    <div class="header">
+        <div class="header-left">
+            {% if header_image_url %}
+            <img src="{{ header_image_url }}" alt="Company Logo" class="header-image">
+            {% endif %}
+            <h1>Quotation</h1>
+            <p>VERSATEC Industrial Corporation</p>
+        </div>
+        <div class="header-right">
+            <div class="quotation-number">#{{ quotation.quotation_number }}</div>
+            <div class="date">Date: {{ quotation.quotation_date|date:"F d, Y" }}</div>
+            {% if quotation.valid_until %}
+            <div class="date">Valid until: {{ quotation.valid_until|date:"F d, Y" }}</div>
+            {% endif %}
+            <div class="date">Generated: {{ generated_date|date:"F d, Y H:i" }}</div>
+        </div>
+    </div>
+
+    <!-- ─── CUSTOMER INFO ─── -->
+    <div class="customer-block">
+        <div>
+            <strong>Customer</strong>
+            <div class="value">{{ quotation.customer_company|default:"—" }}</div>
+            <div style="margin-top:4px;">{{ quotation.customer_contact|default:"—" }}</div>
+            <div>{{ quotation.customer_address|linebreaksbr|default:"—" }}</div>
+            <div style="margin-top:4px;">
+                {% if quotation.customer_email %}
+                Email: {{ quotation.customer_email }}
+                {% endif %}
+                {% if quotation.customer_phone %}
+                &nbsp;| Phone: {{ quotation.customer_phone }}
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <strong>Delivery &amp; Payment</strong>
+            <div><span style="color:#475467;">Delivery:</span> {{ delivery_info|default:"Within 30 days" }}</div>
+            <div><span style="color:#475467;">Payment:</span> {{ quotation.payment_terms|default:"Cash on Delivery" }}
+            </div>
+            <div><span style="color:#475467;">Warranty:</span> {{ quotation.warranty|default:"Standard" }}</div>
+            {% if quotation.other_terms %}
+            <div style="margin-top:6px; font-style:italic; color:#475467;">{{ quotation.other_terms|truncatewords:20 }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ─── ITEMS TABLE ─── -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th style="text-align:left;">Product Description</th>
+                <th style="text-align:center; width:70px;">QTY</th>
+                <th style="text-align:center; width:60px;">Unit</th>
+                <th style="text-align:right; width:110px;">Unit Price</th>
+                <th style="text-align:right; width:110px;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td class="text-center">{{ line.item_number }}</td>
+                <td>{{ line.product_description }}</td>
+                <td class="text-center">{{ line.quantity }}</td>
+                <td class="text-center">{{ line.unit|default:"—" }}</td>
+                <td class="text-right">₱{{ line.unit_price|floatformat:2 }}</td>
+                <td class="text-right">₱{{ line.total_amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align:center;color:#667085;">No items.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ─── TOTALS ─── -->
+    <div class="totals">
+        <div class="row">
+            <span class="label">Subtotal</span>
+            <span>₱{{ quotation.subtotal|floatformat:2 }}</span>
+        </div>
+        {% if quotation.tax > 0 %}
+        <div class="row">
+            <span class="label">Tax</span>
+            <span>₱{{ quotation.tax|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+        {% if quotation.discount > 0 %}
+        <div class="row">
+            <span class="label">Discount</span>
+            <span>−₱{{ quotation.discount|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+        {% if quotation.shipping > 0 %}
+        <div class="row">
+            <span class="label">Shipping</span>
+            <span>₱{{ quotation.shipping|floatformat:2 }}</span>
+        </div>
+        {% endif %}
+        <div class="row"
+            style="border-top:2px solid #0f766e; padding-top:12px; font-size:18px; font-weight:700; color:#0f766e;">
+            <span class="label">Grand Total</span>
+            <span>₱{{ total_amount|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- ─── TERMS ─── -->
+    <div class="terms">
+        <strong>Terms &amp; Conditions</strong>
+        <p>{{ quotation.other_terms|default:"No additional terms." }}</p>
+        <p style="font-size:12px; color:#667085; margin-top:6px;">
+            This quotation is valid for {{ quotation.valid_until|timeuntil|default:"30 days" }} from the date above.
+            Prices are subject to change without prior notice.
+        </p>
+    </div>
+
+    <!-- ─── SIGNATURES ─── -->
+    <div class="signatures">
+        <div class="signature-box">
+            <div class="sig-line">
+                {% if quotation.prepared_signature %}
+                <div style="font-family:cursive; font-size:24px; text-align:center; padding-top:10px;">
+                    {{ quotation.prepared_signature }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="sig-name">{{ quotation.prepared_name|default:"Prepared by" }}</div>
+            <div class="sig-title">{{ quotation.prepared_title|default:"Prepared By" }}</div>
+            <div style="font-size:12px; color:#667085; margin-top:4px;">
+                {{ quotation.prepared_date|date:"F d, Y"|default:"Date" }}
+            </div>
+        </div>
+        <div class="signature-box">
+            <div class="sig-line">
+                {% if quotation.approved_signature %}
+                <div style="font-family:cursive; font-size:24px; text-align:center; padding-top:10px;">
+                    {{ quotation.approved_signature }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="sig-name">Engr. Arturo I. Davis, PME</div>
+            <div class="sig-title">President / CEO</div>
+            <div style="font-size:12px; color:#667085; margin-top:4px;">
+                {{ quotation.approved_date|date:"F d, Y"|default:"Date" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── FOOTER ─── -->
+    <div class="footer">
+        {% if footer_image_url %}
+        <img src="{{ footer_image_url }}" alt="Footer" class="footer-image">
+        {% endif %}
+        <p>VERSATEC Industrial Corporation &bull; www.versatec.com &bull; +63 (2) 8123 4567</p>
+        <p style="font-size:11px;">This document is computer-generated and does not require a physical signature.</p>
+    </div>
+
+</body>
+
+</html>
