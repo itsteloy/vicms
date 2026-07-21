@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceRepairReport, JobOrder
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -16,6 +16,7 @@ from django.conf import settings
 from django.templatetags.static import static
 from django.utils import timezone
 from .po_pdf import build_purchase_order_pdf
+from .forms import JobOrderForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q
@@ -47,6 +48,18 @@ MANAGEMENT_MODULES = [
         'status': 'Active',
         'url_name': 'payroll_dashboard',
     },
+    {
+        'name': 'Accounting',
+        'summary': 'Salary records, deductions, approvals, and pay schedules.',
+        'status': 'Active',
+        'url_name': 'accounting_dashboard',
+    },
+    {
+        'name': 'Services',
+        'summary': 'Service Repair Reports and Job Orders',
+        'status': 'Active',
+        'url_name': 'services_dashboard',
+    }
 ]
 
 INVENTORY_ITEM_OPTIONS = [
@@ -1140,3 +1153,143 @@ def purchase_order_pdf(request):
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{safe_name}.pdf"'
     return response
+
+def accounting_dashboard(request):
+    return render(
+        request,
+        'accounting_dashboard.html',
+        {
+            'modules': MANAGEMENT_MODULES,
+        },
+    )
+
+@login_required
+def services_dashboard(request):
+    return render(
+        request,
+        'services_dashboard.html',
+        {
+            'modules': MANAGEMENT_MODULES,
+            'repair_reports': ServiceRepairReport.objects.all()[:8],
+            'job_orders': JobOrder.objects.all()[:8],
+        }
+    )
+
+
+@login_required
+@require_POST
+def create_service_repair_report(request):
+    required = ('report_number', 'report_date', 'customer_name', 'equipment', 'complaint')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Service Repair Report fields.')
+        return redirect('services_dashboard')
+    try:
+        ServiceRepairReport.objects.create(
+            report_number=request.POST['report_number'].strip(), report_date=request.POST['report_date'],
+            customer_name=request.POST['customer_name'].strip(), contact_person=request.POST.get('contact_person', '').strip(),
+            contact_number=request.POST.get('contact_number', '').strip(), customer_address=request.POST.get('customer_address', '').strip(),
+            equipment=request.POST['equipment'].strip(), model_number=request.POST.get('model_number', '').strip(),
+            serial_number=request.POST.get('serial_number', '').strip(), complaint=request.POST['complaint'].strip(),
+            diagnosis=request.POST.get('diagnosis', '').strip(), repairs_performed=request.POST.get('repairs_performed', '').strip(),
+            parts_used=request.POST.get('parts_used', '').strip(), technician=request.POST.get('technician', '').strip(),
+            status=request.POST.get('status', 'open'), recommendations=request.POST.get('recommendations', '').strip(),
+        )
+        messages.success(request, 'Service Repair Report saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save report: {exc}')
+    return redirect('services_dashboard')
+
+
+@login_required
+@require_POST
+def create_job_order(request):
+    required = ('job_order_number', 'job_date', 'customer_name', 'scope_of_work')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Job Order fields.')
+        return redirect('services_dashboard')
+    try:
+        JobOrder.objects.create(
+            job_order_number=request.POST['job_order_number'].strip(), job_date=request.POST['job_date'],
+            customer_name=request.POST['customer_name'].strip(), contact_person=request.POST.get('contact_person', '').strip(),
+            contact_number=request.POST.get('contact_number', '').strip(), service_location=request.POST.get('service_location', '').strip(),
+            scope_of_work=request.POST['scope_of_work'].strip(), assigned_to=request.POST.get('assigned_to', '').strip(),
+            scheduled_date=request.POST.get('scheduled_date') or None, priority=request.POST.get('priority', 'normal'),
+            status=request.POST.get('status', 'open'), notes=request.POST.get('notes', '').strip(),
+        )
+        messages.success(request, 'Job Order saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save job order: {exc}')
+    return redirect('services_dashboard')
+
+
+SERVICE_FIELD_LABELS = {
+    'repair': [('Report No.', 'report_number'), ('Report Date', 'report_date'), ('Customer / Company', 'customer_name'),
+               ('Contact Person', 'contact_person'), ('Contact Number', 'contact_number'), ('Customer Address', 'customer_address'),
+               ('Equipment / Unit', 'equipment'), ('Model No.', 'model_number'), ('Serial No.', 'serial_number'),
+               ('Reported Complaint / Issue', 'complaint'), ('Diagnosis', 'diagnosis'), ('Repairs Performed', 'repairs_performed'),
+               ('Parts / Materials Used', 'parts_used'), ('Technician', 'technician'), ('Status', 'get_status_display'),
+               ('Recommendations', 'recommendations')],
+    'job': [('Job Order No.', 'job_order_number'), ('Job Date', 'job_date'), ('Customer / Company', 'customer_name'),
+            ('Contact Person', 'contact_person'), ('Contact Number', 'contact_number'), ('Service Location', 'service_location'),
+            ('Scope of Work', 'scope_of_work'), ('Assigned To', 'assigned_to'), ('Scheduled Date', 'scheduled_date'),
+            ('Priority', 'get_priority_display'), ('Status', 'get_status_display'), ('Notes / Special Instructions', 'notes')],
+}
+
+
+def _service_record_context(record, document_type):
+    fields = []
+    for label, attribute in SERVICE_FIELD_LABELS[document_type]:
+        value = getattr(record, attribute)
+        value = value() if callable(value) else value
+        fields.append((label, value or '—'))
+    return {'record': record, 'fields': fields, 'document_type': document_type}
+
+
+@login_required
+def view_service_repair_report(request, report_id):
+    return render(request, 'service_document_detail.html', _service_record_context(
+        get_object_or_404(ServiceRepairReport, pk=report_id), 'repair'))
+
+
+@login_required
+def edit_service_repair_report(request, report_id):
+    report = get_object_or_404(ServiceRepairReport, pk=report_id)
+    form = ServiceRepairReportForm(request.POST or None, instance=report)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Service Repair Report updated successfully.')
+        return redirect('view_service_repair_report', report_id=report.id)
+    return render(request, 'service_document_form.html', {'form': form, 'record': report, 'document_type': 'repair'})
+
+
+@login_required
+@require_POST
+def delete_service_repair_report(request, report_id):
+    get_object_or_404(ServiceRepairReport, pk=report_id).delete()
+    messages.success(request, 'Service Repair Report deleted.')
+    return redirect('services_dashboard')
+
+
+@login_required
+def view_job_order(request, order_id):
+    return render(request, 'service_document_detail.html', _service_record_context(
+        get_object_or_404(JobOrder, pk=order_id), 'job'))
+
+
+@login_required
+def edit_job_order(request, order_id):
+    order = get_object_or_404(JobOrder, pk=order_id)
+    form = JobOrderForm(request.POST or None, instance=order)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Job Order updated successfully.')
+        return redirect('view_job_order', order_id=order.id)
+    return render(request, 'service_document_form.html', {'form': form, 'record': order, 'document_type': 'job'})
+
+
+@login_required
+@require_POST
+def delete_job_order(request, order_id):
+    get_object_or_404(JobOrder, pk=order_id).delete()
+    messages.success(request, 'Job Order deleted.')
+    return redirect('services_dashboard')

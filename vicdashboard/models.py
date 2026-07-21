@@ -486,3 +486,65 @@ class DeliveryLine(models.Model):
         return f"{self.item_type} - {self.quantity_cartons} ctn"
 
 
+# ========== SERVICES MODELS ==========
+
+class ServiceRepairReport(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('released', 'Released'),
+    ]
+
+    report_number = models.CharField(max_length=50, unique=True)
+    report_date = models.DateField()
+    customer_name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=200, blank=True, default='')
+    contact_number = models.CharField(max_length=100, blank=True, default='')
+    customer_address = models.TextField(blank=True, default='')
+    equipment = models.CharField(max_length=200)
+    model_number = models.CharField(max_length=100, blank=True, default='')
+    serial_number = models.CharField(max_length=100, blank=True, default='')
+    complaint = models.TextField()
+    diagnosis = models.TextField(blank=True, default='')
+    repairs_performed = models.TextField(blank=True, default='')
+    parts_used = models.TextField(blank=True, default='')
+    technician = models.CharField(max_length=200, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    recommendations = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-report_date', '-created_at']
+
+    def __str__(self):
+        return self.report_number
+
+
+class JobOrder(models.Model):
+    PRIORITY_CHOICES = [('low', 'Low'), ('normal', 'Normal'), ('high', 'High'), ('urgent', 'Urgent')]
+    STATUS_CHOICES = [('open', 'Open'), ('assigned', 'Assigned'), ('in_progress', 'In Progress'), ('completed', 'Completed'), ('cancelled', 'Cancelled')]
+
+    job_order_number = models.CharField(max_length=50, unique=True)
+    job_date = models.DateField()
+    customer_name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=200, blank=True, default='')
+    contact_number = models.CharField(max_length=100, blank=True, default='')
+    service_location = models.TextField(blank=True, default='')
+    scope_of_work = models.TextField()
+    assigned_to = models.CharField(max_length=200, blank=True, default='')
+    scheduled_date = models.DateField(null=True, blank=True)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='normal')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-job_date', '-created_at']
+
+    def __str__(self):
+        return self.job_order_number
+
+
