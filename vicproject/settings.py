@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
@@ -29,7 +30,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECRET_KEY = os.environ.get("django-insecure-d9)46^^s=4wjmtlqt88aaeq*fcx%pr@3!-rx(xhy=rl(k#c=l%")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-D
+
 
 ALLOWED_HOSTS = [
     ".onrender.com",
@@ -85,15 +86,13 @@ WSGI_APPLICATION = 'vicproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+import os
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'vicms',
-        'USER': 'vicms_admin',
-        'PASSWORD': 'Vicms2026',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL")
+    )
 }
 
 
