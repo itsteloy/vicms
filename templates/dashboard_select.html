@@ -190,6 +190,234 @@
     line-height: 1;
   }
 
+  body {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 100vh !important;
+    background: #f6f8fc !important;
+  }
+
+  .topbar-actions .home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--line);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    transition: var(--transition);
+  }
+
+  .topbar-actions .home-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
+  .flash-messages {
+    width: min(1240px, calc(100% - 48px));
+    margin: 16px auto 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .flash {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  .flash.error,
+  .flash-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .flash.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+
+  button.dashboard-card {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .dashboard-card.is-locked {
+    opacity: 1;
+    pointer-events: auto;
+    border-style: solid;
+    background: var(--panel);
+  }
+
+  /* ── login modal ── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-backdrop.is-open {
+    display: flex;
+  }
+
+  .login-modal {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: modal-in 0.25s var(--transition);
+  }
+
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .login-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 24px 0;
+  }
+
+  .login-modal-header h2 {
+    margin: 0 0 6px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  .login-modal-header p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .modal-close {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .modal-close:hover {
+    background: #f8fafc;
+    color: var(--ink);
+  }
+
+  .login-modal-body {
+    padding: 20px 24px 24px;
+    display: grid;
+    gap: 16px;
+  }
+
+  .credential-hint {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    font-size: 0.82rem;
+    color: #115e59;
+    line-height: 1.5;
+  }
+
+  .credential-hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .login-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .login-field label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #475467;
+  }
+
+  .login-field input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.92rem;
+    outline: none;
+  }
+
+  .login-field input:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px var(--brand-glow);
+  }
+
+  .login-submit {
+    min-height: 46px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--brand);
+    color: #fff;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .login-submit:hover {
+    background: var(--brand-dark);
+  }
+
+  .login-error {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 0.84rem;
+    border: 1px solid #fecaca;
+  }
+
   /* ── content ── */
   .content {
     flex: 1;
@@ -318,6 +546,39 @@
     transform: scale(1.05) rotate(-2deg);
     background: var(--brand);
     color: #fff;
+  }
+
+  .dashboard-card.is-locked {
+    cursor: not-allowed;
+    opacity: 0.72;
+    pointer-events: none;
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    border-style: dashed;
+    background: #f8fafc;
+  }
+
+  .dashboard-card.is-locked::before {
+    opacity: 0;
+  }
+
+  .dashboard-card.is-locked .open-label {
+    color: var(--muted);
+  }
+
+  .workspace-note {
+    margin: 0 0 24px;
+    padding: 14px 16px;
+    border: 1px solid #99f6e4;
+    background: #f0fdfa;
+    border-radius: var(--radius-sm);
+    color: #115e59;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .workspace-note strong {
+    color: #0f766e;
   }
 
   .dashboard-card h2 {
@@ -454,6 +715,26 @@
 
   .dashboard-card:nth-child(4):hover .card-icon {
     background: #4338ca;
+    color: #fff;
+  }
+
+  .dashboard-card:nth-child(5) .card-icon {
+    background: #fce7f3;
+    color: #9d174d;
+  }
+
+  .dashboard-card:nth-child(5):hover .card-icon {
+    background: #9d174d;
+    color: #fff;
+  }
+
+  .dashboard-card:nth-child(6) .card-icon {
+    background: #cffafe;
+    color: #0e7490;
+  }
+
+  .dashboard-card:nth-child(6):hover .card-icon {
+    background: #0e7490;
     color: #fff;
   }
 
@@ -615,7 +896,7 @@
   <!-- ─── TOPBAR ─── -->
   <header class="topbar">
     <div class="topbar-left">
-      <a href="#" class="topbar-brand">
+      <a href="{% url 'landing' %}" class="topbar-brand">
         <span class="brand-icon">
           <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
         </span>
@@ -626,21 +907,39 @@
       </a>
     </div>
     <div class="topbar-actions">
+      {% if is_authenticated %}
       <span class="user-badge">
         <span class="avatar">
-          {% if user.first_name and user.last_name %}
+          {% if workspace_account %}
+          {{ workspace_account.workspace_name|slice:":1"|upper }}
+          {% elif user.first_name and user.last_name %}
           {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
           {% else %}
           {{ user.username|slice:":1"|upper }}
           {% endif %}
         </span>
+        {% if workspace_account %}
+        {{ workspace_account.workspace_name }} workspace
+        {% else %}
         {{ user.get_full_name|default:user.username }}
+        {% endif %}
       </span>
       <a href="{% url 'logout' %}" class="logout-btn">
         <span class="icon">⏻</span> Logout
       </a>
+      {% else %}
+      <a href="{% url 'landing' %}" class="home-btn">← Back to home</a>
+      {% endif %}
     </div>
   </header>
+
+  {% if messages %}
+  <div class="flash-messages">
+    {% for message in messages %}
+    <div class="flash {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- ─── CONTENT ─── -->
   <section class="content" aria-label="Dashboard selection">
@@ -652,22 +951,40 @@
         Choose your <span class="highlight">workspace</span>
       </h1>
       <p>
-        Select the VERSATEC module you need to access. Each dashboard
-        is tailored for specific operational workflows.
+        Select a workspace module below. You will be asked to sign in before
+        entering your dashboard.
       </p>
+      {% if is_authenticated and workspace_account %}
+      <div class="workspace-note">
+        Signed in as <strong>{{ workspace_account.username }}</strong> for the
+        <strong>{{ workspace_account.workspace_name }}</strong> workspace.
+        Open your assigned module or sign in to another workspace.
+      </div>
+      {% endif %}
     </div>
 
     <div class="dashboard-grid">
       {% for module in modules %}
+      {% if module.can_access %}
       <a class="dashboard-card" href="{% url module.url_name %}">
+      {% else %}
+      <button
+        type="button"
+        class="dashboard-card workspace-picker"
+        data-workspace-key="{{ module.workspace_key }}"
+        data-workspace-name="{{ module.name }}"
+        data-workspace-username="{% if module.workspace_account %}{{ module.workspace_account.username }}{% endif %}"
+        data-workspace-password="{% if module.workspace_account %}{{ module.workspace_account.temporary_password }}{% endif %}"
+      >
+      {% endif %}
         <div class="card-top">
           <span class="card-icon">
-            {% if module.name == "Human Resources" %}👥
+            {% if module.name == "HR" %}👥
             {% elif module.name == "Inventory" %}📦
             {% elif module.name == "Sales" %}📈
             {% elif module.name == "Payroll" %}💰
-            {% elif module.name == "Accounting"%}
-            {% elif moduie.name == "Services"%}
+            {% elif module.name == "Accounting" %}🧾
+            {% elif module.name == "Services" %}🔧
             {% else %}⚙️
             {% endif %}
           </span>
@@ -680,11 +997,130 @@
             <span class="dot"></span>
             {{ module.status }}
           </span>
-          <span class="open-label">Open <span class="open-arrow">→</span></span>
+          <span class="open-label">
+            {% if module.can_access %}Open{% else %}Sign in{% endif %}
+            <span class="open-arrow">{% if module.can_access %}→{% else %}🔐{% endif %}</span>
+          </span>
         </div>
+      {% if module.can_access %}
       </a>
+      {% else %}
+      </button>
+      {% endif %}
       {% endfor %}
     </div>
   </section>
+
+  <div class="modal-backdrop" id="workspaceLoginModal" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="workspaceLoginTitle">
+      <div class="login-modal-header">
+        <div>
+          <h2 id="workspaceLoginTitle">Sign in to <span id="modalWorkspaceName">workspace</span></h2>
+          <p>Enter your credentials for this workspace module.</p>
+        </div>
+        <button type="button" class="modal-close" id="closeWorkspaceLogin" aria-label="Close">×</button>
+      </div>
+      <form class="login-modal-body" method="post" action="{% url 'workspace_login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="workspace_key" id="modalWorkspaceKey" value="">
+        <div class="login-error" id="modalLoginError" {% if not login_error %}hidden{% endif %}>
+          Invalid username or password. Please try again.
+        </div>
+        <div class="credential-hint" id="modalCredentialHint" hidden>
+          Temporary account:
+          <code id="modalHintUser"></code> /
+          <code id="modalHintPass"></code>
+        </div>
+        <div class="login-field">
+          <label for="modalUsername">Username</label>
+          <input id="modalUsername" name="username" type="text" autocomplete="username" required>
+        </div>
+        <div class="login-field">
+          <label for="modalPassword">Password</label>
+          <input id="modalPassword" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="login-submit" type="submit">Sign in and open workspace</button>
+      </form>
+    </div>
+  </div>
 </main>
+
+<script>
+  (function () {
+    const modal = document.getElementById('workspaceLoginModal');
+    const closeBtn = document.getElementById('closeWorkspaceLogin');
+    const workspaceNameEl = document.getElementById('modalWorkspaceName');
+    const workspaceKeyInput = document.getElementById('modalWorkspaceKey');
+    const hintBox = document.getElementById('modalCredentialHint');
+    const hintUser = document.getElementById('modalHintUser');
+    const hintPass = document.getElementById('modalHintPass');
+    const usernameInput = document.getElementById('modalUsername');
+    const passwordInput = document.getElementById('modalPassword');
+    const loginError = document.getElementById('modalLoginError');
+    const pickers = document.querySelectorAll('.workspace-picker');
+
+    function openModal(button) {
+      const name = button.dataset.workspaceName || 'workspace';
+      const key = button.dataset.workspaceKey || '';
+      const user = button.dataset.workspaceUsername || '';
+      const pass = button.dataset.workspacePassword || '';
+
+      workspaceNameEl.textContent = name;
+      workspaceKeyInput.value = key;
+      usernameInput.value = '';
+      passwordInput.value = '';
+
+      if (user && pass) {
+        hintUser.textContent = user;
+        hintPass.textContent = pass;
+        hintBox.hidden = false;
+      } else {
+        hintBox.hidden = true;
+      }
+
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      usernameInput.focus();
+    }
+
+    function closeModal() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      if (loginError) {
+        loginError.hidden = true;
+      }
+    }
+
+    pickers.forEach(function (button) {
+      button.addEventListener('click', function () {
+        openModal(button);
+      });
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+        closeModal();
+      }
+    });
+
+    {% if selected_workspace %}
+    const preselected = document.querySelector('[data-workspace-key="{{ selected_workspace }}"]');
+    if (preselected) {
+      openModal(preselected);
+      {% if login_error %}
+      if (loginError) {
+        loginError.hidden = false;
+      }
+      {% endif %}
+    }
+    {% endif %}
+  })();
+</script>
 {% endblock %}

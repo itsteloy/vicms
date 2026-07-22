@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns = [
     path('', views.landing, name='landing'),
+    path('workspace/login/', views.workspace_login, name='workspace_login'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/hr/', views.hr_dashboard, name='hr_dashboard'),
     path('dashboard/inventory/', views.inventory_dashboard, name='inventory_dashboard'),

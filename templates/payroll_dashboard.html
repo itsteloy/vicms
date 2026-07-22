@@ -448,10 +448,10 @@
 <div class="dashboard-wrapper">
   <aside class="sidebar" role="navigation" aria-label="Payroll dashboard navigation">
     <div class="sidebar-brand">
-      <a href="{% url 'dashboard' %}" class="logo">
+      <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
         <span class="logo-text">VERSATEC <small>Management System</small></span>
-      </a>
+      </div>
     </div>
     <nav class="sidebar-nav" aria-label="Payroll sections">
       <div class="nav-label">Payroll</div>
@@ -481,7 +481,6 @@
         <p>Manage payroll runs, deductions, and approvals for VERSATEC.</p>
       </div>
       <div class="top-actions">
-        <a href="{% url 'dashboard' %}">📊 Dashboards</a>
         <a href="{% url 'logout' %}">🚪 Logout</a>
       </div>
     </header>
@@ -754,7 +753,6 @@
     </div>
 
     <div style="margin-top:12px;">
-      <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
     </div>
   </main>
 </div>

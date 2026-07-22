@@ -548,3 +548,26 @@ class JobOrder(models.Model):
         return self.job_order_number
 
 
+class WorkspaceAccount(models.Model):
+    """Temporary demo credentials for each dashboard workspace."""
+
+    workspace_key = models.CharField(max_length=50, unique=True)
+    workspace_name = models.CharField(max_length=100)
+    dashboard_url_name = models.CharField(max_length=100)
+    user = models.OneToOneField(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='workspace_account',
+    )
+    username = models.CharField(max_length=150)
+    temporary_password = models.CharField(max_length=128)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['workspace_name']
+
+    def __str__(self):
+        return f'{self.workspace_name} ({self.username})'
+

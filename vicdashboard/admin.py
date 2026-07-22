@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import InventoryItem, SalesOrder
+from .models import InventoryItem, SalesOrder, WorkspaceAccount
 
 
 @admin.register(InventoryItem)
@@ -12,3 +12,10 @@ class InventoryItemAdmin(admin.ModelAdmin):
 class SalesOrderAdmin(admin.ModelAdmin):
     list_display = ('customer_name', 'inventory_item', 'quantity', 'unit_price', 'total_amount', 'created_at')
     search_fields = ('customer_name', 'inventory_item__name', 'inventory_item__product_code')
+
+
+@admin.register(WorkspaceAccount)
+class WorkspaceAccountAdmin(admin.ModelAdmin):
+    list_display = ('workspace_name', 'username', 'temporary_password', 'dashboard_url_name', 'is_active', 'updated_at')
+    search_fields = ('workspace_name', 'username', 'workspace_key')
+    readonly_fields = ('created_at', 'updated_at')

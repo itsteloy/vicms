@@ -1,7 +1,8 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceRepairReport, JobOrder
+from functools import wraps
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceRepairReport, JobOrder, WorkspaceAccount
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -11,6 +12,7 @@ from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.templatetags.static import static
@@ -29,36 +31,42 @@ MANAGEMENT_MODULES = [
         'summary': 'Employee records, attendance, onboarding, and staff requests.',
         'status': 'Active',
         'url_name': 'hr_dashboard',
+        'workspace_key': 'hr',
     },
     {
         'name': 'Inventory',
         'summary': 'Product catalog, images, carton details, weights, and pricing.',
         'status': 'Active',
         'url_name': 'inventory_dashboard',
+        'workspace_key': 'inventory',
     },
     {
         'name': 'Sales',
         'summary': 'Customer orders, quotations, invoices, and sales pipeline.',
         'status': 'Active',
         'url_name': 'sales_dashboard',
+        'workspace_key': 'sales',
     },
     {
         'name': 'Payroll',
         'summary': 'Salary records, deductions, approvals, and pay schedules.',
         'status': 'Active',
         'url_name': 'payroll_dashboard',
+        'workspace_key': 'payroll',
     },
     {
         'name': 'Accounting',
         'summary': 'Salary records, deductions, approvals, and pay schedules.',
         'status': 'Active',
         'url_name': 'accounting_dashboard',
+        'workspace_key': 'accounting',
     },
     {
         'name': 'Services',
         'summary': 'Service Repair Reports and Job Orders',
         'status': 'Active',
         'url_name': 'services_dashboard',
+        'workspace_key': 'services',
     }
 ]
 
@@ -85,46 +93,149 @@ INVENTORY_ITEM_OPTIONS = [
 ]
 
 
+def get_user_workspace(user):
+    if not user.is_authenticated:
+        return None
+    return WorkspaceAccount.objects.filter(user=user, is_active=True).select_related('user').first()
+
+
+def user_has_dashboard_access(user, url_name):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    workspace = get_user_workspace(user)
+    if workspace is None:
+        return True
+    return workspace.dashboard_url_name == url_name
+
+
+def require_dashboard(url_name):
+    def decorator(view_func):
+        @wraps(view_func)
+        @never_cache
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                module = _module_by_url_name(url_name)
+                workspace_key = module['workspace_key'] if module else ''
+                dashboard_url = reverse('dashboard')
+                if workspace_key:
+                    return redirect(f'{dashboard_url}?workspace={workspace_key}')
+                return redirect('dashboard')
+            if not user_has_dashboard_access(request.user, url_name):
+                messages.error(request, 'You do not have access to this workspace.')
+                return redirect('dashboard')
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def _module_by_workspace_key(workspace_key):
+    for module in MANAGEMENT_MODULES:
+        if module['workspace_key'] == workspace_key:
+            return module
+    return None
+
+
+def _module_by_url_name(url_name):
+    for module in MANAGEMENT_MODULES:
+        if module['url_name'] == url_name:
+            return module
+    return None
+
+
 def landing(request):
     if request.user.is_authenticated:
-        return redirect('dashboard')
-
-    form = AuthenticationForm(request, data=request.POST or None)
-
-    if request.method == 'POST' and form.is_valid():
-        login(request, form.get_user())
-        next_url = request.GET.get('next')
-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-            return redirect(next_url)
         return redirect('dashboard')
 
     return render(
         request,
         'landing.html',
         {
-            'form': form,
             'modules': MANAGEMENT_MODULES,
         },
     )
 
 
+def workspace_login(request):
+    if request.method != 'POST':
+        workspace_key = request.GET.get('workspace', '').strip()
+        if workspace_key:
+            return redirect(f"{reverse('dashboard')}?workspace={workspace_key}")
+        return redirect('dashboard')
+
+    workspace_key = request.POST.get('workspace_key', '').strip()
+    module = _module_by_workspace_key(workspace_key)
+    form = AuthenticationForm(request, data=request.POST)
+
+    if not module:
+        messages.error(request, 'Invalid workspace selected.')
+        return redirect('dashboard')
+
+    if form.is_valid():
+        user = form.get_user()
+        workspace = WorkspaceAccount.objects.filter(
+            workspace_key=workspace_key,
+            is_active=True,
+        ).select_related('user').first()
+
+        if not workspace:
+            messages.error(request, 'This workspace is not available.')
+        elif not (user.is_staff or user.is_superuser) and workspace.user_id != user.id:
+            messages.error(request, f'Invalid credentials for the {module["name"]} workspace.')
+        else:
+            login(request, user)
+            messages.success(request, f'Welcome to the {module["name"]} workspace.')
+            return redirect(module['url_name'])
+
+    messages.error(request, 'Invalid username or password.')
+    return redirect(f"{reverse('dashboard')}?workspace={workspace_key}&login_error=1")
+
+
+@never_cache
 def logout_view(request):
     logout(request)
-    return redirect('landing')
+    list(messages.get_messages(request))
+    messages.success(request, 'You have been signed out.')
+    return redirect('dashboard')
 
 
-@login_required
+@never_cache
 def dashboard(request):
+    is_authenticated = request.user.is_authenticated
+    workspace_accounts = {
+        account.workspace_key: account
+        for account in WorkspaceAccount.objects.filter(is_active=True).select_related('user')
+    }
+    modules = []
+    for module in MANAGEMENT_MODULES:
+        item = dict(module)
+        item['workspace_account'] = workspace_accounts.get(module['workspace_key'])
+        item['can_access'] = (
+            is_authenticated
+            and user_has_dashboard_access(request.user, module['url_name'])
+        )
+        modules.append(item)
+
+    selected_workspace = request.GET.get('workspace', '').strip()
+    selected_module = _module_by_workspace_key(selected_workspace)
+    login_error = request.GET.get('login_error') == '1'
+
     return render(
         request,
         'dashboard_select.html',
         {
-            'modules': MANAGEMENT_MODULES,
+            'modules': modules,
+            'workspace_account': get_user_workspace(request.user) if is_authenticated else None,
+            'selected_workspace': selected_workspace if selected_module else '',
+            'selected_module': selected_module,
+            'login_error': login_error,
+            'is_authenticated': is_authenticated,
         },
     )
 
 
-@login_required
+@require_dashboard('hr_dashboard')
 def hr_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action', '').strip()
@@ -188,7 +299,7 @@ def hr_dashboard(request):
     )
 
 
-@login_required
+@require_dashboard('sales_dashboard')
 def sales_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action', '').strip()
@@ -584,18 +695,8 @@ def download_quotation_pdf(request, quotation_id):
     return response
 
 
-@login_required
-def payroll_dashboard(request):
-    return render(
-        request,
-        'payroll_dashboard.html',
-        {
-            'modules': MANAGEMENT_MODULES,
-        },
-    )
 
-
-@login_required
+@require_dashboard('inventory_dashboard')
 def inventory_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action', '').strip()
@@ -732,7 +833,7 @@ def inventory_dashboard(request):
     )
 
 
-@login_required
+@require_dashboard('payroll_dashboard')
 def payroll_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action', '').strip()
@@ -1154,6 +1255,7 @@ def purchase_order_pdf(request):
     response['Content-Disposition'] = f'attachment; filename="{safe_name}.pdf"'
     return response
 
+@require_dashboard('accounting_dashboard')
 def accounting_dashboard(request):
     return render(
         request,
@@ -1163,7 +1265,7 @@ def accounting_dashboard(request):
         },
     )
 
-@login_required
+@require_dashboard('services_dashboard')
 def services_dashboard(request):
     return render(
         request,
@@ -1172,6 +1274,8 @@ def services_dashboard(request):
             'modules': MANAGEMENT_MODULES,
             'repair_reports': ServiceRepairReport.objects.all()[:8],
             'job_orders': JobOrder.objects.all()[:8],
+            'repair_report_count': ServiceRepairReport.objects.count(),
+            'job_order_count': JobOrder.objects.count(),
         }
     )
 

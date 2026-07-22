@@ -948,11 +948,11 @@
     <!-- ─── SIDEBAR ─── -->
     <aside class="sidebar" role="navigation" aria-label="Sales dashboard navigation">
         <div class="sidebar-brand">
-            <a href="{% url 'dashboard' %}" class="logo">
+            <div class="logo">
                 <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
                     style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
                 <span class="logo-text">VERSATEC <small>Management System</small></span>
-            </a>
+            </div>
         </div>
 
         <nav class="sidebar-nav" aria-label="Sales sections">
@@ -1058,10 +1058,9 @@
         <header class="topbar">
             <div class="greeting">
                 <h2>Sales Dashboard</h2>
-                <p>Record sales from inventory items. Stock updates automatically.</p>
+                <p>Record sales from shared inventory items. Stock levels update automatically.</p>
             </div>
             <div class="top-actions">
-                <a href="{% url 'inventory_dashboard' %}">📦 Inventory</a>
                 <a href="{% url 'logout' %}">🚪 Logout</a>
             </div>
         </header>
@@ -1171,7 +1170,7 @@
                 <!-- Inventory availability -->
                 <section class="panel">
                     <h2>Inventory Availability</h2>
-                    <p>Stock figures come from the Inventory Dashboard.</p>
+                    <p>Live stock from inventory records. Quantities update here when you record a sale or process a refund.</p>
                     <div class="table-wrap" style="margin-top:14px;">
                         <table aria-label="Inventory availability for sales">
                             <thead>
@@ -1775,11 +1774,6 @@
             </div>
         </div>
 
-        <!-- Footer action -->
-        <div style="margin-top:12px;">
-            <a class="action" href="{% url 'dashboard' %}">← Back to dashboard selection</a>
-        </div>
-
     </main>
 </div>
 
@@ -2129,12 +2123,9 @@
                 return '';
             }
 
-            downloadPdfBtn.addEventListener('click', function (e) {
-                e.preventDefault();
+            async function saveQuotationPayload() {
                 const payload = collectQtPayload();
-                downloadPdfBtn.disabled = true;
-
-                fetch('{% url "save_quotation" %}', {
+                const response = await fetch('{% url "save_quotation" %}', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
@@ -2142,21 +2133,70 @@
                         'X-CSRFToken': getCookie('csrftoken'),
                     },
                     body: JSON.stringify(payload),
-                })
-                    .then(async (response) => {
-                        const contentType = response.headers.get('content-type') || '';
-                        if (contentType.includes('application/json')) {
-                            const data = await response.json();
-                            return { status: response.status, body: data };
-                        }
-                        const text = await response.text();
-                        const brief = text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server returned non-JSON response';
-                        throw new Error(brief);
-                    })
-                        .then(({ status, body }) => {
-                            if (status !== 200) {
-                                throw new Error(body && body.error ? body.error : 'Unable to save quotation.');
-                            }
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const body = await response.json();
+                    if (response.status !== 200) {
+                        throw new Error(body?.error || 'Unable to save quotation.');
+                    }
+                    return body;
+                }
+
+                const text = await response.text();
+                throw new Error(text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server error');
+            }
+
+            async function printQuotationPdf(downloadUrl) {
+                const response = await fetch(downloadUrl, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not generate the quotation PDF for printing.');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+
+                const cleanup = () => {
+                    setTimeout(() => {
+                        iframe.remove();
+                        URL.revokeObjectURL(url);
+                    }, 1500);
+                };
+
+                iframe.onload = function () {
+                    try {
+                        const win = iframe.contentWindow;
+                        if (!win) throw new Error('Print frame unavailable.');
+                        win.focus();
+                        win.print();
+                    } catch (err) {
+                        window.open(url, '_blank');
+                    } finally {
+                        cleanup();
+                    }
+                };
+            }
+
+            downloadPdfBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                downloadPdfBtn.disabled = true;
+
+                saveQuotationPayload()
+                        .then((body) => {
                             if (body.download_url) {
                                 window.location.href = body.download_url;
                             } else {
@@ -2173,42 +2213,17 @@
 
             printBtn.addEventListener('click', function (e) {
                 e.preventDefault();
-                const payload = collectQtPayload();
-
-                // Disable the button to prevent double clicks
                 printBtn.disabled = true;
 
-                fetch('{% url "save_quotation" %}', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken'),
-                    },
-                    body: JSON.stringify(payload),
-                })
-                    .then(async (response) => {
-                        const contentType = response.headers.get('content-type') || '';
-                        if (contentType.includes('application/json')) {
-                            const data = await response.json();
-                            return { status: response.status, body: data };
+                saveQuotationPayload()
+                    .then((body) => {
+                        if (!body.download_url) {
+                            throw new Error('Quotation saved, but no PDF URL was returned.');
                         }
-                        const text = await response.text();
-                        throw new Error(text.replace(/\s+/g, ' ').trim().slice(0, 200) || 'Server error');
-                    })
-                    .then(({ status, body }) => {
-                        if (status !== 200) {
-                            throw new Error(body?.error || 'Unable to save quotation.');
-                        }
-                        if (body.download_url) {
-                            // Open PDF in a new tab
-                            window.open(body.download_url, '_blank');
-                        } else {
-                            alert('Quotation saved, but no download URL returned.');
-                        }
+                        return printQuotationPdf(body.download_url);
                     })
                     .catch((error) => {
-                        alert('Unable to generate printable quotation: ' + error.message);
+                        alert('Unable to print quotation: ' + error.message);
                     })
                     .finally(() => {
                         printBtn.disabled = false;
