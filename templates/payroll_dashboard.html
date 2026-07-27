@@ -441,6 +441,62 @@
   .badge-computed { background: #ecfdf3; color: #027a48; }
   .badge-approved { background: #eff6ff; color: #1d4ed8; }
   .badge-disbursed { background: #fef3f2; color: #b42318; }
+
+  .messages {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .message.success { background: #ecfdf3; color: #027a48; border: 1px solid #abefc6; }
+  .message.error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
+  .message.warning { background: #fffaeb; color: #b54708; border: 1px solid #fedf89; }
+  .message.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+  .form-section {
+    background: var(--soft);
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+  }
+  .form-section h4 {
+    margin: 0 0 12px;
+    font-size: 0.92rem;
+  }
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+  }
+  .form-field {
+    display: grid;
+    gap: 4px;
+    min-width: 140px;
+  }
+  .form-field label {
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: #475467;
+  }
+  .run-details {
+    background: #f8fafc;
+    padding: 12px 14px;
+  }
+  .run-details table {
+    min-width: 520px;
+    font-size: 0.82rem;
+  }
+  .btn-primary {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
 </style>
 {% endblock %}
 
@@ -485,6 +541,14 @@
       </div>
     </header>
 
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+      <div class="message {{ message.tags|default:'success' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Hero stats (dynamic) -->
     <div class="hero-stats">
       <div class="stat-card">
@@ -505,25 +569,94 @@
     <div id="payrunsTab" class="tab-panel is-active">
       <div class="panel">
         <h2>Pay Runs</h2>
-        <p>Create, compute, approve, and disburse payroll runs.</p>
+        <p>Create pay periods, run payroll, compute, approve, and disburse.</p>
+
+        <!-- Create pay period -->
+        <div class="form-section">
+          <h4>Create Pay Period</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_pay_period">
+            <div class="form-field">
+              <label for="period_start_date">Start Date</label>
+              <input type="date" id="period_start_date" name="start_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_end_date">End Date</label>
+              <input type="date" id="period_end_date" name="end_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_pay_date">Pay Date</label>
+              <input type="date" id="period_pay_date" name="pay_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_type">Period Type</label>
+              <select id="period_type" name="period_type" class="field-input">
+                <option value="monthly">Monthly</option>
+                <option value="semi-monthly">Semi-monthly</option>
+              </select>
+            </div>
+            <button type="submit" class="action btn-primary">+ Create Pay Period</button>
+          </form>
+        </div>
+
+        <!-- Pay periods list -->
+        {% if pay_periods %}
+        <div class="table-wrap" style="margin-bottom:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Pay Date</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for period in pay_periods %}
+              <tr>
+                <td>{{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }}</td>
+                <td>{{ period.pay_date|date:"M d, Y" }}</td>
+                <td>{{ period.get_period_type_display }}</td>
+                <td>{% if period.is_closed %}<span class="badge-status badge-disbursed">Closed</span>{% else %}<span class="badge-status badge-computed">Open</span>{% endif %}</td>
+                <td>
+                  {% if not period.is_closed %}
+                  <form method="post" style="display:inline;" onsubmit="return confirm('Close this pay period?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="close_period">
+                    <input type="hidden" name="period_id" value="{{ period.id }}">
+                    <button type="submit" class="action" style="padding:4px 10px;">Close</button>
+                  </form>
+                  {% else %}
+                  <span style="color:var(--muted);font-size:0.8rem;">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
 
         <!-- Create new run -->
-        <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
-          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+        <div class="form-section">
+          <h4>Create Pay Run</h4>
+          <form method="post" class="form-row">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_payrun">
-            <div style="flex: 1 1 200px;">
-              <label style="font-weight:600;font-size:0.8rem;">Pay Period</label>
-              <select name="pay_period_id" required class="field-input">
+            <div class="form-field" style="flex:1 1 240px;">
+              <label for="pay_period_id">Pay Period</label>
+              <select id="pay_period_id" name="pay_period_id" required class="field-input">
                 <option value="">Select period</option>
                 {% for period in pay_periods %}
                   <option value="{{ period.id }}" {% if period.is_closed %}disabled{% endif %}>
-                    {{ period.start_date }} – {{ period.end_date }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
+                    {{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
                   </option>
                 {% endfor %}
               </select>
             </div>
-            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">+ Create Run</button>
+            <button type="submit" class="action btn-primary">+ Create Run</button>
           </form>
         </div>
 
@@ -558,6 +691,9 @@
                 </td>
                 <td>
                   <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    {% if run.lines.all %}
+                    <button type="button" class="action toggle-run-details" data-target="run-details-{{ run.id }}" style="padding:4px 10px;">Details</button>
+                    {% endif %}
                     <!-- Compute -->
                     {% if run.status == 'draft' %}
                     <form method="post" style="display:inline;">
@@ -597,6 +733,33 @@
                   </div>
                 </td>
               </tr>
+              {% if run.lines.all %}
+              <tr id="run-details-{{ run.id }}" class="run-details-row" hidden>
+                <td colspan="8" class="run-details">
+                  <strong style="display:block;margin-bottom:8px;">Employee breakdown — Run #{{ run.id }}</strong>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Gross</th>
+                        <th>Deductions</th>
+                        <th>Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for line in run.lines.all %}
+                      <tr>
+                        <td>{{ line.employee.full_name }}</td>
+                        <td>₱{{ line.gross_pay|floatformat:2 }}</td>
+                        <td>₱{{ line.total_deductions|floatformat:2 }}</td>
+                        <td>₱{{ line.net_pay|floatformat:2 }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              {% endif %}
               {% empty %}
               <tr><td colspan="8" style="text-align:center;color:#667085;padding:24px;">No payroll runs yet.</td></tr>
               {% endfor %}
@@ -802,6 +965,21 @@
       } else {
         activateTab(defaultTab);
       }
+    });
+
+    document.querySelectorAll('.toggle-run-details').forEach((button) => {
+      button.addEventListener('click', () => {
+        const row = document.getElementById(button.dataset.target);
+        if (!row) return;
+        const isHidden = row.hasAttribute('hidden');
+        if (isHidden) {
+          row.removeAttribute('hidden');
+          button.textContent = 'Hide';
+        } else {
+          row.setAttribute('hidden', '');
+          button.textContent = 'Details';
+        }
+      });
     });
   })();
 </script>

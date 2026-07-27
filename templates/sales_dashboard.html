@@ -675,11 +675,11 @@
         text-align: left;
         padding: 12px 14px;
         border-bottom: 1px solid #eaecf0;
-        vertical-align: middle;
-    }
+        vertical-align: middle; 
+    }   
 
     th {
-        color: #475467;
+        color: #fff;
         font-weight: 700;
         font-size: 0.78rem;
         text-transform: uppercase;
@@ -980,9 +980,14 @@
                 <span class="tab-icon">📈</span> Reporting & Analytics
             </button>
             <button class="tab-button" type="button" role="tab"
-                aria-selected="{% if active_tab == 'quotation-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="quotation-tab">
-                <span class="tab-icon">💬</span> Quotations
+                aria-selected="{% if active_tab == 'product-quotation-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="product-quotation-tab">
+                <span class="tab-icon">📦</span> Product Quotation
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'service-quotation-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="service-quotation-tab">
+                <span class="tab-icon">🛠️</span> Service Quotation
             </button>
         </nav>
 
@@ -1516,18 +1521,18 @@
         </div>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- QUOTATION TAB ──────────────────────────────────────────────── -->
+        <!-- PRODUCT QUOTATION TAB ─────────────────────────────────────── -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div id="quotation-tab" class="tab-panel">
+        <div id="product-quotation-tab" class="tab-panel">
             <div class="panel" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">💬 Create Quotation</h1>
+                <h1 style="margin-top:0;">📦 Create Product Quotation</h1>
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" id="quotationDownloadPdf" style="padding:10px 16px;">📥 Download
+                    <button class="action brand-link" id="pqDownloadPdf" style="padding:10px 16px;">📥 Download
                         PDF</button>
-                    <button class="action" id="quotationPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" id="quotationReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action" id="pqPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" id="pqReset" style="padding:10px 16px;">🔄 Reset</button>
                 </div>
 
                 <!-- Quotation details section -->
@@ -1537,13 +1542,13 @@
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Quotation
                             Number</label>
-                        <input type="text" id="quotationNumber" placeholder="QT-2026-001"
+                        <input type="text" id="pqNumber" placeholder="PQ-2026-001"
                             style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600;">
 
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Quotation
                             Date</label>
-                        <input type="date" id="quotationDate"
+                        <input type="date" id="pqDate"
                             style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                     </div>
 
@@ -1552,20 +1557,20 @@
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Valid
                             Until</label>
-                        <input type="date" id="quotationValidUntil"
+                        <input type="date" id="pqValidUntil"
                             style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
 
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Currency</label>
                         <div style="display:flex; gap:8px;">
-                            <select id="quotationCurrency"
+                            <select id="pqCurrency"
                                 style="flex:1; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                                 <option value="PHP">PHP (₱)</option>
                                 <option value="USD">USD ($)</option>
                                 <option value="EUR">EUR (€)</option>
                                 <option value="OTHER">Other</option>
                             </select>
-                            <input type="text" id="quotationCurrencyOther" placeholder="e.g., GBP"
+                            <input type="text" id="pqCurrencyOther" placeholder="e.g., GBP"
                                 style="width:80px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; display:none;">
                         </div>
                     </div>
@@ -1578,31 +1583,31 @@
                         <div>
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Company</label>
-                            <input type="text" id="quotationCustomerCompany" placeholder="Customer Company Name"
+                            <input type="text" id="pqCustomerCompany" placeholder="Customer Company Name"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div>
                             <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Contact
                                 Person</label>
-                            <input type="text" id="quotationCustomerContact" placeholder="Name / Title"
+                            <input type="text" id="pqCustomerContact" placeholder="Name / Title"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div style="grid-column:1/-1;">
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Address</label>
-                            <textarea id="quotationCustomerAddress" placeholder="Full Address" rows="2"
+                            <textarea id="pqCustomerAddress" placeholder="Full Address" rows="2"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
                         </div>
                         <div>
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Email</label>
-                            <input type="email" id="quotationCustomerEmail" placeholder="customer@example.com"
+                            <input type="email" id="pqCustomerEmail" placeholder="customer@example.com"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div>
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Phone</label>
-                            <input type="tel" id="quotationCustomerPhone" placeholder="+63 XXX XXXX XXX"
+                            <input type="tel" id="pqCustomerPhone" placeholder="+63 XXX XXXX XXX"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                     </div>
@@ -1628,33 +1633,33 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody id="quotationItemsBody" style="border-bottom:2px solid var(--line);">
+                        <tbody id="pqItemsBody" style="border-bottom:2px solid var(--line);">
                             <!-- Template row -->
                             <tr style="border-top:1px solid var(--line);">
-                                <td style="padding:12px; text-align:left;"><input type="text" class="qt-col-no" readonly
+                                <td style="padding:12px; text-align:left;"><input type="text" class="pq-col-no" readonly
                                         style="width:40px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--soft); text-align:center;"
                                         value="1"></td>
-                                <td style="padding:12px;"><textarea class="qt-col-desc"
-                                        placeholder="Description of product/service" rows="1"
+                                <td style="padding:12px;"><textarea class="pq-col-desc"
+                                        placeholder="Description of product" rows="1"
                                         style="width:100%; padding:6px; border:1px solid var(--line); border-radius:4px; font-family:inherit; resize:none;"></textarea>
                                 </td>
-                                <td style="padding:12px; text-align:center;"><input type="number" class="qt-qty"
+                                <td style="padding:12px; text-align:center;"><input type="number" class="pq-qty"
                                         value="1" min="1"
                                         style="width:70px; padding:6px; border:1px solid var(--line); border-radius:4px; text-align:center;">
                                 </td>
-                                <td style="padding:12px;"><input type="text" class="qt-col-unit" placeholder="Unit"
+                                <td style="padding:12px;"><input type="text" class="pq-col-unit" placeholder="Unit"
                                         value=""
                                         style="width:60px; padding:6px; border:1px solid var(--line); border-radius:4px;">
                                 </td>
-                                <td style="padding:12px; text-align:right;"><input type="text" class="qt-unit-price"
+                                <td style="padding:12px; text-align:right;"><input type="text" class="pq-unit-price"
                                         placeholder="0.00" value="0.00"
                                         style="width:100px; padding:6px; border:1px solid var(--line); border-radius:4px; text-align:right;">
                                 </td>
-                                <td style="padding:12px; text-align:right;"><input type="text" class="qt-line-total"
+                                <td style="padding:12px; text-align:right;"><input type="text" class="pq-line-total"
                                         readonly value="0.00"
                                         style="width:100px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--soft); text-align:right; font-weight:600;">
                                 </td>
-                                <td style="padding:12px; text-align:center;"><button class="qt-row-remove"
+                                <td style="padding:12px; text-align:center;"><button class="pq-row-remove"
                                         style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
                                 </td>
                             </tr>
@@ -1662,7 +1667,7 @@
                     </table>
                 </div>
 
-                <button class="action" id="quotationAddRow" style="padding:8px 14px; margin-bottom:16px;">+ Add
+                <button class="action" id="pqAddRow" style="padding:8px 14px; margin-bottom:16px;">+ Add
                     Item</button>
 
                 <!-- Calculations section -->
@@ -1673,26 +1678,26 @@
                         <div style="margin-bottom:12px;">
                             <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Payment
                                 Terms</label>
-                            <input type="text" id="quotationPaymentTerms" placeholder="e.g., Cash, Net 30"
+                            <input type="text" id="pqPaymentTerms" placeholder="e.g., Cash, Net 30"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div style="margin-bottom:12px;">
                             <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Delivery
                                 Terms</label>
-                            <input type="text" id="quotationDeliveryTerms" placeholder="e.g., Within 30 days"
+                            <input type="text" id="pqDeliveryTerms" placeholder="e.g., Within 30 days"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div style="margin-bottom:12px;">
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Warranty</label>
-                            <input type="text" id="quotationWarranty" placeholder="e.g., 1 year"
+                            <input type="text" id="pqWarranty" placeholder="e.g., 1 year"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
                         </div>
                         <div>
                             <label
                                 style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Additional
                                 Terms</label>
-                            <textarea id="quotationOtherTerms" placeholder="Any other terms or conditions" rows="4"
+                            <textarea id="pqOtherTerms" placeholder="Any other terms or conditions" rows="4"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
                         </div>
                     </fieldset>
@@ -1702,32 +1707,47 @@
                         <div style="background:var(--soft); padding:12px; border-radius:8px;">
                             <label
                                 style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">SUBTOTAL</label>
-                            <input type="text" id="quotationSubtotal" readonly value="0.00"
+                            <input type="text" id="pqSubtotal" readonly value="0.00"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right; font-weight:600; font-size:1rem;">
                         </div>
                         <div style="background:var(--soft); padding:12px; border-radius:8px;">
                             <label
                                 style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">TAX</label>
-                            <input type="text" id="quotationTax" value="0.00"
+                            <input type="text" id="pqTax" value="0.00"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
                         </div>
                         <div style="background:var(--soft); padding:12px; border-radius:8px;">
                             <label
                                 style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">DISCOUNT</label>
-                            <input type="text" id="quotationDiscount" value="0.00"
+                            <input type="text" id="pqDiscount" value="0.00"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
                         </div>
                         <div style="background:var(--soft); padding:12px; border-radius:8px;">
                             <label
                                 style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">SHIPPING</label>
-                            <input type="text" id="quotationShipping" value="0.00"
+                            <input type="text" id="pqShipping" value="0.00"
                                 style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
                         </div>
                         <div style="background:var(--brand); color:#fff; padding:12px; border-radius:8px;">
                             <label
-                                style="display:block; font-size:0.75rem; font-weight:600; margin-bottom:4px;">TOTAL</label>
-                            <input type="text" id="quotationGrandTotal" readonly value="0.00"
+                                style="display:block; font-size:0.75rem; font-weight:600; margin-bottom:4px;">GRAND
+                                TOTAL</label>
+                            <input type="text" id="pqGrandTotal" readonly value="0.00"
                                 style="width:100%; padding:8px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:4px; background:transparent; color:#fff; text-align:right; font-weight:700; font-size:1.2rem;">
+                        </div>
+                        <div style="background:var(--brand-light); border:1px solid #abefc6; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--success); font-weight:700; margin-bottom:4px;">INITIAL
+                                PAYMENT / DOWN PAYMENT</label>
+                            <input type="text" id="pqInitialPayment" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid #abefc6; border-radius:4px; background:#fff; text-align:right; font-weight:600;">
+                        </div>
+                        <div style="background:#fef3f2; border:1px solid #fecdca; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--danger); font-weight:700; margin-bottom:4px;">REMAINING
+                                BALANCE</label>
+                            <input type="text" id="pqBalanceDue" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid #fecdca; border-radius:4px; background:#fff; text-align:right; font-weight:700; font-size:1.1rem; color:var(--danger);">
                         </div>
                     </div>
                 </div>
@@ -1739,38 +1759,387 @@
                         <div style="text-align:center;">
                             <div
                                 style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
-                                <input type="text" id="quotationPreparedSignature" placeholder="Signature"
+                                <input type="text" id="pqPreparedSignature" placeholder="Signature"
                                     style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
                             </div>
                             <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">
-                                <input type="text" id="quotationPreparedName" placeholder="Name"
+                                <input type="text" id="pqPreparedName" placeholder="Name"
                                     style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
                             </div>
                             <div style="font-size:0.75rem; color:var(--muted);">
-                                <input type="text" id="quotationPreparedPosition" placeholder="Title"
+                                <input type="text" id="pqPreparedPosition" placeholder="Title"
                                     style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center; font-size:0.75rem;">
                             </div>
                             <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
-                                <input type="date" id="quotationPreparedDate"
+                                <input type="date" id="pqPreparedDate"
                                     style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
                             </div>
                         </div>
                         <div style="text-align:center;">
                             <div
                                 style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
-                                <input type="text" id="quotationApprovedSignature" placeholder="Signature"
+                                <input type="text" id="pqApprovedSignature" placeholder="Signature"
                                     style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
                             </div>
                             <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">Engr. Arturo I. Davis,
                                 PME</div>
                             <div style="font-size:0.75rem; color:var(--muted);">President / CEO</div>
                             <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
-                                <input type="date" id="quotationApprovedDate"
+                                <input type="date" id="pqApprovedDate"
                                     style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
                             </div>
                         </div>
                     </div>
                 </fieldset>
+            </div>
+
+            <!-- Tracking: Recent Product Quotations -->
+            <div class="panel">
+                <h2>📊 Recent Product Quotations</h2>
+                <p>Track initial payments and outstanding balances for saved product quotations.</p>
+                <div class="table-wrap" style="margin-top:14px;">
+                    <table aria-label="Recent product quotations">
+                        <thead>
+                            <tr>
+                                <th>Quotation #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Grand Total</th>
+                                <th>Initial Payment</th>
+                                <th>Balance Due</th>
+                                <th>Status</th>
+                                <th>PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pq in recent_quotations %}
+                            <tr>
+                                <td>{{ pq.quotation_number }}</td>
+                                <td>{{ pq.quotation_date|date:"Y-m-d"|default:"-" }}</td>
+                                <td>{{ pq.customer_company|default:"-" }}</td>
+                                <td>₱{{ pq.grand_total }}</td>
+                                <td>₱{{ pq.initial_payment }}</td>
+                                <td>₱{{ pq.balance_due }}</td>
+                                <td>
+                                    <span class="status-chip {% if pq.payment_status == 'Paid' %}completed{% elif pq.payment_status == 'Pending' %}out-stock{% endif %}">{{ pq.payment_status }}</span>
+                                </td>
+                                <td>
+                                    <a class="action" href="{% url 'download_quotation_pdf' pq.id %}"
+                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No product
+                                    quotations saved yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <!-- SERVICE QUOTATION TAB ─────────────────────────────────────── -->
+        <!-- ══════════════════════════════════════════════════════════════ -->
+        <div id="service-quotation-tab" class="tab-panel">
+            <div class="panel" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">🛠️ Create Service Quotation</h1>
+
+                <!-- Top controls -->
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" id="svqDownloadPdf" style="padding:10px 16px;">📥 Download
+                        PDF</button>
+                    <button class="action" id="svqPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" id="svqReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <!-- Quotation details section -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <!-- Left column -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Quotation
+                            Number</label>
+                        <input type="text" id="svqNumber" placeholder="SQ-2026-001"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600;">
+
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Quotation
+                            Date</label>
+                        <input type="date" id="svqDate"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+
+                    <!-- Right column -->
+                    <div>
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Valid
+                            Until</label>
+                        <input type="date" id="svqValidUntil"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <label
+                            style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Currency</label>
+                        <div style="display:flex; gap:8px;">
+                            <select id="svqCurrency"
+                                style="flex:1; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                                <option value="PHP">PHP (₱)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                            <input type="text" id="svqCurrencyOther" placeholder="e.g., GBP"
+                                style="width:80px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; display:none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer details -->
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Customer Information</legend>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Company</label>
+                            <input type="text" id="svqCustomerCompany" placeholder="Customer Company Name"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Contact
+                                Person</label>
+                            <input type="text" id="svqCustomerContact" placeholder="Name / Title"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Address</label>
+                            <textarea id="svqCustomerAddress" placeholder="Full Address" rows="2"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Email</label>
+                            <input type="email" id="svqCustomerEmail" placeholder="customer@example.com"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Phone</label>
+                            <input type="tel" id="svqCustomerPhone" placeholder="+63 XXX XXXX XXX"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Service items table -->
+                <div style="overflow-x:auto; margin-bottom:16px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        <thead>
+                            <tr style="background:var(--brand); color:#fff;">
+                                <th style="padding:12px; text-align:left; border:none; font-weight:600; width:50px;">No.</th>
+                                <th style="padding:12px; text-align:left; border:none; font-weight:600;">Service
+                                    Description</th>
+                                <th style="padding:12px; text-align:right; border:none; font-weight:600; width:140px;">
+                                    Amount</th>
+                                <th style="padding:12px; text-align:center; border:none; font-weight:600; width:40px;">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="svqItemsBody" style="border-bottom:2px solid var(--line);">
+                            <!-- Template row -->
+                            <tr style="border-top:1px solid var(--line);">
+                                <td style="padding:12px; text-align:left;"><input type="text" class="svq-col-no" readonly
+                                        style="width:40px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--soft); text-align:center;"
+                                        value="1"></td>
+                                <td style="padding:12px;"><textarea class="svq-col-desc"
+                                        placeholder="Description of service" rows="1"
+                                        style="width:100%; padding:6px; border:1px solid var(--line); border-radius:4px; font-family:inherit; resize:none;"></textarea>
+                                </td>
+                                <td style="padding:12px; text-align:right;"><input type="text" class="svq-line-total"
+                                        placeholder="0.00" value="0.00"
+                                        style="width:130px; padding:6px; border:1px solid var(--line); border-radius:4px; text-align:right; font-weight:600;">
+                                </td>
+                                <td style="padding:12px; text-align:center;"><button class="svq-row-remove"
+                                        style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="action" id="svqAddRow" style="padding:8px 14px; margin-bottom:16px;">+ Add
+                    Service</button>
+
+                <!-- Calculations section -->
+                <div style="display:grid; grid-template-columns:1fr 300px; gap:16px; margin-bottom:16px;">
+                    <!-- Terms section -->
+                    <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; grid-column:1;">
+                        <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Terms & Conditions</legend>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Payment
+                                Terms</label>
+                            <input type="text" id="svqPaymentTerms" placeholder="e.g., 50% down payment, balance upon completion"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Service
+                                Schedule</label>
+                            <input type="text" id="svqServiceSchedule" placeholder="e.g., Completed within 7 working days"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Warranty</label>
+                            <input type="text" id="svqWarranty" placeholder="e.g., 30 days service warranty"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:4px;">Additional
+                                Terms</label>
+                            <textarea id="svqOtherTerms" placeholder="Any other terms or conditions" rows="4"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                        </div>
+                    </fieldset>
+
+                    <!-- Summary calculations -->
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">SUBTOTAL</label>
+                            <input type="text" id="svqSubtotal" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right; font-weight:600; font-size:1rem;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">TAX</label>
+                            <input type="text" id="svqTax" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">DISCOUNT</label>
+                            <input type="text" id="svqDiscount" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--soft); padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--muted); font-weight:600; margin-bottom:4px;">OTHER
+                                FEES</label>
+                            <input type="text" id="svqOtherFees" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; text-align:right;">
+                        </div>
+                        <div style="background:var(--brand); color:#fff; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; font-weight:600; margin-bottom:4px;">GRAND
+                                TOTAL</label>
+                            <input type="text" id="svqGrandTotal" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid rgba(255,255,255,0.2); border-radius:4px; background:transparent; color:#fff; text-align:right; font-weight:700; font-size:1.2rem;">
+                        </div>
+                        <div style="background:var(--brand-light); border:1px solid #abefc6; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--success); font-weight:700; margin-bottom:4px;">INITIAL
+                                PAYMENT / DOWN PAYMENT</label>
+                            <input type="text" id="svqInitialPayment" value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid #abefc6; border-radius:4px; background:#fff; text-align:right; font-weight:600;">
+                        </div>
+                        <div style="background:#fef3f2; border:1px solid #fecdca; padding:12px; border-radius:8px;">
+                            <label
+                                style="display:block; font-size:0.75rem; color:var(--danger); font-weight:700; margin-bottom:4px;">REMAINING
+                                BALANCE</label>
+                            <input type="text" id="svqBalanceDue" readonly value="0.00"
+                                style="width:100%; padding:8px 12px; border:1px solid #fecdca; border-radius:4px; background:#fff; text-align:right; font-weight:700; font-size:1.1rem; color:var(--danger);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signature section -->
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Authorization</legend>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+                        <div style="text-align:center;">
+                            <div
+                                style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
+                                <input type="text" id="svqPreparedSignature" placeholder="Signature"
+                                    style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
+                            </div>
+                            <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">
+                                <input type="text" id="svqPreparedName" placeholder="Name"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--muted);">
+                                <input type="text" id="svqPreparedPosition" placeholder="Title"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center; font-size:0.75rem;">
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
+                                <input type="date" id="svqPreparedDate"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div
+                                style="border-bottom:2px solid var(--ink); height:60px; margin-bottom:8px; position:relative; background:rgba(255,255,255,0.5);">
+                                <input type="text" id="svqApprovedSignature" placeholder="Signature"
+                                    style="width:100%; height:100%; border:none; background:transparent; text-align:center; font-family:cursive; font-size:1.5rem; padding:10px 0; box-sizing:border-box;">
+                            </div>
+                            <div style="font-size:0.8rem; margin-bottom:4px; font-weight:600;">Engr. Arturo I. Davis,
+                                PME</div>
+                            <div style="font-size:0.75rem; color:var(--muted);">President / CEO</div>
+                            <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">
+                                <input type="date" id="svqApprovedDate"
+                                    style="width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:4px; text-align:center;">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- Tracking: Recent Service Quotations -->
+            <div class="panel">
+                <h2>📊 Recent Service Quotations</h2>
+                <p>Track initial payments and outstanding balances for saved service quotations.</p>
+                <div class="table-wrap" style="margin-top:14px;">
+                    <table aria-label="Recent service quotations">
+                        <thead>
+                            <tr>
+                                <th>Quotation #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Grand Total</th>
+                                <th>Initial Payment</th>
+                                <th>Balance Due</th>
+                                <th>Status</th>
+                                <th>PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for svq in recent_service_quotations %}
+                            <tr>
+                                <td>{{ svq.quotation_number }}</td>
+                                <td>{{ svq.quotation_date|date:"Y-m-d"|default:"-" }}</td>
+                                <td>{{ svq.customer_company|default:"-" }}</td>
+                                <td>₱{{ svq.grand_total }}</td>
+                                <td>₱{{ svq.initial_payment }}</td>
+                                <td>₱{{ svq.balance_due }}</td>
+                                <td>
+                                    <span class="status-chip {% if svq.payment_status == 'Paid' %}completed{% elif svq.payment_status == 'Pending' %}out-stock{% endif %}">{{ svq.payment_status }}</span>
+                                </td>
+                                <td>
+                                    <a class="action" href="{% url 'download_service_quotation_pdf' svq.id %}"
+                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No service
+                                    quotations saved yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1787,7 +2156,8 @@
             'history-tab': document.getElementById('history-tab'),
             'refund-tab': document.getElementById('refund-tab'),
             'analytics-tab': document.getElementById('analytics-tab'),
-            'quotation-tab': document.getElementById('quotation-tab'),
+            'product-quotation-tab': document.getElementById('product-quotation-tab'),
+            'service-quotation-tab': document.getElementById('service-quotation-tab'),
         };
 
         // Function to activate a tab
@@ -1935,23 +2305,25 @@
         setChartView('revenue');
 
         // ══════════════════════════════════════════════════════════════
-        // QUOTATION FORM FUNCTIONALITY
+        // PRODUCT QUOTATION FORM FUNCTIONALITY
         // ══════════════════════════════════════════════════════════════
 
-        (function initQuotation() {
-            const itemsBody = document.getElementById('quotationItemsBody');
-            const subtotalInput = document.getElementById('quotationSubtotal');
-            const taxInput = document.getElementById('quotationTax');
-            const discountInput = document.getElementById('quotationDiscount');
-            const shippingInput = document.getElementById('quotationShipping');
-            const grandTotalInput = document.getElementById('quotationGrandTotal');
-            const addRowBtn = document.getElementById('quotationAddRow');
-            const downloadPdfBtn = document.getElementById('quotationDownloadPdf');
-            const printBtn = document.getElementById('quotationPrint');
-            const resetBtn = document.getElementById('quotationReset');
-            const currencySelect = document.getElementById('quotationCurrency');
-            const currencyOther = document.getElementById('quotationCurrencyOther');
-            const quotationDateInput = document.getElementById('quotationDate');
+        (function initProductQuotation() {
+            const itemsBody = document.getElementById('pqItemsBody');
+            const subtotalInput = document.getElementById('pqSubtotal');
+            const taxInput = document.getElementById('pqTax');
+            const discountInput = document.getElementById('pqDiscount');
+            const shippingInput = document.getElementById('pqShipping');
+            const grandTotalInput = document.getElementById('pqGrandTotal');
+            const initialPaymentInput = document.getElementById('pqInitialPayment');
+            const balanceDueInput = document.getElementById('pqBalanceDue');
+            const addRowBtn = document.getElementById('pqAddRow');
+            const downloadPdfBtn = document.getElementById('pqDownloadPdf');
+            const printBtn = document.getElementById('pqPrint');
+            const resetBtn = document.getElementById('pqReset');
+            const currencySelect = document.getElementById('pqCurrency');
+            const currencyOther = document.getElementById('pqCurrencyOther');
+            const pqDateInput = document.getElementById('pqDate');
 
             if (!itemsBody) return;
 
@@ -1966,13 +2338,13 @@
                 return `${d.getFullYear()}-${month}-${date}`;
             }
 
-            quotationDateInput.value = todayISO();
+            pqDateInput.value = todayISO();
 
             function recalcRow(row) {
-                const qty = parseFloat(row.querySelector('.qt-qty')?.value) || 0;
-                const cost = parseFloat(row.querySelector('.qt-unit-price')?.value) || 0;
+                const qty = parseFloat(row.querySelector('.pq-qty')?.value) || 0;
+                const cost = parseFloat(row.querySelector('.pq-unit-price')?.value) || 0;
                 const total = qty * cost;
-                const totalInput = row.querySelector('.qt-line-total');
+                const totalInput = row.querySelector('.pq-line-total');
                 if (totalInput) totalInput.value = money(total);
             }
 
@@ -1980,7 +2352,7 @@
                 let subtotal = 0;
                 itemsBody.querySelectorAll('tr').forEach(row => {
                     recalcRow(row);
-                    subtotal += parseFloat(row.querySelector('.qt-line-total')?.value) || 0;
+                    subtotal += parseFloat(row.querySelector('.pq-line-total')?.value) || 0;
                 });
                 subtotalInput.value = money(subtotal);
                 const tax = parseFloat(taxInput.value) || 0;
@@ -1988,11 +2360,15 @@
                 const shipping = parseFloat(shippingInput.value) || 0;
                 const grand = subtotal + tax + shipping - discount;
                 grandTotalInput.value = money(grand);
+
+                const initialPayment = parseFloat(initialPaymentInput.value) || 0;
+                const balance = grand - initialPayment;
+                balanceDueInput.value = money(balance);
             }
 
             function renumberRows() {
                 itemsBody.querySelectorAll('tr').forEach((row, idx) => {
-                    const noInput = row.querySelector('.qt-col-no');
+                    const noInput = row.querySelector('.pq-col-no');
                     if (noInput) noInput.value = idx + 1;
                 });
             }
@@ -2003,15 +2379,15 @@
 
                 const clone = template.cloneNode(true);
                 clone.querySelectorAll('input, textarea').forEach(el => {
-                    if (el.classList.contains('qt-qty')) {
+                    if (el.classList.contains('pq-qty')) {
                         el.value = 1;
                         return;
                     }
-                    if (el.classList.contains('qt-unit-price')) {
+                    if (el.classList.contains('pq-unit-price')) {
                         el.value = '0.00';
                         return;
                     }
-                    if (el.classList.contains('qt-line-total')) {
+                    if (el.classList.contains('pq-line-total')) {
                         el.value = '0.00';
                         return;
                     }
@@ -2019,7 +2395,7 @@
                 });
 
                 const rowCount = itemsBody.querySelectorAll('tr').length + 1;
-                const noInput = clone.querySelector('.qt-col-no');
+                const noInput = clone.querySelector('.pq-col-no');
                 if (noInput) noInput.value = rowCount;
 
                 itemsBody.appendChild(clone);
@@ -2044,7 +2420,7 @@
             });
 
             itemsBody.addEventListener('click', function (e) {
-                const btn = e.target.closest('.qt-row-remove');
+                const btn = e.target.closest('.pq-row-remove');
                 if (!btn) return;
                 removeRow(btn.closest('tr'));
             });
@@ -2054,7 +2430,7 @@
                 addRow();
             });
 
-            [taxInput, discountInput, shippingInput].forEach(el => {
+            [taxInput, discountInput, shippingInput, initialPaymentInput].forEach(el => {
                 el.addEventListener('input', recalcAll);
             });
 
@@ -2064,32 +2440,32 @@
                 if (isOther) currencyOther.focus();
             });
 
-            function collectQtPayload() {
+            function collectPqPayload() {
                 const currency = currencySelect?.value || 'PHP';
                 const items = [];
                 itemsBody.querySelectorAll('tr').forEach(row => {
                     items.push({
-                        no: row.querySelector('.qt-col-no')?.value || '',
-                        description: row.querySelector('.qt-col-desc')?.value || '',
-                        qty: row.querySelector('.qt-qty')?.value || '0',
-                        unit: row.querySelector('.qt-col-unit')?.value || '',
-                        unit_price: row.querySelector('.qt-unit-price')?.value || '0',
-                        total: row.querySelector('.qt-line-total')?.value || '0',
+                        no: row.querySelector('.pq-col-no')?.value || '',
+                        description: row.querySelector('.pq-col-desc')?.value || '',
+                        qty: row.querySelector('.pq-qty')?.value || '0',
+                        unit: row.querySelector('.pq-col-unit')?.value || '',
+                        unit_price: row.querySelector('.pq-unit-price')?.value || '0',
+                        total: row.querySelector('.pq-line-total')?.value || '0',
                     });
                 });
 
                 return {
-                    quotation_number: document.getElementById('quotationNumber')?.value || '',
+                    quotation_number: document.getElementById('pqNumber')?.value || '',
                     currency,
                     currency_other: currencyOther?.value || '',
-                    quotation_date: document.getElementById('quotationDate')?.value || '',
-                    valid_until: document.getElementById('quotationValidUntil')?.value || '',
+                    quotation_date: document.getElementById('pqDate')?.value || '',
+                    valid_until: document.getElementById('pqValidUntil')?.value || '',
                     customer: {
-                        company: document.getElementById('quotationCustomerCompany')?.value || '',
-                        contact: document.getElementById('quotationCustomerContact')?.value || '',
-                        address: document.getElementById('quotationCustomerAddress')?.value || '',
-                        email: document.getElementById('quotationCustomerEmail')?.value || '',
-                        phone: document.getElementById('quotationCustomerPhone')?.value || '',
+                        company: document.getElementById('pqCustomerCompany')?.value || '',
+                        contact: document.getElementById('pqCustomerContact')?.value || '',
+                        address: document.getElementById('pqCustomerAddress')?.value || '',
+                        email: document.getElementById('pqCustomerEmail')?.value || '',
+                        phone: document.getElementById('pqCustomerPhone')?.value || '',
                     },
                     items,
                     subtotal: subtotalInput?.value || '0',
@@ -2097,21 +2473,23 @@
                     discount: discountInput?.value || '0',
                     shipping: shippingInput?.value || '0',
                     grand_total: grandTotalInput?.value || '0',
-                    payment_terms: document.getElementById('quotationPaymentTerms')?.value || '',
-                    delivery_terms: document.getElementById('quotationDeliveryTerms')?.value || '',
-                    warranty: document.getElementById('quotationWarranty')?.value || '',
-                    other_terms: document.getElementById('quotationOtherTerms')?.value || '',
+                    initial_payment: initialPaymentInput?.value || '0',
+                    balance_due: balanceDueInput?.value || '0',
+                    payment_terms: document.getElementById('pqPaymentTerms')?.value || '',
+                    delivery_terms: document.getElementById('pqDeliveryTerms')?.value || '',
+                    warranty: document.getElementById('pqWarranty')?.value || '',
+                    other_terms: document.getElementById('pqOtherTerms')?.value || '',
                     prepared_by: {
-                        name: document.getElementById('quotationPreparedName')?.value || '',
-                        title: document.getElementById('quotationPreparedPosition')?.value || '',
-                        signature: document.getElementById('quotationPreparedSignature')?.value || '',
-                        date: document.getElementById('quotationPreparedDate')?.value || '',
+                        name: document.getElementById('pqPreparedName')?.value || '',
+                        title: document.getElementById('pqPreparedPosition')?.value || '',
+                        signature: document.getElementById('pqPreparedSignature')?.value || '',
+                        date: document.getElementById('pqPreparedDate')?.value || '',
                     },
                     approved_by: {
                         name: 'Engr. Arturo I. Davis, PME',
                         title: 'President / CEO',
-                        signature: document.getElementById('quotationApprovedSignature')?.value || '',
-                        date: document.getElementById('quotationApprovedDate')?.value || '',
+                        signature: document.getElementById('pqApprovedSignature')?.value || '',
+                        date: document.getElementById('pqApprovedDate')?.value || '',
                     },
                 };
             }
@@ -2123,8 +2501,8 @@
                 return '';
             }
 
-            async function saveQuotationPayload() {
-                const payload = collectQtPayload();
+            async function savePqPayload() {
+                const payload = collectPqPayload();
                 const response = await fetch('{% url "save_quotation" %}', {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -2139,7 +2517,7 @@
                 if (contentType.includes('application/json')) {
                     const body = await response.json();
                     if (response.status !== 200) {
-                        throw new Error(body?.error || 'Unable to save quotation.');
+                        throw new Error(body?.error || 'Unable to save product quotation.');
                     }
                     return body;
                 }
@@ -2148,14 +2526,14 @@
                 throw new Error(text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server error');
             }
 
-            async function printQuotationPdf(downloadUrl) {
+            async function printPqPdf(downloadUrl) {
                 const response = await fetch(downloadUrl, {
                     method: 'GET',
                     credentials: 'same-origin',
                 });
 
                 if (!response.ok) {
-                    throw new Error('Could not generate the quotation PDF for printing.');
+                    throw new Error('Could not generate the product quotation PDF for printing.');
                 }
 
                 const blob = await response.blob();
@@ -2195,16 +2573,16 @@
                 e.preventDefault();
                 downloadPdfBtn.disabled = true;
 
-                saveQuotationPayload()
+                savePqPayload()
                         .then((body) => {
                             if (body.download_url) {
                                 window.location.href = body.download_url;
                             } else {
-                                alert('Quotation saved successfully.');
+                                alert('Product quotation saved successfully.');
                             }
                         })
                         .catch((error) => {
-                            alert('Unable to save quotation: ' + error.message);
+                            alert('Unable to save product quotation: ' + error.message);
                         })
                         .finally(() => {
                         downloadPdfBtn.disabled = false;
@@ -2215,15 +2593,15 @@
                 e.preventDefault();
                 printBtn.disabled = true;
 
-                saveQuotationPayload()
+                savePqPayload()
                     .then((body) => {
                         if (!body.download_url) {
-                            throw new Error('Quotation saved, but no PDF URL was returned.');
+                            throw new Error('Product quotation saved, but no PDF URL was returned.');
                         }
-                        return printQuotationPdf(body.download_url);
+                        return printPqPdf(body.download_url);
                     })
                     .catch((error) => {
-                        alert('Unable to print quotation: ' + error.message);
+                        alert('Unable to print product quotation: ' + error.message);
                     })
                     .finally(() => {
                         printBtn.disabled = false;
@@ -2231,42 +2609,373 @@
             });
 
             resetBtn.addEventListener('click', function () {
-                if (!confirm('Reset the Quotation form? All entered data will be cleared.')) return;
+                if (!confirm('Reset the Product Quotation form? All entered data will be cleared.')) return;
                 const rows = itemsBody.querySelectorAll('tr');
                 rows.forEach((row, idx) => { if (idx > 0) row.remove(); });
                 const first = itemsBody.querySelector('tr');
                 first.querySelectorAll('input, textarea').forEach(el => {
-                    if (el.classList.contains('qt-col-no')) return;
-                    if (el.classList.contains('qt-qty')) { el.value = 1; return; }
-                    if (el.classList.contains('qt-unit-price')) { el.value = '0.00'; return; }
-                    if (el.classList.contains('qt-line-total')) { el.value = '0.00'; return; }
+                    if (el.classList.contains('pq-col-no')) return;
+                    if (el.classList.contains('pq-qty')) { el.value = 1; return; }
+                    if (el.classList.contains('pq-unit-price')) { el.value = '0.00'; return; }
+                    if (el.classList.contains('pq-line-total')) { el.value = '0.00'; return; }
                     el.value = '';
                 });
-                first.querySelector('.qt-col-no').value = 1;
+                first.querySelector('.pq-col-no').value = 1;
                 taxInput.value = '0.00';
                 discountInput.value = '0.00';
                 shippingInput.value = '0.00';
+                initialPaymentInput.value = '0.00';
                 currencySelect.value = 'PHP';
                 currencyOther.hidden = true;
                 currencyOther.value = '';
-                quotationDateInput.value = todayISO();
-                document.getElementById('quotationValidUntil').value = '';
-                document.getElementById('quotationNumber').value = '';
-                document.getElementById('quotationCustomerCompany').value = '';
-                document.getElementById('quotationCustomerContact').value = '';
-                document.getElementById('quotationCustomerAddress').value = '';
-                document.getElementById('quotationCustomerEmail').value = '';
-                document.getElementById('quotationCustomerPhone').value = '';
-                document.getElementById('quotationPaymentTerms').value = '';
-                document.getElementById('quotationDeliveryTerms').value = '';
-                document.getElementById('quotationWarranty').value = '';
-                document.getElementById('quotationOtherTerms').value = '';
-                document.getElementById('quotationPreparedName').value = '';
-                document.getElementById('quotationPreparedPosition').value = '';
-                document.getElementById('quotationPreparedSignature').value = '';
-                document.getElementById('quotationPreparedDate').value = '';
-                document.getElementById('quotationApprovedSignature').value = '';
-                document.getElementById('quotationApprovedDate').value = '';
+                pqDateInput.value = todayISO();
+                document.getElementById('pqValidUntil').value = '';
+                document.getElementById('pqNumber').value = '';
+                document.getElementById('pqCustomerCompany').value = '';
+                document.getElementById('pqCustomerContact').value = '';
+                document.getElementById('pqCustomerAddress').value = '';
+                document.getElementById('pqCustomerEmail').value = '';
+                document.getElementById('pqCustomerPhone').value = '';
+                document.getElementById('pqPaymentTerms').value = '';
+                document.getElementById('pqDeliveryTerms').value = '';
+                document.getElementById('pqWarranty').value = '';
+                document.getElementById('pqOtherTerms').value = '';
+                document.getElementById('pqPreparedName').value = '';
+                document.getElementById('pqPreparedPosition').value = '';
+                document.getElementById('pqPreparedSignature').value = '';
+                document.getElementById('pqPreparedDate').value = '';
+                document.getElementById('pqApprovedSignature').value = '';
+                document.getElementById('pqApprovedDate').value = '';
+                recalcAll();
+            });
+
+            recalcAll();
+        })();
+
+        // ══════════════════════════════════════════════════════════════
+        // SERVICE QUOTATION FORM FUNCTIONALITY
+        // ══════════════════════════════════════════════════════════════
+
+        (function initServiceQuotation() {
+            const itemsBody = document.getElementById('svqItemsBody');
+            const subtotalInput = document.getElementById('svqSubtotal');
+            const taxInput = document.getElementById('svqTax');
+            const discountInput = document.getElementById('svqDiscount');
+            const otherFeesInput = document.getElementById('svqOtherFees');
+            const grandTotalInput = document.getElementById('svqGrandTotal');
+            const initialPaymentInput = document.getElementById('svqInitialPayment');
+            const balanceDueInput = document.getElementById('svqBalanceDue');
+            const addRowBtn = document.getElementById('svqAddRow');
+            const downloadPdfBtn = document.getElementById('svqDownloadPdf');
+            const printBtn = document.getElementById('svqPrint');
+            const resetBtn = document.getElementById('svqReset');
+            const currencySelect = document.getElementById('svqCurrency');
+            const currencyOther = document.getElementById('svqCurrencyOther');
+            const svqDateInput = document.getElementById('svqDate');
+
+            if (!itemsBody) return;
+
+            function money(num) {
+                return (Number(num) || 0).toFixed(2);
+            }
+
+            function todayISO() {
+                const d = new Date();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const date = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${month}-${date}`;
+            }
+
+            svqDateInput.value = todayISO();
+
+            function recalcAll() {
+                let subtotal = 0;
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    subtotal += parseFloat(row.querySelector('.svq-line-total')?.value) || 0;
+                });
+                subtotalInput.value = money(subtotal);
+                const tax = parseFloat(taxInput.value) || 0;
+                const discount = parseFloat(discountInput.value) || 0;
+                const otherFees = parseFloat(otherFeesInput.value) || 0;
+                const grand = subtotal + tax + otherFees - discount;
+                grandTotalInput.value = money(grand);
+
+                const initialPayment = parseFloat(initialPaymentInput.value) || 0;
+                const balance = grand - initialPayment;
+                balanceDueInput.value = money(balance);
+            }
+
+            function renumberRows() {
+                itemsBody.querySelectorAll('tr').forEach((row, idx) => {
+                    const noInput = row.querySelector('.svq-col-no');
+                    if (noInput) noInput.value = idx + 1;
+                });
+            }
+
+            function addRow() {
+                const template = itemsBody.querySelector('tr');
+                if (!template) return;
+
+                const clone = template.cloneNode(true);
+                clone.querySelectorAll('input, textarea').forEach(el => {
+                    if (el.classList.contains('svq-line-total')) {
+                        el.value = '0.00';
+                        return;
+                    }
+                    el.value = '';
+                });
+
+                const rowCount = itemsBody.querySelectorAll('tr').length + 1;
+                const noInput = clone.querySelector('.svq-col-no');
+                if (noInput) noInput.value = rowCount;
+
+                itemsBody.appendChild(clone);
+                renumberRows();
+                recalcAll();
+            }
+
+            function removeRow(row) {
+                const rows = itemsBody.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    alert('At least one service line item is required.');
+                    return;
+                }
+                row.remove();
+                renumberRows();
+                recalcAll();
+            }
+
+            itemsBody.addEventListener('input', function (e) {
+                const row = e.target.closest('tr');
+                if (row) recalcAll();
+            });
+
+            itemsBody.addEventListener('click', function (e) {
+                const btn = e.target.closest('.svq-row-remove');
+                if (!btn) return;
+                removeRow(btn.closest('tr'));
+            });
+
+            addRowBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                addRow();
+            });
+
+            [taxInput, discountInput, otherFeesInput, initialPaymentInput].forEach(el => {
+                el.addEventListener('input', recalcAll);
+            });
+
+            currencySelect.addEventListener('change', function () {
+                const isOther = this.value === 'OTHER';
+                currencyOther.hidden = !isOther;
+                if (isOther) currencyOther.focus();
+            });
+
+            function collectSvqPayload() {
+                const currency = currencySelect?.value || 'PHP';
+                const items = [];
+                itemsBody.querySelectorAll('tr').forEach(row => {
+                    const total = row.querySelector('.svq-line-total')?.value || '0';
+                    items.push({
+                        no: row.querySelector('.svq-col-no')?.value || '',
+                        description: row.querySelector('.svq-col-desc')?.value || '',
+                        qty: '1',
+                        unit: '',
+                        unit_price: total,
+                        total: total,
+                    });
+                });
+
+                return {
+                    quotation_number: document.getElementById('svqNumber')?.value || '',
+                    currency,
+                    currency_other: currencyOther?.value || '',
+                    quotation_date: document.getElementById('svqDate')?.value || '',
+                    valid_until: document.getElementById('svqValidUntil')?.value || '',
+                    customer: {
+                        company: document.getElementById('svqCustomerCompany')?.value || '',
+                        contact: document.getElementById('svqCustomerContact')?.value || '',
+                        address: document.getElementById('svqCustomerAddress')?.value || '',
+                        email: document.getElementById('svqCustomerEmail')?.value || '',
+                        phone: document.getElementById('svqCustomerPhone')?.value || '',
+                    },
+                    items,
+                    subtotal: subtotalInput?.value || '0',
+                    tax: taxInput?.value || '0',
+                    discount: discountInput?.value || '0',
+                    other_fees: otherFeesInput?.value || '0',
+                    grand_total: grandTotalInput?.value || '0',
+                    initial_payment: initialPaymentInput?.value || '0',
+                    balance_due: balanceDueInput?.value || '0',
+                    payment_terms: document.getElementById('svqPaymentTerms')?.value || '',
+                    service_schedule: document.getElementById('svqServiceSchedule')?.value || '',
+                    warranty: document.getElementById('svqWarranty')?.value || '',
+                    other_terms: document.getElementById('svqOtherTerms')?.value || '',
+                    prepared_by: {
+                        name: document.getElementById('svqPreparedName')?.value || '',
+                        title: document.getElementById('svqPreparedPosition')?.value || '',
+                        signature: document.getElementById('svqPreparedSignature')?.value || '',
+                        date: document.getElementById('svqPreparedDate')?.value || '',
+                    },
+                    approved_by: {
+                        name: 'Engr. Arturo I. Davis, PME',
+                        title: 'President / CEO',
+                        signature: document.getElementById('svqApprovedSignature')?.value || '',
+                        date: document.getElementById('svqApprovedDate')?.value || '',
+                    },
+                };
+            }
+
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return '';
+            }
+
+            async function saveSvqPayload() {
+                const payload = collectSvqPayload();
+                const response = await fetch('{% url "save_service_quotation" %}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const body = await response.json();
+                    if (response.status !== 200) {
+                        throw new Error(body?.error || 'Unable to save service quotation.');
+                    }
+                    return body;
+                }
+
+                const text = await response.text();
+                throw new Error(text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server error');
+            }
+
+            async function printSvqPdf(downloadUrl) {
+                const response = await fetch(downloadUrl, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Could not generate the service quotation PDF for printing.');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.right = '0';
+                iframe.style.bottom = '0';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = '0';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+
+                const cleanup = () => {
+                    setTimeout(() => {
+                        iframe.remove();
+                        URL.revokeObjectURL(url);
+                    }, 1500);
+                };
+
+                iframe.onload = function () {
+                    try {
+                        const win = iframe.contentWindow;
+                        if (!win) throw new Error('Print frame unavailable.');
+                        win.focus();
+                        win.print();
+                    } catch (err) {
+                        window.open(url, '_blank');
+                    } finally {
+                        cleanup();
+                    }
+                };
+            }
+
+            downloadPdfBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                downloadPdfBtn.disabled = true;
+
+                saveSvqPayload()
+                        .then((body) => {
+                            if (body.download_url) {
+                                window.location.href = body.download_url;
+                            } else {
+                                alert('Service quotation saved successfully.');
+                            }
+                        })
+                        .catch((error) => {
+                            alert('Unable to save service quotation: ' + error.message);
+                        })
+                        .finally(() => {
+                        downloadPdfBtn.disabled = false;
+                    });
+            });
+
+            printBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                printBtn.disabled = true;
+
+                saveSvqPayload()
+                    .then((body) => {
+                        if (!body.download_url) {
+                            throw new Error('Service quotation saved, but no PDF URL was returned.');
+                        }
+                        return printSvqPdf(body.download_url);
+                    })
+                    .catch((error) => {
+                        alert('Unable to print service quotation: ' + error.message);
+                    })
+                    .finally(() => {
+                        printBtn.disabled = false;
+                    });
+            });
+
+            resetBtn.addEventListener('click', function () {
+                if (!confirm('Reset the Service Quotation form? All entered data will be cleared.')) return;
+                const rows = itemsBody.querySelectorAll('tr');
+                rows.forEach((row, idx) => { if (idx > 0) row.remove(); });
+                const first = itemsBody.querySelector('tr');
+                first.querySelectorAll('input, textarea').forEach(el => {
+                    if (el.classList.contains('svq-col-no')) return;
+                    if (el.classList.contains('svq-line-total')) { el.value = '0.00'; return; }
+                    el.value = '';
+                });
+                first.querySelector('.svq-col-no').value = 1;
+                taxInput.value = '0.00';
+                discountInput.value = '0.00';
+                otherFeesInput.value = '0.00';
+                initialPaymentInput.value = '0.00';
+                currencySelect.value = 'PHP';
+                currencyOther.hidden = true;
+                currencyOther.value = '';
+                svqDateInput.value = todayISO();
+                document.getElementById('svqValidUntil').value = '';
+                document.getElementById('svqNumber').value = '';
+                document.getElementById('svqCustomerCompany').value = '';
+                document.getElementById('svqCustomerContact').value = '';
+                document.getElementById('svqCustomerAddress').value = '';
+                document.getElementById('svqCustomerEmail').value = '';
+                document.getElementById('svqCustomerPhone').value = '';
+                document.getElementById('svqPaymentTerms').value = '';
+                document.getElementById('svqServiceSchedule').value = '';
+                document.getElementById('svqWarranty').value = '';
+                document.getElementById('svqOtherTerms').value = '';
+                document.getElementById('svqPreparedName').value = '';
+                document.getElementById('svqPreparedPosition').value = '';
+                document.getElementById('svqPreparedSignature').value = '';
+                document.getElementById('svqPreparedDate').value = '';
+                document.getElementById('svqApprovedSignature').value = '';
+                document.getElementById('svqApprovedDate').value = '';
                 recalcAll();
             });
 

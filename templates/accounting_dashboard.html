@@ -1,0 +1,1103 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Accounting Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #f5f3ff;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --danger: #b42318;
+    --success: #027a48;
+    --sidebar-width: 300px;
+    --radius: 14px;
+    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+  }
+  body {
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .dashboard-wrapper { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--brand);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+  }
+  .sidebar-brand { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); flex-shrink: 0; }
+  .sidebar-brand .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+  .sidebar-brand .logo-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; color: #fff; flex-shrink: 0; }
+  .sidebar-brand .logo-text { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; line-height: 1.2; }
+  .sidebar-brand .logo-text small { display: block; font-weight: 400; font-size: 0.7rem; opacity: 0.6; letter-spacing: 0.04em; margin-top: 2px; }
+  .sidebar-nav { padding: 20px 16px 12px; flex-shrink: 0; }
+  .sidebar-nav .nav-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.4; color: #fff; padding: 0 12px 10px; font-weight: 700; }
+  .sidebar-nav .tab-button {
+    display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 16px;
+    border: none; background: transparent; color: rgba(255, 255, 255, 0.836);
+    font: inherit; font-weight: 600; font-size: 0.9rem; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s ease; text-align: left; position: relative;
+  }
+  .sidebar-nav .tab-button .tab-icon { font-size: 1.2rem; width: 24px; text-align: center; flex-shrink: 0; opacity: 0.7; }
+  .sidebar-nav .tab-button:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+  .sidebar-nav .tab-button[aria-selected="true"] { background: var(--brand-dark); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon { opacity: 1; }
+  .sidebar-nav .tab-button .tab-badge { margin-left: auto; background: rgba(255, 255, 255, 0.08); padding: 2px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; color: rgba(255, 255, 255, 0.5); }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-badge { background: rgba(124, 58, 237, 0.4); color: #fff; }
+
+  .sidebar-stats { padding: 16px 16px 24px; border-top: 1px solid rgba(255, 255, 255, 0.06); margin-top: 4px; flex-shrink: 0; }
+  .sidebar-stats .stat-row { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 0.8rem; color: rgba(255, 255, 255, 0.5); }
+  .sidebar-stats .stat-row strong { color: #fff; font-weight: 600; }
+
+  .main-content { flex: 1; min-width: 0; padding: 0 32px 40px; background: #f2f4f7; overflow-x: hidden; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px 0 16px; border-bottom: 1px solid #eaecf0; margin-bottom: 24px; flex-wrap: wrap; }
+  .topbar .greeting h2 { margin: 0; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+  .topbar .greeting p { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
+  .topbar .top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .topbar .top-actions a { text-decoration: none; font-weight: 600; font-size: 0.82rem; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); transition: 0.2s; }
+  .topbar .top-actions a:hover { background: var(--soft); }
+
+  .hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .hero-stats .stat-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+  .hero-stats .stat-card .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
+  .hero-stats .stat-card .stat-value { font-size: 1.5rem; font-weight: 800; margin-top: 4px; color: var(--ink); }
+  .hero-stats .stat-card.warn { border-color: #fedf89; background: #fffaeb; }
+  .hero-stats .stat-card.warn .stat-value { color: #b54708; }
+
+  .card, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; }
+  .panel { margin-bottom: 24px; }
+  .card h2, .panel h2 { margin: 0 0 8px; font-size: 1rem; font-weight: 700; }
+  .card p, .panel p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.9rem; }
+
+  .tab-panel { display: none; animation: fadeUp 0.3s ease; }
+  .tab-panel.is-active { display: block; }
+  @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; margin-top: 12px; }
+  table { width: 100%; min-width: 600px; border-collapse: collapse; font-size: 0.86rem; }
+  thead { background: var(--soft); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #eaecf0; vertical-align: middle; }
+  th { color: #475467; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  tbody tr:hover { background: #f8fafc; }
+
+  .action { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--brand); text-decoration: none; font-weight: 600; font-size: 0.82rem; transition: 0.2s; cursor: pointer; }
+  .action:hover { background: var(--soft); border-color: var(--brand); }
+  .action.small { padding: 4px 10px; font-size: 0.76rem; }
+  .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .field-input { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+  .field-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
+
+  .badge-status { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+  .badge-unpaid { background: #f2f4f7; color: #475467; }
+  .badge-partial { background: #fffaeb; color: #b54708; }
+  .badge-paid { background: #ecfdf3; color: #027a48; }
+  .badge-overdue { background: #fef3f2; color: #b42318; }
+  .badge-filed { background: #ecfdf3; color: #027a48; }
+  .badge-upcoming { background: #eff6ff; color: #1d4ed8; }
+  .badge-system { background: #f5f3ff; color: #6d28d9; }
+
+  .messages { display: grid; gap: 8px; margin-bottom: 20px; }
+  .message { padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; }
+  .message.success { background: #ecfdf3; color: #027a48; border: 1px solid #abefc6; }
+  .message.error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
+  .message.warning { background: #fffaeb; color: #b54708; border: 1px solid #fedf89; }
+  .message.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+  .form-section { background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px; }
+  .form-section h4 { margin: 0 0 12px; font-size: 0.92rem; }
+  .form-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .form-field { display: grid; gap: 4px; min-width: 140px; }
+  .form-field label { font-weight: 600; font-size: 0.78rem; color: #475467; }
+
+  .alert-list { display: grid; gap: 8px; }
+  .alert-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-radius: 8px; background: #fef3f2; border: 1px solid #fecdca; font-size: 0.85rem; }
+  .alert-item.info { background: #eff6ff; border-color: #bfdbfe; }
+  .alert-item.warn { background: #fffaeb; border-color: #fedf89; }
+  .alert-item span.label { color: var(--muted); font-size: 0.78rem; }
+
+  .je-lines-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .je-lines-grid .je-head { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+  .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .report-summary-grid .box { background: var(--soft); border-radius: 10px; padding: 12px 16px; }
+  .report-summary-grid .box .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .report-summary-grid .box .val { font-size: 1.15rem; font-weight: 800; margin-top: 2px; }
+  .text-right { text-align: right; }
+  .muted { color: var(--muted); }
+  .details-toggle { cursor: pointer; color: var(--brand); font-weight: 600; font-size: 0.8rem; background: none; border: none; padding: 0; }
+
+  @media (max-width: 992px) { :root { --sidebar-width: 260px; } .main-content { padding: 0 20px 32px; } }
+  @media (max-width: 768px) {
+    .dashboard-wrapper { flex-direction: column; }
+    .sidebar { position: relative; width: 100%; height: auto; max-height: 420px; flex: none; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.06); overflow-y: auto; }
+    .sidebar-brand { padding: 16px 20px 12px; }
+    .sidebar-nav { padding: 8px 12px; }
+    .sidebar-nav .nav-label { display: none; }
+    .sidebar-nav .tab-button { padding: 10px 14px; font-size: 0.8rem; }
+    .sidebar-stats { display: none; }
+    .main-content { padding: 0 16px 24px; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .topbar { flex-direction: column; align-items: stretch; gap: 12px; }
+    .je-lines-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <aside class="sidebar" role="navigation" aria-label="Accounting dashboard navigation">
+    <div class="sidebar-brand">
+      <div class="logo">
+        <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
+        <span class="logo-text">VERSATEC <small>Management System</small></span>
+      </div>
+    </div>
+    <nav class="sidebar-nav" aria-label="Accounting sections">
+      <div class="nav-label">Accounting</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="overviewTab">
+        <span class="tab-icon">📊</span> Overview
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="arTab">
+        <span class="tab-icon">🧾</span> Sales &amp; AR
+        <span class="tab-badge">{{ invoices|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="apTab">
+        <span class="tab-icon">📥</span> Purchases &amp; AP
+        <span class="tab-badge">{{ bills|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="bankTab">
+        <span class="tab-icon">🏦</span> Bank &amp; Cash
+        <span class="tab-badge">{{ bank_accounts|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="payrollExpenseTab">
+        <span class="tab-icon">🧑‍💼</span> Payroll Expense
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="journalTab">
+        <span class="tab-icon">📒</span> Journal &amp; COA
+        <span class="tab-badge">{{ journal_entries|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="taxTab">
+        <span class="tab-icon">🧮</span> Tax
+        <span class="tab-badge">{{ upcoming_deadlines|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="reportsTab">
+        <span class="tab-icon">📈</span> Reports
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Cash position</span><strong>₱{{ cash_position|floatformat:2 }}</strong></div>
+      <div class="stat-row"><span>AR outstanding</span><strong>₱{{ ar_total|floatformat:2 }}</strong></div>
+      <div class="stat-row"><span>AP outstanding</span><strong>₱{{ ap_total|floatformat:2 }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="greeting">
+        <h2>Accounting Dashboard</h2>
+        <p>Self-contained double-entry bookkeeping for VERSATEC — independent of the Sales and Payroll dashboards.</p>
+      </div>
+      <div class="top-actions">
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+      <div class="message {{ message.tags|default:'success' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ==================== OVERVIEW TAB ==================== -->
+    <div id="overviewTab" class="tab-panel is-active">
+      <div class="hero-stats">
+        <div class="stat-card">
+          <div class="stat-label">Cash Position</div>
+          <div class="stat-value">₱{{ cash_position|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Accounts Receivable</div>
+          <div class="stat-value">₱{{ ar_total|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Accounts Payable</div>
+          <div class="stat-value">₱{{ ap_total|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Net Income (this month)</div>
+          <div class="stat-value">₱{{ monthly_income_statement.net_income|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">VAT Payable (this quarter)</div>
+          <div class="stat-value">₱{{ quarter_vat_summary.net_vat_payable|floatformat:2 }}</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Alerts &amp; Notifications</h2>
+        <p style="margin-bottom:12px;">Everything below is derived live from the ledger — no manual refresh needed.</p>
+        <div class="alert-list">
+          {% for inv in overdue_invoices %}
+          <div class="alert-item">
+            <span>Invoice <strong>{{ inv.invoice_number }}</strong> from {{ inv.customer.name }} is overdue — ₱{{ inv.balance_due|floatformat:2 }} outstanding.</span>
+            <span class="label">Due {{ inv.due_date|date:"M d, Y" }}</span>
+          </div>
+          {% endfor %}
+          {% for b in overdue_bills %}
+          <div class="alert-item">
+            <span>Bill <strong>{{ b.bill_number }}</strong> to {{ b.supplier.name }} is overdue — ₱{{ b.balance_due|floatformat:2 }} outstanding.</span>
+            <span class="label">Due {{ b.due_date|date:"M d, Y" }}</span>
+          </div>
+          {% endfor %}
+          {% for acct in low_balance_accounts %}
+          <div class="alert-item warn">
+            <span>Low balance on <strong>{{ acct.name }}</strong> — ₱{{ acct.current_balance|floatformat:2 }} remaining.</span>
+            <span class="label">Threshold ₱5,000.00</span>
+          </div>
+          {% endfor %}
+          {% for d in overdue_deadlines %}
+          <div class="alert-item">
+            <span>Tax deadline overdue: <strong>{{ d.name }}</strong>.</span>
+            <span class="label">Was due {{ d.due_date|date:"M d, Y" }}</span>
+          </div>
+          {% endfor %}
+          {% for d in upcoming_deadlines %}
+          <div class="alert-item info">
+            <span>Upcoming: <strong>{{ d.name }}</strong>.</span>
+            <span class="label">Due {{ d.due_date|date:"M d, Y" }}</span>
+          </div>
+          {% endfor %}
+          {% if not overdue_invoices and not overdue_bills and not low_balance_accounts and not overdue_deadlines and not upcoming_deadlines %}
+          <div class="alert-item info"><span>No alerts right now. You're all caught up.</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SALES & AR TAB ==================== -->
+    <div id="arTab" class="tab-panel">
+      <div class="panel">
+        <h2>Customers</h2>
+        <div class="form-section">
+          <h4>Add Customer</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_customer">
+            <div class="form-field" style="flex:1 1 180px;"><label>Name</label><input class="field-input" name="name" required></div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Contact Person</label><input class="field-input" name="contact_person"></div>
+            <div class="form-field" style="flex:1 1 140px;"><label>Phone</label><input class="field-input" name="phone"></div>
+            <div class="form-field" style="flex:1 1 180px;"><label>Email</label><input class="field-input" type="email" name="email"></div>
+            <div class="form-field" style="flex:1 1 140px;"><label>Tax ID</label><input class="field-input" name="tax_id"></div>
+            <button type="submit" class="action btn-primary">+ Add Customer</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th></tr></thead>
+            <tbody>
+              {% for c in customers %}
+              <tr><td>{{ c.name }}</td><td>{{ c.contact_person|default:"—" }}</td><td>{{ c.phone|default:"—" }}</td><td>{{ c.email|default:"—" }}</td></tr>
+              {% empty %}
+              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No customers yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Invoices (Accounts Receivable)</h2>
+        <div class="form-section">
+          <h4>Create Invoice</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_invoice">
+            <div class="form-field" style="flex:1 1 160px;"><label>Customer</label>
+              <select class="field-input" name="customer_id" required>
+                <option value="">Select customer</option>
+                {% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 150px;"><label>Invoice No. (optional)</label><input class="field-input" name="invoice_number" placeholder="Auto-generated"></div>
+            <div class="form-field"><label>Invoice Date</label><input class="field-input" type="date" name="invoice_date" required></div>
+            <div class="form-field"><label>Due Date</label><input class="field-input" type="date" name="due_date"></div>
+            <div class="form-field"><label>Amount (VAT-inclusive)</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Revenue Account</label>
+              <select class="field-input" name="revenue_account_id" required>
+                <option value="">Select account</option>
+                {% for a in revenue_accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Notes</label><input class="field-input" name="notes"></div>
+            <button type="submit" class="action btn-primary">+ Create Invoice</button>
+          </form>
+        </div>
+
+        <div class="form-section">
+          <h4>Record Invoice Payment</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="record_invoice_payment">
+            <div class="form-field" style="flex:1 1 220px;"><label>Invoice</label>
+              <select class="field-input" name="invoice_id" required>
+                <option value="">Select invoice</option>
+                {% for inv in payable_invoices %}<option value="{{ inv.id }}">{{ inv.invoice_number }} — {{ inv.customer.name }} (Bal. ₱{{ inv.balance_due|floatformat:2 }})</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field"><label>Payment Date</label><input class="field-input" type="date" name="payment_date" required></div>
+            <div class="form-field"><label>Amount</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 180px;"><label>Deposited To</label>
+              <select class="field-input" name="bank_account_id" required>
+                <option value="">Select bank/cash account</option>
+                {% for acct in bank_accounts %}<option value="{{ acct.id }}">{{ acct.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Reference</label><input class="field-input" name="reference"></div>
+            <button type="submit" class="action btn-primary">+ Record Payment</button>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due</th><th>Amount</th><th>VAT</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for inv in invoices %}
+              <tr>
+                <td>{{ inv.invoice_number }}</td>
+                <td>{{ inv.customer.name }}</td>
+                <td>{{ inv.invoice_date|date:"M d, Y" }}</td>
+                <td>{{ inv.due_date|date:"M d, Y"|default:"—" }}</td>
+                <td>₱{{ inv.amount|floatformat:2 }}</td>
+                <td>₱{{ inv.vat_amount|floatformat:2 }}</td>
+                <td>₱{{ inv.balance_due|floatformat:2 }}</td>
+                <td><span class="badge-status badge-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No invoices recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PURCHASES & AP TAB ==================== -->
+    <div id="apTab" class="tab-panel">
+      <div class="panel">
+        <h2>Suppliers</h2>
+        <div class="form-section">
+          <h4>Add Supplier</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_supplier">
+            <div class="form-field" style="flex:1 1 180px;"><label>Name</label><input class="field-input" name="name" required></div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Contact Person</label><input class="field-input" name="contact_person"></div>
+            <div class="form-field" style="flex:1 1 140px;"><label>Phone</label><input class="field-input" name="phone"></div>
+            <div class="form-field" style="flex:1 1 180px;"><label>Email</label><input class="field-input" type="email" name="email"></div>
+            <div class="form-field" style="flex:1 1 140px;"><label>Payment Terms</label><input class="field-input" name="payment_terms" placeholder="e.g. Net 30"></div>
+            <button type="submit" class="action btn-primary">+ Add Supplier</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Terms</th></tr></thead>
+            <tbody>
+              {% for s in suppliers %}
+              <tr><td>{{ s.name }}</td><td>{{ s.contact_person|default:"—" }}</td><td>{{ s.phone|default:"—" }}</td><td>{{ s.payment_terms|default:"—" }}</td></tr>
+              {% empty %}
+              <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No suppliers yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Bills (Accounts Payable)</h2>
+        <div class="form-section">
+          <h4>Record Bill</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_bill">
+            <div class="form-field" style="flex:1 1 160px;"><label>Supplier</label>
+              <select class="field-input" name="supplier_id" required>
+                <option value="">Select supplier</option>
+                {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 150px;"><label>Bill No. (optional)</label><input class="field-input" name="bill_number" placeholder="Auto-generated"></div>
+            <div class="form-field"><label>Bill Date</label><input class="field-input" type="date" name="bill_date" required></div>
+            <div class="form-field"><label>Due Date</label><input class="field-input" type="date" name="due_date"></div>
+            <div class="form-field"><label>Amount (VAT-inclusive)</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Expense/Asset Account</label>
+              <select class="field-input" name="expense_account_id" required>
+                <option value="">Select account</option>
+                {% for a in expense_accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+                {% for a in accounts %}{% if a.category == 'inventory' %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endif %}{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Notes</label><input class="field-input" name="notes"></div>
+            <button type="submit" class="action btn-primary">+ Record Bill</button>
+          </form>
+        </div>
+
+        <div class="form-section">
+          <h4>Record Bill Payment</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="record_bill_payment">
+            <div class="form-field" style="flex:1 1 220px;"><label>Bill</label>
+              <select class="field-input" name="bill_id" required>
+                <option value="">Select bill</option>
+                {% for b in payable_bills %}<option value="{{ b.id }}">{{ b.bill_number }} — {{ b.supplier.name }} (Bal. ₱{{ b.balance_due|floatformat:2 }})</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field"><label>Payment Date</label><input class="field-input" type="date" name="payment_date" required></div>
+            <div class="form-field"><label>Amount</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 180px;"><label>Paid From</label>
+              <select class="field-input" name="bank_account_id" required>
+                <option value="">Select bank/cash account</option>
+                {% for acct in bank_accounts %}<option value="{{ acct.id }}">{{ acct.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Reference</label><input class="field-input" name="reference"></div>
+            <button type="submit" class="action btn-primary">+ Record Payment</button>
+          </form>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Bill #</th><th>Supplier</th><th>Date</th><th>Due</th><th>Amount</th><th>VAT</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for b in bills %}
+              <tr>
+                <td>{{ b.bill_number }}</td>
+                <td>{{ b.supplier.name }}</td>
+                <td>{{ b.bill_date|date:"M d, Y" }}</td>
+                <td>{{ b.due_date|date:"M d, Y"|default:"—" }}</td>
+                <td>₱{{ b.amount|floatformat:2 }}</td>
+                <td>₱{{ b.vat_amount|floatformat:2 }}</td>
+                <td>₱{{ b.balance_due|floatformat:2 }}</td>
+                <td><span class="badge-status badge-{{ b.status }}">{{ b.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No bills recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BANK & CASH TAB ==================== -->
+    <div id="bankTab" class="tab-panel">
+      <div class="panel">
+        <h2>Bank &amp; Cash Accounts</h2>
+        <div class="form-section">
+          <h4>Add Bank/Cash Account</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_bank_account">
+            <div class="form-field" style="flex:1 1 160px;"><label>Name</label><input class="field-input" name="name" required placeholder="e.g. BDO Current Account"></div>
+            <div class="form-field"><label>Type</label>
+              <select class="field-input" name="account_type">
+                <option value="bank">Bank</option>
+                <option value="cash_on_hand">Cash on Hand</option>
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 140px;"><label>Bank Name</label><input class="field-input" name="bank_name"></div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Account Number</label><input class="field-input" name="account_number"></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>GL Account</label>
+              <select class="field-input" name="gl_account_id" required>
+                <option value="">Select GL account</option>
+                {% for a in cash_bank_gl_accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field"><label>Opening Balance</label><input class="field-input" type="number" step="0.01" name="opening_balance" value="0"></div>
+            <div class="form-field"><label>As Of</label><input class="field-input" type="date" name="opening_balance_date"></div>
+            <button type="submit" class="action btn-primary">+ Add Account</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Bank</th><th>GL Account</th><th>Current Balance</th></tr></thead>
+            <tbody>
+              {% for acct in bank_accounts %}
+              <tr>
+                <td>{{ acct.name }}</td>
+                <td>{{ acct.get_account_type_display }}</td>
+                <td>{{ acct.bank_name|default:"—" }}</td>
+                <td>{{ acct.gl_account.code }} – {{ acct.gl_account.name }}</td>
+                <td>₱{{ acct.current_balance|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No bank/cash accounts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Deposits, Withdrawals &amp; Transfers</h2>
+        <div class="form-section">
+          <h4>Record Transaction</h4>
+          <form method="post" class="form-row" id="bankTxnForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="record_bank_transaction">
+            <div class="form-field" style="flex:1 1 180px;"><label>Bank/Cash Account</label>
+              <select class="field-input" name="bank_account_id" required>
+                <option value="">Select account</option>
+                {% for acct in bank_accounts %}<option value="{{ acct.id }}">{{ acct.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field"><label>Type</label>
+              <select class="field-input" name="transaction_type" id="bankTxnType">
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+                <option value="transfer">Transfer</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Date</label><input class="field-input" type="date" name="transaction_date" required></div>
+            <div class="form-field"><label>Amount</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 200px;" id="bankTxnContraField"><label>Contra Account (source/use of funds)</label>
+              <select class="field-input" name="contra_account_id">
+                <option value="">Select account</option>
+                {% for a in accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 200px;display:none;" id="bankTxnToAccountField"><label>Transfer To</label>
+              <select class="field-input" name="to_bank_account_id">
+                <option value="">Select destination account</option>
+                {% for acct in bank_accounts %}<option value="{{ acct.id }}">{{ acct.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 160px;"><label>Reference</label><input class="field-input" name="reference"></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Description</label><input class="field-input" name="description"></div>
+            <button type="submit" class="action btn-primary">+ Record Transaction</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Reference</th><th>Description</th></tr></thead>
+            <tbody>
+              {% for t in bank_transactions %}
+              <tr>
+                <td>{{ t.transaction_date|date:"M d, Y" }}</td>
+                <td>{{ t.bank_account.name }}</td>
+                <td>{{ t.get_transaction_type_display }}</td>
+                <td>₱{{ t.amount|floatformat:2 }}</td>
+                <td>{{ t.reference|default:"—" }}</td>
+                <td>{{ t.description|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No bank transactions recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAYROLL EXPENSE TAB ==================== -->
+    <div id="payrollExpenseTab" class="tab-panel">
+      <div class="panel">
+        <h2>Payroll Expense</h2>
+        <p style="margin-bottom:12px;">Manual entry only — independent of the Payroll dashboard's pay runs.</p>
+        <div class="form-section">
+          <h4>Record Payroll Expense</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_payroll_expense">
+            <div class="form-field"><label>Date</label><input class="field-input" type="date" name="entry_date" required></div>
+            <div class="form-field" style="flex:1 1 220px;"><label>Description</label><input class="field-input" name="description" placeholder="e.g. July 1st cutoff payroll"></div>
+            <div class="form-field"><label>Amount</label><input class="field-input" type="number" step="0.01" min="0.01" name="amount" required></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Expense Account</label>
+              <select class="field-input" name="expense_account_id" required>
+                <option value="">Select account</option>
+                {% for a in expense_accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 180px;"><label>Paid From</label>
+              <select class="field-input" name="bank_account_id" required>
+                <option value="">Select bank/cash account</option>
+                {% for acct in bank_accounts %}<option value="{{ acct.id }}">{{ acct.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action btn-primary">+ Record Expense</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Expense Account</th><th>Paid From</th></tr></thead>
+            <tbody>
+              {% for p in payroll_expenses %}
+              <tr>
+                <td>{{ p.entry_date|date:"M d, Y" }}</td>
+                <td>{{ p.description }}</td>
+                <td>₱{{ p.amount|floatformat:2 }}</td>
+                <td>{{ p.expense_account.name }}</td>
+                <td>{{ p.bank_account.name }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">No payroll expense entries yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== JOURNAL & CHART OF ACCOUNTS TAB ==================== -->
+    <div id="journalTab" class="tab-panel">
+      <div class="panel">
+        <h2>Chart of Accounts</h2>
+        <div class="form-section">
+          <h4>Add Account</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_account">
+            <div class="form-field"><label>Code</label><input class="field-input" name="code" required placeholder="e.g. 5600"></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Name</label><input class="field-input" name="name" required></div>
+            <div class="form-field"><label>Type</label>
+              <select class="field-input" name="account_type" required>
+                <option value="asset">Asset</option>
+                <option value="liability">Liability</option>
+                <option value="equity">Equity</option>
+                <option value="revenue">Revenue</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Category</label>
+              <select class="field-input" name="category">
+                <option value="other">Other</option>
+                <option value="cash">Cash</option>
+                <option value="bank">Bank</option>
+                <option value="ar">Accounts Receivable</option>
+                <option value="inventory">Inventory</option>
+                <option value="tax_input">Input VAT</option>
+                <option value="fixed_asset">Fixed Asset</option>
+                <option value="ap">Accounts Payable</option>
+                <option value="tax_output">Output VAT Payable</option>
+                <option value="tax_payable">Other Tax Payable</option>
+                <option value="loan_payable">Loans Payable</option>
+                <option value="equity">Equity</option>
+                <option value="revenue">Revenue</option>
+                <option value="cogs">Cost of Goods Sold</option>
+                <option value="operating_expense">Operating Expense</option>
+              </select>
+            </div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Description</label><input class="field-input" name="description"></div>
+            <button type="submit" class="action btn-primary">+ Add Account</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Category</th><th>Balance</th><th></th></tr></thead>
+            <tbody>
+              {% for a in accounts %}
+              <tr>
+                <td>{{ a.code }}</td>
+                <td>{{ a.name }}</td>
+                <td>{{ a.get_account_type_display }}</td>
+                <td>{{ a.get_category_display }}</td>
+                <td>₱{{ a.current_balance|floatformat:2 }}</td>
+                <td>{% if a.is_system %}<span class="badge-status badge-system">System</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Manual Journal Entry</h2>
+        <p style="margin-bottom:12px;">Total debits must equal total credits. Leave a line blank to skip it.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_journal_entry">
+          <div class="form-row" style="margin-bottom:14px;">
+            <div class="form-field"><label>Entry Date</label><input class="field-input" type="date" name="entry_date" required></div>
+            <div class="form-field" style="flex:1 1 300px;"><label>Memo</label><input class="field-input" name="memo" placeholder="What is this entry for?"></div>
+          </div>
+          <div class="je-lines-grid">
+            <div class="je-head">Account</div><div class="je-head">Debit</div><div class="je-head">Credit</div><div class="je-head">Line Description</div>
+          </div>
+          <div id="jeLinesContainer">
+            {% for i in "12345678" %}
+            <div class="je-lines-grid je-line-row" {% if forloop.counter > 4 %}style="display:none;" data-je-extra{% endif %}>
+              <select class="field-input" name="line_account_{{ forloop.counter }}">
+                <option value="">Select account</option>
+                {% for a in accounts %}<option value="{{ a.id }}">{{ a.code }} – {{ a.name }}</option>{% endfor %}
+              </select>
+              <input class="field-input" type="number" step="0.01" min="0" name="line_debit_{{ forloop.counter }}">
+              <input class="field-input" type="number" step="0.01" min="0" name="line_credit_{{ forloop.counter }}">
+              <input class="field-input" name="line_description_{{ forloop.counter }}">
+            </div>
+            {% endfor %}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:10px;">
+            <button type="button" class="action small" id="addJeLineBtn">+ Add Line</button>
+            <button type="submit" class="action btn-primary">Post Journal Entry</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Journal Entries</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Entry #</th><th>Date</th><th>Memo</th><th>Source</th><th>Debit</th><th>Credit</th><th>Status</th><th>Lines</th><th></th></tr></thead>
+            <tbody>
+              {% for entry in journal_entries %}
+              <tr>
+                <td>{{ entry.entry_number }}</td>
+                <td>{{ entry.entry_date|date:"M d, Y" }}</td>
+                <td>{{ entry.memo|default:"—" }}</td>
+                <td>{{ entry.get_source_type_display }}</td>
+                <td>₱{{ entry.total_debit|floatformat:2 }}</td>
+                <td>₱{{ entry.total_credit|floatformat:2 }}</td>
+                <td>{% if entry.is_void %}<span class="badge-status badge-overdue">Void</span>{% else %}<span class="badge-status badge-paid">Posted</span>{% endif %}</td>
+                <td>
+                  <button type="button" class="details-toggle toggle-je-lines" data-target="je-lines-{{ entry.id }}">View</button>
+                  <div id="je-lines-{{ entry.id }}" hidden style="margin-top:6px;">
+                    {% for line in entry.lines.all %}
+                    <div style="font-size:0.78rem;color:var(--muted);">{{ line.account.code }} {{ line.account.name }} — Dr ₱{{ line.debit|floatformat:2 }} / Cr ₱{{ line.credit|floatformat:2 }}</div>
+                    {% endfor %}
+                  </div>
+                </td>
+                <td>
+                  {% if not entry.is_void %}
+                  <form method="post" onsubmit="return confirm('Void this entry with a reversing entry?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="void_journal_entry">
+                    <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                    <button type="submit" class="action small">Void</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No journal entries posted yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAX TAB ==================== -->
+    <div id="taxTab" class="tab-panel">
+      <div class="panel">
+        <h2>VAT Summary — Current Quarter (since {{ quarter_start|date:"M d, Y" }})</h2>
+        <div class="report-summary-grid">
+          <div class="box"><div class="lbl">Output VAT</div><div class="val">₱{{ quarter_vat_summary.output_vat|floatformat:2 }}</div></div>
+          <div class="box"><div class="lbl">Input VAT</div><div class="val">₱{{ quarter_vat_summary.input_vat|floatformat:2 }}</div></div>
+          <div class="box"><div class="lbl">Net VAT Payable</div><div class="val">₱{{ quarter_vat_summary.net_vat_payable|floatformat:2 }}</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Tax Deadlines (BIR)</h2>
+        <div class="form-section">
+          <h4>Add Tax Deadline</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_tax_deadline">
+            <div class="form-field" style="flex:1 1 220px;"><label>Name</label><input class="field-input" name="name" required></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Tax Type</label>
+              <select class="field-input" name="tax_type" required>
+                <option value="vat">VAT (2550Q)</option>
+                <option value="withholding_compensation">Withholding Tax on Compensation (1601-C)</option>
+                <option value="income_tax_quarterly">Quarterly Income Tax</option>
+                <option value="income_tax_annual">Annual Income Tax</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Period Start</label><input class="field-input" type="date" name="period_start" required></div>
+            <div class="form-field"><label>Period End</label><input class="field-input" type="date" name="period_end" required></div>
+            <div class="form-field"><label>Due Date</label><input class="field-input" type="date" name="due_date" required></div>
+            <div class="form-field" style="flex:1 1 200px;"><label>Notes</label><input class="field-input" name="notes"></div>
+            <button type="submit" class="action btn-primary">+ Add Deadline</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Period</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for d in tax_deadlines %}
+              <tr>
+                <td>{{ d.name }}</td>
+                <td>{{ d.get_tax_type_display }}</td>
+                <td>{{ d.period_start|date:"M d" }} – {{ d.period_end|date:"M d, Y" }}</td>
+                <td>{{ d.due_date|date:"M d, Y" }}</td>
+                <td>
+                  {% if d.is_filed %}<span class="badge-status badge-filed">Filed</span>
+                  {% elif d.is_overdue %}<span class="badge-status badge-overdue">Overdue</span>
+                  {% else %}<span class="badge-status badge-upcoming">Upcoming</span>{% endif %}
+                </td>
+                <td>
+                  {% if not d.is_filed %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="mark_deadline_filed">
+                    <input type="hidden" name="deadline_id" value="{{ d.id }}">
+                    <button type="submit" class="action small">Mark Filed</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No tax deadlines yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== REPORTS TAB ==================== -->
+    <div id="reportsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Financial Reports</h2>
+        <form method="get" class="form-row" style="margin-bottom:8px;">
+          <input type="hidden" name="tab" value="reportsTab">
+          <div class="form-field" style="flex:1 1 200px;"><label>Report</label>
+            <select class="field-input" name="report_type" id="reportTypeSelect">
+              <option value="trial_balance" {% if report_type == "trial_balance" %}selected{% endif %}>Trial Balance</option>
+              <option value="income_statement" {% if report_type == "income_statement" %}selected{% endif %}>Income Statement</option>
+              <option value="balance_sheet" {% if report_type == "balance_sheet" %}selected{% endif %}>Balance Sheet</option>
+              <option value="cash_flow" {% if report_type == "cash_flow" %}selected{% endif %}>Cash Flow Statement</option>
+              <option value="general_ledger" {% if report_type == "general_ledger" %}selected{% endif %}>General Ledger (by account)</option>
+            </select>
+          </div>
+          <div class="form-field" id="reportAccountField" style="flex:1 1 220px;{% if report_type != 'general_ledger' %}display:none;{% endif %}"><label>Account</label>
+            <select class="field-input" name="report_account_id">
+              <option value="">Select account</option>
+              {% for a in accounts %}<option value="{{ a.id }}" {% if report_account and report_account.id == a.id %}selected{% endif %}>{{ a.code }} – {{ a.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-field"><label>Start Date</label><input class="field-input" type="date" name="report_start" value="{{ report_start|date:'Y-m-d' }}"></div>
+          <div class="form-field"><label>End Date</label><input class="field-input" type="date" name="report_end" value="{{ report_end|date:'Y-m-d' }}"></div>
+          <button type="submit" class="action btn-primary">Run Report</button>
+        </form>
+
+        {% if report_type == "trial_balance" %}
+          <h3 style="margin-top:20px;">Trial Balance as of {{ report_end|date:"M d, Y" }}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Account</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
+              <tbody>
+                {% for row in report_data.rows %}
+                <tr><td>{{ row.account.code }}</td><td>{{ row.account.name }}</td><td class="text-right">{% if row.debit %}₱{{ row.debit|floatformat:2 }}{% endif %}</td><td class="text-right">{% if row.credit %}₱{{ row.credit|floatformat:2 }}{% endif %}</td></tr>
+                {% empty %}
+                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">No activity yet.</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot><tr style="font-weight:800;"><td colspan="2">TOTAL</td><td class="text-right">₱{{ report_data.total_debit|floatformat:2 }}</td><td class="text-right">₱{{ report_data.total_credit|floatformat:2 }}</td></tr></tfoot>
+            </table>
+          </div>
+
+        {% elif report_type == "income_statement" %}
+          <h3 style="margin-top:20px;">Income Statement — {{ report_start|date:"M d, Y" }} to {{ report_end|date:"M d, Y" }}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Account</th><th class="text-right">Amount</th></tr></thead>
+              <tbody>
+                <tr style="background:var(--soft);"><td colspan="2"><strong>Revenue</strong></td></tr>
+                {% for row in report_data.revenue_rows %}
+                <tr><td>{{ row.account.name }}</td><td class="text-right">₱{{ row.amount|floatformat:2 }}</td></tr>
+                {% endfor %}
+                <tr><td><strong>Total Revenue</strong></td><td class="text-right"><strong>₱{{ report_data.total_revenue|floatformat:2 }}</strong></td></tr>
+                <tr style="background:var(--soft);"><td colspan="2"><strong>Expenses</strong></td></tr>
+                {% for row in report_data.expense_rows %}
+                <tr><td>{{ row.account.name }}</td><td class="text-right">₱{{ row.amount|floatformat:2 }}</td></tr>
+                {% endfor %}
+                <tr><td><strong>Total Expenses</strong></td><td class="text-right"><strong>₱{{ report_data.total_expense|floatformat:2 }}</strong></td></tr>
+              </tbody>
+              <tfoot><tr style="font-weight:800;background:var(--brand-light);"><td>NET INCOME</td><td class="text-right">₱{{ report_data.net_income|floatformat:2 }}</td></tr></tfoot>
+            </table>
+          </div>
+
+        {% elif report_type == "balance_sheet" %}
+          <h3 style="margin-top:20px;">Balance Sheet as of {{ report_end|date:"M d, Y" }}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Account</th><th class="text-right">Amount</th></tr></thead>
+              <tbody>
+                <tr style="background:var(--soft);"><td colspan="2"><strong>Assets</strong></td></tr>
+                {% for row in report_data.asset_rows %}
+                <tr><td>{{ row.account.name }}</td><td class="text-right">₱{{ row.amount|floatformat:2 }}</td></tr>
+                {% endfor %}
+                <tr><td><strong>Total Assets</strong></td><td class="text-right"><strong>₱{{ report_data.total_assets|floatformat:2 }}</strong></td></tr>
+                <tr style="background:var(--soft);"><td colspan="2"><strong>Liabilities</strong></td></tr>
+                {% for row in report_data.liability_rows %}
+                <tr><td>{{ row.account.name }}</td><td class="text-right">₱{{ row.amount|floatformat:2 }}</td></tr>
+                {% endfor %}
+                <tr><td><strong>Total Liabilities</strong></td><td class="text-right"><strong>₱{{ report_data.total_liabilities|floatformat:2 }}</strong></td></tr>
+                <tr style="background:var(--soft);"><td colspan="2"><strong>Equity</strong></td></tr>
+                {% for row in report_data.equity_rows %}
+                <tr><td>{{ row.account.name }}</td><td class="text-right">₱{{ row.amount|floatformat:2 }}</td></tr>
+                {% endfor %}
+                <tr><td>Retained Earnings (cumulative net income)</td><td class="text-right">₱{{ report_data.cumulative_net_income|floatformat:2 }}</td></tr>
+                <tr><td><strong>Total Equity</strong></td><td class="text-right"><strong>₱{{ report_data.total_equity|floatformat:2 }}</strong></td></tr>
+              </tbody>
+              <tfoot><tr style="font-weight:800;background:var(--brand-light);"><td>TOTAL LIABILITIES + EQUITY</td><td class="text-right">₱{{ report_data.total_liabilities_and_equity|floatformat:2 }}</td></tr></tfoot>
+            </table>
+          </div>
+
+        {% elif report_type == "cash_flow" %}
+          <h3 style="margin-top:20px;">Cash Flow Statement — {{ report_start|date:"M d, Y" }} to {{ report_end|date:"M d, Y" }}</h3>
+          <p class="muted" style="margin-bottom:12px;">Simplified: classifies each cash/bank movement by the category of the offsetting account.</p>
+          <div class="report-summary-grid">
+            <div class="box"><div class="lbl">Operating</div><div class="val">₱{{ report_data.operating|floatformat:2 }}</div></div>
+            <div class="box"><div class="lbl">Investing</div><div class="val">₱{{ report_data.investing|floatformat:2 }}</div></div>
+            <div class="box"><div class="lbl">Financing</div><div class="val">₱{{ report_data.financing|floatformat:2 }}</div></div>
+            <div class="box"><div class="lbl">Net Change in Cash</div><div class="val">₱{{ report_data.net_change|floatformat:2 }}</div></div>
+          </div>
+
+        {% elif report_type == "general_ledger" %}
+          <h3 style="margin-top:20px;">General Ledger{% if report_account %} — {{ report_account.code }} {{ report_account.name }}{% endif %}</h3>
+          {% if not report_account %}
+          <p class="muted">Select an account above and click "Run Report".</p>
+          {% else %}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Entry #</th><th>Description</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Running Balance</th></tr></thead>
+              <tbody>
+                {% for row in report_data %}
+                <tr>
+                  <td>{{ row.line.journal_entry.entry_date|date:"M d, Y" }}</td>
+                  <td>{{ row.line.journal_entry.entry_number }}</td>
+                  <td>{{ row.line.description|default:row.line.journal_entry.memo }}</td>
+                  <td class="text-right">{% if row.line.debit %}₱{{ row.line.debit|floatformat:2 }}{% endif %}</td>
+                  <td class="text-right">{% if row.line.credit %}₱{{ row.line.credit|floatformat:2 }}{% endif %}</td>
+                  <td class="text-right">₱{{ row.running_balance|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">No activity in this period.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function() {
+    const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
+    const panelIds = ['overviewTab', 'arTab', 'apTab', 'bankTab', 'payrollExpenseTab', 'journalTab', 'taxTab', 'reportsTab'];
+    const panels = {};
+    panelIds.forEach(id => { panels[id] = document.getElementById(id); });
+    const defaultTab = 'overviewTab';
+
+    function activateTab(targetId) {
+      tabButtons.forEach(btn => {
+        const isTarget = btn.dataset.tabTarget === targetId;
+        btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      });
+      Object.keys(panels).forEach(id => {
+        if (panels[id]) panels[id].classList.toggle('is-active', id === targetId);
+      });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const initialTab = tabParam && panels[tabParam] ? tabParam : defaultTab;
+    activateTab(initialTab);
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const targetId = this.dataset.tabTarget;
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', targetId);
+        window.history.pushState({}, '', url);
+        activateTab(targetId);
+      });
+    });
+
+    window.addEventListener('popstate', function() {
+      const activeTab = new URLSearchParams(window.location.search).get('tab');
+      activateTab(activeTab && panels[activeTab] ? activeTab : defaultTab);
+    });
+
+    // Bank transaction form: toggle contra-account vs transfer-to fields
+    const bankTxnType = document.getElementById('bankTxnType');
+    const contraField = document.getElementById('bankTxnContraField');
+    const toAccountField = document.getElementById('bankTxnToAccountField');
+    if (bankTxnType) {
+      bankTxnType.addEventListener('change', function() {
+        const isTransfer = this.value === 'transfer';
+        contraField.style.display = isTransfer ? 'none' : '';
+        toAccountField.style.display = isTransfer ? '' : 'none';
+      });
+    }
+
+    // Manual journal entry: reveal extra line rows
+    const addJeLineBtn = document.getElementById('addJeLineBtn');
+    if (addJeLineBtn) {
+      addJeLineBtn.addEventListener('click', function() {
+        const hiddenRow = document.querySelector('#jeLinesContainer [data-je-extra][style*="display: none"], #jeLinesContainer [data-je-extra]:not([data-je-shown])');
+        const rows = document.querySelectorAll('#jeLinesContainer .je-line-row');
+        for (const row of rows) {
+          if (row.style.display === 'none') {
+            row.style.display = '';
+            row.setAttribute('data-je-shown', '1');
+            break;
+          }
+        }
+      });
+    }
+
+    // Toggle journal entry line details
+    document.querySelectorAll('.toggle-je-lines').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const target = document.getElementById(this.dataset.target);
+        if (!target) return;
+        if (target.hasAttribute('hidden')) {
+          target.removeAttribute('hidden');
+          this.textContent = 'Hide';
+        } else {
+          target.setAttribute('hidden', '');
+          this.textContent = 'View';
+        }
+      });
+    });
+
+    // Reports tab: show account selector only for General Ledger
+    const reportTypeSelect = document.getElementById('reportTypeSelect');
+    const reportAccountField = document.getElementById('reportAccountField');
+    if (reportTypeSelect) {
+      reportTypeSelect.addEventListener('change', function() {
+        reportAccountField.style.display = this.value === 'general_ledger' ? '' : 'none';
+      });
+    }
+  })();
+</script>
+{% endblock %}

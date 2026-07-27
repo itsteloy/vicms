@@ -1,3 +1,6 @@
+from datetime import date
+from decimal import Decimal
+
 from django.db import models
 
 
@@ -96,6 +99,8 @@ class Quotation(models.Model):
     discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     shipping = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    initial_payment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    balance_due = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     prepared_name = models.CharField(max_length=200, blank=True, default='')
     prepared_title = models.CharField(max_length=200, blank=True, default='')
     prepared_signature = models.TextField(blank=True, default='')
@@ -110,7 +115,15 @@ class Quotation(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.quotation_number or f'Quotation {self.pk}'
+        return self.quotation_number or f'Product Quotation {self.pk}'
+
+    @property
+    def payment_status(self):
+        if self.grand_total and self.balance_due <= 0:
+            return 'Paid'
+        if self.initial_payment and self.initial_payment > 0:
+            return 'Partial'
+        return 'Pending'
 
 
 class QuotationLine(models.Model):
@@ -127,6 +140,69 @@ class QuotationLine(models.Model):
 
     def __str__(self):
         return f'{self.quotation} line {self.item_number}'
+
+
+class ServiceQuotation(models.Model):
+    quotation_number = models.CharField(max_length=100)
+    quotation_date = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=10, default='PHP')
+    currency_other = models.CharField(max_length=20, blank=True, default='')
+    customer_company = models.CharField(max_length=200, blank=True, default='')
+    customer_contact = models.CharField(max_length=200, blank=True, default='')
+    customer_address = models.TextField(blank=True, default='')
+    customer_email = models.EmailField(blank=True, default='')
+    customer_phone = models.CharField(max_length=50, blank=True, default='')
+    payment_terms = models.CharField(max_length=255, blank=True, default='')
+    service_schedule = models.CharField(max_length=255, blank=True, default='')
+    warranty = models.CharField(max_length=255, blank=True, default='')
+    other_terms = models.TextField(blank=True, default='')
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    other_fees = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    initial_payment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    balance_due = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    prepared_name = models.CharField(max_length=200, blank=True, default='')
+    prepared_title = models.CharField(max_length=200, blank=True, default='')
+    prepared_signature = models.TextField(blank=True, default='')
+    prepared_date = models.DateField(null=True, blank=True)
+    approved_signature = models.TextField(blank=True, default='')
+    approved_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.quotation_number or f'Service Quotation {self.pk}'
+
+    @property
+    def payment_status(self):
+        if self.grand_total and self.balance_due <= 0:
+            return 'Paid'
+        if self.initial_payment and self.initial_payment > 0:
+            return 'Partial'
+        return 'Pending'
+
+
+class ServiceQuotationLine(models.Model):
+    service_quotation = models.ForeignKey(ServiceQuotation, on_delete=models.CASCADE, related_name='lines')
+    item_number = models.PositiveIntegerField(default=0)
+    service_description = models.TextField(blank=True, default='')
+    quantity = models.PositiveIntegerField(default=0)
+    unit = models.CharField(max_length=50, blank=True, default='')
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['item_number']
+
+    def __str__(self):
+        return f'{self.service_quotation} line {self.item_number}'
 
 
 class HRDocument(models.Model):
@@ -207,6 +283,21 @@ class Employee(models.Model):
     @property
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
+
+    @classmethod
+    def generate_employee_id(cls):
+        prefix = 'EMP-'
+        max_num = 0
+        for employee_id in cls.objects.filter(employee_id__startswith=prefix).values_list('employee_id', flat=True):
+            suffix = employee_id[len(prefix):]
+            if suffix.isdigit():
+                max_num = max(max_num, int(suffix))
+        return f'{prefix}{max_num + 1:03d}'
+
+    def save(self, *args, **kwargs):
+        if not self.employee_id:
+            self.employee_id = self.generate_employee_id()
+        super().save(*args, **kwargs)
 
 
 class PayPeriod(models.Model):
@@ -337,12 +428,33 @@ class AttendanceLog(models.Model):
     break_start = models.TimeField(null=True, blank=True)
     break_end = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present')
+    remarks = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-date']
         unique_together = ['employee', 'date']  # one log per employee per day
+
+    def __str__(self):
+        return f'{self.employee} – {self.date}'
+
+    @property
+    def hours_worked(self):
+        if not self.clock_in or not self.clock_out:
+            return None
+        from datetime import datetime as _datetime
+        start = _datetime.combine(self.date, self.clock_in)
+        end = _datetime.combine(self.date, self.clock_out)
+        if end < start:
+            return None
+        seconds = (end - start).total_seconds()
+        if self.break_start and self.break_end:
+            b_start = _datetime.combine(self.date, self.break_start)
+            b_end = _datetime.combine(self.date, self.break_end)
+            if b_end > b_start:
+                seconds -= (b_end - b_start).total_seconds()
+        return round(max(seconds, 0) / 3600, 2)
 
     def __str__(self):
         return f'{self.employee} – {self.date}'
@@ -523,29 +635,133 @@ class ServiceRepairReport(models.Model):
 
 
 class JobOrder(models.Model):
-    PRIORITY_CHOICES = [('low', 'Low'), ('normal', 'Normal'), ('high', 'High'), ('urgent', 'Urgent')]
-    STATUS_CHOICES = [('open', 'Open'), ('assigned', 'Assigned'), ('in_progress', 'In Progress'), ('completed', 'Completed'), ('cancelled', 'Cancelled')]
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('assigned', 'Assigned'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
 
     job_order_number = models.CharField(max_length=50, unique=True)
-    job_date = models.DateField()
-    customer_name = models.CharField(max_length=200)
-    contact_person = models.CharField(max_length=200, blank=True, default='')
-    contact_number = models.CharField(max_length=100, blank=True, default='')
-    service_location = models.TextField(blank=True, default='')
-    scope_of_work = models.TextField()
-    assigned_to = models.CharField(max_length=200, blank=True, default='')
-    scheduled_date = models.DateField(null=True, blank=True)
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='normal')
+    names = models.TextField(blank=True, default='', help_text='One or more assignee names, one per line.')
+    date_filed = models.DateField()
+    dates_covered = models.TextField(blank=True, default='', help_text='Coverage date or date range entries, one per line.')
+    area_assignment = models.TextField(blank=True, default='')
+    job_description = models.TextField()
+    prepared_by = models.CharField(max_length=200, blank=True, default='')
+    noted_by = models.CharField(max_length=200, blank=True, default='')
+    approved_by = models.CharField(max_length=200, blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    notes = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-job_date', '-created_at']
+        ordering = ['-date_filed', '-created_at']
 
     def __str__(self):
         return self.job_order_number
+
+    @property
+    def names_display(self):
+        return ', '.join(line.strip() for line in self.names.splitlines() if line.strip()) or '—'
+
+    @property
+    def dates_covered_display(self):
+        return ', '.join(line.strip() for line in self.dates_covered.splitlines() if line.strip()) or '—'
+
+
+class OfficialBusinessForm(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    name = models.CharField(max_length=200)
+    designation = models.CharField(max_length=200, blank=True, default='')
+    application_date = models.DateField()
+    ob_dates = models.TextField(blank=True, default='', help_text='One OB date per line.')
+    destination = models.TextField(blank=True, default='', help_text='OB address / destination.')
+    time_departure = models.TimeField(null=True, blank=True)
+    time_return = models.TimeField(null=True, blank=True)
+    purpose = models.TextField(blank=True, default='')
+    prepared_by = models.CharField(max_length=200, blank=True, default='', help_text="Employee's name & signature.")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    APPROVER_NAME = 'ENGR. ARTURO I. DAVIS, PME'
+    APPROVER_TITLE = 'PRESIDENT/GEN. MANAGER'
+
+    class Meta:
+        ordering = ['-application_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.name} – {self.application_date}'
+
+    @property
+    def ob_dates_display(self):
+        return ', '.join(line.strip() for line in self.ob_dates.splitlines() if line.strip()) or '—'
+
+    @property
+    def approved_by_display(self):
+        return f'{self.APPROVER_NAME} ({self.APPROVER_TITLE})'
+
+
+class MaterialBorrow(models.Model):
+    STATUS_CHOICES = [
+        ('borrowed', 'Borrowed'),
+        ('returned', 'Returned'),
+        ('partial', 'Partially Returned'),
+        ('overdue', 'Overdue'),
+    ]
+
+    borrow_number = models.CharField(max_length=50, unique=True)
+    date_borrowed = models.DateField()
+    borrower_name = models.CharField(max_length=200)
+    department = models.CharField(max_length=200, blank=True, default='')
+    purpose = models.TextField(blank=True, default='')
+    expected_return_date = models.DateField(null=True, blank=True)
+    remarks = models.TextField(blank=True, default='')
+    prepared_by = models.CharField(max_length=200, blank=True, default='')
+    noted_by = models.CharField(max_length=200, blank=True, default='')
+    approved_by = models.CharField(max_length=200, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='borrowed')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date_borrowed', '-created_at']
+
+    def __str__(self):
+        return self.borrow_number
+
+
+class MaterialBorrowLine(models.Model):
+    material_borrow = models.ForeignKey(
+        MaterialBorrow,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    inventory_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='borrow_lines',
+    )
+    item_description = models.CharField(max_length=300)
+    quantity = models.PositiveIntegerField(default=1)
+    unit = models.CharField(max_length=50, blank=True, default='pcs')
+    remarks = models.CharField(max_length=200, blank=True, default='')
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.item_description} x{self.quantity}'
 
 
 class WorkspaceAccount(models.Model):
@@ -570,4 +786,395 @@ class WorkspaceAccount(models.Model):
 
     def __str__(self):
         return f'{self.workspace_name} ({self.username})'
+
+
+# ========== ACCOUNTING MODELS ==========
+# Fresh, self-contained double-entry accounting module. Deliberately NOT wired to
+# SalesOrder / Quotation / ServiceQuotation / RefundRecord / PayrollRun / Delivery —
+# accounting staff record transactions directly here.
+
+class Account(models.Model):
+    """Chart of Accounts entry."""
+
+    ACCOUNT_TYPES = [
+        ('asset', 'Asset'),
+        ('liability', 'Liability'),
+        ('equity', 'Equity'),
+        ('revenue', 'Revenue'),
+        ('expense', 'Expense'),
+    ]
+    CATEGORY_CHOICES = [
+        ('cash', 'Cash'),
+        ('bank', 'Bank'),
+        ('ar', 'Accounts Receivable'),
+        ('inventory', 'Inventory'),
+        ('tax_input', 'Input VAT'),
+        ('fixed_asset', 'Fixed Asset'),
+        ('ap', 'Accounts Payable'),
+        ('tax_output', 'Output VAT Payable'),
+        ('tax_payable', 'Other Tax Payable'),
+        ('loan_payable', 'Loans Payable'),
+        ('equity', 'Equity'),
+        ('revenue', 'Revenue'),
+        ('cogs', 'Cost of Goods Sold'),
+        ('operating_expense', 'Operating Expense'),
+        ('other', 'Other'),
+    ]
+
+    code = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=150)
+    account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other')
+    description = models.CharField(max_length=255, blank=True, default='')
+    is_system = models.BooleanField(default=False, help_text='Seeded accounts required by auto-posting; cannot be deleted.')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['code']
+
+    def __str__(self):
+        return f'{self.code} – {self.name}'
+
+    @property
+    def normal_balance(self):
+        return 'debit' if self.account_type in ('asset', 'expense') else 'credit'
+
+    @property
+    def current_balance(self):
+        totals = self.lines.aggregate(total_debit=models.Sum('debit'), total_credit=models.Sum('credit'))
+        debit = totals['total_debit'] or Decimal('0')
+        credit = totals['total_credit'] or Decimal('0')
+        if self.normal_balance == 'debit':
+            return debit - credit
+        return credit - debit
+
+
+class JournalEntry(models.Model):
+    """Header for a balanced set of debit/credit lines (the General Ledger source)."""
+
+    SOURCE_TYPES = [
+        ('manual', 'Manual'),
+        ('invoice', 'Invoice'),
+        ('invoice_payment', 'Invoice Payment'),
+        ('bill', 'Bill'),
+        ('bill_payment', 'Bill Payment'),
+        ('bank_transaction', 'Bank Transaction'),
+        ('payroll_expense', 'Payroll Expense'),
+        ('opening_balance', 'Opening Balance'),
+        ('reversal', 'Reversal'),
+    ]
+
+    entry_number = models.CharField(max_length=30, unique=True)
+    entry_date = models.DateField()
+    memo = models.CharField(max_length=255, blank=True, default='')
+    source_type = models.CharField(max_length=30, choices=SOURCE_TYPES, default='manual')
+    source_id = models.PositiveIntegerField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='journal_entries',
+    )
+    is_void = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-entry_date', '-created_at']
+
+    def __str__(self):
+        return self.entry_number
+
+    @property
+    def total_debit(self):
+        return sum((line.debit for line in self.lines.all()), Decimal('0'))
+
+    @property
+    def total_credit(self):
+        return sum((line.credit for line in self.lines.all()), Decimal('0'))
+
+
+class JournalEntryLine(models.Model):
+    journal_entry = models.ForeignKey(JournalEntry, on_delete=models.CASCADE, related_name='lines')
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='lines')
+    debit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    credit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    description = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.journal_entry.entry_number} – {self.account.code}'
+
+
+class BankAccount(models.Model):
+    ACCOUNT_TYPES = [
+        ('bank', 'Bank'),
+        ('cash_on_hand', 'Cash on Hand'),
+    ]
+
+    name = models.CharField(max_length=150)
+    account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES, default='bank')
+    bank_name = models.CharField(max_length=150, blank=True, default='')
+    account_number = models.CharField(max_length=100, blank=True, default='')
+    gl_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='bank_accounts')
+    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    opening_balance_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def current_balance(self):
+        """Opening balance is stored directly (never journaled), so add it to the GL activity."""
+        return self.opening_balance + self.gl_account.current_balance
+
+
+class BankTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('deposit', 'Deposit'),
+        ('withdrawal', 'Withdrawal'),
+        ('transfer', 'Transfer'),
+    ]
+
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT, related_name='transactions')
+    transaction_date = models.DateField()
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES, default='deposit')
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    contra_account = models.ForeignKey(
+        Account, on_delete=models.PROTECT, null=True, blank=True, related_name='bank_contra_transactions',
+        help_text='Used for deposits/withdrawals (e.g. Owner\'s Capital, Other Income).',
+    )
+    to_bank_account = models.ForeignKey(
+        BankAccount, on_delete=models.PROTECT, null=True, blank=True, related_name='incoming_transfers',
+        help_text='Used for transfers between bank/cash accounts.',
+    )
+    reference = models.CharField(max_length=100, blank=True, default='')
+    description = models.CharField(max_length=255, blank=True, default='')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-transaction_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.get_transaction_type_display()} – {self.bank_account} – {self.amount}'
+
+
+class Customer(models.Model):
+    name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=150, blank=True, default='')
+    phone = models.CharField(max_length=50, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    address = models.TextField(blank=True, default='')
+    tax_id = models.CharField(max_length=50, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Invoice(models.Model):
+    """Accounts Receivable — independent of SalesOrder/Quotation."""
+
+    STATUS_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('partial', 'Partial'),
+        ('paid', 'Paid'),
+        ('overdue', 'Overdue'),
+    ]
+
+    invoice_number = models.CharField(max_length=50, unique=True)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='invoices')
+    invoice_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, help_text='VAT-inclusive gross amount')
+    vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    revenue_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='invoices')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid')
+    paid_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    notes = models.TextField(blank=True, default='')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-invoice_date', '-created_at']
+
+    def __str__(self):
+        return self.invoice_number
+
+    @property
+    def balance_due(self):
+        return self.amount - self.paid_amount
+
+    def refresh_status(self):
+        if self.paid_amount >= self.amount:
+            self.status = 'paid'
+        elif self.paid_amount > 0:
+            self.status = 'partial'
+        elif self.due_date and self.due_date < date.today():
+            self.status = 'overdue'
+        else:
+            self.status = 'unpaid'
+
+
+class InvoicePayment(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT, related_name='invoice_payments')
+    reference = models.CharField(max_length=100, blank=True, default='')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-payment_date', '-created_at']
+
+    def __str__(self):
+        return f'Payment {self.amount} – {self.invoice}'
+
+
+class Supplier(models.Model):
+    name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=150, blank=True, default='')
+    phone = models.CharField(max_length=50, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    address = models.TextField(blank=True, default='')
+    tax_id = models.CharField(max_length=50, blank=True, default='')
+    payment_terms = models.CharField(max_length=150, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Bill(models.Model):
+    """Accounts Payable / Purchases — independent of Delivery/DeliveryLine."""
+
+    STATUS_CHOICES = [
+        ('unpaid', 'Unpaid'),
+        ('partial', 'Partial'),
+        ('paid', 'Paid'),
+        ('overdue', 'Overdue'),
+    ]
+
+    bill_number = models.CharField(max_length=50, unique=True)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='bills')
+    bill_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, help_text='VAT-inclusive gross amount')
+    vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    expense_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='bills')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid')
+    paid_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    notes = models.TextField(blank=True, default='')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-bill_date', '-created_at']
+
+    def __str__(self):
+        return self.bill_number
+
+    @property
+    def balance_due(self):
+        return self.amount - self.paid_amount
+
+    def refresh_status(self):
+        if self.paid_amount >= self.amount:
+            self.status = 'paid'
+        elif self.paid_amount > 0:
+            self.status = 'partial'
+        elif self.due_date and self.due_date < date.today():
+            self.status = 'overdue'
+        else:
+            self.status = 'unpaid'
+
+
+class BillPayment(models.Model):
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT, related_name='bill_payments')
+    reference = models.CharField(max_length=100, blank=True, default='')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-payment_date', '-created_at']
+
+    def __str__(self):
+        return f'Payment {self.amount} – {self.bill}'
+
+
+class PayrollExpenseEntry(models.Model):
+    """Manual payroll cost entry — independent of PayrollRun."""
+
+    entry_date = models.DateField()
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.PROTECT, related_name='payroll_expense_entries')
+    expense_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='payroll_expense_entries')
+    related_journal_entry = models.ForeignKey(
+        JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-entry_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.entry_date} – {self.description} ({self.amount})'
+
+
+class TaxDeadline(models.Model):
+    TAX_TYPES = [
+        ('vat', 'VAT (BIR Form 2550Q)'),
+        ('withholding_compensation', 'Withholding Tax on Compensation (1601-C)'),
+        ('income_tax_quarterly', 'Quarterly Income Tax (1701Q/1702Q)'),
+        ('income_tax_annual', 'Annual Income Tax'),
+    ]
+
+    name = models.CharField(max_length=200)
+    tax_type = models.CharField(max_length=30, choices=TAX_TYPES)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    due_date = models.DateField()
+    is_filed = models.BooleanField(default=False)
+    filed_date = models.DateField(null=True, blank=True)
+    notes = models.CharField(max_length=255, blank=True, default='')
+
+    class Meta:
+        ordering = ['due_date']
+
+    def __str__(self):
+        return f'{self.name} – due {self.due_date}'
+
+    @property
+    def is_overdue(self):
+        return not self.is_filed and self.due_date < date.today()
 

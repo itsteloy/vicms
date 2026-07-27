@@ -838,23 +838,29 @@ class QuotationPDF:
         if q.shipping:
             rows.append(['Shipping', f"₱{q.shipping:.2f}"])
         rows.append(['GRAND TOTAL', f"₱{self.total_amount:.2f}"])
+        rows.append(['Initial Payment', f"-₱{q.initial_payment:.2f}"])
+        rows.append(['BALANCE DUE', f"₱{q.balance_due:.2f}"])
 
         table = Table(rows, colWidths=[2.2 * inch, 1.1 * inch], hAlign='RIGHT')
+        last = len(rows) - 1
+        grand_total_idx = last - 2
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -2), 'Helvetica'),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), 'Helvetica-Bold'),
+            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 8.5),
-            ('TEXTCOLOR', (0, 0), (-1, -2), INK),
+            ('TEXTCOLOR', (0, 0), (-1, -1), INK),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('LINEBELOW', (0, 0), (-1, -2), 0.4, colors.HexColor('#eaecf0')),
+            ('LINEBELOW', (0, 0), (-1, last - 1), 0.4, colors.HexColor('#eaecf0')),
             ('TOPPADDING', (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND', (0, -1), (-1, -1), BRAND),
-            ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
-            ('TOPPADDING', (0, -1), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, -1), (-1, -1), 8),
+            ('BACKGROUND', (0, grand_total_idx), (-1, grand_total_idx), colors.HexColor('#eef2ff')),
+            ('BACKGROUND', (0, last), (-1, last), BRAND),
+            ('TEXTCOLOR', (0, last), (-1, last), colors.white),
+            ('TOPPADDING', (0, last), (-1, last), 8),
+            ('BOTTOMPADDING', (0, last), (-1, last), 8),
         ]))
         return table
 
@@ -966,3 +972,229 @@ class QuotationPDF:
 
 def build_quotation_pdf(quotation, lines, total_amount, generated_date, company_name="VERSATEC Industrial Corporation"):
     return QuotationPDF(quotation, lines, total_amount, generated_date, company_name).build()
+
+
+class ServiceQuotationPDF(QuotationPDF):
+    """Quotation PDF variant for service offerings, with initial payment / balance due."""
+
+    def _title_block(self):
+        q = self.quotation
+        currency = q.currency or 'PHP'
+        if currency.upper() == 'OTHER':
+            currency = q.currency_other or 'OTHER'
+        elif currency.upper() == 'PHP':
+            currency = 'PHP / PESO'
+
+        meta = Table(
+            [
+                [
+                    Paragraph('QUOTATION #', self.styles['label']),
+                    Paragraph('CURRENCY', self.styles['label']),
+                ],
+                [
+                    Paragraph(_text(q.quotation_number, 'SQ-____'), self.styles['value']),
+                    Paragraph(currency, self.styles['value']),
+                ],
+                [
+                    Paragraph('QUOTATION DATE', self.styles['label']),
+                    Paragraph('VALID UNTIL', self.styles['label']),
+                ],
+                [
+                    Paragraph(q.quotation_date.strftime('%Y-%m-%d') if q.quotation_date else '—', self.styles['value']),
+                    Paragraph(q.valid_until.strftime('%Y-%m-%d') if q.valid_until else '—', self.styles['value']),
+                ],
+            ],
+            colWidths=[2.1 * inch, 2.1 * inch],
+        )
+        meta.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]))
+
+        left = [
+            Paragraph('SERVICE QUOTATION', self.styles['title']),
+            Paragraph(self.company_name, self.styles['subtitle']),
+        ]
+        wrap = Table([[left, meta]], colWidths=[3.6 * inch, 4.2 * inch])
+        wrap.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        return [wrap]
+
+    def _items_header_row(self):
+        s = self.styles
+        return [
+            Paragraph('ITEM NO.', s['th']),
+            Paragraph('SERVICE DESCRIPTION', s['th']),
+            Paragraph('AMOUNT', s['th']),
+        ]
+
+    def _item_row(self, line):
+        s = self.styles
+        return [
+            Paragraph(str(line.item_number), s['td_center']),
+            Paragraph(_text(line.service_description, ''), s['td']),
+            Paragraph(f"₱{line.total_amount:.2f}", s['td_right']),
+        ]
+
+    def _items_flowables(self):
+        if not self.lines.exists():
+            lines = [type('Line', (), {
+                'item_number': 1,
+                'service_description': 'No services listed',
+                'total_amount': 0,
+            })()]
+        else:
+            lines = self.lines
+
+        col_widths = [
+            0.6 * inch, 5.2 * inch, 1.2 * inch,
+        ]
+
+        data = [self._items_header_row()]
+        for line in lines:
+            data.append(self._item_row(line))
+
+        table = Table(data, colWidths=col_widths, repeatRows=1)
+        table.setStyle(self._items_table_style())
+        return [table]
+
+    def _totals_table(self):
+        q = self.quotation
+        rows = [
+            ['Subtotal', f"₱{q.subtotal:.2f}"],
+        ]
+        if q.tax:
+            rows.append(['Tax', f"₱{q.tax:.2f}"])
+        if q.discount:
+            rows.append(['Discount', f"-₱{q.discount:.2f}"])
+        if q.other_fees:
+            rows.append(['Other Fees', f"₱{q.other_fees:.2f}"])
+        rows.append(['GRAND TOTAL', f"₱{self.total_amount:.2f}"])
+        rows.append(['Initial Payment', f"-₱{q.initial_payment:.2f}"])
+        rows.append(['BALANCE DUE', f"₱{q.balance_due:.2f}"])
+
+        table = Table(rows, colWidths=[2.2 * inch, 1.1 * inch], hAlign='RIGHT')
+        last = len(rows) - 1
+        grand_total_idx = last - 2
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), 'Helvetica-Bold'),
+            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+            ('TEXTCOLOR', (0, 0), (-1, -1), INK),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('LINEBELOW', (0, 0), (-1, last - 1), 0.4, colors.HexColor('#eaecf0')),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, grand_total_idx), (-1, grand_total_idx), colors.HexColor('#eef2ff')),
+            ('BACKGROUND', (0, last), (-1, last), BRAND),
+            ('TEXTCOLOR', (0, last), (-1, last), colors.white),
+            ('TOPPADDING', (0, last), (-1, last), 8),
+            ('BOTTOMPADDING', (0, last), (-1, last), 8),
+        ]))
+        return table
+
+    def _terms_block(self):
+        q = self.quotation
+        field_pairs = [
+            ('Payment Terms', q.payment_terms),
+            ('Service Schedule', q.service_schedule),
+            ('Warranty', q.warranty),
+            ('Other Terms', q.other_terms),
+        ]
+        row1 = field_pairs[0:2]
+        row2 = field_pairs[2:4]
+        table_data = []
+        for row in [row1, row2]:
+            cols = []
+            for label, value in row:
+                cols.append(self._boxed_field(label, value, 3.7 * inch))
+            table_data.append(cols)
+        grid = Table(table_data, colWidths=[3.85 * inch, 3.85 * inch])
+        grid.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        return [Paragraph('TERMS AND CONDITIONS', self.styles['section']), Spacer(1, 2), grid]
+
+    def build(self) -> bytes:
+        buffer = BytesIO()
+        bottom = self._bottom_margin()
+        top_first = self._top_margin(continued=False)
+        top_later = self._top_margin(continued=True)
+        frame_width = PAGE_WIDTH - 2 * SIDE_MARGIN
+
+        doc = BaseDocTemplate(
+            buffer,
+            pagesize=PAGE_SIZE,
+            leftMargin=SIDE_MARGIN,
+            rightMargin=SIDE_MARGIN,
+            topMargin=top_first,
+            bottomMargin=bottom,
+        )
+
+        frame_first = Frame(
+            SIDE_MARGIN,
+            bottom,
+            frame_width,
+            PAGE_HEIGHT - top_first - bottom,
+            id="first",
+            showBoundary=0,
+        )
+        frame_later = Frame(
+            SIDE_MARGIN,
+            bottom,
+            frame_width,
+            PAGE_HEIGHT - top_later - bottom,
+            id="later",
+            showBoundary=0,
+        )
+
+        doc.addPageTemplates(
+            [
+                PageTemplate(
+                    id="First", frames=[frame_first], onPage=self._draw_header_footer
+                ),
+                PageTemplate(
+                    id="Later", frames=[frame_later], onPage=self._draw_header_footer
+                ),
+            ]
+        )
+
+        story = [NextPageTemplate("Later")]
+        story.extend(self._title_block())
+        story.append(Spacer(1, 8))
+        story.append(self._customer_block())
+        story.append(Spacer(1, 10))
+        story.extend(self._items_flowables())
+        story.append(Spacer(1, 8))
+        story.append(self._totals_table())
+        story.append(Spacer(1, 10))
+        story.append(KeepTogether(self._terms_block()))
+        story.append(Spacer(1, 14))
+        story.append(KeepTogether(self._signatures_block()))
+        story.append(
+            Paragraph(
+                "This Service Quotation is generated by Versatec Industrial Corporation and is "
+                "subject to the terms and conditions stated above.",
+                self.styles["footnote"],
+            )
+        )
+
+        doc.build(story)
+        return buffer.getvalue()
+
+
+def build_service_quotation_pdf(quotation, lines, total_amount, generated_date, company_name="VERSATEC Industrial Corporation"):
+    return ServiceQuotationPDF(quotation, lines, total_amount, generated_date, company_name).build()

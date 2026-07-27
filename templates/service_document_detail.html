@@ -1,7 +1,166 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{{ document_type|title }} Details{% endblock %}
-{% block extra_head %}<style>
-body{display:block;padding:30px;background:#f1f5f9;font-family:system-ui,sans-serif}.page{max-width:900px;margin:auto}.actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.actions a,.actions button{padding:9px 13px;border-radius:7px;border:0;background:#0f766e;color:#fff;font-weight:700;text-decoration:none;cursor:pointer}.actions .back{background:#e7f5f2;color:#134e4a}.document{background:#fff;box-shadow:0 8px 24px #1720331a}.document>img{width:100%;display:block}.content{padding:28px 38px}.title{text-align:center;margin:0 0 23px;font-size:20px;letter-spacing:.06em}.fields{display:grid;grid-template-columns:repeat(2,1fr);gap:0 24px}.field{border-bottom:1px solid #d8dee8;padding:11px 0}.field:nth-child(6n),.field:nth-child(7n),.field:nth-child(8n),.field:nth-child(9n),.field:nth-child(10n),.field:nth-child(11n),.field:nth-child(12n),.field:nth-child(13n),.field:nth-child(14n),.field:nth-child(15n),.field:nth-child(16n){grid-column:1/-1}.label{font-size:10px;font-weight:800;color:#0f766e;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}.value{white-space:pre-wrap;line-height:1.5;color:#344054}@media print{body{padding:0;background:#fff}.actions{display:none}.page{max-width:none}.document{box-shadow:none}}@media(max-width:600px){body{padding:12px}.content{padding:20px}.fields{grid-template-columns:1fr}}
-</style>{% endblock %}
-{% block content %}<main class="page"><div class="actions"><a class="back" href="{% url 'services_dashboard' %}">← Services Dashboard</a><span><a href="{% if document_type == 'repair' %}{% url 'edit_service_repair_report' record.id %}{% else %}{% url 'edit_job_order' record.id %}{% endif %}">Edit</a> <button type="button" onclick="window.print()">Print</button></span></div><article class="document"><img src="{% static 'versatec_header.jpg' %}" alt="Versatec header"><div class="content"><h1 class="title">{% if document_type == 'repair' %}SERVICE REPAIR REPORT{% else %}JOB ORDER{% endif %}</h1><div class="fields">{% for label, value in fields %}<div class="field"><div class="label">{{ label }}</div><div class="value">{{ value }}</div></div>{% endfor %}</div></div><img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer"></article></main>{% endblock %}
+{% block extra_head %}
+<style>
+  body { display: block; padding: 30px; background: #f1f5f9; font-family: system-ui, sans-serif; }
+  .page { max-width: 900px; margin: auto; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+  .actions-group { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .actions a, .actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 38px;
+    padding: 9px 13px;
+    border-radius: 7px;
+    border: 0;
+    background: #0f766e;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .actions .back { background: #e7f5f2; color: #134e4a; }
+  .document { background: #fff; box-shadow: 0 8px 24px #1720331a; overflow: hidden; }
+  .document .doc-header img, .document .doc-footer img, .document > img { width: 100%; display: block; }
+  .content { padding: 28px 38px; }
+  .title { text-align: center; margin: 0 0 23px; font-size: 20px; letter-spacing: .06em; }
+  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 24px; }
+  .field { border-bottom: 1px solid #d8dee8; padding: 11px 0; }
+  .field:nth-child(6n), .field:nth-child(7n), .field:nth-child(8n), .field:nth-child(9n), .field:nth-child(10n), .field:nth-child(11n), .field:nth-child(12n), .field:nth-child(13n), .field:nth-child(14n), .field:nth-child(15n), .field:nth-child(16n) { grid-column: 1 / -1; }
+  .repair-document .fields, .job-order-document .fields, .ob-document .fields { grid-template-columns: 1fr; }
+  .repair-document .field, .job-order-document .field, .ob-document .field { grid-column: auto; }
+  .field-full { grid-column: 1 / -1; }
+  .label { font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+  .value { white-space: pre-wrap; line-height: 1.5; color: #344054; }
+  .items-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .items-table th, .items-table td { border: 1px solid #d8dee8; padding: 8px 10px; text-align: left; }
+  .items-table th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #0f766e; }
+  @media print {
+    @page { size: 8.5in 13in; margin: 0; }
+    body { padding: 0; background: #fff; }
+    .actions { display: none; }
+    .page { max-width: none; }
+    .document {
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      min-height: 13in;
+    }
+    .document .doc-header, .document .doc-footer { flex-shrink: 0; }
+    .document .doc-footer { margin-top: auto; }
+    .document .content {
+      flex: 1 1 auto;
+      padding: 0.1in 0.45in 0.2in;
+    }
+    .repair-document .fields, .job-order-document .fields, .ob-document .fields {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6pt 12pt;
+    }
+    .repair-document .field, .job-order-document .field, .ob-document .field {
+      border-bottom: none;
+      padding: 4pt 0;
+      page-break-inside: avoid;
+    }
+    .job-order-document .field:nth-child(1) { grid-column: 1; }
+    .job-order-document .field:nth-child(2) { grid-column: 2; }
+    .job-order-document .field:nth-child(3) { grid-column: 1; }
+    .job-order-document .field:nth-child(4) { grid-column: 2; }
+    .job-order-document .field:nth-child(5) { grid-column: 1; }
+    .job-order-document .field:nth-child(n+6) { grid-column: 1 / -1; }
+    .ob-document .field:nth-child(1) { grid-column: 1; }
+    .ob-document .field:nth-child(2) { grid-column: 2; }
+    .ob-document .field:nth-child(3) { grid-column: 1; }
+    .ob-document .field:nth-child(4) { grid-column: 2; }
+    .ob-document .field:nth-child(5) { grid-column: 1 / -1; }
+    .ob-document .field:nth-child(6) { grid-column: 1; }
+    .ob-document .field:nth-child(7) { grid-column: 2; }
+    .ob-document .field:nth-child(n+8) { grid-column: 1 / -1; }
+    .repair-document .label, .job-order-document .label, .ob-document .label { font-size: 7.5pt; margin-bottom: 2pt; }
+    .repair-document .value, .job-order-document .value, .ob-document .value { font-size: 8.5pt; line-height: 1.3; }
+    .repair-document .title, .job-order-document .title, .ob-document .title { font-size: 14pt; margin-bottom: 8pt; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    .content { padding: 20px; }
+    .fields { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<main class="page">
+  <div class="actions">
+    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% endif %}">← Services Dashboard</a>
+    <div class="actions-group">
+      {% if document_type == 'repair' %}
+      <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
+      {% elif document_type == 'job' %}
+      <a href="{% url 'edit_job_order' record.id %}">Edit</a>
+      {% elif document_type == 'ob' %}
+      <a href="{% url 'edit_official_business_form' record.id %}">Edit</a>
+      {% else %}
+      <a href="{% url 'edit_material_borrow' record.id %}">Edit</a>
+      {% endif %}
+      <button type="button" onclick="window.print()">Print</button>
+    </div>
+  </div>
+
+  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% endif %}">
+    <header class="doc-header">
+      <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+    </header>
+
+    <div class="content">
+      <h1 class="title">
+        {% if document_type == 'repair' %}SERVICE REPAIR REPORT
+        {% elif document_type == 'job' %}JOB ORDER
+        {% elif document_type == 'ob' %}OFFICIAL BUSINESS FORM
+        {% else %}BORROW MATERIAL SLIP{% endif %}
+      </h1>
+
+      <div class="fields">
+        {% for label, value in fields %}
+        <div class="field{% if document_type == 'repair' %}{% if label == 'Customer Address' or label == 'Reported Complaint / Issue' or label == 'Diagnosis' or label == 'Repairs Performed' or label == 'Parts / Materials Used' or label == 'Recommendations' %} field-full{% endif %}{% elif document_type == 'job' %}{% if label == 'Job Description' or label == 'Prepared by' or label == 'Noted by' or label == 'Approved by' %} field-full{% endif %}{% elif document_type == 'ob' %}{% if label == 'OB Address / Destination' or label == 'Purpose/s' or label == 'Prepared by (Employee)' or label == 'Approved by' %} field-full{% endif %}{% endif %}">
+          <div class="label">{{ label }}</div>
+          <div class="value">{{ value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if document_type == 'borrow' and borrow_lines %}
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item / Description</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in borrow_lines %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ line.item_description }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>{{ line.unit|default:'pcs' }}</td>
+            <td>{{ line.remarks|default:'—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    <footer class="doc-footer">
+      <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+    </footer>
+  </article>
+</main>
+{% endblock %}
