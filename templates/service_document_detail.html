@@ -95,7 +95,7 @@
 {% block content %}
 <main class="page">
   <div class="actions">
-    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% endif %}">← Services Dashboard</a>
+    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% endif %}">← Services Dashboard</a>
     <div class="actions-group">
       {% if document_type == 'repair' %}
       <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
@@ -103,6 +103,8 @@
       <a href="{% url 'edit_job_order' record.id %}">Edit</a>
       {% elif document_type == 'ob' %}
       <a href="{% url 'edit_official_business_form' record.id %}">Edit</a>
+      {% elif document_type == 'delivery_receipt' %}
+      <a href="{% url 'edit_delivery_receipt' record.id %}">Edit</a>
       {% else %}
       <a href="{% url 'edit_material_borrow' record.id %}">Edit</a>
       {% endif %}
@@ -120,6 +122,7 @@
         {% if document_type == 'repair' %}SERVICE REPAIR REPORT
         {% elif document_type == 'job' %}JOB ORDER
         {% elif document_type == 'ob' %}OFFICIAL BUSINESS FORM
+        {% elif document_type == 'delivery_receipt' %}DELIVERY RECEIPT
         {% else %}BORROW MATERIAL SLIP{% endif %}
       </h1>
 
@@ -153,6 +156,33 @@
             <td>{{ line.remarks|default:'—' }}</td>
           </tr>
           {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if document_type == 'delivery_receipt' and delivery_receipt_lines %}
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Quantity</th>
+            <th>Unit</th>
+            <th>Articles</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in delivery_receipt_lines %}
+          <tr>
+            <td>{{ line.quantity|floatformat:'-2' }}</td>
+            <td>{{ line.unit|default:'pcs' }}</td>
+            <td>{{ line.description }}</td>
+            <td>₱{{ line.amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td colspan="3" style="text-align:right;font-weight:800;">Total</td>
+            <td style="font-weight:800;">₱{{ delivery_receipt_total|floatformat:2 }}</td>
+          </tr>
         </tbody>
       </table>
       {% endif %}

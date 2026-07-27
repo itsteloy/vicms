@@ -764,6 +764,56 @@ class MaterialBorrowLine(models.Model):
         return f'{self.item_description} x{self.quantity}'
 
 
+class DeliveryReceipt(models.Model):
+    receipt_number = models.CharField(max_length=50, unique=True)
+    receipt_date = models.DateField()
+    delivered_to = models.CharField(max_length=200)
+    tin = models.CharField(max_length=50, blank=True, default='')
+    po_number = models.CharField(max_length=100, blank=True, default='')
+    address = models.TextField(blank=True, default='')
+    terms = models.CharField(max_length=100, blank=True, default='')
+    certified_by = models.CharField(max_length=200, blank=True, default='')
+    delivered_by = models.CharField(max_length=200, blank=True, default='')
+    received_by = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-receipt_date', '-created_at']
+
+    def __str__(self):
+        return self.receipt_number
+
+    @property
+    def total_amount(self):
+        return sum((line.amount for line in self.lines.all()), Decimal('0'))
+
+
+class DeliveryReceiptLine(models.Model):
+    delivery_receipt = models.ForeignKey(
+        DeliveryReceipt,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    inventory_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='delivery_receipt_lines',
+    )
+    description = models.CharField(max_length=300)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    unit = models.CharField(max_length=50, blank=True, default='pcs')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.description} x{self.quantity}'
+
+
 class WorkspaceAccount(models.Model):
     """Temporary demo credentials for each dashboard workspace."""
 

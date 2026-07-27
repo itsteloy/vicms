@@ -1,8 +1,8 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline
 from . import accounting_engine
 from . import accounting_reports
 from django.contrib.auth import login, logout
@@ -21,7 +21,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from .po_pdf import build_purchase_order_pdf
-from .forms import EmployeeForm, JobOrderForm, MaterialBorrowForm, OfficialBusinessFormForm, ServiceRepairReportForm
+from .forms import EmployeeForm, JobOrderForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q
@@ -1968,11 +1968,13 @@ def services_dashboard(request):
             'job_orders': JobOrder.objects.all()[:8],
             'material_borrows': MaterialBorrow.objects.prefetch_related('lines').all()[:8],
             'official_business_forms': OfficialBusinessForm.objects.all()[:8],
+            'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
             'inventory_items': InventoryItem.objects.order_by('name'),
             'repair_report_count': ServiceRepairReport.objects.count(),
             'job_order_count': JobOrder.objects.count(),
             'material_borrow_count': MaterialBorrow.objects.count(),
             'official_business_count': OfficialBusinessForm.objects.count(),
+            'delivery_receipt_count': DeliveryReceipt.objects.count(),
         }
     )
 
@@ -2157,6 +2159,73 @@ def reject_official_business_form(request, ob_id):
     return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
 
 
+@login_required
+@require_POST
+def create_delivery_receipt(request):
+    required = ('receipt_number', 'receipt_date', 'delivered_to')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Delivery Receipt fields.')
+        return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+
+    descriptions = request.POST.getlist('dr_item_description')
+    quantities = request.POST.getlist('dr_item_quantity')
+    units = request.POST.getlist('dr_item_unit')
+    amounts = request.POST.getlist('dr_item_amount')
+    inventory_ids = request.POST.getlist('dr_item_inventory')
+
+    lines = []
+    for index, description in enumerate(descriptions):
+        description = description.strip()
+        if not description:
+            continue
+        try:
+            quantity = Decimal(quantities[index]) if index < len(quantities) and quantities[index].strip() else Decimal('1')
+        except (InvalidOperation, IndexError):
+            quantity = Decimal('1')
+        try:
+            amount = Decimal(amounts[index]) if index < len(amounts) and amounts[index].strip() else Decimal('0')
+        except (InvalidOperation, IndexError):
+            amount = Decimal('0')
+        unit = units[index].strip() if index < len(units) else 'pcs'
+        inventory_id = inventory_ids[index].strip() if index < len(inventory_ids) else ''
+        inventory_item = None
+        if inventory_id.isdigit():
+            inventory_item = InventoryItem.objects.filter(pk=int(inventory_id)).first()
+        lines.append({
+            'inventory_item': inventory_item,
+            'description': description,
+            'quantity': quantity,
+            'unit': unit or 'pcs',
+            'amount': amount,
+        })
+
+    if not lines:
+        messages.error(request, 'Please add at least one article to the delivery receipt.')
+        return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+
+    try:
+        receipt = DeliveryReceipt.objects.create(
+            receipt_number=request.POST['receipt_number'].strip(),
+            receipt_date=request.POST['receipt_date'],
+            delivered_to=request.POST['delivered_to'].strip(),
+            tin=request.POST.get('tin', '').strip(),
+            po_number=request.POST.get('po_number', '').strip(),
+            address=request.POST.get('address', '').strip(),
+            terms=request.POST.get('terms', '').strip(),
+            certified_by=request.POST.get('certified_by', '').strip(),
+            delivered_by=request.POST.get('delivered_by', '').strip(),
+            received_by=request.POST.get('received_by', '').strip(),
+        )
+        DeliveryReceiptLine.objects.bulk_create([
+            DeliveryReceiptLine(delivery_receipt=receipt, **line)
+            for line in lines
+        ])
+        messages.success(request, 'Delivery Receipt saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save Delivery Receipt: {exc}')
+    return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+
+
 SERVICE_FIELD_LABELS = {
     'repair': [('Report No.', 'report_number'), ('Report Date', 'report_date'), ('Customer / Company', 'customer_name'),
                ('Contact Person', 'contact_person'), ('Contact Number', 'contact_number'), ('Customer Address', 'customer_address'),
@@ -2201,6 +2270,18 @@ SERVICE_FIELD_LABELS = {
         ('Approved by', 'approved_by_display'),
         ('Status', 'get_status_display'),
     ],
+    'delivery_receipt': [
+        ('Receipt No.', 'receipt_number'),
+        ('Date', 'receipt_date'),
+        ('Delivered To', 'delivered_to'),
+        ('TIN', 'tin'),
+        ('P.O. No.', 'po_number'),
+        ('Address', 'address'),
+        ('Terms', 'terms'),
+        ('Certified by', 'certified_by'),
+        ('Delivered by', 'delivered_by'),
+        ('Received by (Customer)', 'received_by'),
+    ],
 }
 
 
@@ -2218,6 +2299,13 @@ def _service_record_context(record, document_type):
 def _borrow_record_context(record):
     context = _service_record_context(record, 'borrow')
     context['borrow_lines'] = record.lines.all()
+    return context
+
+
+def _delivery_receipt_record_context(record):
+    context = _service_record_context(record, 'delivery_receipt')
+    context['delivery_receipt_lines'] = record.lines.all()
+    context['delivery_receipt_total'] = record.total_amount
     return context
 
 
@@ -2294,6 +2382,35 @@ def delete_official_business_form(request, ob_id):
     get_object_or_404(OfficialBusinessForm, pk=ob_id).delete()
     messages.success(request, 'Official Business Form deleted.')
     return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+
+
+@login_required
+def view_delivery_receipt(request, receipt_id):
+    return render(request, 'service_document_detail.html', _delivery_receipt_record_context(
+        get_object_or_404(DeliveryReceipt.objects.prefetch_related('lines'), pk=receipt_id)))
+
+
+@login_required
+def edit_delivery_receipt(request, receipt_id):
+    receipt = get_object_or_404(DeliveryReceipt, pk=receipt_id)
+    form = DeliveryReceiptForm(request.POST or None, instance=receipt)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Delivery Receipt updated successfully.')
+        return redirect('view_delivery_receipt', receipt_id=receipt.id)
+    return render(request, 'service_document_form.html', {
+        'form': form,
+        'record': receipt,
+        'document_type': 'delivery_receipt',
+    })
+
+
+@login_required
+@require_POST
+def delete_delivery_receipt(request, receipt_id):
+    get_object_or_404(DeliveryReceipt, pk=receipt_id).delete()
+    messages.success(request, 'Delivery Receipt deleted.')
+    return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
 
 
 @login_required
