@@ -620,6 +620,42 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Travel Order Form — bordered label/value table like the paper form */
+  .travel-form-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 0.88rem;
+  }
+
+  .travel-form-table th,
+  .travel-form-table td {
+    border: 1px solid #101828;
+    padding: 10px 12px;
+    vertical-align: top;
+    text-align: left;
+  }
+
+  .travel-form-table th {
+    width: 38%;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .travel-form-table td {
+    min-height: 36px;
+    white-space: pre-wrap;
+    color: #344054;
+  }
+
+  .travel-form-table .travel-with-cell {
+    min-height: 72px;
+  }
+
   .signature-block {
     display: flex;
     flex-direction: column;
@@ -671,6 +707,13 @@
     outline: none;
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+
+  .field input.field-readonly,
+  .field input[readonly] {
+    background: var(--soft);
+    color: #475467;
+    cursor: default;
   }
 
   .form-actions {
@@ -1096,6 +1139,23 @@
       margin-top: 8pt !important;
     }
 
+    .travel-document .travel-form-table {
+      font-size: 9pt !important;
+    }
+
+    .travel-document .travel-form-table th,
+    .travel-document .travel-form-table td {
+      padding: 6pt 8pt !important;
+      border-width: 1pt !important;
+    }
+
+    .travel-document .travel-signatures {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 16pt !important;
+      margin-top: 14pt !important;
+    }
+
     .service-document .signature-block {
       gap: 10pt !important;
     }
@@ -1150,6 +1210,11 @@
         Delivery Receipt
         <span class="tab-badge">{{ delivery_receipt_count }}</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
+        <span class="tab-icon">🚗</span>
+        Travel Order
+        <span class="tab-badge">{{ travel_order_count }}</span>
+      </button>
     </nav>
 
     <div class="sidebar-stats">
@@ -1158,6 +1223,7 @@
       <div class="stat-row"><span>Borrow slips</span><strong>{{ material_borrow_count }}</strong></div>
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
       <div class="stat-row"><span>Delivery receipts</span><strong>{{ delivery_receipt_count }}</strong></div>
+      <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
     </div>
   </aside>
 
@@ -1194,6 +1260,10 @@
         <div class="stat-label">Delivery Receipts</div>
         <div class="stat-value">{{ delivery_receipt_count }}</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Travel Orders</div>
+        <div class="stat-value">{{ travel_order_count }}</div>
+      </div>
     </div>
 
     {% if messages %}
@@ -1217,8 +1287,9 @@
             {% csrf_token %}
             <div class="form-grid">
               <div class="field">
-                <label for="report_number">Report No. *</label>
-                <input id="report_number" name="report_number" required placeholder="SRR-2026-001">
+                <label for="report_number">Report No.</label>
+                <input id="report_number" name="report_number" value="{{ next_report_number }}" data-auto-number="{{ next_report_number }}" readonly class="field-readonly" title="Assigned automatically">
+                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
               </div>
               <div class="field">
                 <label for="report_date">Report Date *</label>
@@ -1409,8 +1480,9 @@
             {% csrf_token %}
             <div class="form-grid">
               <div class="field">
-                <label for="job_order_number">Job Order No. *</label>
-                <input id="job_order_number" name="job_order_number" required placeholder="JO-2026-001">
+                <label for="job_order_number">Job Order No.</label>
+                <input id="job_order_number" name="job_order_number" value="{{ next_job_order_number }}" data-auto-number="{{ next_job_order_number }}" readonly class="field-readonly" title="Assigned automatically">
+                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
               </div>
               <div class="field">
                 <label for="date_filed">Date Filed *</label>
@@ -1586,8 +1658,9 @@
             {% csrf_token %}
             <div class="form-grid">
               <div class="field">
-                <label for="borrow_number">Borrow No. *</label>
-                <input id="borrow_number" name="borrow_number" required placeholder="BM-2026-001">
+                <label for="borrow_number">Borrow No.</label>
+                <input id="borrow_number" name="borrow_number" value="{{ next_borrow_number }}" data-auto-number="{{ next_borrow_number }}" readonly class="field-readonly" title="Assigned automatically">
+                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
               </div>
               <div class="field">
                 <label for="date_borrowed">Date Borrowed *</label>
@@ -1982,8 +2055,9 @@
             {% csrf_token %}
             <div class="form-grid">
               <div class="field">
-                <label for="dr_receipt_number">Receipt No. *</label>
-                <input id="dr_receipt_number" name="receipt_number" required placeholder="DR-2026-001">
+                <label for="dr_receipt_number">Receipt No.</label>
+                <input id="dr_receipt_number" name="receipt_number" value="{{ next_receipt_number }}" data-auto-number="{{ next_receipt_number }}" readonly class="field-readonly" title="Assigned automatically">
+                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
               </div>
               <div class="field">
                 <label for="dr_receipt_date">Date *</label>
@@ -2017,7 +2091,7 @@
                   <span>Quantity *</span>
                   <span>Unit</span>
                   <span>Articles *</span>
-                  <span>Amount *</span>
+                  <span>Unit Amount *</span>
                   <span></span>
                 </div>
                 <div class="repeatable-list" id="drLinesList">
@@ -2025,13 +2099,13 @@
                     <select name="dr_item_inventory" data-dr-inventory aria-label="Inventory item">
                       <option value="">Manual entry</option>
                       {% for item in inventory_items %}
-                      <option value="{{ item.id }}" data-name="{{ item.name|escape }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
+                      <option value="{{ item.id }}" data-name="{{ item.name|escape }}" data-price="{{ item.price }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
                       {% endfor %}
                     </select>
                     <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
                     <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
                     <input type="text" name="dr_item_description" placeholder="Item / article description" required data-dr-description>
-                    <input type="number" name="dr_item_amount" value="0" min="0" step="0.01" data-dr-amount aria-label="Amount">
+                    <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
                     <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
                   </div>
                 </div>
@@ -2090,17 +2164,18 @@
                     <th>Quantity</th>
                     <th>Unit</th>
                     <th>Articles</th>
+                    <th>Unit Amount</th>
                     <th>Amount</th>
                   </tr>
                 </thead>
                 <tbody data-preview="dr_lines">
                   <tr class="empty-row">
-                    <td colspan="4">No articles added yet.</td>
+                    <td colspan="5">No articles added yet.</td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colspan="3" style="text-align:right;font-weight:800;">Total</td>
+                    <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
                     <td style="font-weight:800;" data-preview="dr_total">₱0.00</td>
                   </tr>
                 </tfoot>
@@ -2176,6 +2251,183 @@
       </div>
     </div>
 
+    <!-- Travel Order Form -->
+    <div id="travelOrderTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Travel Order Form</h2>
+        <p>Issue and track vehicle travel orders for drivers and passengers.</p>
+      </div>
+
+      <div class="grid-2">
+        <section class="panel no-print">
+          <form method="post" action="{% url 'create_travel_order_form' %}" id="travelOrderForm">
+            {% csrf_token %}
+            <div class="form-grid">
+              <div class="field">
+                <label for="to_travel_date">Date *</label>
+                <input id="to_travel_date" name="travel_date" type="date" required>
+              </div>
+              <div class="field">
+                <label for="to_driver_name">Driver's Name *</label>
+                <input id="to_driver_name" name="driver_name" required placeholder="e.g. J. Ramirez">
+              </div>
+
+              <div class="field full">
+                <label>Travel with</label>
+                <div class="repeatable-list" id="travelWithList">
+                  <div class="repeatable-row">
+                    <input type="text" name="travel_with" placeholder="Passenger name" data-travel-repeatable="names">
+                    <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove passenger">✕</button>
+                  </div>
+                </div>
+                <button type="button" class="action repeatable-add" id="travelAddPassenger">+ Add passenger</button>
+              </div>
+
+              <div class="field full">
+                <label for="to_destination">Venue / Destination</label>
+                <input id="to_destination" name="destination" placeholder="e.g. Carmen">
+              </div>
+              <div class="field full">
+                <label for="to_purpose">Purpose of Travel</label>
+                <textarea id="to_purpose" name="purpose" placeholder="e.g. Pump test"></textarea>
+              </div>
+              <div class="field">
+                <label for="to_departure_time">Departure Time</label>
+                <input id="to_departure_time" name="departure_time" type="time">
+              </div>
+              <div class="field">
+                <label for="to_vehicle_plate">Vehicle / Plate No.</label>
+                <input id="to_vehicle_plate" name="vehicle_plate" placeholder="e.g. MAO 7401 BOOM">
+              </div>
+              <div class="field full">
+                <label for="to_fuel_allowance">Fuel Allowance (PO# Amount/Liters)</label>
+                <input id="to_fuel_allowance" name="fuel_allowance" placeholder="PO# / Amount / Liters">
+              </div>
+
+              <div class="field full section-heading">Authorization</div>
+              <div class="signature-grid signature-grid-2">
+                <div class="signature-field">
+                  <label>Issued by</label>
+                  <input value="AIZA MAE POQUITA" disabled style="color:var(--muted);background:var(--soft);cursor:not-allowed;">
+                </div>
+                <div class="signature-field">
+                  <label for="to_approved_by">Approved by</label>
+                  <input id="to_approved_by" name="approved_by" placeholder="Name">
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="reset" class="action">Clear</button>
+              <button type="submit" class="primary">Save travel order</button>
+            </div>
+          </form>
+        </section>
+
+        <article class="document service-document travel-document">
+          <header class="doc-header">
+            <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+          </header>
+          <div class="doc-body">
+            <h3 class="doc-title">TRAVEL ORDER FORM</h3>
+            <table class="travel-form-table">
+              <tr>
+                <th>Date</th>
+                <td data-preview="travel_date">—</td>
+              </tr>
+              <tr>
+                <th>Driver's Name</th>
+                <td data-preview="driver_name">—</td>
+              </tr>
+              <tr>
+                <th>Travel with</th>
+                <td class="travel-with-cell" data-preview="travel_with">—</td>
+              </tr>
+              <tr>
+                <th>Venue/Destination</th>
+                <td data-preview="destination">—</td>
+              </tr>
+              <tr>
+                <th>Purpose of Travel</th>
+                <td data-preview="purpose">—</td>
+              </tr>
+              <tr>
+                <th>Departure Time</th>
+                <td data-preview="departure_time">—</td>
+              </tr>
+              <tr>
+                <th>Vehicle/ Plate No.</th>
+                <td data-preview="vehicle_plate">—</td>
+              </tr>
+              <tr>
+                <th>Fuel Allowance (PO# Amount/Liters)</th>
+                <td data-preview="fuel_allowance">—</td>
+              </tr>
+            </table>
+            <div class="doc-section doc-section-full">
+              <div class="signature-row travel-signatures">
+                <div class="signature-block">
+                  <span class="signature-label">Issued by:</span>
+                  <div class="signature-line">&nbsp;</div>
+                  <span>AIZA MAE POQUITA</span>
+                </div>
+                <div class="signature-block">
+                  <span class="signature-label">Approved by:</span>
+                  <div class="signature-line"><span data-preview="approved_by">—</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="doc-footer">
+            <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+          </footer>
+        </article>
+      </div>
+
+      <div class="panel no-print">
+        <h2 style="margin:0 0 8px;font-size:1rem;">Recent Travel Orders</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed travel order forms.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>Destination</th>
+                <th>Vehicle</th>
+                <th>Departure</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in travel_order_forms %}
+              <tr>
+                <td>{{ order.travel_date|date:'M d, Y' }}</td>
+                <td>{{ order.driver_name }}</td>
+                <td>{{ order.destination|default:'—'|truncatechars:30 }}</td>
+                <td>{{ order.vehicle_plate|default:'—'|truncatechars:20 }}</td>
+                <td>{% if order.departure_time %}{{ order.departure_time|time:'g:i A' }}{% else %}—{% endif %}</td>
+                <td>
+                  <div class="record-actions">
+                    <a class="action" href="{% url 'view_travel_order_form' order.id %}">View</a>
+                    <a class="action" href="{% url 'edit_travel_order_form' order.id %}">Edit</a>
+                    <form method="post" action="{% url 'delete_travel_order_form' order.id %}" onsubmit="return confirm('Delete Travel Order for {{ order.driver_name }}? This cannot be undone.');">
+                      {% csrf_token %}
+                      <button class="action danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No travel orders saved yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="no-print" style="margin-top:12px;"></div>
   </main>
 </div>
@@ -2189,6 +2441,7 @@
       borrowMaterialTab: document.getElementById('borrowMaterialTab'),
       officialBusinessTab: document.getElementById('officialBusinessTab'),
       deliveryReceiptTab: document.getElementById('deliveryReceiptTab'),
+      travelOrderTab: document.getElementById('travelOrderTab'),
     };
     const defaultTab = 'repairTab';
 
@@ -2214,7 +2467,9 @@
           ? 'borrowMaterialTab'
           : (location.hash === '#ob'
             ? 'officialBusinessTab'
-            : (location.hash === '#delivery' ? 'deliveryReceiptTab' : null))));
+            : (location.hash === '#delivery'
+              ? 'deliveryReceiptTab'
+              : (location.hash === '#travel' ? 'travelOrderTab' : null)))));
     const initialTab = (tabParam && panels[tabParam]) ? tabParam : (hashTab || defaultTab);
     activateTab(initialTab);
 
@@ -2239,50 +2494,89 @@
 
     document.querySelectorAll('.tab-panel').forEach(panel => {
       panel.querySelectorAll('input, textarea, select').forEach(field => {
-        const update = () => {
-          if (field.name === 'assignee_names') {
-            updateJobRepeatablePreview(panel, 'assignee_names', 'input[name="assignee_names"]');
-            return;
-          }
-          if (field.name === 'dates_covered') {
-            updateJobRepeatablePreview(panel, 'dates_covered', 'input[name="dates_covered"]', true);
-            return;
-          }
-          if (field.name === 'ob_dates') {
-            updateJobRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
-            return;
-          }
-          panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach(target => {
-            if (field.tagName === 'SELECT') {
-              target.textContent = field.options[field.selectedIndex].text;
-              return;
-            }
-            let displayValue = field.value || '—';
-            if (field.type === 'date' && field.value) {
-              const parsed = new Date(`${field.value}T00:00:00`);
-              if (!Number.isNaN(parsed.getTime())) {
-                displayValue = parsed.toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                });
-              }
-            } else if (field.type === 'time' && field.value) {
-              const [hoursStr, minutesStr] = field.value.split(':');
-              const hours = parseInt(hoursStr, 10);
-              if (!Number.isNaN(hours)) {
-                const period = hours >= 12 ? 'PM' : 'AM';
-                const displayHour = ((hours + 11) % 12) + 1;
-                displayValue = `${displayHour}:${minutesStr} ${period}`;
-              }
-            }
-            target.textContent = displayValue;
-          });
-        };
+        const update = () => syncFieldPreview(panel, field);
         field.addEventListener('input', update);
         field.addEventListener('change', update);
       });
     });
+
+    function syncFieldPreview(panel, field) {
+      if (!panel || !field || !field.name) return;
+      if (field.name === 'assignee_names') {
+        updateJobRepeatablePreview(panel, 'assignee_names', 'input[name="assignee_names"]');
+        return;
+      }
+      if (field.name === 'dates_covered') {
+        updateJobRepeatablePreview(panel, 'dates_covered', 'input[name="dates_covered"]', true);
+        return;
+      }
+      if (field.name === 'ob_dates') {
+        updateJobRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
+        return;
+      }
+      if (field.name === 'travel_with') {
+        const values = [...panel.querySelectorAll('input[name="travel_with"]')]
+          .map((input) => input.value.trim())
+          .filter(Boolean);
+        panel.querySelectorAll('[data-preview="travel_with"]').forEach((target) => {
+          target.textContent = values.length ? values.join('\n') : '—';
+        });
+        return;
+      }
+      panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach(target => {
+        if (field.tagName === 'SELECT') {
+          target.textContent = field.options[field.selectedIndex].text;
+          return;
+        }
+        let displayValue = field.value || '—';
+        if (field.type === 'date' && field.value) {
+          const parsed = new Date(`${field.value}T00:00:00`);
+          if (!Number.isNaN(parsed.getTime())) {
+            displayValue = parsed.toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            });
+          }
+        } else if (field.type === 'time' && field.value) {
+          const [hoursStr, minutesStr] = field.value.split(':');
+          const hours = parseInt(hoursStr, 10);
+          if (!Number.isNaN(hours)) {
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHour = ((hours + 11) % 12) + 1;
+            displayValue = `${displayHour}:${minutesStr} ${period}`;
+          }
+        }
+        target.textContent = displayValue;
+      });
+    }
+
+    function syncPanelPreviews(panel) {
+      if (!panel) return;
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        syncFieldPreview(panel, field);
+      });
+    }
+
+    function syncAllFormPreviews() {
+      document.querySelectorAll('.tab-panel').forEach(syncPanelPreviews);
+    }
+
+    function localTodayISO() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function setDefaultDate(input, value) {
+      if (!input) return;
+      if (!input.value) input.value = value;
+      // Always refresh the live preview so today's date shows immediately.
+      const panel = input.closest('.tab-panel');
+      if (panel) syncFieldPreview(panel, input);
+    }
 
     function updateJobRepeatablePreview(panel, previewKey, selector, isDate) {
       const values = [...panel.querySelectorAll(selector)]
@@ -2295,8 +2589,9 @@
             ? value
             : parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         });
+      const joiner = previewKey === 'travel_with' ? '\n' : ', ';
       panel.querySelectorAll(`[data-preview="${previewKey}"]`).forEach((target) => {
-        target.textContent = values.length ? values.join(', ') : '—';
+        target.textContent = values.length ? values.join(joiner) : '—';
       });
     }
 
@@ -2377,6 +2672,7 @@
     setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name');
     setupRepeatableList('jobDatesList', 'jobAddDate', 'date', 'dates_covered', '');
     setupRepeatableList('obDatesList', 'obAddDate', 'date', 'ob_dates', '');
+    setupRepeatableList('travelWithList', 'travelAddPassenger', 'text', 'travel_with', 'Passenger name');
 
     function updateBorrowLinesPreview() {
       const panel = document.getElementById('borrowMaterialTab');
@@ -2507,12 +2803,14 @@
         const description = row.querySelector('[data-dr-description]')?.value.trim() || '';
         const quantity = parseFloat(row.querySelector('[data-dr-quantity]')?.value) || 0;
         const unit = row.querySelector('[data-dr-unit]')?.value.trim() || 'pcs';
-        const amount = parseFloat(row.querySelector('[data-dr-amount]')?.value) || 0;
-        return { description, quantity, unit, amount };
-      }).filter((line) => line.description);
+        const unitPrice = parseFloat(row.querySelector('[data-dr-unit-price]')?.value) || 0;
+        // Line amount = quantity × unit amount
+        const amount = quantity * unitPrice;
+        return { description, quantity, unit, unitPrice, amount };
+      }).filter((line) => line.description || line.quantity || line.unitPrice);
 
       if (!lines.length) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No articles added yet.</td></tr>';
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No articles added yet.</td></tr>';
         if (totalCell) totalCell.textContent = formatCurrency(0);
         return;
       }
@@ -2521,12 +2819,13 @@
         <tr>
           <td>${escapeHtml(line.quantity)}</td>
           <td>${escapeHtml(line.unit)}</td>
-          <td>${escapeHtml(line.description)}</td>
+          <td>${escapeHtml(line.description || '—')}</td>
+          <td>${formatCurrency(line.unitPrice)}</td>
           <td>${formatCurrency(line.amount)}</td>
         </tr>
       `).join('');
 
-      const total = lines.reduce((sum, line) => sum + line.amount, 0);
+      const total = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
       if (totalCell) totalCell.textContent = formatCurrency(total);
     }
 
@@ -2555,9 +2854,14 @@
         if (!select) return;
         select.addEventListener('change', () => {
           const option = select.options[select.selectedIndex];
-          const description = select.closest('.dr-line-row')?.querySelector('[data-dr-description]');
+          const row = select.closest('.dr-line-row');
+          const description = row?.querySelector('[data-dr-description]');
+          const unitPrice = row?.querySelector('[data-dr-unit-price]');
           if (description && option?.dataset.name) {
             description.value = option.dataset.name;
+          }
+          if (unitPrice && option?.dataset.price) {
+            unitPrice.value = option.dataset.price;
           }
           updateDeliveryReceiptLinesPreview();
         });
@@ -2589,7 +2893,7 @@
           <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
           <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
           <input type="text" name="dr_item_description" placeholder="Item / article description" data-dr-description>
-          <input type="number" name="dr_item_amount" value="0" min="0" step="0.01" data-dr-amount aria-label="Amount">
+          <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
           <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
         `;
         list.appendChild(row);
@@ -2606,17 +2910,37 @@
 
     setupDeliveryReceiptLines();
 
-    const today = new Date().toISOString().slice(0, 10);
-    const reportDate = document.getElementById('report_date');
-    const dateFiled = document.getElementById('date_filed');
-    const dateBorrowed = document.getElementById('date_borrowed');
-    const obApplicationDate = document.getElementById('ob_application_date');
-    const drReceiptDate = document.getElementById('dr_receipt_date');
-    if (reportDate && !reportDate.value) reportDate.value = today;
-    if (dateFiled && !dateFiled.value) dateFiled.value = today;
-    if (dateBorrowed && !dateBorrowed.value) dateBorrowed.value = today;
-    if (obApplicationDate && !obApplicationDate.value) obApplicationDate.value = today;
-    if (drReceiptDate && !drReceiptDate.value) drReceiptDate.value = today;
+    const today = localTodayISO();
+    setDefaultDate(document.getElementById('report_date'), today);
+    setDefaultDate(document.getElementById('date_filed'), today);
+    setDefaultDate(document.getElementById('date_borrowed'), today);
+    setDefaultDate(document.getElementById('ob_application_date'), today);
+    setDefaultDate(document.getElementById('dr_receipt_date'), today);
+    setDefaultDate(document.getElementById('to_travel_date'), today);
+
+    // After Clear/reset, restore today's date, auto numbers, and refresh the preview.
+    document.querySelectorAll('.tab-panel form').forEach((form) => {
+      form.addEventListener('reset', () => {
+        requestAnimationFrame(() => {
+          const panel = form.closest('.tab-panel');
+          form.querySelectorAll('input[type="date"]').forEach((input) => {
+            if (!input.value) input.value = localTodayISO();
+          });
+          form.querySelectorAll('input[data-auto-number]').forEach((input) => {
+            input.value = input.getAttribute('data-auto-number') || '';
+          });
+          syncPanelPreviews(panel);
+          if (panel?.id === 'borrowMaterialTab' && typeof updateBorrowLinesPreview === 'function') {
+            updateBorrowLinesPreview();
+          }
+          if (panel?.id === 'deliveryReceiptTab' && typeof updateDeliveryReceiptLinesPreview === 'function') {
+            updateDeliveryReceiptLinesPreview();
+          }
+        });
+      });
+    });
+
+    syncAllFormPreviews();
   })();
 </script>
 {% endblock %}

@@ -1,0 +1,967 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Water Billing Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #cbd5e1;
+    --brand: #0369a1;
+    --brand-dark: #075985;
+    --brand-light: #e0f2fe;
+    --panel: #ffffff;
+    --soft: #f8fafc;
+    --danger: #b42318;
+    --success: #027a48;
+    --warning: #b54708;
+    --sidebar-width: 280px;
+    --radius: 14px;
+    --shadow: 0 18px 42px rgba(15, 23, 42, 0.07);
+  }
+  body {
+    display: block; padding: 0; margin: 0;
+    background: #f1f5f9; color: var(--ink);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .dashboard-wrapper { display: flex; min-height: 100vh; }
+  .sidebar {
+    position: sticky; top: 0; flex: 0 0 var(--sidebar-width); width: var(--sidebar-width);
+    height: 100vh; overflow-y: auto; background: linear-gradient(180deg, #0c4a6e 0%, #0369a1 100%);
+    color: #e0f2fe; display: flex; flex-direction: column; z-index: 100;
+  }
+  .sidebar-brand { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-brand .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+  .sidebar-brand .logo-icon { width: 38px; height: 38px; object-fit: contain; border-radius: 10px; }
+  .sidebar-brand .logo-text { font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
+  .sidebar-brand .logo-text small { display: block; font-weight: 400; font-size: 0.68rem; opacity: 0.65; margin-top: 2px; }
+  .sidebar-nav { padding: 16px 12px; flex: 1; }
+  .sidebar-nav .nav-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.45;
+    padding: 0 12px 10px; font-weight: 700;
+  }
+  .sidebar-nav .tab-button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; border: none; background: transparent; color: inherit;
+    border-radius: 10px; cursor: pointer; font: inherit; font-size: 0.88rem; font-weight: 600;
+    text-align: left; margin-bottom: 4px;
+  }
+  .sidebar-nav .tab-button:hover { background: rgba(255,255,255,0.08); }
+  .sidebar-nav .tab-button[aria-selected="true"] { background: rgba(255,255,255,0.16); color: #fff; }
+  .sidebar-nav .tab-icon { width: 1.25rem; text-align: center; }
+  .sidebar-footer { padding: 14px 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-footer a { color: #bae6fd; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+  .main { flex: 1; min-width: 0; padding: 24px 28px 48px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+  .page-header h1 { margin: 0; font-size: 1.65rem; letter-spacing: -0.02em; }
+  .page-header p { margin: 6px 0 0; color: var(--muted); }
+  .messages { list-style: none; padding: 0; margin: 0 0 16px; }
+  .messages li { padding: 10px 14px; border-radius: 10px; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+  .messages .success { background: #ecfdf3; color: var(--success); border: 1px solid #a6f4c5; }
+  .messages .error { background: #fef3f2; color: var(--danger); border: 1px solid #fecdca; }
+  .messages .info { background: var(--brand-light); color: var(--brand-dark); border: 1px solid #7dd3fc; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px;
+  }
+  .kpi-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 18px; box-shadow: var(--shadow);
+  }
+  .kpi-card .label { color: var(--muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi-card .value { margin-top: 8px; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
+  .kpi-card .hint { margin-top: 4px; color: var(--muted); font-size: 0.78rem; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px;
+  }
+  .panel h2 { margin: 0 0 4px; font-size: 1.15rem; }
+  .panel .sub { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
+  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+    font: inherit; background: #fff;
+  }
+  .field input[readonly] { background: var(--soft); color: #475569; }
+  .field textarea { min-height: 72px; resize: vertical; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+  button, .action {
+    border: 1px solid var(--brand); background: var(--brand); color: #fff;
+    padding: 9px 16px; font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px; font-size: 0.88rem;
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  }
+  button:hover, .action.primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+  .action { background: #fff; color: var(--brand); border-color: var(--line); }
+  .action:hover { background: var(--soft); border-color: var(--brand); }
+  .action.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .action.danger { color: var(--danger); border-color: #fecdca; }
+  .table-wrap { overflow-x: auto; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  table.data th, table.data td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+  table.data th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--soft); }
+  table.data tr:hover td { background: #f8fafc; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700; background: #e2e8f0; color: #334155;
+  }
+  .badge.active, .badge.paid, .badge.completed { background: #dcfce7; color: #166534; }
+  .badge.disconnected, .badge.overdue, .badge.unpaid { background: #fee2e2; color: #991b1b; }
+  .badge.partial, .badge.scheduled { background: #ffedd5; color: #9a3412; }
+  .badge.inactive, .badge.cancelled { background: #e2e8f0; color: #475569; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: end; }
+  .filters .field { min-width: 160px; }
+  .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  .empty { color: var(--muted); padding: 18px 8px; text-align: center; }
+  .aging-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+  .aging-card { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .aging-card strong { display: block; font-size: 1.1rem; margin-top: 4px; }
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .split, .form-grid { grid-template-columns: 1fr 1fr; }
+    .aging-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .dashboard-wrapper { flex-direction: column; }
+    .sidebar { position: relative; width: 100%; height: auto; flex: none; }
+    .kpi-grid, .form-grid, .split, .aging-grid { grid-template-columns: 1fr; }
+  }
+  @media print {
+    .sidebar, .form-actions, .filters button, .no-print { display: none !important; }
+    .main { padding: 0; }
+    .tab-panel { display: block !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <a class="logo" href="{% url 'dashboard' %}">
+        <img class="logo-icon" src="{% static 'viclogo_white.png' %}" alt="Versatec">
+        <span class="logo-text">VERSATEC<small>Water Billing</small></span>
+      </a>
+    </div>
+    <nav class="sidebar-nav" aria-label="Water billing sections">
+      <div class="nav-label">Navigation</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="overviewTab"><span class="tab-icon">📊</span> Dashboard</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="customersTab"><span class="tab-icon">👤</span> Customers</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="readingsTab"><span class="tab-icon">📟</span> Meter Readings</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="billingTab"><span class="tab-icon">📄</span> Billing</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="paymentsTab"><span class="tab-icon">💵</span> Payments</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="arTab"><span class="tab-icon">📌</span> Accounts Receivable</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span> Disconnect / Reconnect</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="reportsTab"><span class="tab-icon">📈</span> Reports</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="auditTab"><span class="tab-icon">🗂️</span> Audit Logs</button>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="{% url 'dashboard' %}">← Back to workspaces</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>Water Billing Dashboard</h1>
+        <p>Customers, meter readings, billing, collections, and service status in one place.</p>
+      </div>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <!-- OVERVIEW -->
+    <section id="overviewTab" class="tab-panel active" role="tabpanel">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="label">💧 Total Customers</div><div class="value">{{ stats.total_customers }}</div></div>
+        <div class="kpi-card"><div class="label">🚰 Active Connections</div><div class="value">{{ stats.active_connections }}</div></div>
+        <div class="kpi-card"><div class="label">📄 Bills Generated</div><div class="value">{{ stats.bills_generated }}</div><div class="hint">This month</div></div>
+        <div class="kpi-card"><div class="label">💵 Revenue Collected</div><div class="value">₱{{ stats.revenue_collected|floatformat:2 }}</div><div class="hint">This month</div></div>
+        <div class="kpi-card"><div class="label">📌 Outstanding Balance</div><div class="value">₱{{ stats.outstanding_balance|floatformat:2 }}</div></div>
+        <div class="kpi-card"><div class="label">📈 Collection Rate</div><div class="value">{{ stats.collection_rate }}%</div></div>
+        <div class="kpi-card"><div class="label">📊 Monthly Consumption</div><div class="value">{{ stats.month_consumption }}</div><div class="hint">cu.m this month</div></div>
+        <div class="kpi-card"><div class="label">❌ Disconnected</div><div class="value">{{ stats.disconnected_accounts }}</div></div>
+        <div class="kpi-card"><div class="label">✅ Reconnected</div><div class="value">{{ stats.reconnected_accounts }}</div><div class="hint">This month</div></div>
+        <div class="kpi-card"><div class="label">🆕 New Customers</div><div class="value">{{ stats.new_customers }}</div><div class="hint">This month</div></div>
+      </div>
+      <div class="panel">
+        <h2>Quick workflow</h2>
+        <p class="sub">Register customers → record meter readings → generate bills → collect payments → manage disconnections.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <button type="button" class="action primary" data-jump="customersTab">Add customer</button>
+          <button type="button" class="action" data-jump="readingsTab">Record reading</button>
+          <button type="button" class="action" data-jump="billingTab">Generate bill</button>
+          <button type="button" class="action" data-jump="paymentsTab">Record payment</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOMERS -->
+    <section id="customersTab" class="tab-panel" role="tabpanel">
+      <div class="split">
+        <div class="panel">
+          <h2>Register customer</h2>
+          <p class="sub">Account numbers are assigned automatically.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_customer">
+            <div class="form-grid">
+              <div class="field">
+                <label>Account No.</label>
+                <input name="account_number" value="{{ next_account_number }}" readonly>
+              </div>
+              <div class="field">
+                <label>Registration Date</label>
+                <input type="date" name="registration_date" id="custRegDate">
+              </div>
+              <div class="field">
+                <label>Customer Type</label>
+                <select name="customer_type">
+                  {% for value, label in customer_types %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field full">
+                <label>Full Name *</label>
+                <input name="full_name" required>
+              </div>
+              <div class="field full">
+                <label>Service Address *</label>
+                <textarea name="service_address" required></textarea>
+              </div>
+              <div class="field">
+                <label>Contact Number</label>
+                <input name="contact_number">
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" name="email">
+              </div>
+              <div class="field">
+                <label>Meter Number *</label>
+                <input name="meter_number" required>
+              </div>
+              <div class="field">
+                <label>Connection Status</label>
+                <select name="connection_status">
+                  {% for value, label in connection_statuses %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field full">
+                <label>Notes</label>
+                <textarea name="notes"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit">Save customer</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Customer list</h2>
+          <p class="sub">Search and filter accounts.</p>
+          <form method="get" class="filters">
+            <input type="hidden" name="tab" value="customersTab">
+            <div class="field" style="flex:1; min-width:180px;">
+              <label>Search</label>
+              <input name="customer_q" value="{{ customer_q }}" placeholder="Name, account, meter…">
+            </div>
+            <div class="field">
+              <label>Type</label>
+              <select name="customer_type">
+                <option value="">All</option>
+                {% for value, label in customer_types %}
+                <option value="{{ value }}" {% if customer_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select name="customer_status">
+                <option value="">All</option>
+                {% for value, label in connection_statuses %}
+                <option value="{{ value }}" {% if customer_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action primary">Filter</button>
+          </form>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for c in customers %}
+                <tr>
+                  <td>{{ c.account_number }}</td>
+                  <td>{{ c.full_name }}<div style="color:var(--muted);font-size:0.78rem;">{{ c.service_address|truncatechars:40 }}</div></td>
+                  <td>{{ c.get_customer_type_display }}</td>
+                  <td>{{ c.meter_number }}</td>
+                  <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
+                  <td>
+                    <form method="post" onsubmit="return confirm('Delete customer {{ c.account_number }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_customer">
+                      <input type="hidden" name="customer_id" value="{{ c.id }}">
+                      <button type="submit" class="action danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="empty">No customers found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- READINGS -->
+    <section id="readingsTab" class="tab-panel" role="tabpanel">
+      <div class="split">
+        <div class="panel">
+          <h2>Record meter reading</h2>
+          <p class="sub">Consumption is calculated from previous → current reading.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_reading">
+            <div class="form-grid">
+              <div class="field full">
+                <label>Customer *</label>
+                <select name="customer_id" id="readingCustomer" required>
+                  <option value="">Select account…</option>
+                  {% for c in all_customers %}
+                  <option value="{{ c.id }}" data-last="{% if c.readings.first %}{{ c.readings.first.current_reading }}{% else %}0{% endif %}">
+                    {{ c.account_number }} – {{ c.full_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Reading Date *</label>
+                <input type="date" name="reading_date" id="readingDate" required>
+              </div>
+              <div class="field">
+                <label>Billing Period *</label>
+                <input name="billing_period" id="billingPeriod" placeholder="2026-07" required>
+              </div>
+              <div class="field">
+                <label>Previous Reading</label>
+                <input type="number" min="0" name="previous_reading" id="previousReading" value="0">
+              </div>
+              <div class="field">
+                <label>Current Reading *</label>
+                <input type="number" min="0" name="current_reading" required>
+              </div>
+              <div class="field">
+                <label>Reader Name</label>
+                <input name="reader_name">
+              </div>
+              <div class="field">
+                <label>Estimated?</label>
+                <select name="is_estimated">
+                  <option value="">No</option>
+                  <option value="1">Yes – estimated</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label>Remarks</label>
+                <input name="remarks">
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit">Save reading</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Reading history</h2>
+          <p class="sub">Recent meter readings across all accounts.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr><th>Account</th><th>Period</th><th>Prev</th><th>Curr</th><th>Use</th><th>Date</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for r in readings %}
+                <tr>
+                  <td>{{ r.customer.account_number }}</td>
+                  <td>{{ r.billing_period }}{% if r.is_estimated %} <span class="badge scheduled">Est.</span>{% endif %}</td>
+                  <td>{{ r.previous_reading }}</td>
+                  <td>{{ r.current_reading }}</td>
+                  <td><strong>{{ r.consumption }}</strong> cu.m</td>
+                  <td>{{ r.reading_date }}</td>
+                  <td>
+                    <form method="post" onsubmit="return confirm('Delete this reading?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_reading">
+                      <input type="hidden" name="reading_id" value="{{ r.id }}">
+                      <button type="submit" class="action danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty">No readings yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BILLING -->
+    <section id="billingTab" class="tab-panel" role="tabpanel">
+      <div class="split">
+        <div class="panel">
+          <h2>Generate monthly bill</h2>
+          <p class="sub">Charges include consumption, fixed, environmental, maintenance, tax, discount, and penalty.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_bill">
+            <div class="form-grid">
+              <div class="field">
+                <label>Bill No.</label>
+                <input name="bill_number" value="{{ next_bill_number }}" readonly>
+              </div>
+              <div class="field">
+                <label>Bill Date *</label>
+                <input type="date" name="bill_date" id="billDate" required>
+              </div>
+              <div class="field">
+                <label>Due Date *</label>
+                <input type="date" name="due_date" id="dueDate" required>
+              </div>
+              <div class="field full">
+                <label>Customer *</label>
+                <select name="customer_id" required>
+                  <option value="">Select account…</option>
+                  {% for c in all_customers %}
+                  <option value="{{ c.id }}">{{ c.account_number }} – {{ c.full_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field full">
+                <label>Meter Reading (optional)</label>
+                <select name="reading_id">
+                  <option value="">Manual consumption entry…</option>
+                  {% for r in readings_without_bill %}
+                  <option value="{{ r.id }}">{{ r.customer.account_number }} · {{ r.billing_period }} · {{ r.consumption }} cu.m</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Billing Period</label>
+                <input name="billing_period" placeholder="2026-07">
+              </div>
+              <div class="field">
+                <label>Consumption (cu.m)</label>
+                <input type="number" min="0" name="consumption" value="0">
+              </div>
+              <div class="field">
+                <label>Rate / cu.m</label>
+                <input name="rate_per_cum" value="{{ default_rate }}">
+              </div>
+              <div class="field">
+                <label>Fixed Charge</label>
+                <input name="fixed_charge" value="{{ default_fixed }}">
+              </div>
+              <div class="field">
+                <label>Environmental Fee</label>
+                <input name="environmental_fee" value="{{ default_env }}">
+              </div>
+              <div class="field">
+                <label>Maintenance Fee</label>
+                <input name="maintenance_fee" value="{{ default_maint }}">
+              </div>
+              <div class="field">
+                <label>Tax</label>
+                <input name="tax" value="0.00">
+              </div>
+              <div class="field">
+                <label>Discount</label>
+                <input name="discount" value="0.00">
+              </div>
+              <div class="field">
+                <label>Penalty</label>
+                <input name="penalty" value="0.00">
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit">Generate bill</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Billing history</h2>
+          <p class="sub">Recent bills with payment status.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr><th>Bill #</th><th>Account</th><th>Period</th><th>Total</th><th>Balance</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for b in bills %}
+                <tr>
+                  <td>{{ b.bill_number }}</td>
+                  <td>{{ b.customer.account_number }}</td>
+                  <td>{{ b.billing_period }}<div style="color:var(--muted);font-size:0.75rem;">Due {{ b.due_date }}</div></td>
+                  <td>₱{{ b.total_amount|floatformat:2 }}</td>
+                  <td>₱{{ b.balance_due|floatformat:2 }}</td>
+                  <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+                  <td>
+                    <form method="post" onsubmit="return confirm('Delete bill {{ b.bill_number }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_bill">
+                      <input type="hidden" name="bill_id" value="{{ b.id }}">
+                      <button type="submit" class="action danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty">No bills generated yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYMENTS -->
+    <section id="paymentsTab" class="tab-panel" role="tabpanel">
+      <div class="split">
+        <div class="panel">
+          <h2>Record payment</h2>
+          <p class="sub">Supports partial and full payments. Receipt numbers are automatic.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_payment">
+            <div class="form-grid">
+              <div class="field">
+                <label>Receipt No.</label>
+                <input name="receipt_number" value="{{ next_receipt_number }}" readonly>
+              </div>
+              <div class="field">
+                <label>Payment Date *</label>
+                <input type="date" name="payment_date" id="paymentDate" required>
+              </div>
+              <div class="field">
+                <label>Method</label>
+                <select name="payment_method">
+                  {% for value, label in payment_methods %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field full">
+                <label>Bill *</label>
+                <select name="bill_id" id="paymentBill" required>
+                  <option value="">Select unpaid / partial bill…</option>
+                  {% for b in open_bills_for_payment %}
+                  <option value="{{ b.id }}" data-balance="{{ b.balance_due }}">
+                    {{ b.bill_number }} – {{ b.customer.account_number }} (bal ₱{{ b.balance_due|floatformat:2 }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Amount *</label>
+                <input name="amount" id="paymentAmount" required>
+              </div>
+              <div class="field">
+                <label>Reference No.</label>
+                <input name="reference_number" placeholder="Bank / OR ref">
+              </div>
+              <div class="field">
+                <label>Received By</label>
+                <input name="received_by">
+              </div>
+              <div class="field full">
+                <label>Remarks</label>
+                <input name="remarks">
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit">Save payment</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Payment history</h2>
+          <p class="sub">Official receipts and collection trail.</p>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr><th>Receipt</th><th>Date</th><th>Account</th><th>Bill</th><th>Amount</th><th>Method</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td>{{ p.receipt_number }}</td>
+                  <td>{{ p.payment_date }}</td>
+                  <td>{{ p.customer.account_number }}</td>
+                  <td>{{ p.bill.bill_number }}</td>
+                  <td>₱{{ p.amount|floatformat:2 }}</td>
+                  <td>{{ p.get_payment_method_display }}</td>
+                  <td>
+                    <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_payment">
+                      <input type="hidden" name="payment_id" value="{{ p.id }}">
+                      <button type="submit" class="action danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty">No payments recorded yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AR -->
+    <section id="arTab" class="tab-panel" role="tabpanel">
+      <div class="panel">
+        <h2>Accounts receivable</h2>
+        <p class="sub">Outstanding balances and aging buckets.</p>
+        <div class="aging-grid">
+          <div class="aging-card"><span class="label">Current</span><strong>₱{{ aging_buckets.current|floatformat:2 }}</strong></div>
+          <div class="aging-card"><span class="label">1–30 days</span><strong>₱{{ aging_buckets.d1_30|floatformat:2 }}</strong></div>
+          <div class="aging-card"><span class="label">31–60 days</span><strong>₱{{ aging_buckets.d31_60|floatformat:2 }}</strong></div>
+          <div class="aging-card"><span class="label">61–90 days</span><strong>₱{{ aging_buckets.d61_90|floatformat:2 }}</strong></div>
+          <div class="aging-card"><span class="label">90+ days</span><strong>₱{{ aging_buckets.d90_plus|floatformat:2 }}</strong></div>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {% for b in unpaid_bills %}
+              <tr>
+                <td>{{ b.bill_number }}</td>
+                <td>{{ b.customer.account_number }}</td>
+                <td>{{ b.customer.full_name }}</td>
+                <td>{{ b.due_date }}</td>
+                <td>₱{{ b.total_amount|floatformat:2 }}</td>
+                <td><strong>₱{{ b.balance_due|floatformat:2 }}</strong></td>
+                <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="empty">No outstanding balances.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISCONNECT -->
+    <section id="disconnectTab" class="tab-panel" role="tabpanel">
+      <div class="split">
+        <div class="panel">
+          <h2>Schedule disconnection / reconnection</h2>
+          <p class="sub">Track service status and reconnection fees.</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_service_action">
+            <div class="form-grid">
+              <div class="field full">
+                <label>Customer *</label>
+                <select name="customer_id" required>
+                  <option value="">Select account…</option>
+                  {% for c in all_customers %}
+                  <option value="{{ c.id }}">{{ c.account_number }} – {{ c.full_name }} ({{ c.get_connection_status_display }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Action *</label>
+                <select name="action_type" required>
+                  {% for value, label in service_action_types %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Date *</label>
+                <input type="date" name="action_date" id="actionDate" required>
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <select name="status">
+                  {% for value, label in service_action_statuses %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Reconnection Fee</label>
+                <input name="reconnection_fee" value="{{ default_reconnect_fee }}">
+              </div>
+              <div class="field">
+                <label>Fee Paid?</label>
+                <select name="fee_paid">
+                  <option value="">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Performed By</label>
+                <input name="performed_by">
+              </div>
+              <div class="field full">
+                <label>Reason</label>
+                <textarea name="reason"></textarea>
+              </div>
+              <div class="field full">
+                <label>Notes</label>
+                <input name="notes">
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit">Save action</button></div>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Overdue candidates</h2>
+          <p class="sub">Active accounts with past-due bills.</p>
+          <div class="table-wrap" style="margin-bottom:18px;">
+            <table class="data">
+              <thead><tr><th>Account</th><th>Name</th><th>Outstanding</th></tr></thead>
+              <tbody>
+                {% for c in disconnect_candidates %}
+                <tr>
+                  <td>{{ c.account_number }}</td>
+                  <td>{{ c.full_name }}</td>
+                  <td>₱{{ c.outstanding_balance|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty">No disconnection candidates.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <h2>Service actions</h2>
+          <div class="table-wrap">
+            <table class="data">
+              <thead><tr><th>Type</th><th>Account</th><th>Date</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {% for a in service_actions %}
+                <tr>
+                  <td>{{ a.get_action_type_display }}</td>
+                  <td>{{ a.customer.account_number }}</td>
+                  <td>{{ a.action_date }}</td>
+                  <td><span class="badge {{ a.status }}">{{ a.get_status_display }}</span></td>
+                  <td>
+                    {% if a.status != 'completed' %}
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="complete_service_action">
+                      <input type="hidden" name="action_id" value="{{ a.id }}">
+                      <button type="submit" class="action primary">Complete</button>
+                    </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty">No service actions yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="reportsTab" class="tab-panel" role="tabpanel">
+      <div class="panel">
+        <h2>Reports</h2>
+        <p class="sub">Generate operational reports and export CSV / print.</p>
+        <div class="filters no-print">
+          <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; width:100%;">
+            <input type="hidden" name="tab" value="reportsTab">
+            <div class="field" style="min-width:220px;">
+              <label>Report type</label>
+              <select name="report">
+                <option value="billing" {% if report_type == 'billing' %}selected{% endif %}>Monthly Billing</option>
+                <option value="collection" {% if report_type == 'collection' %}selected{% endif %}>Collection</option>
+                <option value="outstanding" {% if report_type == 'outstanding' %}selected{% endif %}>Outstanding Balance</option>
+                <option value="consumption" {% if report_type == 'consumption' %}selected{% endif %}>Consumption</option>
+                <option value="customers" {% if report_type == 'customers' %}selected{% endif %}>Customer</option>
+                <option value="revenue" {% if report_type == 'revenue' %}selected{% endif %}>Revenue</option>
+                <option value="disconnection" {% if report_type == 'disconnection' %}selected{% endif %}>Disconnection</option>
+                <option value="reconnection" {% if report_type == 'reconnection' %}selected{% endif %}>Reconnection</option>
+                <option value="readings" {% if report_type == 'readings' %}selected{% endif %}>Meter Reading</option>
+                <option value="daily_collection" {% if report_type == 'daily_collection' %}selected{% endif %}>Daily Collection</option>
+              </select>
+            </div>
+            <button type="submit" class="action primary">Show</button>
+            <a class="action" href="{% url 'water_billing_export_csv' %}?report={{ report_type }}">Export CSV</a>
+            <button type="button" class="action" onclick="window.print()">Print</button>
+          </form>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            {% if report_type == 'customers' %}
+            <thead><tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th>Address</th></tr></thead>
+            <tbody>
+              {% for c in report_rows %}
+              <tr><td>{{ c.account_number }}</td><td>{{ c.full_name }}</td><td>{{ c.get_customer_type_display }}</td><td>{{ c.meter_number }}</td><td>{{ c.get_connection_status_display }}</td><td>{{ c.service_address }}</td></tr>
+              {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
+            </tbody>
+            {% elif report_type == 'consumption' or report_type == 'readings' %}
+            <thead><tr><th>Account</th><th>Period</th><th>Previous</th><th>Current</th><th>Consumption</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for r in report_rows %}
+              <tr><td>{{ r.customer.account_number }}</td><td>{{ r.billing_period }}</td><td>{{ r.previous_reading }}</td><td>{{ r.current_reading }}</td><td>{{ r.consumption }}</td><td>{{ r.reading_date }}</td></tr>
+              {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
+            </tbody>
+            {% elif report_type == 'collection' or report_type == 'daily_collection' or report_type == 'revenue' %}
+            <thead><tr><th>Receipt</th><th>Date</th><th>Account</th><th>Bill</th><th>Amount</th><th>Method</th></tr></thead>
+            <tbody>
+              {% for p in report_rows %}
+              <tr><td>{{ p.receipt_number }}</td><td>{{ p.payment_date }}</td><td>{{ p.customer.account_number }}</td><td>{{ p.bill.bill_number }}</td><td>₱{{ p.amount|floatformat:2 }}</td><td>{{ p.get_payment_method_display }}</td></tr>
+              {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
+            </tbody>
+            {% elif report_type == 'disconnection' or report_type == 'reconnection' %}
+            <thead><tr><th>Type</th><th>Account</th><th>Date</th><th>Status</th><th>Reason</th><th>Fee</th></tr></thead>
+            <tbody>
+              {% for a in report_rows %}
+              <tr><td>{{ a.get_action_type_display }}</td><td>{{ a.customer.account_number }}</td><td>{{ a.action_date }}</td><td>{{ a.status }}</td><td>{{ a.reason }}</td><td>₱{{ a.reconnection_fee|floatformat:2 }}</td></tr>
+              {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
+            </tbody>
+            {% else %}
+            <thead><tr><th>Bill #</th><th>Account</th><th>Period</th><th>Consumption</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for b in report_rows %}
+              <tr><td>{{ b.bill_number }}</td><td>{{ b.customer.account_number }}</td><td>{{ b.billing_period }}</td><td>{{ b.consumption }}</td><td>₱{{ b.total_amount|floatformat:2 }}</td><td>₱{{ b.balance_due|floatformat:2 }}</td><td>{{ b.status }}</td></tr>
+              {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
+            </tbody>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section id="auditTab" class="tab-panel" role="tabpanel">
+      <div class="panel">
+        <h2>Audit logs</h2>
+        <p class="sub">Billing, payment, customer, and reading activity trail.</p>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>ID</th><th>Details</th></tr></thead>
+            <tbody>
+              {% for log in audit_logs %}
+              <tr>
+                <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                <td>{{ log.username|default:"—" }}</td>
+                <td>{{ log.action }}</td>
+                <td>{{ log.entity_type }}</td>
+                <td>{{ log.entity_id }}</td>
+                <td>{{ log.details }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="empty">No audit activity yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  function localTodayISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function currentPeriod() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  const panels = {
+    overviewTab: document.getElementById('overviewTab'),
+    customersTab: document.getElementById('customersTab'),
+    readingsTab: document.getElementById('readingsTab'),
+    billingTab: document.getElementById('billingTab'),
+    paymentsTab: document.getElementById('paymentsTab'),
+    arTab: document.getElementById('arTab'),
+    disconnectTab: document.getElementById('disconnectTab'),
+    reportsTab: document.getElementById('reportsTab'),
+    auditTab: document.getElementById('auditTab'),
+  };
+  const buttons = Array.from(document.querySelectorAll('.tab-button[data-tab-target]'));
+
+  function activateTab(tabId) {
+    Object.entries(panels).forEach(([id, el]) => {
+      if (!el) return;
+      el.classList.toggle('active', id === tabId);
+    });
+    buttons.forEach((btn) => {
+      btn.setAttribute('aria-selected', btn.dataset.tabTarget === tabId ? 'true' : 'false');
+    });
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    window.history.replaceState({}, '', url);
+  }
+
+  buttons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tabTarget)));
+  document.querySelectorAll('[data-jump]').forEach((btn) => {
+    btn.addEventListener('click', () => activateTab(btn.dataset.jump));
+  });
+
+  const initial = new URLSearchParams(window.location.search).get('tab') || 'overviewTab';
+  activateTab(panels[initial] ? initial : 'overviewTab');
+
+  ['custRegDate', 'readingDate', 'billDate', 'paymentDate', 'actionDate'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = localTodayISO();
+  });
+  const due = document.getElementById('dueDate');
+  if (due && !due.value) {
+    const d = new Date();
+    d.setDate(d.getDate() + 15);
+    due.value = d.toISOString().slice(0, 10);
+  }
+  const period = document.getElementById('billingPeriod');
+  if (period && !period.value) period.value = currentPeriod();
+
+  const readingCustomer = document.getElementById('readingCustomer');
+  const previousReading = document.getElementById('previousReading');
+  if (readingCustomer && previousReading) {
+    readingCustomer.addEventListener('change', () => {
+      const opt = readingCustomer.selectedOptions[0];
+      previousReading.value = opt?.dataset?.last || '0';
+    });
+  }
+  const paymentBill = document.getElementById('paymentBill');
+  const paymentAmount = document.getElementById('paymentAmount');
+  if (paymentBill && paymentAmount) {
+    paymentBill.addEventListener('change', () => {
+      const opt = paymentBill.selectedOptions[0];
+      if (opt?.dataset?.balance) paymentAmount.value = opt.dataset.balance;
+    });
+  }
+})();
+</script>
+{% endblock %}

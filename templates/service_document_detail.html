@@ -33,8 +33,8 @@
   .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 24px; }
   .field { border-bottom: 1px solid #d8dee8; padding: 11px 0; }
   .field:nth-child(6n), .field:nth-child(7n), .field:nth-child(8n), .field:nth-child(9n), .field:nth-child(10n), .field:nth-child(11n), .field:nth-child(12n), .field:nth-child(13n), .field:nth-child(14n), .field:nth-child(15n), .field:nth-child(16n) { grid-column: 1 / -1; }
-  .repair-document .fields, .job-order-document .fields, .ob-document .fields { grid-template-columns: 1fr; }
-  .repair-document .field, .job-order-document .field, .ob-document .field { grid-column: auto; }
+  .repair-document .fields, .job-order-document .fields, .ob-document .fields, .travel-document .fields { grid-template-columns: 1fr; }
+  .repair-document .field, .job-order-document .field, .ob-document .field, .travel-document .field { grid-column: auto; }
   .field-full { grid-column: 1 / -1; }
   .label { font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
   .value { white-space: pre-wrap; line-height: 1.5; color: #344054; }
@@ -95,7 +95,7 @@
 {% block content %}
 <main class="page">
   <div class="actions">
-    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% endif %}">← Services Dashboard</a>
+    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% elif document_type == 'travel' %}?tab=travelOrderTab{% endif %}">← Services Dashboard</a>
     <div class="actions-group">
       {% if document_type == 'repair' %}
       <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
@@ -105,6 +105,8 @@
       <a href="{% url 'edit_official_business_form' record.id %}">Edit</a>
       {% elif document_type == 'delivery_receipt' %}
       <a href="{% url 'edit_delivery_receipt' record.id %}">Edit</a>
+      {% elif document_type == 'travel' %}
+      <a href="{% url 'edit_travel_order_form' record.id %}">Edit</a>
       {% else %}
       <a href="{% url 'edit_material_borrow' record.id %}">Edit</a>
       {% endif %}
@@ -112,7 +114,7 @@
     </div>
   </div>
 
-  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% endif %}">
+  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'travel' %} travel-document{% endif %}">
     <header class="doc-header">
       <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
     </header>
@@ -123,6 +125,7 @@
         {% elif document_type == 'job' %}JOB ORDER
         {% elif document_type == 'ob' %}OFFICIAL BUSINESS FORM
         {% elif document_type == 'delivery_receipt' %}DELIVERY RECEIPT
+        {% elif document_type == 'travel' %}TRAVEL ORDER FORM
         {% else %}BORROW MATERIAL SLIP{% endif %}
       </h1>
 
@@ -167,6 +170,7 @@
             <th>Quantity</th>
             <th>Unit</th>
             <th>Articles</th>
+            <th>Unit Amount</th>
             <th>Amount</th>
           </tr>
         </thead>
@@ -176,11 +180,12 @@
             <td>{{ line.quantity|floatformat:'-2' }}</td>
             <td>{{ line.unit|default:'pcs' }}</td>
             <td>{{ line.description }}</td>
+            <td>₱{{ line.unit_price|floatformat:2 }}</td>
             <td>₱{{ line.amount|floatformat:2 }}</td>
           </tr>
           {% endfor %}
           <tr>
-            <td colspan="3" style="text-align:right;font-weight:800;">Total</td>
+            <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
             <td style="font-weight:800;">₱{{ delivery_receipt_total|floatformat:2 }}</td>
           </tr>
         </tbody>

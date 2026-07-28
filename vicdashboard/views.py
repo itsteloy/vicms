@@ -1,8 +1,8 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from django.contrib.auth import login, logout
@@ -21,12 +21,13 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from .po_pdf import build_purchase_order_pdf
-from .forms import EmployeeForm, JobOrderForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, ServiceRepairReportForm
+from .forms import EmployeeForm, JobOrderForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q
 import traceback
 import json
+import csv
 
 MANAGEMENT_MODULES = [
     {
@@ -66,11 +67,18 @@ MANAGEMENT_MODULES = [
     },
     {
         'name': 'Services',
-        'summary': 'Service Repair Reports and Job Orders',
+        'summary': 'Repair reports, job orders, borrow slips, official business, delivery receipts, and travel orders.',
         'status': 'Active',
         'url_name': 'services_dashboard',
         'workspace_key': 'services',
-    }
+    },
+    {
+        'name': 'Water Billing',
+        'summary': 'Customer accounts, meter readings, billing, payments, collections, and disconnections.',
+        'status': 'Active',
+        'url_name': 'water_billing_dashboard',
+        'workspace_key': 'water_billing',
+    },
 ]
 
 INVENTORY_ITEM_OPTIONS = [
@@ -773,6 +781,8 @@ def sales_dashboard(request):
             'inventory_items': inventory_items,
             'recent_quotations': recent_quotations,
             'recent_service_quotations': recent_service_quotations,
+            'next_product_quotation_number': Quotation.generate_quotation_number(),
+            'next_service_quotation_number': ServiceQuotation.generate_quotation_number(),
             'sales_orders': sales_orders,
             'total_sales': total_sales,
             'total_quantity_sold': total_quantity_sold,
@@ -838,7 +848,7 @@ def save_quotation(request):
         balance_due = grand_total - initial_payment
 
         quotation = Quotation.objects.create(
-            quotation_number=payload.get("quotation_number", "").strip() or "UNNAMED",
+            quotation_number=payload.get("quotation_number", "").strip() or Quotation.generate_quotation_number(),
             quotation_date=parse_date(payload.get("quotation_date")),
             valid_until=parse_date(payload.get("valid_until")),
             currency=payload.get("currency", "PHP") or "PHP",
@@ -891,7 +901,12 @@ def save_quotation(request):
 
         # Build download URL
         download_url = reverse("download_quotation_pdf", args=[quotation.id])
-        return JsonResponse({"id": quotation.id, "download_url": download_url})
+        return JsonResponse({
+            "id": quotation.id,
+            "download_url": download_url,
+            "quotation_number": quotation.quotation_number,
+            "next_quotation_number": Quotation.generate_quotation_number(),
+        })
 
     except Exception as e:
         # Log the full traceback (check your console)
@@ -945,7 +960,7 @@ def save_service_quotation(request):
         balance_due = grand_total - initial_payment
 
         quotation = ServiceQuotation.objects.create(
-            quotation_number=payload.get("quotation_number", "").strip() or "UNNAMED",
+            quotation_number=payload.get("quotation_number", "").strip() or ServiceQuotation.generate_quotation_number(),
             quotation_date=parse_date(payload.get("quotation_date")),
             valid_until=parse_date(payload.get("valid_until")),
             currency=payload.get("currency", "PHP") or "PHP",
@@ -996,7 +1011,12 @@ def save_service_quotation(request):
             )
 
         download_url = reverse("download_service_quotation_pdf", args=[quotation.id])
-        return JsonResponse({"id": quotation.id, "download_url": download_url})
+        return JsonResponse({
+            "id": quotation.id,
+            "download_url": download_url,
+            "quotation_number": quotation.quotation_number,
+            "next_quotation_number": ServiceQuotation.generate_quotation_number(),
+        })
 
     except Exception as e:
         logger.exception("save_service_quotation error")
@@ -1969,12 +1989,18 @@ def services_dashboard(request):
             'material_borrows': MaterialBorrow.objects.prefetch_related('lines').all()[:8],
             'official_business_forms': OfficialBusinessForm.objects.all()[:8],
             'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
+            'travel_order_forms': TravelOrderForm.objects.all()[:8],
             'inventory_items': InventoryItem.objects.order_by('name'),
             'repair_report_count': ServiceRepairReport.objects.count(),
             'job_order_count': JobOrder.objects.count(),
             'material_borrow_count': MaterialBorrow.objects.count(),
             'official_business_count': OfficialBusinessForm.objects.count(),
             'delivery_receipt_count': DeliveryReceipt.objects.count(),
+            'travel_order_count': TravelOrderForm.objects.count(),
+            'next_report_number': ServiceRepairReport.generate_report_number(),
+            'next_job_order_number': JobOrder.generate_job_order_number(),
+            'next_borrow_number': MaterialBorrow.generate_borrow_number(),
+            'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
         }
     )
 
@@ -1982,13 +2008,14 @@ def services_dashboard(request):
 @login_required
 @require_POST
 def create_service_repair_report(request):
-    required = ('report_number', 'report_date', 'customer_name', 'equipment', 'complaint')
+    required = ('report_date', 'customer_name', 'equipment', 'complaint')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Service Repair Report fields.')
         return redirect('services_dashboard')
     try:
         ServiceRepairReport.objects.create(
-            report_number=request.POST['report_number'].strip(), report_date=request.POST['report_date'],
+            report_number=request.POST.get('report_number', '').strip() or ServiceRepairReport.generate_report_number(),
+            report_date=request.POST['report_date'],
             customer_name=request.POST['customer_name'].strip(), contact_person=request.POST.get('contact_person', '').strip(),
             contact_number=request.POST.get('contact_number', '').strip(), customer_address=request.POST.get('customer_address', '').strip(),
             equipment=request.POST['equipment'].strip(), model_number=request.POST.get('model_number', '').strip(),
@@ -2006,7 +2033,7 @@ def create_service_repair_report(request):
 @login_required
 @require_POST
 def create_job_order(request):
-    required = ('job_order_number', 'date_filed', 'job_description')
+    required = ('date_filed', 'job_description')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Job Order fields.')
         return redirect(f"{reverse('services_dashboard')}?tab=jobOrderTab")
@@ -2022,7 +2049,7 @@ def create_job_order(request):
     )
     try:
         JobOrder.objects.create(
-            job_order_number=request.POST['job_order_number'].strip(),
+            job_order_number=request.POST.get('job_order_number', '').strip() or JobOrder.generate_job_order_number(),
             names=names,
             date_filed=request.POST['date_filed'],
             dates_covered=dates_covered,
@@ -2041,7 +2068,7 @@ def create_job_order(request):
 @login_required
 @require_POST
 def create_material_borrow(request):
-    required = ('borrow_number', 'date_borrowed', 'borrower_name')
+    required = ('date_borrowed', 'borrower_name')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Borrow Material fields.')
         return redirect(f"{reverse('services_dashboard')}?tab=borrowMaterialTab")
@@ -2083,7 +2110,7 @@ def create_material_borrow(request):
     expected_return_date = request.POST.get('expected_return_date', '').strip() or None
     try:
         borrow = MaterialBorrow.objects.create(
-            borrow_number=request.POST['borrow_number'].strip(),
+            borrow_number=request.POST.get('borrow_number', '').strip() or MaterialBorrow.generate_borrow_number(),
             date_borrowed=request.POST['date_borrowed'],
             borrower_name=request.POST['borrower_name'].strip(),
             department=request.POST.get('department', '').strip(),
@@ -2102,6 +2129,38 @@ def create_material_borrow(request):
     except Exception as exc:
         messages.error(request, f'Could not save borrow material slip: {exc}')
     return redirect(f"{reverse('services_dashboard')}?tab=borrowMaterialTab")
+
+
+@login_required
+@require_POST
+def create_travel_order_form(request):
+    required = ('travel_date', 'driver_name')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Travel Order Form fields.')
+        return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+
+    travel_with = '\n'.join(
+        name.strip()
+        for name in request.POST.getlist('travel_with')
+        if name.strip()
+    )
+    departure_time = request.POST.get('departure_time', '').strip() or None
+    try:
+        TravelOrderForm.objects.create(
+            travel_date=request.POST['travel_date'],
+            driver_name=request.POST['driver_name'].strip(),
+            travel_with=travel_with,
+            destination=request.POST.get('destination', '').strip(),
+            purpose=request.POST.get('purpose', '').strip(),
+            departure_time=departure_time,
+            vehicle_plate=request.POST.get('vehicle_plate', '').strip(),
+            fuel_allowance=request.POST.get('fuel_allowance', '').strip(),
+            approved_by=request.POST.get('approved_by', '').strip(),
+        )
+        messages.success(request, 'Travel Order Form saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save Travel Order Form: {exc}')
+    return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
 
 
 @login_required
@@ -2162,7 +2221,7 @@ def reject_official_business_form(request, ob_id):
 @login_required
 @require_POST
 def create_delivery_receipt(request):
-    required = ('receipt_number', 'receipt_date', 'delivered_to')
+    required = ('receipt_date', 'delivered_to')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Delivery Receipt fields.')
         return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
@@ -2170,7 +2229,7 @@ def create_delivery_receipt(request):
     descriptions = request.POST.getlist('dr_item_description')
     quantities = request.POST.getlist('dr_item_quantity')
     units = request.POST.getlist('dr_item_unit')
-    amounts = request.POST.getlist('dr_item_amount')
+    unit_prices = request.POST.getlist('dr_item_unit_price')
     inventory_ids = request.POST.getlist('dr_item_inventory')
 
     lines = []
@@ -2183,9 +2242,9 @@ def create_delivery_receipt(request):
         except (InvalidOperation, IndexError):
             quantity = Decimal('1')
         try:
-            amount = Decimal(amounts[index]) if index < len(amounts) and amounts[index].strip() else Decimal('0')
+            unit_price = Decimal(unit_prices[index]) if index < len(unit_prices) and unit_prices[index].strip() else Decimal('0')
         except (InvalidOperation, IndexError):
-            amount = Decimal('0')
+            unit_price = Decimal('0')
         unit = units[index].strip() if index < len(units) else 'pcs'
         inventory_id = inventory_ids[index].strip() if index < len(inventory_ids) else ''
         inventory_item = None
@@ -2196,7 +2255,7 @@ def create_delivery_receipt(request):
             'description': description,
             'quantity': quantity,
             'unit': unit or 'pcs',
-            'amount': amount,
+            'unit_price': unit_price,
         })
 
     if not lines:
@@ -2205,7 +2264,7 @@ def create_delivery_receipt(request):
 
     try:
         receipt = DeliveryReceipt.objects.create(
-            receipt_number=request.POST['receipt_number'].strip(),
+            receipt_number=request.POST.get('receipt_number', '').strip() or DeliveryReceipt.generate_receipt_number(),
             receipt_date=request.POST['receipt_date'],
             delivered_to=request.POST['delivered_to'].strip(),
             tin=request.POST.get('tin', '').strip(),
@@ -2282,6 +2341,18 @@ SERVICE_FIELD_LABELS = {
         ('Delivered by', 'delivered_by'),
         ('Received by (Customer)', 'received_by'),
     ],
+    'travel': [
+        ('Date', 'travel_date'),
+        ("Driver's Name", 'driver_name'),
+        ('Travel with', 'travel_with_display'),
+        ('Venue/Destination', 'destination'),
+        ('Purpose of Travel', 'purpose'),
+        ('Departure Time', 'departure_time'),
+        ('Vehicle / Plate No.', 'vehicle_plate'),
+        ('Fuel Allowance (PO# Amount/Liters)', 'fuel_allowance'),
+        ('Issued by', 'issued_by_display'),
+        ('Approved by', 'approved_by'),
+    ],
 }
 
 
@@ -2290,8 +2361,12 @@ def _service_record_context(record, document_type):
     for label, attribute in SERVICE_FIELD_LABELS[document_type]:
         value = getattr(record, attribute)
         value = value() if callable(value) else value
-        if hasattr(value, 'strftime'):
+        if isinstance(value, datetime):
             value = value.strftime('%B %d, %Y')
+        elif isinstance(value, date):
+            value = value.strftime('%B %d, %Y')
+        elif isinstance(value, time):
+            value = value.strftime('%I:%M %p').lstrip('0')
         fields.append((label, value or '—'))
     return {'record': record, 'fields': fields, 'document_type': document_type}
 
@@ -2385,6 +2460,35 @@ def delete_official_business_form(request, ob_id):
 
 
 @login_required
+def view_travel_order_form(request, order_id):
+    return render(request, 'service_document_detail.html', _service_record_context(
+        get_object_or_404(TravelOrderForm, pk=order_id), 'travel'))
+
+
+@login_required
+def edit_travel_order_form(request, order_id):
+    travel_order = get_object_or_404(TravelOrderForm, pk=order_id)
+    form = TravelOrderFormForm(request.POST or None, instance=travel_order)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Travel Order Form updated successfully.')
+        return redirect('view_travel_order_form', order_id=travel_order.id)
+    return render(request, 'service_document_form.html', {
+        'form': form,
+        'record': travel_order,
+        'document_type': 'travel',
+    })
+
+
+@login_required
+@require_POST
+def delete_travel_order_form(request, order_id):
+    get_object_or_404(TravelOrderForm, pk=order_id).delete()
+    messages.success(request, 'Travel Order Form deleted.')
+    return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+
+
+@login_required
 def view_delivery_receipt(request, receipt_id):
     return render(request, 'service_document_detail.html', _delivery_receipt_record_context(
         get_object_or_404(DeliveryReceipt.objects.prefetch_related('lines'), pk=receipt_id)))
@@ -2453,3 +2557,536 @@ def return_material_borrow(request, borrow_id):
         borrow.save(update_fields=['status', 'updated_at'])
         messages.success(request, f'Borrow slip {borrow.borrow_number} marked as returned.')
     return redirect(f"{reverse('services_dashboard')}?tab=borrowMaterialTab")
+
+
+# ========== WATER BILLING ==========
+
+WATER_DEFAULT_RATE = Decimal('25.00')
+WATER_DEFAULT_FIXED = Decimal('50.00')
+WATER_DEFAULT_ENV = Decimal('10.00')
+WATER_DEFAULT_MAINT = Decimal('15.00')
+WATER_DEFAULT_RECONNECT_FEE = Decimal('500.00')
+
+
+def _water_redirect(tab=''):
+    url = reverse('water_billing_dashboard')
+    return redirect(f'{url}?tab={tab}' if tab else url)
+
+
+def _water_audit(request, action, entity_type, entity_id='', details=''):
+    WaterAuditLog.objects.create(
+        username=getattr(request.user, 'username', '') or '',
+        action=action,
+        entity_type=entity_type,
+        entity_id=str(entity_id or ''),
+        details=details or '',
+    )
+
+
+def _dec(value, default='0'):
+    try:
+        return Decimal(str(value or default).replace(',', '').strip() or default)
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal(default)
+
+
+def _water_parse_date(value, required=False):
+    parsed = parse_date(str(value).strip()) if value else None
+    if parsed:
+        return parsed
+    if required:
+        raise ValueError('Invalid date.')
+    return None
+
+
+def _water_overview_stats():
+    today = date.today()
+    month_start = today.replace(day=1)
+    customers = WaterCustomer.objects.all()
+    active_customers = customers.filter(connection_status='active').count()
+    disconnected = customers.filter(connection_status='disconnected').count()
+    new_customers = customers.filter(registration_date__gte=month_start).count()
+
+    month_consumption = (
+        WaterMeterReading.objects.filter(reading_date__gte=month_start).aggregate(total=Sum('consumption'))['total']
+        or 0
+    )
+    bills_month = WaterBill.objects.filter(bill_date__gte=month_start).exclude(status='cancelled')
+    bills_generated = bills_month.count()
+    revenue_collected = (
+        WaterPayment.objects.filter(payment_date__gte=month_start).aggregate(total=Sum('amount'))['total']
+        or Decimal('0.00')
+    )
+    outstanding = Decimal('0.00')
+    billed_total = Decimal('0.00')
+    for bill in WaterBill.objects.exclude(status='cancelled'):
+        outstanding += bill.balance_due
+        billed_total += bill.total_amount
+    collection_rate = Decimal('0.00')
+    if billed_total > 0:
+        paid_total = billed_total - outstanding
+        collection_rate = ((paid_total / billed_total) * Decimal('100')).quantize(Decimal('0.01'))
+
+    reconnected = WaterServiceAction.objects.filter(
+        action_type='reconnection', status='completed', action_date__gte=month_start,
+    ).count()
+
+    return {
+        'total_customers': customers.count(),
+        'active_customers': active_customers,
+        'active_connections': active_customers,
+        'month_consumption': month_consumption,
+        'bills_generated': bills_generated,
+        'revenue_collected': revenue_collected,
+        'outstanding_balance': outstanding,
+        'collection_rate': collection_rate,
+        'new_customers': new_customers,
+        'disconnected_accounts': disconnected,
+        'reconnected_accounts': reconnected,
+    }
+
+
+@require_dashboard('water_billing_dashboard')
+def water_billing_dashboard(request):
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+        handlers = {
+            'create_customer': _water_create_customer,
+            'create_reading': _water_create_reading,
+            'create_bill': _water_create_bill,
+            'create_payment': _water_create_payment,
+            'create_service_action': _water_create_service_action,
+            'complete_service_action': _water_complete_service_action,
+            'delete_customer': _water_delete_customer,
+            'delete_reading': _water_delete_reading,
+            'delete_bill': _water_delete_bill,
+            'delete_payment': _water_delete_payment,
+        }
+        handler = handlers.get(action)
+        if handler:
+            return handler(request)
+        messages.error(request, 'Unknown water billing action.')
+        return _water_redirect()
+
+    customer_q = request.GET.get('customer_q', '').strip()
+    customer_type = request.GET.get('customer_type', '').strip()
+    customer_status = request.GET.get('customer_status', '').strip()
+    customers_qs = WaterCustomer.objects.all()
+    if customer_q:
+        customers_qs = customers_qs.filter(
+            Q(account_number__icontains=customer_q)
+            | Q(full_name__icontains=customer_q)
+            | Q(meter_number__icontains=customer_q)
+            | Q(service_address__icontains=customer_q)
+            | Q(contact_number__icontains=customer_q)
+        )
+    if customer_type:
+        customers_qs = customers_qs.filter(customer_type=customer_type)
+    if customer_status:
+        customers_qs = customers_qs.filter(connection_status=customer_status)
+
+    unpaid_bills = [
+        bill for bill in WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled'])
+        if bill.balance_due > 0
+    ]
+    aging_buckets = {'current': Decimal('0'), 'd1_30': Decimal('0'), 'd31_60': Decimal('0'), 'd61_90': Decimal('0'), 'd90_plus': Decimal('0')}
+    today = date.today()
+    for bill in unpaid_bills:
+        days = (today - bill.due_date).days
+        bal = bill.balance_due
+        if days <= 0:
+            aging_buckets['current'] += bal
+        elif days <= 30:
+            aging_buckets['d1_30'] += bal
+        elif days <= 60:
+            aging_buckets['d31_60'] += bal
+        elif days <= 90:
+            aging_buckets['d61_90'] += bal
+        else:
+            aging_buckets['d90_plus'] += bal
+
+    disconnect_candidates = WaterCustomer.objects.filter(
+        connection_status='active',
+        bills__status__in=['unpaid', 'partial', 'overdue'],
+        bills__due_date__lt=today,
+    ).distinct()
+
+    report_type = request.GET.get('report', 'billing')
+    report_rows = _water_report_rows(report_type)
+
+    context = {
+        'modules': MANAGEMENT_MODULES,
+        'stats': _water_overview_stats(),
+        'customers': customers_qs[:100],
+        'customer_q': customer_q,
+        'customer_type': customer_type,
+        'customer_status': customer_status,
+        'customer_types': WATER_CUSTOMER_TYPES,
+        'connection_statuses': WATER_CONNECTION_STATUS,
+        'payment_methods': WATER_PAYMENT_METHODS,
+        'bill_statuses': WATER_BILL_STATUS,
+        'service_action_types': WATER_SERVICE_ACTION_TYPES,
+        'service_action_statuses': WATER_SERVICE_ACTION_STATUS,
+        'all_customers': WaterCustomer.objects.prefetch_related('readings').order_by('account_number'),
+        'readings': WaterMeterReading.objects.select_related('customer').all()[:50],
+        'bills': WaterBill.objects.select_related('customer').all()[:50],
+        'payments': WaterPayment.objects.select_related('customer', 'bill').all()[:50],
+        'unpaid_bills': unpaid_bills[:50],
+        'aging_buckets': aging_buckets,
+        'service_actions': WaterServiceAction.objects.select_related('customer').all()[:50],
+        'disconnect_candidates': disconnect_candidates[:50],
+        'audit_logs': WaterAuditLog.objects.all()[:80],
+        'next_account_number': WaterCustomer.generate_account_number(),
+        'next_bill_number': WaterBill.generate_bill_number(),
+        'next_receipt_number': WaterPayment.generate_receipt_number(),
+        'default_rate': WATER_DEFAULT_RATE,
+        'default_fixed': WATER_DEFAULT_FIXED,
+        'default_env': WATER_DEFAULT_ENV,
+        'default_maint': WATER_DEFAULT_MAINT,
+        'default_reconnect_fee': WATER_DEFAULT_RECONNECT_FEE,
+        'report_type': report_type,
+        'report_rows': report_rows[:100],
+        'open_bills_for_payment': WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled']),
+        'readings_without_bill': WaterMeterReading.objects.select_related('customer').filter(bill__isnull=True),
+    }
+    return render(request, 'water_billing_dashboard.html', context)
+
+
+def _water_report_rows(report_type):
+    today = date.today()
+    month_start = today.replace(day=1)
+    if report_type == 'collection':
+        return list(WaterPayment.objects.select_related('customer', 'bill').filter(payment_date__gte=month_start)[:200])
+    if report_type == 'outstanding':
+        return [
+            bill for bill in WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled'])
+            if bill.balance_due > 0
+        ][:200]
+    if report_type == 'consumption':
+        return list(WaterMeterReading.objects.select_related('customer').filter(reading_date__gte=month_start)[:200])
+    if report_type == 'customers':
+        return list(WaterCustomer.objects.all()[:200])
+    if report_type == 'disconnection':
+        return list(WaterServiceAction.objects.select_related('customer').filter(action_type='disconnection')[:200])
+    if report_type == 'reconnection':
+        return list(WaterServiceAction.objects.select_related('customer').filter(action_type='reconnection')[:200])
+    if report_type == 'readings':
+        return list(WaterMeterReading.objects.select_related('customer').all()[:200])
+    if report_type == 'daily_collection':
+        return list(WaterPayment.objects.select_related('customer', 'bill').filter(payment_date=today)[:200])
+    if report_type == 'revenue':
+        return list(WaterPayment.objects.select_related('customer', 'bill').all()[:200])
+    # default monthly billing
+    return list(WaterBill.objects.select_related('customer').filter(bill_date__gte=month_start)[:200])
+
+
+def _water_create_customer(request):
+    required = ('full_name', 'service_address', 'meter_number')
+    if not all(request.POST.get(f, '').strip() for f in required):
+        messages.error(request, 'Please complete required customer fields.')
+        return _water_redirect('customersTab')
+    try:
+        customer = WaterCustomer.objects.create(
+            account_number=request.POST.get('account_number', '').strip() or WaterCustomer.generate_account_number(),
+            full_name=request.POST['full_name'].strip(),
+            service_address=request.POST['service_address'].strip(),
+            contact_number=request.POST.get('contact_number', '').strip(),
+            email=request.POST.get('email', '').strip(),
+            customer_type=request.POST.get('customer_type', 'residential'),
+            meter_number=request.POST['meter_number'].strip(),
+            connection_status=request.POST.get('connection_status', 'active'),
+            registration_date=_water_parse_date(request.POST.get('registration_date')) or date.today(),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        _water_audit(request, 'Created customer', 'WaterCustomer', customer.account_number, customer.full_name)
+        messages.success(request, f'Customer {customer.account_number} registered.')
+    except Exception as exc:
+        messages.error(request, f'Could not save customer: {exc}')
+    return _water_redirect('customersTab')
+
+
+def _water_create_reading(request):
+    customer_id = request.POST.get('customer_id', '').strip()
+    reading_date = request.POST.get('reading_date', '').strip()
+    billing_period = request.POST.get('billing_period', '').strip()
+    current_raw = request.POST.get('current_reading', '').strip()
+    if not (customer_id and reading_date and billing_period and current_raw):
+        messages.error(request, 'Please complete required meter reading fields.')
+        return _water_redirect('readingsTab')
+    customer = get_object_or_404(WaterCustomer, pk=customer_id)
+    last = customer.readings.order_by('-reading_date', '-created_at').first()
+    previous = int(request.POST.get('previous_reading') or (last.current_reading if last else 0) or 0)
+    try:
+        current = int(current_raw)
+        reading = WaterMeterReading(
+            customer=customer,
+            reading_date=_water_parse_date(reading_date, required=True),
+            billing_period=billing_period,
+            previous_reading=previous,
+            current_reading=current,
+            is_estimated=bool(request.POST.get('is_estimated')),
+            reader_name=request.POST.get('reader_name', '').strip(),
+            remarks=request.POST.get('remarks', '').strip(),
+        )
+        reading.save()
+        _water_audit(
+            request, 'Recorded meter reading', 'WaterMeterReading', reading.pk,
+            f'{customer.account_number} {billing_period} consumption={reading.consumption}',
+        )
+        messages.success(request, f'Meter reading saved for {customer.account_number} ({reading.consumption} cu.m).')
+    except Exception as exc:
+        messages.error(request, f'Could not save reading: {exc}')
+    return _water_redirect('readingsTab')
+
+
+def _water_create_bill(request):
+    customer_id = request.POST.get('customer_id', '').strip()
+    reading_id = request.POST.get('reading_id', '').strip()
+    bill_date = request.POST.get('bill_date', '').strip()
+    due_date = request.POST.get('due_date', '').strip()
+    if not (customer_id and bill_date and due_date):
+        messages.error(request, 'Please complete required billing fields.')
+        return _water_redirect('billingTab')
+    try:
+        parsed_bill_date = _water_parse_date(bill_date, required=True)
+        parsed_due_date = _water_parse_date(due_date, required=True)
+    except ValueError:
+        messages.error(request, 'Please enter valid bill and due dates.')
+        return _water_redirect('billingTab')
+    customer = get_object_or_404(WaterCustomer, pk=customer_id)
+    reading = None
+    consumption = int(request.POST.get('consumption') or 0)
+    billing_period = request.POST.get('billing_period', '').strip()
+    if reading_id:
+        reading = get_object_or_404(WaterMeterReading, pk=reading_id, customer=customer)
+        if hasattr(reading, 'bill') and reading.bill_id:
+            messages.error(request, 'A bill already exists for this meter reading.')
+            return _water_redirect('billingTab')
+        consumption = reading.consumption
+        billing_period = reading.billing_period
+    if not billing_period:
+        messages.error(request, 'Billing period is required.')
+        return _water_redirect('billingTab')
+    try:
+        bill = WaterBill(
+            bill_number=request.POST.get('bill_number', '').strip() or WaterBill.generate_bill_number(),
+            customer=customer,
+            meter_reading=reading,
+            billing_period=billing_period,
+            bill_date=parsed_bill_date,
+            due_date=parsed_due_date,
+            consumption=consumption,
+            rate_per_cum=_dec(request.POST.get('rate_per_cum'), str(WATER_DEFAULT_RATE)),
+            fixed_charge=_dec(request.POST.get('fixed_charge'), str(WATER_DEFAULT_FIXED)),
+            environmental_fee=_dec(request.POST.get('environmental_fee'), str(WATER_DEFAULT_ENV)),
+            maintenance_fee=_dec(request.POST.get('maintenance_fee'), str(WATER_DEFAULT_MAINT)),
+            tax=_dec(request.POST.get('tax')),
+            discount=_dec(request.POST.get('discount')),
+            penalty=_dec(request.POST.get('penalty')),
+        )
+        bill.save()
+        _water_audit(request, 'Generated bill', 'WaterBill', bill.bill_number, f'{customer.account_number} total={bill.total_amount}')
+        messages.success(request, f'Bill {bill.bill_number} generated (?{bill.total_amount}).')
+    except Exception as exc:
+        messages.error(request, f'Could not generate bill: {exc}')
+    return _water_redirect('billingTab')
+
+
+def _water_create_payment(request):
+    bill_id = request.POST.get('bill_id', '').strip()
+    payment_date = request.POST.get('payment_date', '').strip()
+    amount = _dec(request.POST.get('amount'))
+    if not (bill_id and payment_date and amount > 0):
+        messages.error(request, 'Please complete required payment fields.')
+        return _water_redirect('paymentsTab')
+    try:
+        parsed_payment_date = _water_parse_date(payment_date, required=True)
+    except ValueError:
+        messages.error(request, 'Please enter a valid payment date.')
+        return _water_redirect('paymentsTab')
+    bill = get_object_or_404(WaterBill, pk=bill_id)
+    if bill.status == 'cancelled':
+        messages.error(request, 'Cannot pay a cancelled bill.')
+        return _water_redirect('paymentsTab')
+    try:
+        with transaction.atomic():
+            payment = WaterPayment.objects.create(
+                receipt_number=request.POST.get('receipt_number', '').strip() or WaterPayment.generate_receipt_number(),
+                bill=bill,
+                customer=bill.customer,
+                payment_date=parsed_payment_date,
+                amount=amount,
+                payment_method=request.POST.get('payment_method', 'cash'),
+                reference_number=request.POST.get('reference_number', '').strip(),
+                received_by=request.POST.get('received_by', '').strip(),
+                remarks=request.POST.get('remarks', '').strip(),
+            )
+            bill.amount_paid = (bill.amount_paid or Decimal('0')) + amount
+            bill.refresh_status()
+            bill.save(update_fields=['amount_paid', 'status', 'updated_at'])
+            _water_audit(
+                request, 'Recorded payment', 'WaterPayment', payment.receipt_number,
+                f'{bill.bill_number} amount={amount} method={payment.payment_method}',
+            )
+        messages.success(request, f'Payment {payment.receipt_number} recorded.')
+    except Exception as exc:
+        messages.error(request, f'Could not record payment: {exc}')
+    return _water_redirect('paymentsTab')
+
+
+def _water_create_service_action(request):
+    customer_id = request.POST.get('customer_id', '').strip()
+    action_type = request.POST.get('action_type', '').strip()
+    action_date = request.POST.get('action_date', '').strip()
+    if not (customer_id and action_type and action_date):
+        messages.error(request, 'Please complete required disconnection/reconnection fields.')
+        return _water_redirect('disconnectTab')
+    try:
+        parsed_action_date = _water_parse_date(action_date, required=True)
+    except ValueError:
+        messages.error(request, 'Please enter a valid action date.')
+        return _water_redirect('disconnectTab')
+    customer = get_object_or_404(WaterCustomer, pk=customer_id)
+    try:
+        action = WaterServiceAction.objects.create(
+            customer=customer,
+            action_type=action_type,
+            action_date=parsed_action_date,
+            status=request.POST.get('status', 'scheduled'),
+            reason=request.POST.get('reason', '').strip(),
+            reconnection_fee=_dec(request.POST.get('reconnection_fee'), str(WATER_DEFAULT_RECONNECT_FEE)),
+            fee_paid=bool(request.POST.get('fee_paid')),
+            performed_by=request.POST.get('performed_by', '').strip(),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        if action.status == 'completed':
+            _apply_service_status(customer, action_type)
+        _water_audit(request, f'Scheduled {action_type}', 'WaterServiceAction', action.pk, customer.account_number)
+        messages.success(request, f'{action.get_action_type_display()} recorded for {customer.account_number}.')
+    except Exception as exc:
+        messages.error(request, f'Could not save service action: {exc}')
+    return _water_redirect('disconnectTab')
+
+
+def _apply_service_status(customer, action_type):
+    if action_type == 'disconnection':
+        customer.connection_status = 'disconnected'
+    elif action_type == 'reconnection':
+        customer.connection_status = 'active'
+    customer.save(update_fields=['connection_status', 'updated_at'])
+
+
+def _water_complete_service_action(request):
+    action_id = request.POST.get('action_id', '').strip()
+    action = get_object_or_404(WaterServiceAction, pk=action_id)
+    action.status = 'completed'
+    if request.POST.get('fee_paid'):
+        action.fee_paid = True
+    action.save(update_fields=['status', 'fee_paid'])
+    _apply_service_status(action.customer, action.action_type)
+    _water_audit(request, f'Completed {action.action_type}', 'WaterServiceAction', action.pk, action.customer.account_number)
+    messages.success(request, f'{action.get_action_type_display()} marked completed.')
+    return _water_redirect('disconnectTab')
+
+
+def _water_delete_customer(request):
+    customer = get_object_or_404(WaterCustomer, pk=request.POST.get('customer_id'))
+    label = customer.account_number
+    customer.delete()
+    _water_audit(request, 'Deleted customer', 'WaterCustomer', label)
+    messages.success(request, f'Customer {label} deleted.')
+    return _water_redirect('customersTab')
+
+
+def _water_delete_reading(request):
+    reading = get_object_or_404(WaterMeterReading, pk=request.POST.get('reading_id'))
+    if hasattr(reading, 'bill') and reading.bill_id:
+        messages.error(request, 'Cannot delete a reading that already has a bill.')
+        return _water_redirect('readingsTab')
+    pk = reading.pk
+    reading.delete()
+    _water_audit(request, 'Deleted reading', 'WaterMeterReading', pk)
+    messages.success(request, 'Meter reading deleted.')
+    return _water_redirect('readingsTab')
+
+
+def _water_delete_bill(request):
+    bill = get_object_or_404(WaterBill, pk=request.POST.get('bill_id'))
+    if bill.payments.exists():
+        messages.error(request, 'Cannot delete a bill with payments. Cancel it instead or delete payments first.')
+        return _water_redirect('billingTab')
+    label = bill.bill_number
+    bill.delete()
+    _water_audit(request, 'Deleted bill', 'WaterBill', label)
+    messages.success(request, f'Bill {label} deleted.')
+    return _water_redirect('billingTab')
+
+
+def _water_delete_payment(request):
+    payment = get_object_or_404(WaterPayment, pk=request.POST.get('payment_id'))
+    bill = payment.bill
+    amount = payment.amount
+    label = payment.receipt_number
+    with transaction.atomic():
+        payment.delete()
+        bill.amount_paid = max((bill.amount_paid or Decimal('0')) - amount, Decimal('0'))
+        bill.refresh_status()
+        bill.save(update_fields=['amount_paid', 'status', 'updated_at'])
+    _water_audit(request, 'Deleted payment', 'WaterPayment', label)
+    messages.success(request, f'Payment {label} deleted.')
+    return _water_redirect('paymentsTab')
+
+
+@require_dashboard('water_billing_dashboard')
+def water_billing_export_csv(request):
+    report_type = request.GET.get('report', 'billing')
+    rows = _water_report_rows(report_type)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="water_{report_type}_report.csv"'
+    writer = csv.writer(response)
+
+    if report_type in ('collection', 'daily_collection', 'revenue'):
+        writer.writerow(['Receipt #', 'Date', 'Account', 'Customer', 'Bill #', 'Amount', 'Method'])
+        for p in rows:
+            writer.writerow([
+                p.receipt_number, p.payment_date, p.customer.account_number, p.customer.full_name,
+                p.bill.bill_number, p.amount, p.get_payment_method_display(),
+            ])
+    elif report_type == 'outstanding':
+        writer.writerow(['Bill #', 'Account', 'Customer', 'Due Date', 'Total', 'Paid', 'Balance', 'Status'])
+        for b in rows:
+            writer.writerow([
+                b.bill_number, b.customer.account_number, b.customer.full_name, b.due_date,
+                b.total_amount, b.amount_paid, b.balance_due, b.status,
+            ])
+    elif report_type in ('consumption', 'readings'):
+        writer.writerow(['Account', 'Customer', 'Period', 'Previous', 'Current', 'Consumption', 'Estimated', 'Date'])
+        for r in rows:
+            writer.writerow([
+                r.customer.account_number, r.customer.full_name, r.billing_period,
+                r.previous_reading, r.current_reading, r.consumption,
+                'Yes' if r.is_estimated else 'No', r.reading_date,
+            ])
+    elif report_type == 'customers':
+        writer.writerow(['Account', 'Name', 'Type', 'Meter', 'Status', 'Address', 'Contact', 'Registered'])
+        for c in rows:
+            writer.writerow([
+                c.account_number, c.full_name, c.get_customer_type_display(), c.meter_number,
+                c.get_connection_status_display(), c.service_address, c.contact_number, c.registration_date,
+            ])
+    elif report_type in ('disconnection', 'reconnection'):
+        writer.writerow(['Type', 'Account', 'Customer', 'Date', 'Status', 'Reason', 'Fee', 'Fee Paid'])
+        for a in rows:
+            writer.writerow([
+                a.get_action_type_display(), a.customer.account_number, a.customer.full_name,
+                a.action_date, a.status, a.reason, a.reconnection_fee, 'Yes' if a.fee_paid else 'No',
+            ])
+    else:
+        writer.writerow(['Bill #', 'Account', 'Customer', 'Period', 'Consumption', 'Total', 'Paid', 'Status', 'Bill Date'])
+        for b in rows:
+            writer.writerow([
+                b.bill_number, b.customer.account_number, b.customer.full_name, b.billing_period,
+                b.consumption, b.total_amount, b.amount_paid, b.status, b.bill_date,
+            ])
+    _water_audit(request, 'Exported report', 'Report', report_type, f'rows={len(rows)}')
+    return response

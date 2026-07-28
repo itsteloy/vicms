@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DeliveryReceipt, Department, Employee, JobOrder, MaterialBorrow, OfficialBusinessForm, Position, ServiceRepairReport
+from .models import DeliveryReceipt, Department, Employee, JobOrder, MaterialBorrow, OfficialBusinessForm, Position, ServiceRepairReport, TravelOrderForm
 
 
 class ServiceRepairReportForm(forms.ModelForm):
@@ -42,6 +42,18 @@ class OfficialBusinessFormForm(forms.ModelForm):
             'time_departure': forms.TimeInput(attrs={'type': 'time'}),
             'time_return': forms.TimeInput(attrs={'type': 'time'}),
             'purpose': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class TravelOrderFormForm(forms.ModelForm):
+    class Meta:
+        model = TravelOrderForm
+        exclude = ('created_at', 'updated_at')
+        widgets = {
+            'travel_date': forms.DateInput(attrs={'type': 'date'}),
+            'travel_with': forms.Textarea(attrs={'rows': 3, 'placeholder': 'One passenger name per line'}),
+            'purpose': forms.Textarea(attrs={'rows': 2}),
+            'departure_time': forms.TimeInput(attrs={'type': 'time'}),
         }
 
 

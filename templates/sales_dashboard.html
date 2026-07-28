@@ -1542,8 +1542,11 @@
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Quotation
                             Number</label>
-                        <input type="text" id="pqNumber" placeholder="PQ-2026-001"
-                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600;">
+                        <input type="text" id="pqNumber" value="{{ next_product_quotation_number }}"
+                            data-auto-number="{{ next_product_quotation_number }}" readonly
+                            title="Assigned automatically"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600; background:#f8fafc; color:#475467; cursor:default;">
+                        <small style="color:var(--muted); font-size:0.75rem;">Assigned automatically</small>
 
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Quotation
@@ -1862,8 +1865,11 @@
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Quotation
                             Number</label>
-                        <input type="text" id="svqNumber" placeholder="SQ-2026-001"
-                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600;">
+                        <input type="text" id="svqNumber" value="{{ next_service_quotation_number }}"
+                            data-auto-number="{{ next_service_quotation_number }}" readonly
+                            title="Assigned automatically"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:monospace; font-weight:600; background:#f8fafc; color:#475467; cursor:default;">
+                        <small style="color:var(--muted); font-size:0.75rem;">Assigned automatically</small>
 
                         <label
                             style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Quotation
@@ -2519,6 +2525,11 @@
                     if (response.status !== 200) {
                         throw new Error(body?.error || 'Unable to save product quotation.');
                     }
+                    if (body.next_quotation_number) {
+                        const pqNumber = document.getElementById('pqNumber');
+                        pqNumber.value = body.next_quotation_number;
+                        pqNumber.setAttribute('data-auto-number', body.next_quotation_number);
+                    }
                     return body;
                 }
 
@@ -2630,7 +2641,8 @@
                 currencyOther.value = '';
                 pqDateInput.value = todayISO();
                 document.getElementById('pqValidUntil').value = '';
-                document.getElementById('pqNumber').value = '';
+                const pqNumber = document.getElementById('pqNumber');
+                pqNumber.value = pqNumber.getAttribute('data-auto-number') || '';
                 document.getElementById('pqCustomerCompany').value = '';
                 document.getElementById('pqCustomerContact').value = '';
                 document.getElementById('pqCustomerAddress').value = '';
@@ -2851,6 +2863,11 @@
                     if (response.status !== 200) {
                         throw new Error(body?.error || 'Unable to save service quotation.');
                     }
+                    if (body.next_quotation_number) {
+                        const svqNumber = document.getElementById('svqNumber');
+                        svqNumber.value = body.next_quotation_number;
+                        svqNumber.setAttribute('data-auto-number', body.next_quotation_number);
+                    }
                     return body;
                 }
 
@@ -2960,7 +2977,8 @@
                 currencyOther.value = '';
                 svqDateInput.value = todayISO();
                 document.getElementById('svqValidUntil').value = '';
-                document.getElementById('svqNumber').value = '';
+                const svqNumber = document.getElementById('svqNumber');
+                svqNumber.value = svqNumber.getAttribute('data-auto-number') || '';
                 document.getElementById('svqCustomerCompany').value = '';
                 document.getElementById('svqCustomerContact').value = '';
                 document.getElementById('svqCustomerAddress').value = '';

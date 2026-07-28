@@ -117,6 +117,16 @@ class Quotation(models.Model):
     def __str__(self):
         return self.quotation_number or f'Product Quotation {self.pk}'
 
+    @classmethod
+    def generate_quotation_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'quotation_number', f'PQ-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.quotation_number:
+            self.quotation_number = self.generate_quotation_number()
+        super().save(*args, **kwargs)
+
     @property
     def payment_status(self):
         if self.grand_total and self.balance_due <= 0:
@@ -179,6 +189,16 @@ class ServiceQuotation(models.Model):
 
     def __str__(self):
         return self.quotation_number or f'Service Quotation {self.pk}'
+
+    @classmethod
+    def generate_quotation_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'quotation_number', f'SQ-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.quotation_number:
+            self.quotation_number = self.generate_quotation_number()
+        super().save(*args, **kwargs)
 
     @property
     def payment_status(self):
@@ -600,6 +620,16 @@ class DeliveryLine(models.Model):
 
 # ========== SERVICES MODELS ==========
 
+def _next_sequential_number(model, field_name, prefix):
+    """Return the next unique number like PREFIX-001 for the given model field."""
+    max_num = 0
+    for value in model.objects.filter(**{f'{field_name}__startswith': prefix}).values_list(field_name, flat=True):
+        suffix = value[len(prefix):]
+        if suffix.isdigit():
+            max_num = max(max_num, int(suffix))
+    return f'{prefix}{max_num + 1:03d}'
+
+
 class ServiceRepairReport(models.Model):
     STATUS_CHOICES = [
         ('open', 'Open'),
@@ -633,6 +663,16 @@ class ServiceRepairReport(models.Model):
     def __str__(self):
         return self.report_number
 
+    @classmethod
+    def generate_report_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'report_number', f'SRR-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.report_number:
+            self.report_number = self.generate_report_number()
+        super().save(*args, **kwargs)
+
 
 class JobOrder(models.Model):
     STATUS_CHOICES = [
@@ -661,6 +701,16 @@ class JobOrder(models.Model):
 
     def __str__(self):
         return self.job_order_number
+
+    @classmethod
+    def generate_job_order_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'job_order_number', f'JO-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.job_order_number:
+            self.job_order_number = self.generate_job_order_number()
+        super().save(*args, **kwargs)
 
     @property
     def names_display(self):
@@ -710,6 +760,37 @@ class OfficialBusinessForm(models.Model):
         return f'{self.APPROVER_NAME} ({self.APPROVER_TITLE})'
 
 
+class TravelOrderForm(models.Model):
+    travel_date = models.DateField()
+    driver_name = models.CharField(max_length=200)
+    travel_with = models.TextField(blank=True, default='', help_text='One passenger name per line.')
+    destination = models.CharField(max_length=300, blank=True, default='')
+    purpose = models.TextField(blank=True, default='')
+    departure_time = models.TimeField(null=True, blank=True)
+    vehicle_plate = models.CharField(max_length=200, blank=True, default='')
+    fuel_allowance = models.CharField(max_length=200, blank=True, default='', help_text='PO# / Amount / Liters')
+    approved_by = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    ISSUER_NAME = 'AIZA MAE POQUITA'
+
+    class Meta:
+        ordering = ['-travel_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.driver_name} – {self.travel_date}'
+
+    @property
+    def travel_with_display(self):
+        names = [line.strip() for line in self.travel_with.splitlines() if line.strip()]
+        return '\n'.join(names) if names else '—'
+
+    @property
+    def issued_by_display(self):
+        return self.ISSUER_NAME
+
+
 class MaterialBorrow(models.Model):
     STATUS_CHOICES = [
         ('borrowed', 'Borrowed'),
@@ -737,6 +818,16 @@ class MaterialBorrow(models.Model):
 
     def __str__(self):
         return self.borrow_number
+
+    @classmethod
+    def generate_borrow_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'borrow_number', f'BM-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.borrow_number:
+            self.borrow_number = self.generate_borrow_number()
+        super().save(*args, **kwargs)
 
 
 class MaterialBorrowLine(models.Model):
@@ -784,6 +875,16 @@ class DeliveryReceipt(models.Model):
     def __str__(self):
         return self.receipt_number
 
+    @classmethod
+    def generate_receipt_number(cls):
+        from datetime import date
+        return _next_sequential_number(cls, 'receipt_number', f'DR-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.receipt_number:
+            self.receipt_number = self.generate_receipt_number()
+        super().save(*args, **kwargs)
+
     @property
     def total_amount(self):
         return sum((line.amount for line in self.lines.all()), Decimal('0'))
@@ -805,13 +906,17 @@ class DeliveryReceiptLine(models.Model):
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     unit = models.CharField(max_length=50, blank=True, default='pcs')
-    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     class Meta:
         ordering = ['id']
 
     def __str__(self):
         return f'{self.description} x{self.quantity}'
+
+    @property
+    def amount(self):
+        return (self.quantity or Decimal('0')) * (self.unit_price or Decimal('0'))
 
 
 class WorkspaceAccount(models.Model):
@@ -1227,4 +1332,246 @@ class TaxDeadline(models.Model):
     @property
     def is_overdue(self):
         return not self.is_filed and self.due_date < date.today()
+
+
+# ========== WATER BILLING MODELS ==========
+
+WATER_CUSTOMER_TYPES = [
+    ('residential', 'Residential'),
+    ('commercial', 'Commercial'),
+    ('government', 'Government'),
+    ('industrial', 'Industrial'),
+]
+
+WATER_CONNECTION_STATUS = [
+    ('active', 'Active'),
+    ('inactive', 'Inactive'),
+    ('disconnected', 'Disconnected'),
+]
+
+WATER_PAYMENT_METHODS = [
+    ('cash', 'Cash'),
+    ('bank', 'Bank'),
+    ('online', 'Online Payment'),
+    ('ewallet', 'E-Wallet'),
+]
+
+WATER_BILL_STATUS = [
+    ('unpaid', 'Unpaid'),
+    ('partial', 'Partial'),
+    ('paid', 'Paid'),
+    ('overdue', 'Overdue'),
+    ('cancelled', 'Cancelled'),
+]
+
+WATER_SERVICE_ACTION_TYPES = [
+    ('disconnection', 'Disconnection'),
+    ('reconnection', 'Reconnection'),
+]
+
+WATER_SERVICE_ACTION_STATUS = [
+    ('scheduled', 'Scheduled'),
+    ('completed', 'Completed'),
+    ('cancelled', 'Cancelled'),
+]
+
+
+class WaterCustomer(models.Model):
+    account_number = models.CharField(max_length=50, unique=True)
+    full_name = models.CharField(max_length=200)
+    service_address = models.TextField()
+    contact_number = models.CharField(max_length=50, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    customer_type = models.CharField(max_length=20, choices=WATER_CUSTOMER_TYPES, default='residential')
+    meter_number = models.CharField(max_length=50, unique=True)
+    connection_status = models.CharField(max_length=20, choices=WATER_CONNECTION_STATUS, default='active')
+    registration_date = models.DateField(default=date.today)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.account_number} – {self.full_name}'
+
+    @classmethod
+    def generate_account_number(cls):
+        return _next_sequential_number(cls, 'account_number', f'WA-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.account_number:
+            self.account_number = self.generate_account_number()
+        super().save(*args, **kwargs)
+
+    @property
+    def outstanding_balance(self):
+        total = Decimal('0.00')
+        for bill in self.bills.exclude(status='cancelled'):
+            total += bill.balance_due
+        return total
+
+
+class WaterMeterReading(models.Model):
+    customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='readings')
+    reading_date = models.DateField()
+    billing_period = models.CharField(max_length=20, help_text='e.g. 2026-07')
+    previous_reading = models.PositiveIntegerField(default=0)
+    current_reading = models.PositiveIntegerField()
+    consumption = models.PositiveIntegerField(default=0)
+    is_estimated = models.BooleanField(default=False)
+    reader_name = models.CharField(max_length=200, blank=True, default='')
+    remarks = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-reading_date', '-created_at']
+        unique_together = [('customer', 'billing_period')]
+
+    def __str__(self):
+        return f'{self.customer.account_number} – {self.billing_period}'
+
+    def save(self, *args, **kwargs):
+        prev = int(self.previous_reading or 0)
+        curr = int(self.current_reading or 0)
+        if curr < prev:
+            raise ValueError('Current reading cannot be lower than previous reading.')
+        self.consumption = curr - prev
+        super().save(*args, **kwargs)
+
+
+class WaterBill(models.Model):
+    bill_number = models.CharField(max_length=50, unique=True)
+    customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='bills')
+    meter_reading = models.OneToOneField(
+        WaterMeterReading, on_delete=models.SET_NULL, null=True, blank=True, related_name='bill',
+    )
+    billing_period = models.CharField(max_length=20)
+    bill_date = models.DateField()
+    due_date = models.DateField()
+    consumption = models.PositiveIntegerField(default=0)
+    rate_per_cum = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('25.00'))
+    consumption_charge = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    fixed_charge = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('50.00'))
+    environmental_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('10.00'))
+    maintenance_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('15.00'))
+    tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    penalty = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=WATER_BILL_STATUS, default='unpaid')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-bill_date', '-created_at']
+
+    def __str__(self):
+        return self.bill_number
+
+    @classmethod
+    def generate_bill_number(cls):
+        return _next_sequential_number(cls, 'bill_number', f'WB-{date.today().year}-')
+
+    @property
+    def balance_due(self):
+        return max(self.total_amount - self.amount_paid, Decimal('0.00'))
+
+    def recompute_totals(self):
+        self.consumption_charge = (Decimal(self.consumption or 0) * self.rate_per_cum).quantize(Decimal('0.01'))
+        self.total_amount = (
+            self.consumption_charge
+            + self.fixed_charge
+            + self.environmental_fee
+            + self.maintenance_fee
+            + self.tax
+            + self.penalty
+            - self.discount
+        ).quantize(Decimal('0.01'))
+        if self.total_amount < 0:
+            self.total_amount = Decimal('0.00')
+        self.refresh_status()
+
+    def refresh_status(self):
+        if self.status == 'cancelled':
+            return
+        if self.amount_paid <= 0:
+            self.status = 'overdue' if self.due_date < date.today() else 'unpaid'
+        elif self.amount_paid >= self.total_amount:
+            self.status = 'paid'
+            self.amount_paid = self.total_amount
+        else:
+            self.status = 'partial'
+
+    def save(self, *args, **kwargs):
+        if not self.bill_number:
+            self.bill_number = self.generate_bill_number()
+        self.recompute_totals()
+        super().save(*args, **kwargs)
+
+
+class WaterPayment(models.Model):
+    receipt_number = models.CharField(max_length=50, unique=True)
+    bill = models.ForeignKey(WaterBill, on_delete=models.CASCADE, related_name='payments')
+    customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=WATER_PAYMENT_METHODS, default='cash')
+    reference_number = models.CharField(max_length=100, blank=True, default='')
+    received_by = models.CharField(max_length=200, blank=True, default='')
+    remarks = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-payment_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.receipt_number} – {self.amount}'
+
+    @classmethod
+    def generate_receipt_number(cls):
+        return _next_sequential_number(cls, 'receipt_number', f'WP-{date.today().year}-')
+
+    def save(self, *args, **kwargs):
+        if not self.receipt_number:
+            self.receipt_number = self.generate_receipt_number()
+        if self.customer_id is None and self.bill_id:
+            self.customer = self.bill.customer
+        super().save(*args, **kwargs)
+
+
+class WaterServiceAction(models.Model):
+    customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='service_actions')
+    action_type = models.CharField(max_length=20, choices=WATER_SERVICE_ACTION_TYPES)
+    action_date = models.DateField()
+    status = models.CharField(max_length=20, choices=WATER_SERVICE_ACTION_STATUS, default='scheduled')
+    reason = models.TextField(blank=True, default='')
+    reconnection_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('500.00'))
+    fee_paid = models.BooleanField(default=False)
+    performed_by = models.CharField(max_length=200, blank=True, default='')
+    notes = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-action_date', '-created_at']
+
+    def __str__(self):
+        return f'{self.get_action_type_display()} – {self.customer.account_number}'
+
+
+class WaterAuditLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    username = models.CharField(max_length=150, blank=True, default='')
+    action = models.CharField(max_length=100)
+    entity_type = models.CharField(max_length=50)
+    entity_id = models.CharField(max_length=50, blank=True, default='')
+    details = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f'{self.timestamp:%Y-%m-%d %H:%M} – {self.action}'
 
