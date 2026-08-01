@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Print bills ({{ bill_count }}/6) – Long bond{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  @page {
+    size: 8.5in 13in;
+    margin: 0.25in;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: #0b1f2a;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 380px at 10% -10%, rgba(14, 116, 144, 0.16), transparent 55%),
+      radial-gradient(700px 320px at 100% 0%, rgba(8, 145, 178, 0.10), transparent 50%),
+      #eef4f7;
+  }
+
+  .page {
+    max-width: 9in;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border: 1px solid #d7e2e8;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 28px rgba(11, 31, 42, 0.06);
+  }
+
+  .toolbar .title-block h1 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .toolbar .title-block p {
+    margin: 2px 0 0;
+    color: #5b6b76;
+    font-size: 0.8rem;
+  }
+
+  .toolbar .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar a,
+  .toolbar button {
+    appearance: none;
+    border: 1px solid #d7e2e8;
+    background: #fff;
+    color: #155e75;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.84rem;
+    padding: 9px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .toolbar button.primary {
+    background: #0e7490;
+    border-color: #0e7490;
+    color: #fff;
+  }
+
+  .toolbar a:hover,
+  .toolbar button:hover {
+    border-color: #0e7490;
+  }
+
+  .batch-sheet {
+    width: 8.5in;
+    max-width: 100%;
+    min-height: 13in;
+    margin: 0 auto;
+    padding: 0.25in;
+    background: #fff;
+    border: 1px solid #d7e2e8;
+    border-radius: 8px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  }
+
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 4in);
+    grid-template-rows: repeat(3, 4in);
+    gap: 0.125in 0;
+    justify-content: center;
+    align-content: start;
+  }
+
+  .batch-slot {
+    width: 4in;
+    height: 4in;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .batch-slot.empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      rgba(148, 163, 184, 0.08) 6px,
+      rgba(148, 163, 184, 0.08) 12px
+    );
+  }
+
+  {% include "includes/water_bill_receipt_sheet_css.html" %}
+
+  .batch-slot .sheet {
+    border-radius: 4px;
+    box-shadow: none;
+  }
+
+  @media print {
+    html, body {
+      width: 8.5in;
+      height: 13in;
+      background: #fff !important;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toolbar {
+      display: none !important;
+    }
+
+    .batch-sheet {
+      width: 8in;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .batch-grid {
+      gap: 0.125in 0;
+    }
+
+    .batch-slot.empty {
+      border: none;
+      background: transparent;
+    }
+
+    .batch-slot .sheet {
+      width: 4in;
+      height: 4in;
+      max-width: none;
+      margin: 0;
+      border: 1px solid #111;
+      border-radius: 0;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="toolbar no-print">
+    <div class="title-block">
+      <h1>Batch print – long bond (8.5″ × 13″)</h1>
+      <p>{{ bill_count }} receipt{{ bill_count|pluralize }} · 2 × 3 layout (max 6)</p>
+    </div>
+    <div class="actions">
+      <a href="{% url 'water_billing_dashboard' %}?tab=readingsBillingTab">← Back</a>
+      <button type="button" class="primary" onclick="window.print()">Print</button>
+    </div>
+  </div>
+
+  <div class="batch-sheet">
+    <div class="batch-grid">
+      {% for item in receipt_items %}
+      <div class="batch-slot">
+        {% include "includes/water_bill_receipt_sheet.html" with bill=item.bill reading=item.reading customer=item.customer month_name=item.month_name location_header=item.location_header is_preview=item.is_preview billing_start_label=item.billing_start_label billing_end_label=item.billing_end_label %}
+      </div>
+      {% endfor %}
+      {% for i in "123456" %}
+        {% if forloop.counter > bill_count %}
+        <div class="batch-slot empty" aria-hidden="true"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

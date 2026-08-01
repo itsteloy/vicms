@@ -3,6 +3,9 @@
 {% block title %}HR Dashboard{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ── reset / base ── */
   *,
@@ -31,9 +34,21 @@
     margin: 0;
     background: #f2f4f7;
     color: var(--ink);
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     min-height: 100vh;
   }
+  
+  h1, h2, h3, h4,
+  .logo-text,
+  .greeting h2,
+  .stat-value,
+  .kpi-card .value,
+  .hero-stats .stat-card .stat-value,
+  .aging-card strong,
+  .totals-strip .t-value {
+    font-family: Manrope, sans-serif;
+  }
+
   .dashboard-wrapper {
     display: flex;
     min-height: 100vh;

@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 
 
@@ -223,6 +224,38 @@ class ServiceQuotationLine(models.Model):
 
     def __str__(self):
         return f'{self.service_quotation} line {self.item_number}'
+
+
+class SalesDocumentArchive(models.Model):
+    """Stores generated PDF snapshots for Sales dashboard forms."""
+
+    DOCUMENT_TYPES = [
+        ('product_quotation', 'Product Quotation'),
+        ('service_quotation', 'Service Quotation'),
+        ('collection_form', 'Collection Form'),
+        ('ageing_accounts', 'Ageing of Accounts'),
+        ('retention_summary', 'Retention Summary'),
+    ]
+
+    document_type = models.CharField(max_length=40, choices=DOCUMENT_TYPES)
+    title = models.CharField(max_length=255)
+    reference = models.CharField(max_length=120, blank=True, default='')
+    source_id = models.PositiveIntegerField(null=True, blank=True)
+    pdf = models.FileField(upload_to='sales_documents/')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sales_document_archives',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.get_document_type_display()}: {self.title}'
 
 
 class HRDocument(models.Model):
@@ -1346,14 +1379,13 @@ WATER_CUSTOMER_TYPES = [
 WATER_CONNECTION_STATUS = [
     ('active', 'Active'),
     ('inactive', 'Inactive'),
+    ('for_disconnection', 'For disconnection'),
     ('disconnected', 'Disconnected'),
 ]
 
 WATER_PAYMENT_METHODS = [
     ('cash', 'Cash'),
-    ('bank', 'Bank'),
-    ('online', 'Online Payment'),
-    ('ewallet', 'E-Wallet'),
+    ('gcash', 'GCash'),
 ]
 
 WATER_BILL_STATUS = [
@@ -1370,15 +1402,15 @@ WATER_SERVICE_ACTION_TYPES = [
 ]
 
 WATER_SERVICE_ACTION_STATUS = [
-    ('scheduled', 'Scheduled'),
-    ('completed', 'Completed'),
-    ('cancelled', 'Cancelled'),
+    ('for_disconnection', 'For disconnection'),
+    ('disconnected', 'Disconnected'),
 ]
 
 
 class WaterCustomer(models.Model):
     account_number = models.CharField(max_length=50, unique=True)
-    full_name = models.CharField(max_length=200)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
     service_address = models.TextField()
     contact_number = models.CharField(max_length=50, blank=True, default='')
     email = models.EmailField(blank=True, default='')
@@ -1386,15 +1418,29 @@ class WaterCustomer(models.Model):
     meter_number = models.CharField(max_length=50, unique=True)
     connection_status = models.CharField(max_length=20, choices=WATER_CONNECTION_STATUS, default='active')
     registration_date = models.DateField(default=date.today)
+    installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     notes = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['last_name', 'first_name']
 
     def __str__(self):
-        return f'{self.account_number} – {self.full_name}'
+        return f'{self.account_number} – {self.display_name}'
+
+    @property
+    def display_name(self):
+        """LAST NAME, FIRST NAME (e.g. GALENDEZ, ESTELO)."""
+        last = (self.last_name or '').strip()
+        first = (self.first_name or '').strip()
+        if last and first:
+            return f'{last}, {first}'
+        return last or first or ''
+
+    @property
+    def full_name(self):
+        return self.display_name
 
     @classmethod
     def generate_account_number(cls):
@@ -1403,6 +1449,14 @@ class WaterCustomer(models.Model):
     def save(self, *args, **kwargs):
         if not self.account_number:
             self.account_number = self.generate_account_number()
+        if self.first_name:
+            self.first_name = self.first_name.strip().upper()
+        if self.last_name:
+            self.last_name = self.last_name.strip().upper()
+        if self.service_address:
+            self.service_address = self.service_address.strip().upper()
+        if self.meter_number:
+            self.meter_number = self.meter_number.strip().upper()
         super().save(*args, **kwargs)
 
     @property
@@ -1412,6 +1466,50 @@ class WaterCustomer(models.Model):
             total += bill.balance_due
         return total
 
+    @property
+    def oldest_unpaid_due_date(self):
+        unpaid = [
+            bill.due_date
+            for bill in self.bills.exclude(status__in=['paid', 'cancelled'])
+            if bill.balance_due > 0 and bill.due_date
+        ]
+        return min(unpaid) if unpaid else None
+
+    @property
+    def months_unpaid(self):
+        """Whole months since the oldest unpaid bill due date (0 if none)."""
+        oldest = self.oldest_unpaid_due_date
+        if not oldest:
+            return 0
+        today = date.today()
+        months = (today.year - oldest.year) * 12 + (today.month - oldest.month)
+        if today.day < oldest.day:
+            months -= 1
+        return max(months, 0)
+
+    @property
+    def disconnection_monitor(self):
+        """
+        Monitor rule: disconnected after 3 months unpaid.
+        Returns a short status label for account information.
+        """
+        if self.connection_status == 'disconnected':
+            return 'Disconnected'
+        if self.connection_status == 'for_disconnection':
+            return 'For disconnection'
+        months = self.months_unpaid
+        if months >= 3:
+            return f'For disconnection ({months} months unpaid)'
+        if months >= 1:
+            return f'At risk ({months} month{"s" if months != 1 else ""} unpaid)'
+        if self.outstanding_balance > 0:
+            return 'Current (unpaid under 1 month)'
+        return 'Current – no unpaid balance'
+
+    @property
+    def disconnection_policy(self):
+        return 'Disconnected after 3 months unpaid'
+
 
 class WaterMeterReading(models.Model):
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='readings')
@@ -1420,6 +1518,8 @@ class WaterMeterReading(models.Model):
     previous_reading = models.PositiveIntegerField(default=0)
     current_reading = models.PositiveIntegerField()
     consumption = models.PositiveIntegerField(default=0)
+    previous_bill_unpaid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     is_estimated = models.BooleanField(default=False)
     reader_name = models.CharField(max_length=200, blank=True, default='')
     remarks = models.CharField(max_length=255, blank=True, default='')
@@ -1431,6 +1531,22 @@ class WaterMeterReading(models.Model):
 
     def __str__(self):
         return f'{self.customer.account_number} – {self.billing_period}'
+
+    @property
+    def current_bill(self):
+        return (Decimal(self.consumption or 0) * Decimal('20.00')).quantize(Decimal('0.01'))
+
+    @property
+    def total_bill(self):
+        return (
+            self.current_bill
+            + (self.previous_bill_unpaid or Decimal('0'))
+            + (self.installment_balance or Decimal('0'))
+        ).quantize(Decimal('0.01'))
+
+    @property
+    def has_bill(self):
+        return WaterBill.objects.filter(meter_reading_id=self.pk).exists()
 
     def save(self, *args, **kwargs):
         prev = int(self.previous_reading or 0)
@@ -1451,11 +1567,13 @@ class WaterBill(models.Model):
     bill_date = models.DateField()
     due_date = models.DateField()
     consumption = models.PositiveIntegerField(default=0)
-    rate_per_cum = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('25.00'))
+    rate_per_cum = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('20.00'))
     consumption_charge = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    fixed_charge = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('50.00'))
-    environmental_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('10.00'))
-    maintenance_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('15.00'))
+    previous_bill_unpaid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    fixed_charge = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    environmental_fee = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    maintenance_fee = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     penalty = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -1476,13 +1594,21 @@ class WaterBill(models.Model):
         return _next_sequential_number(cls, 'bill_number', f'WB-{date.today().year}-')
 
     @property
+    def current_bill(self):
+        return self.consumption_charge
+
+    @property
     def balance_due(self):
         return max(self.total_amount - self.amount_paid, Decimal('0.00'))
 
     def recompute_totals(self):
         self.consumption_charge = (Decimal(self.consumption or 0) * self.rate_per_cum).quantize(Decimal('0.01'))
+        # Statement of Account format:
+        # TOTAL BILL = CURRENT BILL + PREVIOUS BILL (UNPAID) + WATER INSTALLMENT BAL
         self.total_amount = (
             self.consumption_charge
+            + (self.previous_bill_unpaid or Decimal('0'))
+            + (self.installment_balance or Decimal('0'))
             + self.fixed_charge
             + self.environmental_fee
             + self.maintenance_fee
@@ -1546,7 +1672,7 @@ class WaterServiceAction(models.Model):
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='service_actions')
     action_type = models.CharField(max_length=20, choices=WATER_SERVICE_ACTION_TYPES)
     action_date = models.DateField()
-    status = models.CharField(max_length=20, choices=WATER_SERVICE_ACTION_STATUS, default='scheduled')
+    status = models.CharField(max_length=20, choices=WATER_SERVICE_ACTION_STATUS, default='for_disconnection')
     reason = models.TextField(blank=True, default='')
     reconnection_fee = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('500.00'))
     fee_paid = models.BooleanField(default=False)

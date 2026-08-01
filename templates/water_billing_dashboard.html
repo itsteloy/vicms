@@ -3,137 +3,642 @@
 {% block title %}Water Billing Dashboard{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   :root {
-    --ink: #0f172a;
-    --muted: #64748b;
-    --line: #cbd5e1;
-    --brand: #0369a1;
-    --brand-dark: #075985;
-    --brand-light: #e0f2fe;
+    --ink: #101828;
+    --muted: #667085;
+    --line: #d0d5dd;
+    --brand: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #ecfdf3;
     --panel: #ffffff;
     --soft: #f8fafc;
     --danger: #b42318;
     --success: #027a48;
     --warning: #b54708;
-    --sidebar-width: 280px;
+    --sidebar-width: 300px;
     --radius: 14px;
-    --shadow: 0 18px 42px rgba(15, 23, 42, 0.07);
+    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
   }
   body {
-    display: block; padding: 0; margin: 0;
-    background: #f1f5f9; color: var(--ink);
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: block;
+    padding: 0;
+    margin: 0;
+    background: #f2f4f7;
+    color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     min-height: 100vh;
   }
-  .dashboard-wrapper { display: flex; min-height: 100vh; }
-  .sidebar {
-    position: sticky; top: 0; flex: 0 0 var(--sidebar-width); width: var(--sidebar-width);
-    height: 100vh; overflow-y: auto; background: linear-gradient(180deg, #0c4a6e 0%, #0369a1 100%);
-    color: #e0f2fe; display: flex; flex-direction: column; z-index: 100;
+  
+  h1, h2, h3, h4,
+  .logo-text,
+  .greeting h2,
+  .stat-value,
+  .kpi-card .value,
+  .hero-stats .stat-card .stat-value,
+  .aging-card strong,
+  .totals-strip .t-value {
+    font-family: Manrope, sans-serif;
   }
-  .sidebar-brand { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-  .sidebar-brand .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
-  .sidebar-brand .logo-icon { width: 38px; height: 38px; object-fit: contain; border-radius: 10px; }
-  .sidebar-brand .logo-text { font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
-  .sidebar-brand .logo-text small { display: block; font-weight: 400; font-size: 0.68rem; opacity: 0.65; margin-top: 2px; }
-  .sidebar-nav { padding: 16px 12px; flex: 1; }
+
+  .dashboard-wrapper { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--brand);
+    color: #e6f0f0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 100;
+  }
+  .sidebar-brand {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+  }
+  .sidebar-brand .logo-icon {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .sidebar-brand .logo-text {
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .sidebar-brand .logo-text small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .sidebar-nav { padding: 20px 16px 12px; flex: 1; }
   .sidebar-nav .nav-label {
-    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.45;
-    padding: 0 12px 10px; font-weight: 700;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.4;
+    padding: 0 12px 10px;
+    font-weight: 700;
   }
   .sidebar-nav .tab-button {
-    display: flex; align-items: center; gap: 10px; width: 100%;
-    padding: 10px 12px; border: none; background: transparent; color: inherit;
-    border-radius: 10px; cursor: pointer; font: inherit; font-size: 0.88rem; font-weight: 600;
-    text-align: left; margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 2px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.836);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
   }
-  .sidebar-nav .tab-button:hover { background: rgba(255,255,255,0.08); }
-  .sidebar-nav .tab-button[aria-selected="true"] { background: rgba(255,255,255,0.16); color: #fff; }
-  .sidebar-nav .tab-icon { width: 1.25rem; text-align: center; }
-  .sidebar-footer { padding: 14px 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
-  .sidebar-footer a { color: #bae6fd; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
-  .main { flex: 1; min-width: 0; padding: 24px 28px 48px; }
-  .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
-  .page-header h1 { margin: 0; font-size: 1.65rem; letter-spacing: -0.02em; }
-  .page-header p { margin: 6px 0 0; color: var(--muted); }
-  .messages { list-style: none; padding: 0; margin: 0 0 16px; }
-  .messages li { padding: 10px 14px; border-radius: 10px; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
-  .messages .success { background: #ecfdf3; color: var(--success); border: 1px solid #a6f4c5; }
-  .messages .error { background: #fef3f2; color: var(--danger); border: 1px solid #fecdca; }
-  .messages .info { background: var(--brand-light); color: var(--brand-dark); border: 1px solid #7dd3fc; }
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+  .sidebar-nav .tab-button .tab-icon {
+    font-size: 1.05rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .sidebar-nav .tab-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] {
+    background: var(--brand-dark);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
+  }
+  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon { opacity: 1; }
+  .sidebar-stats {
+    padding: 16px 16px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+  .sidebar-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .sidebar-stats .stat-row strong { color: #fff; font-weight: 600; }
+  .sidebar-footer {
+    padding: 8px 28px 24px;
+    flex-shrink: 0;
+  }
+  .sidebar-footer a {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+  .sidebar-footer a:hover { color: #fff; }
+
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 0 32px 40px;
+    background: #f2f4f7;
+    overflow-x: hidden;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid #eaecf0;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .topbar .greeting h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .topbar .greeting p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .topbar .top-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .topbar .top-actions a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    transition: 0.2s;
+  }
+  .topbar .top-actions a:hover { background: var(--soft); }
+
+  .messages { margin-bottom: 16px; }
+  .message {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .message.success { background: #ecfdf3; color: #027a48; border: 1px solid #abefc6; }
+  .message.error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
+  .message.warning { background: #fffaeb; color: #b54708; border: 1px solid #fedf89; }
+  .message.info { background: var(--brand-light); color: var(--brand-dark); border: 1px solid #99f6e4; }
+
+  .tab-panel { display: none; animation: fadeUp 0.3s ease; }
+  .tab-panel.is-active { display: block; }
+  @keyframes fadeUp {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
   }
   .kpi-card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 16px 18px; box-shadow: var(--shadow);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
   }
-  .kpi-card .label { color: var(--muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-  .kpi-card .value { margin-top: 8px; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
+  .kpi-card .label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .kpi-card .value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-top: 4px;
+    color: var(--ink);
+  }
   .kpi-card .hint { margin-top: 4px; color: var(--muted); font-size: 0.78rem; }
+
   .panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 20px; margin-bottom: 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    margin-bottom: 24px;
   }
-  .panel h2 { margin: 0 0 4px; font-size: 1.15rem; }
-  .panel .sub { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
-  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .panel .sub,
+  .panel p.sub {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+  }
+  .section-label {
+    grid-column: 1 / -1;
+    margin: 6px 0 0;
+    padding-top: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--brand-dark);
+    border-top: 1px dashed var(--line);
+  }
+  .section-label:first-child { border-top: none; padding-top: 0; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
   .form-grid .full { grid-column: 1 / -1; }
-  .field label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .field input, .field select, .field textarea {
-    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
-    font: inherit; background: #fff;
+  .form-grid .span-2 { grid-column: span 2; }
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #344054;
+    margin-bottom: 6px;
   }
-  .field input[readonly] { background: var(--soft); color: #475569; }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font: inherit;
+    background: #fff;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+  .field input[readonly] { background: var(--soft); color: #475467; }
   .field textarea { min-height: 72px; resize: vertical; }
-  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
-  button, .action {
-    border: 1px solid var(--brand); background: var(--brand); color: #fff;
-    padding: 9px 16px; font: inherit; font-weight: 700; cursor: pointer; border-radius: 8px; font-size: 0.88rem;
-    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  .field-warning {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #fedf89;
+    background: #fffaeb;
+    color: var(--warning);
+    font-size: 0.82rem;
+    font-weight: 600;
   }
-  button:hover, .action.primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
-  .action { background: #fff; color: var(--brand); border-color: var(--line); }
-  .action:hover { background: var(--soft); border-color: var(--brand); }
-  .action.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .action.danger { color: var(--danger); border-color: #fecdca; }
-  .table-wrap { overflow-x: auto; }
-  table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-  table.data th, table.data td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
-  table.data th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--soft); }
+
+  .totals-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--brand-light);
+    border: 1px solid #99f6e4;
+  }
+  .totals-strip .t-item { min-width: 0; }
+  .totals-strip .t-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--brand-dark);
+    letter-spacing: 0.04em;
+  }
+  .totals-strip .t-value {
+    margin-top: 4px;
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  button,
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--brand);
+    text-decoration: none;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover,
+  .action:hover {
+    background: var(--soft);
+    border-color: var(--brand);
+  }
+  button.primary,
+  .action.primary,
+  .btn-primary {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  button.primary:hover,
+  .action.primary:hover,
+  .btn-primary:hover {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+  }
+  .action.danger {
+    color: var(--danger);
+    border-color: #fecdca;
+    background: #fff;
+  }
+  .action.danger:hover { background: #fef3f2; }
+  .action-group { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .action-group .action,
+  .action-group button { padding: 7px 10px; font-size: 0.78rem; }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    margin-top: 12px;
+  }
+  table.data {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  table.data th,
+  table.data td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eaecf0;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.data th {
+    background: var(--soft);
+    color: #475467;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  table.data tr:last-child td { border-bottom: none; }
   table.data tr:hover td { background: #f8fafc; }
+  .cell-muted { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+
   .badge {
-    display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 700; background: #e2e8f0; color: #334155;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: #eaecf0;
+    color: #344054;
   }
-  .badge.active, .badge.paid, .badge.completed { background: #dcfce7; color: #166534; }
-  .badge.disconnected, .badge.overdue, .badge.unpaid { background: #fee2e2; color: #991b1b; }
-  .badge.partial, .badge.scheduled { background: #ffedd5; color: #9a3412; }
-  .badge.inactive, .badge.cancelled { background: #e2e8f0; color: #475569; }
-  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: end; }
+  .badge.active,
+  .badge.paid,
+  .badge.completed { background: #d1fadf; color: #027a48; }
+  .badge.disconnected,
+  .badge.overdue,
+  .badge.unpaid { background: #fee4e2; color: #b42318; }
+  .badge.partial,
+  .badge.scheduled,
+  .badge.for_disconnection { background: #fef0c7; color: #b54708; }
+  .badge.inactive,
+  .badge.cancelled { background: #eaecf0; color: #475467; }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: end;
+  }
   .filters .field { min-width: 160px; }
-  .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
-  .empty { color: var(--muted); padding: 18px 8px; text-align: center; }
-  .aging-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
-  .aging-card { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-  .aging-card strong { display: block; font-size: 1.1rem; margin-top: 4px; }
-  @media (max-width: 1200px) {
-    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
-    .split, .form-grid { grid-template-columns: 1fr 1fr; }
-    .aging-grid { grid-template-columns: repeat(3, 1fr); }
+  .list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+  }
+  .list-toolbar .field { margin: 0; min-width: 140px; }
+  .list-toolbar .grow { flex: 1 1 220px; min-width: 200px; }
+  .money { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .money.muted { color: var(--muted); font-weight: 600; }
+  .stack-section { display: grid; gap: 18px; }
+  .form-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
+  .form-card-grid .full { grid-column: 1 / -1; }
+  .form-card-grid .span-2 { grid-column: span 2; }
+  .pay-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--brand-light);
+    border: 1px solid #99f6e4;
+  }
+  .pay-summary .label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--brand-dark);
+  }
+  .pay-summary .value {
+    margin-top: 4px;
+    font-family: Manrope, sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
   }
   @media (max-width: 900px) {
+    .form-card-grid, .pay-summary { grid-template-columns: 1fr; }
+    .form-card-grid .span-2 { grid-column: 1 / -1; }
+  }
+  .split {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.05fr);
+    gap: 16px;
+  }
+  .stack { display: grid; gap: 16px; }
+  .empty { color: var(--muted); padding: 28px 12px; text-align: center; }
+  .quick-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .aging-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .aging-card {
+    background: var(--soft);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .aging-card span {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .aging-card strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-top: 6px;
+  }
+
+  .batch-check {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+  .batch-print-bar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 40;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid #99f6e4;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--shadow);
+  }
+  .batch-print-bar.is-visible { display: flex; }
+  .batch-print-bar .count { font-weight: 700; color: var(--ink); font-size: 0.9rem; }
+  .batch-print-bar .hint { color: var(--muted); font-size: 0.8rem; margin-left: 6px; }
+  .batch-print-bar .actions { display: flex; gap: 8px; align-items: center; }
+  .batch-print-bar button {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .batch-print-bar .print-btn {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+  .batch-print-bar .print-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .batch-print-bar .clear-btn { background: #fff; color: var(--ink); }
+  .batch-print-note { color: var(--warning); font-size: 0.8rem; font-weight: 600; display: none; }
+  .batch-print-note.is-visible { display: block; }
+
+  @media (max-width: 1200px) {
+    .kpi-grid, .form-grid, .totals-strip { grid-template-columns: repeat(2, 1fr); }
+    .split { grid-template-columns: 1fr; }
+    .aging-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 992px) {
+    :root { --sidebar-width: 260px; }
+    .main-content { padding: 0 20px 32px; }
+  }
+  @media (max-width: 768px) {
     .dashboard-wrapper { flex-direction: column; }
-    .sidebar { position: relative; width: 100%; height: auto; flex: none; }
-    .kpi-grid, .form-grid, .split, .aging-grid { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-height: 420px;
+      flex: none;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .sidebar-stats { display: none; }
+    .main-content { padding: 0 16px 24px; }
+    .kpi-grid, .form-grid, .totals-strip, .aging-grid, .split { grid-template-columns: 1fr; }
+    .form-grid .span-2 { grid-column: 1 / -1; }
   }
   @media print {
-    .sidebar, .form-actions, .filters button, .no-print { display: none !important; }
-    .main { padding: 0; }
+    .sidebar, .form-actions, .filters button, .no-print, .topbar .top-actions { display: none !important; }
+    .main-content { padding: 0; background: #fff; }
     .tab-panel { display: block !important; }
   }
 </style>
@@ -144,64 +649,70 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <a class="logo" href="{% url 'dashboard' %}">
-        <img class="logo-icon" src="{% static 'viclogo_white.png' %}" alt="Versatec">
-        <span class="logo-text">VERSATEC<small>Water Billing</small></span>
+        <img class="logo-icon" src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo">
+        <span class="logo-text">VERSATEC <small>Water Billing</small></span>
       </a>
     </div>
     <nav class="sidebar-nav" aria-label="Water billing sections">
-      <div class="nav-label">Navigation</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="overviewTab"><span class="tab-icon">📊</span> Dashboard</button>
+      <div class="nav-label">Water Billing</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="overviewTab"><span class="tab-icon">📊</span> Overview</button>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="customersTab"><span class="tab-icon">👤</span> Customers</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="readingsTab"><span class="tab-icon">📟</span> Meter Readings</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="billingTab"><span class="tab-icon">📄</span> Billing</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="readingsBillingTab"><span class="tab-icon">📋</span> Readings &amp; Billing</button>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="paymentsTab"><span class="tab-icon">💵</span> Payments</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="arTab"><span class="tab-icon">📌</span> Accounts Receivable</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span> Disconnect / Reconnect</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="reportsTab"><span class="tab-icon">📈</span> Reports</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="auditTab"><span class="tab-icon">🗂️</span> Audit Logs</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="arTab"><span class="tab-icon">📈</span> Receivables</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span> Service Status</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="reportsTab"><span class="tab-icon">📄</span> Reports</button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="auditTab"><span class="tab-icon">🛡️</span> Audit</button>
     </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Customers</span><strong>{{ stats.total_customers }}</strong></div>
+      <div class="stat-row"><span>Active</span><strong>{{ stats.active_connections }}</strong></div>
+      <div class="stat-row"><span>Outstanding</span><strong>₱{{ stats.outstanding_balance|floatformat:0 }}</strong></div>
+    </div>
     <div class="sidebar-footer">
       <a href="{% url 'dashboard' %}">← Back to workspaces</a>
     </div>
   </aside>
 
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <h1>Water Billing Dashboard</h1>
-        <p>Customers, meter readings, billing, collections, and service status in one place.</p>
+  <main class="main-content">
+    <header class="topbar">
+      <div class="greeting">
+        <h2>Water Billing Dashboard</h2>
+        <p>Track accounts, meter readings, statements, and collections in one place.</p>
       </div>
-    </div>
+      <div class="top-actions">
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
 
     {% if messages %}
-    <ul class="messages">
+    <div class="messages">
       {% for message in messages %}
-      <li class="{{ message.tags }}">{{ message }}</li>
+      <div class="message {{ message.tags|default:'success' }}">{{ message }}</div>
       {% endfor %}
-    </ul>
+    </div>
     {% endif %}
 
     <!-- OVERVIEW -->
-    <section id="overviewTab" class="tab-panel active" role="tabpanel">
+    <section id="overviewTab" class="tab-panel is-active" role="tabpanel">
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="label">💧 Total Customers</div><div class="value">{{ stats.total_customers }}</div></div>
-        <div class="kpi-card"><div class="label">🚰 Active Connections</div><div class="value">{{ stats.active_connections }}</div></div>
-        <div class="kpi-card"><div class="label">📄 Bills Generated</div><div class="value">{{ stats.bills_generated }}</div><div class="hint">This month</div></div>
-        <div class="kpi-card"><div class="label">💵 Revenue Collected</div><div class="value">₱{{ stats.revenue_collected|floatformat:2 }}</div><div class="hint">This month</div></div>
-        <div class="kpi-card"><div class="label">📌 Outstanding Balance</div><div class="value">₱{{ stats.outstanding_balance|floatformat:2 }}</div></div>
-        <div class="kpi-card"><div class="label">📈 Collection Rate</div><div class="value">{{ stats.collection_rate }}%</div></div>
-        <div class="kpi-card"><div class="label">📊 Monthly Consumption</div><div class="value">{{ stats.month_consumption }}</div><div class="hint">cu.m this month</div></div>
-        <div class="kpi-card"><div class="label">❌ Disconnected</div><div class="value">{{ stats.disconnected_accounts }}</div></div>
-        <div class="kpi-card"><div class="label">✅ Reconnected</div><div class="value">{{ stats.reconnected_accounts }}</div><div class="hint">This month</div></div>
-        <div class="kpi-card"><div class="label">🆕 New Customers</div><div class="value">{{ stats.new_customers }}</div><div class="hint">This month</div></div>
+        <div class="kpi-card"><div class="label">Active connections</div><div class="value">{{ stats.active_connections }}</div><div class="hint">{{ stats.total_customers }} total customers</div></div>
+        <div class="kpi-card"><div class="label">Revenue this month</div><div class="value">₱{{ stats.revenue_collected|floatformat:2 }}</div><div class="hint">{{ stats.bills_generated }} bills generated</div></div>
+        <div class="kpi-card"><div class="label">Outstanding</div><div class="value">₱{{ stats.outstanding_balance|floatformat:2 }}</div><div class="hint">{{ stats.collection_rate }}% collection rate</div></div>
+        <div class="kpi-card"><div class="label">Consumption</div><div class="value">{{ stats.month_consumption }}</div><div class="hint">cu.m this month</div></div>
+        <div class="kpi-card"><div class="label">New customers</div><div class="value">{{ stats.new_customers }}</div><div class="hint">Registered this month</div></div>
+        <div class="kpi-card"><div class="label">Disconnected</div><div class="value">{{ stats.disconnected_accounts }}</div><div class="hint">{{ stats.reconnected_accounts }} reconnected</div></div>
       </div>
       <div class="panel">
-        <h2>Quick workflow</h2>
-        <p class="sub">Register customers → record meter readings → generate bills → collect payments → manage disconnections.</p>
-        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <div class="panel-head">
+          <div>
+            <h2>Start here</h2>
+            <p class="sub">Register a customer, record a reading, then collect payment.</p>
+          </div>
+        </div>
+        <div class="quick-row">
           <button type="button" class="action primary" data-jump="customersTab">Add customer</button>
-          <button type="button" class="action" data-jump="readingsTab">Record reading</button>
-          <button type="button" class="action" data-jump="billingTab">Generate bill</button>
+          <button type="button" class="action" data-jump="readingsBillingTab">Record reading</button>
           <button type="button" class="action" data-jump="paymentsTab">Record payment</button>
         </div>
       </div>
@@ -209,14 +720,93 @@
 
     <!-- CUSTOMERS -->
     <section id="customersTab" class="tab-panel" role="tabpanel">
-      <div class="split">
+      <div class="stack-section">
         <div class="panel">
-          <h2>Register customer</h2>
-          <p class="sub">Account numbers are assigned automatically.</p>
+          <div class="panel-head">
+            <div>
+              <h2>Customer list</h2>
+              <p class="sub">Search accounts and review balances at a glance.</p>
+            </div>
+          </div>
+          <form method="get" class="list-toolbar">
+            <input type="hidden" name="tab" value="customersTab">
+            <div class="field grow">
+              <label>Search</label>
+              <input name="customer_q" value="{{ customer_q }}" placeholder="Name, account, or meter…">
+            </div>
+            <div class="field">
+              <label>Type</label>
+              <select name="customer_type">
+                <option value="">All types</option>
+                {% for value, label in customer_types %}
+                <option value="{{ value }}" {% if customer_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select name="customer_status">
+                <option value="">All statuses</option>
+                {% for value, label in connection_statuses %}
+                <option value="{{ value }}" {% if customer_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action primary">Filter</button>
+          </form>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Name</th>
+                  <th>Meter</th>
+                  <th>Installment Balance</th>
+                  <th>Outstanding Balance</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in customers %}
+                <tr>
+                  <td><strong>{{ c.account_number }}</strong></td>
+                  <td>{{ c.display_name }}</td>
+                  <td>{{ c.meter_number }}</td>
+                  <td class="money">₱{{ c.installment_balance|floatformat:2 }}</td>
+                  <td class="money">₱{{ c.outstanding_balance|floatformat:2 }}</td>
+                  <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
+                  <td>
+                    <div class="action-group">
+                      <a class="action" href="{% url 'view_water_customer' c.id %}">View</a>
+                      <form method="post" onsubmit="return confirm('Delete customer {{ c.account_number }}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_customer">
+                        <input type="hidden" name="customer_id" value="{{ c.id }}">
+                        <button type="submit" class="action danger">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty">No customers found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Register customer</h2>
+              <p class="sub">Create a new account. Installation fee balance is calculated automatically.</p>
+            </div>
+          </div>
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_customer">
-            <div class="form-grid">
+            <div class="form-card-grid">
               <div class="field">
                 <label>Account No.</label>
                 <input name="account_number" value="{{ next_account_number }}" readonly>
@@ -233,13 +823,25 @@
                   {% endfor %}
                 </select>
               </div>
-              <div class="field full">
-                <label>Full Name *</label>
-                <input name="full_name" required>
+              <div class="field">
+                <label>Connection Status</label>
+                <select name="connection_status">
+                  {% for value, label in connection_statuses %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Last Name *</label>
+                <input name="last_name" id="customerLastName" required style="text-transform:uppercase;" autocomplete="family-name">
+              </div>
+              <div class="field">
+                <label>First Name *</label>
+                <input name="first_name" id="customerFirstName" required style="text-transform:uppercase;" autocomplete="given-name">
               </div>
               <div class="field full">
                 <label>Service Address *</label>
-                <textarea name="service_address" required></textarea>
+                <textarea name="service_address" id="customerServiceAddress" required style="text-transform:uppercase;"></textarea>
               </div>
               <div class="field">
                 <label>Contact Number</label>
@@ -251,288 +853,227 @@
               </div>
               <div class="field">
                 <label>Meter Number *</label>
-                <input name="meter_number" required>
+                <input name="meter_number" id="customerMeterNumber" required style="text-transform:uppercase;" autocomplete="off">
+              </div>
+              <div class="section-label">Installation fee</div>
+              <div class="field">
+                <label>Installation Fee</label>
+                <input type="number" step="0.01" id="installationFee" value="5900.00" readonly>
               </div>
               <div class="field">
-                <label>Connection Status</label>
-                <select name="connection_status">
-                  {% for value, label in connection_statuses %}
-                  <option value="{{ value }}">{{ label }}</option>
-                  {% endfor %}
+                <label>Payment *</label>
+                <select name="installation_payment" id="installationPayment" required>
+                  <option value="partial">Partial – ₱3,000.00</option>
+                  <option value="full">Full – ₱5,900.00</option>
                 </select>
               </div>
-              <div class="field full">
+              <div class="field">
+                <label>Amount Paid</label>
+                <input type="number" step="0.01" id="installationPaid" name="installation_paid" value="3000.00" readonly>
+              </div>
+              <div class="field">
+                <label>Balance</label>
+                <input type="number" step="0.01" min="0" name="installment_balance" id="installationBalance" value="2900.00" readonly>
+              </div>
+              <div class="field span-2">
                 <label>Notes</label>
                 <textarea name="notes"></textarea>
               </div>
             </div>
-            <div class="form-actions"><button type="submit">Save customer</button></div>
+            <div class="form-actions"><button type="submit" class="primary">Save customer</button></div>
           </form>
-        </div>
-        <div class="panel">
-          <h2>Customer list</h2>
-          <p class="sub">Search and filter accounts.</p>
-          <form method="get" class="filters">
-            <input type="hidden" name="tab" value="customersTab">
-            <div class="field" style="flex:1; min-width:180px;">
-              <label>Search</label>
-              <input name="customer_q" value="{{ customer_q }}" placeholder="Name, account, meter…">
-            </div>
-            <div class="field">
-              <label>Type</label>
-              <select name="customer_type">
-                <option value="">All</option>
-                {% for value, label in customer_types %}
-                <option value="{{ value }}" {% if customer_type == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field">
-              <label>Status</label>
-              <select name="customer_status">
-                <option value="">All</option>
-                {% for value, label in connection_statuses %}
-                <option value="{{ value }}" {% if customer_status == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <button type="submit" class="action primary">Filter</button>
-          </form>
-          <div class="table-wrap">
-            <table class="data">
-              <thead>
-                <tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th></th></tr>
-              </thead>
-              <tbody>
-                {% for c in customers %}
-                <tr>
-                  <td>{{ c.account_number }}</td>
-                  <td>{{ c.full_name }}<div style="color:var(--muted);font-size:0.78rem;">{{ c.service_address|truncatechars:40 }}</div></td>
-                  <td>{{ c.get_customer_type_display }}</td>
-                  <td>{{ c.meter_number }}</td>
-                  <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
-                  <td>
-                    <form method="post" onsubmit="return confirm('Delete customer {{ c.account_number }}?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_customer">
-                      <input type="hidden" name="customer_id" value="{{ c.id }}">
-                      <button type="submit" class="action danger">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="empty">No customers found.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- READINGS -->
-    <section id="readingsTab" class="tab-panel" role="tabpanel">
-      <div class="split">
+    <!-- READINGS & BILLING -->
+    <section id="readingsBillingTab" class="tab-panel" role="tabpanel">
+      <div class="stack">
         <div class="panel">
-          <h2>Record meter reading</h2>
-          <p class="sub">Consumption is calculated from previous → current reading.</p>
+          <div class="panel-head">
+            <div>
+              <h2>New meter reading</h2>
+              <p class="sub">Current bill = consumption × ₱20. Total = current + previous unpaid + installment.</p>
+            </div>
+          </div>
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_reading">
             <div class="form-grid">
+              <div class="section-label">Customer & period</div>
               <div class="field full">
                 <label>Customer *</label>
                 <select name="customer_id" id="readingCustomer" required>
                   <option value="">Select account…</option>
                   {% for c in all_customers %}
-                  <option value="{{ c.id }}" data-last="{% if c.readings.first %}{{ c.readings.first.current_reading }}{% else %}0{% endif %}">
-                    {{ c.account_number }} – {{ c.full_name }}
+                  <option
+                    value="{{ c.id }}"
+                    data-last="{{ c.last_current_reading|default_if_none:0 }}"
+                    data-unpaid="{{ c.outstanding_balance }}"
+                    data-installment="{{ c.installment_balance }}"
+                    data-status="{{ c.connection_status }}">
+                    {{ c.account_number }} – {{ c.display_name }}{% if c.connection_status == 'disconnected' %} ⚠ DISCONNECTED{% elif c.connection_status != 'active' %} ({{ c.get_connection_status_display|upper }}){% endif %}
                   </option>
                   {% endfor %}
                 </select>
+                <p id="readingCustomerWarning" class="field-warning" hidden>This account is disconnected. Confirm before recording a new reading.</p>
               </div>
               <div class="field">
                 <label>Reading Date *</label>
                 <input type="date" name="reading_date" id="readingDate" required>
               </div>
               <div class="field">
-                <label>Billing Period *</label>
-                <input name="billing_period" id="billingPeriod" placeholder="2026-07" required>
-              </div>
-              <div class="field">
-                <label>Previous Reading</label>
-                <input type="number" min="0" name="previous_reading" id="previousReading" value="0">
-              </div>
-              <div class="field">
-                <label>Current Reading *</label>
-                <input type="number" min="0" name="current_reading" required>
+                <label>Billing Period</label>
+                <input name="billing_period" id="billingPeriod" placeholder="2026-07" required readonly>
               </div>
               <div class="field">
                 <label>Reader Name</label>
-                <input name="reader_name">
+                <input name="reader_name" value="James Pahilagao">
               </div>
               <div class="field">
                 <label>Estimated?</label>
                 <select name="is_estimated">
                   <option value="">No</option>
-                  <option value="1">Yes – estimated</option>
+                  <option value="1">Yes</option>
                 </select>
               </div>
-              <div class="field full">
+
+              <div class="section-label">Meter reading</div>
+              <div class="field">
+                <label>Previous</label>
+                <input type="number" min="0" name="previous_reading" id="previousReading" value="0" readonly>
+              </div>
+              <div class="field">
+                <label>Present *</label>
+                <input type="number" min="0" name="current_reading" id="currentReading" required>
+              </div>
+              <div class="field">
+                <label>Consumption (cu.m)</label>
+                <input type="text" id="readingConsumption" value="0" readonly>
+              </div>
+              <div class="field">
                 <label>Remarks</label>
-                <input name="remarks">
+                <input name="remarks" placeholder="Optional">
+              </div>
+
+              <div class="section-label">Charges</div>
+              <div class="field">
+                <label>Current Bill</label>
+                <input type="text" id="readingCurrentBill" value="0.00" readonly>
+              </div>
+              <div class="field">
+                <label>Previous Bill (Unpaid)</label>
+                <input type="text" id="previousBillUnpaid" value="0.00" readonly>
+              </div>
+              <div class="field">
+                <label>Water Installment Bal</label>
+                <input type="number" step="0.01" min="0" name="installment_balance" id="installmentBalance" value="0.00">
+              </div>
+              <div class="field">
+                <label>Total Bill</label>
+                <input type="text" id="readingTotalBill" value="0.00" readonly>
               </div>
             </div>
-            <div class="form-actions"><button type="submit">Save reading</button></div>
+            <div class="totals-strip" aria-hidden="true">
+              <div class="t-item"><div class="t-label">Consumption</div><div class="t-value" id="stripConsumption">0 cu.m</div></div>
+              <div class="t-item"><div class="t-label">Current</div><div class="t-value" id="stripCurrent">₱0.00</div></div>
+              <div class="t-item"><div class="t-label">Unpaid + Installment</div><div class="t-value" id="stripOther">₱0.00</div></div>
+              <div class="t-item"><div class="t-label">Total due</div><div class="t-value" id="stripTotal">₱0.00</div></div>
+            </div>
+            <div class="form-actions"><button type="submit" class="primary">Save reading</button></div>
           </form>
         </div>
+
         <div class="panel">
-          <h2>Reading history</h2>
-          <p class="sub">Recent meter readings across all accounts.</p>
+          <div class="panel-head">
+            <div>
+              <h2>History</h2>
+              <p class="sub">Select up to 6 generated bills to print on one long bond page.</p>
+            </div>
+          </div>
           <div class="table-wrap">
             <table class="data">
               <thead>
-                <tr><th>Account</th><th>Period</th><th>Prev</th><th>Curr</th><th>Use</th><th>Date</th><th></th></tr>
+                <tr>
+                  <th style="width:2.2rem;"></th>
+                  <th>Customer</th>
+                  <th>Period</th>
+                  <th>Reading</th>
+                  <th>Charges</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
               </thead>
               <tbody>
                 {% for r in readings %}
                 <tr>
-                  <td>{{ r.customer.account_number }}</td>
-                  <td>{{ r.billing_period }}{% if r.is_estimated %} <span class="badge scheduled">Est.</span>{% endif %}</td>
-                  <td>{{ r.previous_reading }}</td>
-                  <td>{{ r.current_reading }}</td>
-                  <td><strong>{{ r.consumption }}</strong> cu.m</td>
-                  <td>{{ r.reading_date }}</td>
                   <td>
-                    <form method="post" onsubmit="return confirm('Delete this reading?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_reading">
-                      <input type="hidden" name="reading_id" value="{{ r.id }}">
-                      <button type="submit" class="action danger">Delete</button>
-                    </form>
+                    {% if r.bill %}
+                    <input class="batch-check batch-bill-check" type="checkbox" value="{{ r.bill.id }}" aria-label="Select bill {{ r.bill.bill_number }}">
+                    {% endif %}
+                  </td>
+                  <td>
+                    <strong>{{ r.customer.display_name }}</strong>
+                    <div class="cell-muted">{{ r.customer.account_number }}</div>
+                    <div class="cell-muted">{{ r.customer.service_address|truncatechars:48 }}</div>
+                  </td>
+                  <td>{{ r.billing_period }}<div class="cell-muted">{{ r.reading_date }}</div></td>
+                  <td>
+                    {{ r.previous_reading }} → {{ r.current_reading }}
+                    <div class="cell-muted"><strong>{{ r.consumption }}</strong> cu.m</div>
+                  </td>
+                  <td>
+                    <div class="cell-muted">Current ₱{{ r.current_bill|floatformat:2 }}</div>
+                    <div class="cell-muted">Unpaid ₱{{ r.previous_bill_unpaid|floatformat:2 }}</div>
+                    <div class="cell-muted">Installment ₱{{ r.installment_balance|floatformat:2 }}</div>
+                  </td>
+                  <td><strong>₱{% if r.bill %}{{ r.bill.total_amount|floatformat:2 }}{% else %}{{ r.total_bill|floatformat:2 }}{% endif %}</strong></td>
+                  <td>
+                    {% if r.bill %}
+                    <span class="badge {{ r.bill.status }}">{{ r.bill.get_status_display }}</span>
+                    {% else %}
+                    <span class="badge scheduled">Reading only</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="action-group">
+                      {% if r.bill %}
+                      <a class="action" href="{% url 'view_water_bill' r.bill.id %}">View</a>
+                      {% else %}
+                      <a class="action" href="{% url 'view_water_reading_preview' r.id %}">View</a>
+                      <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="generate_bill">
+                        <input type="hidden" name="reading_id" value="{{ r.id }}">
+                        <button type="submit" class="action primary">Generate Bill</button>
+                      </form>
+                      {% endif %}
+                      <form method="post" onsubmit="return confirm('Delete this reading{% if r.bill %} and its bill{% endif %}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_reading">
+                        <input type="hidden" name="reading_id" value="{{ r.id }}">
+                        <button type="submit" class="action danger">Delete</button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="empty">No readings yet.</td></tr>
+                <tr><td colspan="8" class="empty">No readings yet. Save a meter reading to get started.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- BILLING -->
-    <section id="billingTab" class="tab-panel" role="tabpanel">
-      <div class="split">
-        <div class="panel">
-          <h2>Generate monthly bill</h2>
-          <p class="sub">Charges include consumption, fixed, environmental, maintenance, tax, discount, and penalty.</p>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_bill">
-            <div class="form-grid">
-              <div class="field">
-                <label>Bill No.</label>
-                <input name="bill_number" value="{{ next_bill_number }}" readonly>
-              </div>
-              <div class="field">
-                <label>Bill Date *</label>
-                <input type="date" name="bill_date" id="billDate" required>
-              </div>
-              <div class="field">
-                <label>Due Date *</label>
-                <input type="date" name="due_date" id="dueDate" required>
-              </div>
-              <div class="field full">
-                <label>Customer *</label>
-                <select name="customer_id" required>
-                  <option value="">Select account…</option>
-                  {% for c in all_customers %}
-                  <option value="{{ c.id }}">{{ c.account_number }} – {{ c.full_name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="field full">
-                <label>Meter Reading (optional)</label>
-                <select name="reading_id">
-                  <option value="">Manual consumption entry…</option>
-                  {% for r in readings_without_bill %}
-                  <option value="{{ r.id }}">{{ r.customer.account_number }} · {{ r.billing_period }} · {{ r.consumption }} cu.m</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="field">
-                <label>Billing Period</label>
-                <input name="billing_period" placeholder="2026-07">
-              </div>
-              <div class="field">
-                <label>Consumption (cu.m)</label>
-                <input type="number" min="0" name="consumption" value="0">
-              </div>
-              <div class="field">
-                <label>Rate / cu.m</label>
-                <input name="rate_per_cum" value="{{ default_rate }}">
-              </div>
-              <div class="field">
-                <label>Fixed Charge</label>
-                <input name="fixed_charge" value="{{ default_fixed }}">
-              </div>
-              <div class="field">
-                <label>Environmental Fee</label>
-                <input name="environmental_fee" value="{{ default_env }}">
-              </div>
-              <div class="field">
-                <label>Maintenance Fee</label>
-                <input name="maintenance_fee" value="{{ default_maint }}">
-              </div>
-              <div class="field">
-                <label>Tax</label>
-                <input name="tax" value="0.00">
-              </div>
-              <div class="field">
-                <label>Discount</label>
-                <input name="discount" value="0.00">
-              </div>
-              <div class="field">
-                <label>Penalty</label>
-                <input name="penalty" value="0.00">
-              </div>
+          <div class="batch-print-bar" id="batchPrintBarReadings" data-batch-bar>
+            <div>
+              <span class="count"><span data-batch-count>0</span> selected</span>
+              <span class="hint">Max 6 per long bond page</span>
+              <div class="batch-print-note" data-batch-note>Maximum 6 receipts per page.</div>
             </div>
-            <div class="form-actions"><button type="submit">Generate bill</button></div>
-          </form>
-        </div>
-        <div class="panel">
-          <h2>Billing history</h2>
-          <p class="sub">Recent bills with payment status.</p>
-          <div class="table-wrap">
-            <table class="data">
-              <thead>
-                <tr><th>Bill #</th><th>Account</th><th>Period</th><th>Total</th><th>Balance</th><th>Status</th><th></th></tr>
-              </thead>
-              <tbody>
-                {% for b in bills %}
-                <tr>
-                  <td>{{ b.bill_number }}</td>
-                  <td>{{ b.customer.account_number }}</td>
-                  <td>{{ b.billing_period }}<div style="color:var(--muted);font-size:0.75rem;">Due {{ b.due_date }}</div></td>
-                  <td>₱{{ b.total_amount|floatformat:2 }}</td>
-                  <td>₱{{ b.balance_due|floatformat:2 }}</td>
-                  <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
-                  <td>
-                    <form method="post" onsubmit="return confirm('Delete bill {{ b.bill_number }}?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_bill">
-                      <input type="hidden" name="bill_id" value="{{ b.id }}">
-                      <button type="submit" class="action danger">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="7" class="empty">No bills generated yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+            <div class="actions">
+              <button type="button" class="clear-btn" data-batch-clear>Clear</button>
+              <button type="button" class="print-btn" data-batch-print disabled>Print selected (max 6)</button>
+            </div>
           </div>
         </div>
       </div>
@@ -540,14 +1081,70 @@
 
     <!-- PAYMENTS -->
     <section id="paymentsTab" class="tab-panel" role="tabpanel">
-      <div class="split">
+      <div class="stack-section">
         <div class="panel">
-          <h2>Record payment</h2>
-          <p class="sub">Supports partial and full payments. Receipt numbers are automatic.</p>
+          <div class="panel-head">
+            <div>
+              <h2>Payment history</h2>
+              <p class="sub">Recent collections and official receipts.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Receipt</th>
+                  <th>Date</th>
+                  <th>Name</th>
+                  <th>Amount Paid</th>
+                  <th>Method</th>
+                  <th>Balance Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td><strong>{{ p.receipt_number }}</strong></td>
+                  <td>{{ p.payment_date }}</td>
+                  <td>{{ p.customer.display_name }}</td>
+                  <td class="money">₱{{ p.amount|floatformat:2 }}</td>
+                  <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
+                  <td>
+                    {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
+                    <span class="badge paid">Paid</span>
+                    {% else %}
+                    <span class="badge unpaid">Unpaid</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_payment">
+                      <input type="hidden" name="payment_id" value="{{ p.id }}">
+                      <button type="submit" class="action danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="empty">No payments recorded yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Record payment</h2>
+              <p class="sub">Apply cash or GCash payments to open bills. Receipt numbers are automatic.</p>
+            </div>
+          </div>
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_payment">
-            <div class="form-grid">
+            <div class="form-card-grid">
               <div class="field">
                 <label>Receipt No.</label>
                 <input name="receipt_number" value="{{ next_receipt_number }}" readonly>
@@ -570,7 +1167,7 @@
                   <option value="">Select unpaid / partial bill…</option>
                   {% for b in open_bills_for_payment %}
                   <option value="{{ b.id }}" data-balance="{{ b.balance_due }}">
-                    {{ b.bill_number }} – {{ b.customer.account_number }} (bal ₱{{ b.balance_due|floatformat:2 }})
+                    {{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (bal ₱{{ b.balance_due|floatformat:2 }})
                   </option>
                   {% endfor %}
                 </select>
@@ -581,52 +1178,33 @@
               </div>
               <div class="field">
                 <label>Reference No.</label>
-                <input name="reference_number" placeholder="Bank / OR ref">
+                <input name="reference_number" placeholder="GCash ref (optional)">
               </div>
               <div class="field">
                 <label>Received By</label>
-                <input name="received_by">
+                <input name="received_by" value="Aiza Poquita">
               </div>
               <div class="field full">
                 <label>Remarks</label>
                 <input name="remarks">
               </div>
             </div>
-            <div class="form-actions"><button type="submit">Save payment</button></div>
+            <div class="pay-summary" aria-hidden="true">
+              <div>
+                <div class="label">Bill balance</div>
+                <div class="value" id="payBalanceDisplay">₱0.00</div>
+              </div>
+              <div>
+                <div class="label">Amount to pay</div>
+                <div class="value" id="payAmountDisplay">₱0.00</div>
+              </div>
+              <div>
+                <div class="label">Remaining after pay</div>
+                <div class="value" id="payRemainingDisplay">₱0.00</div>
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit" class="primary">Save payment</button></div>
           </form>
-        </div>
-        <div class="panel">
-          <h2>Payment history</h2>
-          <p class="sub">Official receipts and collection trail.</p>
-          <div class="table-wrap">
-            <table class="data">
-              <thead>
-                <tr><th>Receipt</th><th>Date</th><th>Account</th><th>Bill</th><th>Amount</th><th>Method</th><th></th></tr>
-              </thead>
-              <tbody>
-                {% for p in payments %}
-                <tr>
-                  <td>{{ p.receipt_number }}</td>
-                  <td>{{ p.payment_date }}</td>
-                  <td>{{ p.customer.account_number }}</td>
-                  <td>{{ p.bill.bill_number }}</td>
-                  <td>₱{{ p.amount|floatformat:2 }}</td>
-                  <td>{{ p.get_payment_method_display }}</td>
-                  <td>
-                    <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_payment">
-                      <input type="hidden" name="payment_id" value="{{ p.id }}">
-                      <button type="submit" class="action danger">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="7" class="empty">No payments recorded yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </section>
@@ -635,7 +1213,7 @@
     <section id="arTab" class="tab-panel" role="tabpanel">
       <div class="panel">
         <h2>Accounts receivable</h2>
-        <p class="sub">Outstanding balances and aging buckets.</p>
+        <p class="sub">Outstanding balances and aging buckets. Select up to 6 bills to print on one long bond page.</p>
         <div class="aging-grid">
           <div class="aging-card"><span class="label">Current</span><strong>₱{{ aging_buckets.current|floatformat:2 }}</strong></div>
           <div class="aging-card"><span class="label">1–30 days</span><strong>₱{{ aging_buckets.d1_30|floatformat:2 }}</strong></div>
@@ -646,24 +1224,38 @@
         <div class="table-wrap">
           <table class="data">
             <thead>
-              <tr><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr>
+              <tr><th style="width:2.2rem;"></th><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr>
             </thead>
             <tbody>
               {% for b in unpaid_bills %}
               <tr>
+                <td>
+                  <input class="batch-check batch-bill-check" type="checkbox" value="{{ b.id }}" aria-label="Select bill {{ b.bill_number }}">
+                </td>
                 <td>{{ b.bill_number }}</td>
                 <td>{{ b.customer.account_number }}</td>
-                <td>{{ b.customer.full_name }}</td>
+                <td>{{ b.customer.display_name }}</td>
                 <td>{{ b.due_date }}</td>
                 <td>₱{{ b.total_amount|floatformat:2 }}</td>
                 <td><strong>₱{{ b.balance_due|floatformat:2 }}</strong></td>
                 <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
               </tr>
               {% empty %}
-              <tr><td colspan="7" class="empty">No outstanding balances.</td></tr>
+              <tr><td colspan="8" class="empty">No outstanding balances.</td></tr>
               {% endfor %}
             </tbody>
           </table>
+        </div>
+        <div class="batch-print-bar" id="batchPrintBarAr" data-batch-bar>
+          <div>
+            <span class="count"><span data-batch-count>0</span> selected</span>
+            <span class="hint">Max 6 per long bond page</span>
+            <div class="batch-print-note" data-batch-note>Maximum 6 receipts per page.</div>
+          </div>
+          <div class="actions">
+            <button type="button" class="clear-btn" data-batch-clear>Clear</button>
+            <button type="button" class="print-btn" data-batch-print disabled>Print selected (max 6)</button>
+          </div>
         </div>
       </div>
     </section>
@@ -673,7 +1265,7 @@
       <div class="split">
         <div class="panel">
           <h2>Schedule disconnection / reconnection</h2>
-          <p class="sub">Track service status and reconnection fees.</p>
+          <p class="sub">Statuses: For disconnection or Disconnected. Policy: disconnect after 3 months unpaid.</p>
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_service_action">
@@ -683,7 +1275,7 @@
                 <select name="customer_id" required>
                   <option value="">Select account…</option>
                   {% for c in all_customers %}
-                  <option value="{{ c.id }}">{{ c.account_number }} – {{ c.full_name }} ({{ c.get_connection_status_display }})</option>
+                  <option value="{{ c.id }}">{{ c.account_number }} – {{ c.display_name }} ({{ c.get_connection_status_display }}){% if c.months_unpaid >= 3 %} · {{ c.months_unpaid }} mo unpaid{% endif %}</option>
                   {% endfor %}
                 </select>
               </div>
@@ -731,24 +1323,26 @@
                 <input name="notes">
               </div>
             </div>
-            <div class="form-actions"><button type="submit">Save action</button></div>
+            <div class="form-actions"><button type="submit" class="primary">Save action</button></div>
           </form>
         </div>
         <div class="panel">
-          <h2>Overdue candidates</h2>
-          <p class="sub">Active accounts with past-due bills.</p>
+          <h2>For disconnection (3+ months unpaid)</h2>
+          <p class="sub">Accounts that meet the disconnection policy.</p>
           <div class="table-wrap" style="margin-bottom:18px;">
             <table class="data">
-              <thead><tr><th>Account</th><th>Name</th><th>Outstanding</th></tr></thead>
+              <thead><tr><th>Account</th><th>Name</th><th>Months unpaid</th><th>Outstanding</th><th>Monitor</th></tr></thead>
               <tbody>
                 {% for c in disconnect_candidates %}
                 <tr>
                   <td>{{ c.account_number }}</td>
-                  <td>{{ c.full_name }}</td>
+                  <td>{{ c.display_name }}</td>
+                  <td>{{ c.months_unpaid }}</td>
                   <td>₱{{ c.outstanding_balance|floatformat:2 }}</td>
+                  <td><span class="badge for_disconnection">{{ c.disconnection_monitor }}</span></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" class="empty">No disconnection candidates.</td></tr>
+                <tr><td colspan="5" class="empty">No accounts with 3+ months unpaid.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -765,15 +1359,14 @@
                   <td>{{ a.action_date }}</td>
                   <td><span class="badge {{ a.status }}">{{ a.get_status_display }}</span></td>
                   <td>
-                    {% if a.status != 'completed' %}
+                    {% if a.status == 'for_disconnection' %}
                     <form method="post">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="complete_service_action">
                       <input type="hidden" name="action_id" value="{{ a.id }}">
-                      <button type="submit" class="action primary">Complete</button>
+                      <button type="submit" class="action primary">{% if a.action_type == 'reconnection' %}Mark reconnected{% else %}Mark disconnected{% endif %}</button>
                     </form>
-                    {% endif %}
-                  </td>
+                    {% endif %}                  </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="5" class="empty">No service actions yet.</td></tr>
@@ -819,7 +1412,7 @@
             <thead><tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th>Address</th></tr></thead>
             <tbody>
               {% for c in report_rows %}
-              <tr><td>{{ c.account_number }}</td><td>{{ c.full_name }}</td><td>{{ c.get_customer_type_display }}</td><td>{{ c.meter_number }}</td><td>{{ c.get_connection_status_display }}</td><td>{{ c.service_address }}</td></tr>
+              <tr><td>{{ c.account_number }}</td><td>{{ c.display_name }}</td><td>{{ c.get_customer_type_display }}</td><td>{{ c.meter_number }}</td><td>{{ c.get_connection_status_display }}</td><td>{{ c.service_address }}</td></tr>
               {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
             </tbody>
             {% elif report_type == 'consumption' or report_type == 'readings' %}
@@ -894,16 +1487,28 @@
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   }
-  function currentPeriod() {
+  function readingDateISO() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}-28`;
+  }
+  function periodFromDate(value) {
+    if (!value || value.length < 7) return '';
+    return value.slice(0, 7);
+  }
+  function syncBillingPeriod() {
+    const readingDate = document.getElementById('readingDate');
+    const period = document.getElementById('billingPeriod');
+    if (!readingDate || !period) return;
+    const nextPeriod = periodFromDate(readingDate.value);
+    if (nextPeriod) period.value = nextPeriod;
   }
 
   const panels = {
     overviewTab: document.getElementById('overviewTab'),
     customersTab: document.getElementById('customersTab'),
-    readingsTab: document.getElementById('readingsTab'),
-    billingTab: document.getElementById('billingTab'),
+    readingsBillingTab: document.getElementById('readingsBillingTab'),
     paymentsTab: document.getElementById('paymentsTab'),
     arTab: document.getElementById('arTab'),
     disconnectTab: document.getElementById('disconnectTab'),
@@ -913,9 +1518,10 @@
   const buttons = Array.from(document.querySelectorAll('.tab-button[data-tab-target]'));
 
   function activateTab(tabId) {
+    if (tabId === 'readingsTab' || tabId === 'billingTab') tabId = 'readingsBillingTab';
     Object.entries(panels).forEach(([id, el]) => {
       if (!el) return;
-      el.classList.toggle('active', id === tabId);
+      el.classList.toggle('is-active', id === tabId);
     });
     buttons.forEach((btn) => {
       btn.setAttribute('aria-selected', btn.dataset.tabTarget === tabId ? 'true' : 'false');
@@ -930,37 +1536,212 @@
     btn.addEventListener('click', () => activateTab(btn.dataset.jump));
   });
 
-  const initial = new URLSearchParams(window.location.search).get('tab') || 'overviewTab';
+  let initial = new URLSearchParams(window.location.search).get('tab') || 'overviewTab';
+  if (initial === 'readingsTab' || initial === 'billingTab') initial = 'readingsBillingTab';
   activateTab(panels[initial] ? initial : 'overviewTab');
 
-  ['custRegDate', 'readingDate', 'billDate', 'paymentDate', 'actionDate'].forEach((id) => {
+  ['custRegDate', 'paymentDate', 'actionDate'].forEach((id) => {
     const el = document.getElementById(id);
     if (el && !el.value) el.value = localTodayISO();
   });
-  const due = document.getElementById('dueDate');
-  if (due && !due.value) {
-    const d = new Date();
-    d.setDate(d.getDate() + 15);
-    due.value = d.toISOString().slice(0, 10);
+
+  function forceUppercase(el) {
+    if (!el) return;
+    const toUpper = () => {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const upper = el.value.toUpperCase();
+      if (el.value !== upper) {
+        el.value = upper;
+        if (typeof start === 'number' && typeof end === 'number' && el.setSelectionRange) {
+          try { el.setSelectionRange(start, end); } catch (e) {}
+        }
+      }
+    };
+    el.addEventListener('input', toUpper);
+    el.addEventListener('blur', toUpper);
   }
-  const period = document.getElementById('billingPeriod');
-  if (period && !period.value) period.value = currentPeriod();
+  forceUppercase(document.getElementById('customerFirstName'));
+  forceUppercase(document.getElementById('customerLastName'));
+  forceUppercase(document.getElementById('customerServiceAddress'));
+  forceUppercase(document.getElementById('customerMeterNumber'));
+
+  const INSTALLATION_FEE = 5900;
+  const INSTALLATION_PARTIAL = 3000;
+  const installationPayment = document.getElementById('installationPayment');
+  const installationPaid = document.getElementById('installationPaid');
+  const installationBalance = document.getElementById('installationBalance');
+  function syncInstallationFee() {
+    if (!installationPayment || !installationPaid || !installationBalance) return;
+    const paid = installationPayment.value === 'full' ? INSTALLATION_FEE : INSTALLATION_PARTIAL;
+    installationPaid.value = paid.toFixed(2);
+    installationBalance.value = Math.max(INSTALLATION_FEE - paid, 0).toFixed(2);
+  }
+  if (installationPayment) {
+    installationPayment.addEventListener('change', syncInstallationFee);
+    syncInstallationFee();
+  }
+  const readingDate = document.getElementById('readingDate');
+  if (readingDate && !readingDate.value) readingDate.value = readingDateISO();
+  if (readingDate) {
+    readingDate.addEventListener('change', syncBillingPeriod);
+    readingDate.addEventListener('input', syncBillingPeriod);
+  }
+  syncBillingPeriod();
 
   const readingCustomer = document.getElementById('readingCustomer');
   const previousReading = document.getElementById('previousReading');
+  const currentReading = document.getElementById('currentReading');
+  const readingConsumption = document.getElementById('readingConsumption');
+  const readingCurrentBill = document.getElementById('readingCurrentBill');
+  const previousBillUnpaid = document.getElementById('previousBillUnpaid');
+  const installmentBalance = document.getElementById('installmentBalance');
+  const readingTotalBill = document.getElementById('readingTotalBill');
+  const RATE_PER_CUM = 20;
+
+  function updateReadingTotals() {
+    const prev = Number(previousReading?.value || 0);
+    const curr = Number(currentReading?.value || 0);
+    const consumption = Math.max(curr - prev, 0);
+    const currentBill = consumption * RATE_PER_CUM;
+    const unpaid = Number(previousBillUnpaid?.value || 0);
+    const installment = Number(installmentBalance?.value || 0);
+    const total = currentBill + unpaid + installment;
+    if (readingConsumption) readingConsumption.value = String(consumption);
+    if (readingCurrentBill) readingCurrentBill.value = currentBill.toFixed(2);
+    if (readingTotalBill) readingTotalBill.value = total.toFixed(2);
+    const stripConsumption = document.getElementById('stripConsumption');
+    const stripCurrent = document.getElementById('stripCurrent');
+    const stripOther = document.getElementById('stripOther');
+    const stripTotal = document.getElementById('stripTotal');
+    if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
+    if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
+    if (stripOther) stripOther.textContent = `₱${(unpaid + installment).toFixed(2)}`;
+    if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
+  }
+
   if (readingCustomer && previousReading) {
+    const readingCustomerWarning = document.getElementById('readingCustomerWarning');
+    const syncReadingCustomerWarning = () => {
+      const opt = readingCustomer.selectedOptions[0];
+      const status = opt?.dataset?.status || '';
+      if (readingCustomerWarning) {
+        readingCustomerWarning.hidden = status !== 'disconnected';
+      }
+    };
     readingCustomer.addEventListener('change', () => {
       const opt = readingCustomer.selectedOptions[0];
-      previousReading.value = opt?.dataset?.last || '0';
+      previousReading.value = opt?.dataset?.last ?? '0';
+      if (previousBillUnpaid) previousBillUnpaid.value = Number(opt?.dataset?.unpaid || 0).toFixed(2);
+      if (installmentBalance) installmentBalance.value = Number(opt?.dataset?.installment || 0).toFixed(2);
+      if (currentReading) currentReading.value = '';
+      syncReadingCustomerWarning();
+      updateReadingTotals();
+    });
+    syncReadingCustomerWarning();
+  }
+  [previousReading, currentReading, installmentBalance].forEach((el) => {
+    if (el) el.addEventListener('input', updateReadingTotals);
+  });
+  updateReadingTotals();
+
+  const BATCH_PRINT_MAX = 6;
+  const batchPrintUrl = "{% url 'print_water_bills_batch' %}";
+  const batchChecks = Array.from(document.querySelectorAll('.batch-bill-check'));
+  const batchBars = Array.from(document.querySelectorAll('[data-batch-bar]'));
+
+  function selectedBatchIds() {
+    const ids = [];
+    const seen = new Set();
+    batchChecks.forEach((cb) => {
+      if (!cb.checked) return;
+      if (seen.has(cb.value)) return;
+      seen.add(cb.value);
+      ids.push(cb.value);
+    });
+    return ids;
+  }
+
+  function syncBatchCheckmates(changed) {
+    // Keep same bill id checkboxes in sync across tabs
+    if (!changed) return;
+    batchChecks.forEach((cb) => {
+      if (cb !== changed && cb.value === changed.value) cb.checked = changed.checked;
     });
   }
+
+  function refreshBatchPrintBars(showLimitNote) {
+    const ids = selectedBatchIds();
+    batchBars.forEach((bar) => {
+      const countEl = bar.querySelector('[data-batch-count]');
+      const printBtn = bar.querySelector('[data-batch-print]');
+      const note = bar.querySelector('[data-batch-note]');
+      if (countEl) countEl.textContent = String(ids.length);
+      if (printBtn) printBtn.disabled = ids.length === 0;
+      bar.classList.toggle('is-visible', ids.length > 0);
+      if (note) note.classList.toggle('is-visible', Boolean(showLimitNote));
+    });
+  }
+
+  batchChecks.forEach((cb) => {
+    cb.addEventListener('change', () => {
+      let showLimitNote = false;
+      const uniqueBeforeSync = selectedBatchIds();
+      if (cb.checked && uniqueBeforeSync.length > BATCH_PRINT_MAX) {
+        cb.checked = false;
+        showLimitNote = true;
+      }
+      syncBatchCheckmates(cb);
+      refreshBatchPrintBars(showLimitNote);
+    });
+  });
+
+  batchBars.forEach((bar) => {
+    const clearBtn = bar.querySelector('[data-batch-clear]');
+    const printBtn = bar.querySelector('[data-batch-print]');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        batchChecks.forEach((cb) => { cb.checked = false; });
+        refreshBatchPrintBars(false);
+      });
+    }
+    if (printBtn) {
+      printBtn.addEventListener('click', () => {
+        const ids = selectedBatchIds().slice(0, BATCH_PRINT_MAX);
+        if (!ids.length) return;
+        const params = new URLSearchParams();
+        ids.forEach((id) => params.append('bill_ids', id));
+        window.location.href = `${batchPrintUrl}?${params.toString()}`;
+      });
+    }
+  });
+  refreshBatchPrintBars(false);
+
   const paymentBill = document.getElementById('paymentBill');
   const paymentAmount = document.getElementById('paymentAmount');
+  const payBalanceDisplay = document.getElementById('payBalanceDisplay');
+  const payAmountDisplay = document.getElementById('payAmountDisplay');
+  const payRemainingDisplay = document.getElementById('payRemainingDisplay');
+  function formatPeso(value) {
+    const num = Number(value || 0);
+    return `₱${num.toFixed(2)}`;
+  }
+  function syncPaymentSummary() {
+    const opt = paymentBill?.selectedOptions?.[0];
+    const balance = Number(opt?.dataset?.balance || 0);
+    const amount = Number(paymentAmount?.value || 0);
+    if (payBalanceDisplay) payBalanceDisplay.textContent = formatPeso(balance);
+    if (payAmountDisplay) payAmountDisplay.textContent = formatPeso(amount);
+    if (payRemainingDisplay) payRemainingDisplay.textContent = formatPeso(Math.max(balance - amount, 0));
+  }
   if (paymentBill && paymentAmount) {
     paymentBill.addEventListener('change', () => {
       const opt = paymentBill.selectedOptions[0];
       if (opt?.dataset?.balance) paymentAmount.value = opt.dataset.balance;
+      syncPaymentSummary();
     });
+    paymentAmount.addEventListener('input', syncPaymentSummary);
+    syncPaymentSummary();
   }
 })();
 </script>

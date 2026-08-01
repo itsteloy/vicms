@@ -3,6 +3,9 @@
 {% block title %}Sales Dashboard{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     /* ── reset / base ── */
     *,
@@ -33,12 +36,24 @@
         margin: 0;
         background: #f2f4f7;
         color: var(--ink);
-        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
         min-height: 100vh;
     }
 
     /* ── dashboard wrapper ── */
-    .dashboard-wrapper {
+    
+  h1, h2, h3, h4,
+  .logo-text,
+  .greeting h2,
+  .stat-value,
+  .kpi-card .value,
+  .hero-stats .stat-card .stat-value,
+  .aging-card strong,
+  .totals-strip .t-value {
+    font-family: Manrope, sans-serif;
+  }
+
+  .dashboard-wrapper {
         display: flex;
         min-height: 100vh;
     }
@@ -313,7 +328,7 @@
         min-width: 0;
         padding: 0 32px 40px;
         background: #f2f4f7;
-        overflow-x: hidden;
+        overflow-x: auto;
     }
 
     /* ── top bar ── */
@@ -668,6 +683,7 @@
 
     thead {
         background: var(--soft);
+        color: #000;
     }
 
     th,
@@ -679,11 +695,20 @@
     }   
 
     th {
-        color: #fff;
+        color: #000;
         font-weight: 700;
         font-size: 0.78rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+    }
+
+    thead th {
+        color: #000;
+    }
+
+    /* Keep white text on teal quotation item headers */
+    thead tr[style*="--brand"] th {
+        color: #fff;
     }
 
     tbody tr:hover {
@@ -937,6 +962,544 @@
             display: none;
         }
     }
+
+    /* ── Collection Form document ── */
+    .cf-layout {
+        display: block;
+        width: 100%;
+    }
+
+    .cf-doc {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: visible;
+        position: static;
+        width: 100%;
+        max-width: 850px;
+        margin: 0 auto;
+        box-sizing: border-box;
+        box-shadow: none;
+    }
+
+    .cf-doc .doc-header img {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .cf-doc-body {
+        padding: 20px 24px 28px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 13px;
+        color: #111;
+        line-height: 1.45;
+        min-height: 420px;
+        overflow: visible;
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    .cf-meta {
+        margin: 0 0 18px;
+        max-width: 100%;
+    }
+
+    .cf-meta-row {
+        display: grid;
+        grid-template-columns: 88px 12px 1fr;
+        gap: 4px;
+        margin-bottom: 4px;
+        align-items: start;
+    }
+
+    .cf-meta-row .cf-label,
+    .cf-meta-row .cf-colon,
+    .cf-meta-row .cf-value {
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .cf-meta-row .cf-colon { text-align: center; }
+    .cf-meta-row .cf-value {
+        white-space: pre-wrap;
+        min-height: 1.2em;
+        word-break: break-word;
+    }
+
+    .cf-salutation { margin: 18px 0 10px; font-weight: 700; }
+    .cf-intro {
+        margin: 0 0 16px;
+        text-align: justify;
+        overflow-wrap: break-word;
+    }
+    .cf-intro .cf-amount-words,
+    .cf-intro .cf-amount-figures {
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .cf-doc table.cf-items,
+    table.cf-items {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        border-collapse: collapse;
+        table-layout: fixed !important;
+        margin: 0 0 18px;
+        font-size: 12px;
+        box-sizing: border-box;
+    }
+
+    .cf-items th,
+    .cf-items td {
+        border: 1px solid #222;
+        padding: 6px 7px;
+        vertical-align: top;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        box-sizing: border-box;
+    }
+
+    .cf-items th {
+        background: #f3f4f6;
+        color: #000;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 10.5px;
+    }
+
+    .cf-items col.cf-col-date { width: 13%; }
+    .cf-items col.cf-col-drsi { width: 15%; }
+    .cf-items col.cf-col-qty { width: 12%; }
+    .cf-items col.cf-col-desc { width: 35%; }
+    .cf-items col.cf-col-amt { width: 25%; }
+
+    .cf-items td.cf-amt,
+    .cf-items th.cf-amt {
+        text-align: right;
+        white-space: nowrap;
+        overflow: visible;
+        font-size: 11px;
+        padding-left: 4px;
+        padding-right: 6px;
+    }
+
+    .cf-items td.cf-center { text-align: center; }
+    .cf-items .cf-total-row td { font-weight: 700; }
+    .cf-items .cf-total-label { text-align: right; padding-right: 12px; }
+
+    .cf-closing { margin: 0 0 28px; text-align: justify; }
+    .cf-signs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-top: 8px;
+    }
+    .cf-sign-left .cf-officer-name {
+        margin-top: 48px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .cf-sign-left .cf-officer-title { font-size: 12px; }
+    .cf-sign-right { text-align: center; }
+    .cf-sign-right .cf-received {
+        font-weight: 700;
+        text-align: left;
+        margin-bottom: 40px;
+    }
+    .cf-sign-right .cf-sign-line {
+        border-bottom: 1px solid #222;
+        height: 28px;
+        margin: 0 12px 6px;
+    }
+    .cf-sign-right .cf-sign-caption {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .cf-form-table {
+        width: 100%;
+        min-width: 0 !important;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .cf-form-table thead tr {
+        background: var(--brand);
+        color: #fff;
+    }
+    .cf-form-table th {
+        background: var(--brand);
+        color: #fff;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        border: none;
+    }
+    .cf-form-table td {
+        padding: 12px;
+        border-top: 1px solid var(--line);
+        border-bottom: none;
+        vertical-align: middle;
+    }
+    .cf-form-table input,
+    .cf-form-table textarea {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 0.85rem;
+        box-sizing: border-box;
+    }
+    .cf-form-table textarea {
+        resize: vertical;
+        min-height: 36px;
+    }
+
+    @media (max-width: 768px) {
+        #collection-form-tab .panel > div[style*="grid-template-columns:1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    @media print {
+        @page { size: A4; margin: 10mm; }
+        html, body {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .sidebar, .topbar, .hero-stats, .messages, .no-print,
+        .tab-panel:not(.is-active) { display: none !important; }
+        .dashboard-wrapper, .main-content, .tab-panel.is-active, .cf-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            max-width: none !important;
+            overflow: visible !important;
+        }
+        .tab-panel.is-active .cf-doc {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+        }
+        .cf-doc table.cf-items,
+        table.cf-items {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+    }
+
+    /* ── Ageing of Accounts ── */
+    .aa-form-table {
+        width: 100%;
+        min-width: 960px;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .aa-form-table thead tr {
+        background: var(--brand);
+        color: #fff;
+    }
+    .aa-form-table th {
+        background: var(--brand);
+        color: #fff !important;
+        padding: 10px 8px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        border: none;
+        white-space: nowrap;
+    }
+    .aa-form-table td {
+        padding: 8px 6px;
+        border-top: 1px solid var(--line);
+        vertical-align: middle;
+    }
+    .aa-form-table input,
+    .aa-form-table textarea {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        box-sizing: border-box;
+    }
+    .aa-form-table textarea {
+        resize: vertical;
+        min-height: 34px;
+    }
+    .aa-doc {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    .aa-doc-body {
+        padding: 18px 20px 28px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        color: #111;
+        box-sizing: border-box;
+    }
+    .aa-letterhead {
+        margin: 0 0 14px;
+        color: #1d4ed8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        line-height: 1.45;
+        font-size: 0.95rem;
+    }
+    .aa-letterhead .aa-company {
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+    .aa-title {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #1d4ed8;
+    }
+    .aa-items {
+        width: 100%;
+        min-width: 0 !important;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 10.5px;
+    }
+    .aa-items th,
+    .aa-items td {
+        border: 1px solid #222;
+        padding: 4px 5px;
+        vertical-align: top;
+        word-break: break-word;
+        color: #111;
+    }
+    .aa-items th {
+        background: #dbeafe;
+        color: #000 !important;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 9.5px;
+        letter-spacing: 0.02em;
+    }
+    .aa-items td.aa-num {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .aa-items td.aa-center { text-align: center; }
+    .aa-items .aa-total-row td {
+        font-weight: 700;
+        background: #f8fafc;
+    }
+    .aa-items .aa-total-label {
+        text-align: right;
+        padding-right: 8px;
+    }
+
+    @media print {
+        .aa-doc {
+            max-width: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+    }
+
+    /* ── Retention Summary ── */
+    .rs-form-table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .rs-form-table thead tr {
+        background: var(--brand);
+        color: #fff;
+    }
+    .rs-form-table th {
+        background: var(--brand);
+        color: #fff !important;
+        padding: 10px 8px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        border: none;
+        white-space: nowrap;
+    }
+    .rs-form-table td {
+        padding: 8px 6px;
+        border-top: 1px solid var(--line);
+        vertical-align: middle;
+    }
+    .rs-form-table input:not([type="checkbox"]),
+    .rs-form-table textarea {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        box-sizing: border-box;
+    }
+    .rs-form-table textarea {
+        resize: vertical;
+        min-height: 34px;
+    }
+    .rs-form-table .rs-flag {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 0.68rem;
+        color: var(--muted);
+        text-align: left;
+        min-width: 120px;
+    }
+    .rs-form-table .rs-flag label {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+        text-align: left;
+        width: max-content;
+        max-width: 100%;
+    }
+    .rs-form-table .rs-flag input[type="checkbox"] {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: 0 0 14px;
+        accent-color: var(--brand);
+    }
+    .rs-form-table td:has(.rs-flag) {
+        text-align: left;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .rs-doc {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    .rs-doc-body {
+        padding: 18px 20px 28px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        color: #111;
+        box-sizing: border-box;
+    }
+    .rs-letterhead {
+        margin: 0 0 14px;
+        color: #1d4ed8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        line-height: 1.45;
+        font-size: 0.95rem;
+    }
+    .rs-letterhead .rs-company {
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+    .rs-title {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #1d4ed8;
+    }
+    .rs-items {
+        width: 100%;
+        min-width: 0 !important;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 10.5px;
+    }
+    .rs-items th,
+    .rs-items td {
+        border: 1px solid #222;
+        padding: 4px 6px;
+        vertical-align: top;
+        word-break: break-word;
+        color: #111;
+    }
+    .rs-items th {
+        background: #dbeafe;
+        color: #000 !important;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 9.5px;
+        letter-spacing: 0.02em;
+    }
+    .rs-items td.rs-num {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .rs-items td.rs-center { text-align: center; }
+    .rs-items .rs-total-row td {
+        font-weight: 700;
+        background: #f8fafc;
+    }
+    .rs-items .rs-total-label {
+        text-align: right;
+        padding-right: 8px;
+    }
+    .rs-items td.rs-remarks-red { color: #c00 !important; }
+    .rs-items td.rs-client-hl { background: #ffe566; }
+    .rs-items tr.rs-row-hl td { background: #f8c8d0; }
+    .rs-items tr.rs-row-hl td.rs-client-hl { background: #ffe566; }
+
+    @media print {
+        .rs-doc {
+            max-width: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+    }
+
 </style>
 {% endblock %}
 
@@ -988,6 +1551,26 @@
                 aria-selected="{% if active_tab == 'service-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="service-quotation-tab">
                 <span class="tab-icon">🛠️</span> Service Quotation
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'collection-form-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="collection-form-tab">
+                <span class="tab-icon">📄</span> Collection Form
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'ageing-accounts-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="ageing-accounts-tab">
+                <span class="tab-icon">📊</span> Ageing of Accounts
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'retention-summary-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="retention-summary-tab">
+                <span class="tab-icon">📋</span> Retention Summary
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="saved-documents-tab">
+                <span class="tab-icon">🗂️</span> Saved Documents
             </button>
         </nav>
 
@@ -1529,8 +2112,7 @@
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" id="pqDownloadPdf" style="padding:10px 16px;">📥 Download
-                        PDF</button>
+                    <button class="action brand-link" id="pqSave" style="padding:10px 16px;">💾 Save</button>
                     <button class="action" id="pqPrint" style="padding:10px 16px;">🖨️ Print</button>
                     <button class="action" id="pqReset" style="padding:10px 16px;">🔄 Reset</button>
                 </div>
@@ -1852,8 +2434,7 @@
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" id="svqDownloadPdf" style="padding:10px 16px;">📥 Download
-                        PDF</button>
+                    <button class="action brand-link" id="svqSave" style="padding:10px 16px;">💾 Save</button>
                     <button class="action" id="svqPrint" style="padding:10px 16px;">🖨️ Print</button>
                     <button class="action" id="svqReset" style="padding:10px 16px;">🔄 Reset</button>
                 </div>
@@ -2149,10 +2730,530 @@
             </div>
         </div>
 
+        <!-- ─── COLLECTION FORM ─── -->
+        <div id="collection-form-tab" class="tab-panel {% if active_tab == 'collection-form-tab' %}is-active{% endif %}">
+            <div class="panel no-print" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">📄 Create Collection Form</h1>
+
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" type="button" id="cfSave" style="padding:10px 16px;">💾 Save</button>
+                    <button class="action" type="button" id="cfPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" type="button" id="cfReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Date</label>
+                        <input type="date" id="cfDate" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Company</label>
+                        <input type="text" id="cfCompany" placeholder="e.g., BUNAWAN WATER DISTRICT"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">Address</label>
+                        <textarea id="cfAddress" rows="2" placeholder="Company address"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Attention</label>
+                        <input type="text" id="cfAttention" value="ACCOUNTING DEPARTMENT"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-top:12px; margin-bottom:4px;">RE</label>
+                        <input type="text" id="cfRe" value="STATEMENT OF ACCOUNT"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                            <div>
+                                <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Officer Name</label>
+                                <input type="text" id="cfOfficerName" placeholder="e.g., BEVERLY R. TAN"
+                                    style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Officer Title</label>
+                                <input type="text" id="cfOfficerTitle" value="Collection Officer"
+                                    style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Collection Line Items</legend>
+                    <div style="overflow-x:auto; margin-bottom:12px;">
+                        <table class="cf-form-table" aria-label="Collection line items">
+                            <thead>
+                                <tr>
+                                    <th style="width:130px;">Date</th>
+                                    <th style="width:140px;">D.R. / S.I. No.</th>
+                                    <th style="width:110px;">Quantity</th>
+                                    <th>Description</th>
+                                    <th style="width:120px; text-align:right;">Amount</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cfItemsBody">
+                                <tr>
+                                    <td><input type="date" class="cf-item-date"></td>
+                                    <td><input type="text" class="cf-item-drsi" placeholder="DR / SI No."></td>
+                                    <td><input type="text" class="cf-item-qty" placeholder="1 UNIT"></td>
+                                    <td><textarea class="cf-item-desc" rows="1" placeholder="Item description"></textarea></td>
+                                    <td><input type="text" class="cf-item-amount" placeholder="0.00" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td style="text-align:center;">
+                                        <button type="button" class="cf-row-remove"
+                                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="action" type="button" id="cfAddRow" style="padding:8px 14px;">+ Add Item</button>
+                </fieldset>
+
+                <div style="display:flex; justify-content:flex-end;">
+                    <div style="background:var(--brand); color:#fff; padding:12px 18px; border-radius:8px; min-width:220px;">
+                        <div style="font-size:0.75rem; font-weight:700; opacity:0.9; margin-bottom:4px;">TOTAL</div>
+                        <div id="cfTotalDisplay" style="font-size:1.25rem; font-weight:800;">PHP 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Statement of Account.</p>
+                <article class="cf-doc" id="cfDocument" aria-label="Collection form preview">
+                    <header class="doc-header">
+                        <img src="{% static 'METRO DAVAO HEADER.png' %}" alt="Versatec header">
+                    </header>
+                    <div class="cf-doc-body">
+                        <div class="cf-meta">
+                            <div class="cf-meta-row">
+                                <span class="cf-label">DATE</span><span class="cf-colon">:</span>
+                                <span class="cf-value" id="cfPrevDate">—</span>
+                            </div>
+                            <div class="cf-meta-row">
+                                <span class="cf-label">COMPANY</span><span class="cf-colon">:</span>
+                                <span class="cf-value" id="cfPrevCompany">—</span>
+                            </div>
+                            <div class="cf-meta-row">
+                                <span class="cf-label">ADDRESS</span><span class="cf-colon">:</span>
+                                <span class="cf-value" id="cfPrevAddress">—</span>
+                            </div>
+                            <div class="cf-meta-row">
+                                <span class="cf-label">ATTENTION</span><span class="cf-colon">:</span>
+                                <span class="cf-value" id="cfPrevAttention">ACCOUNTING DEPARTMENT</span>
+                            </div>
+                            <div class="cf-meta-row">
+                                <span class="cf-label">RE</span><span class="cf-colon">:</span>
+                                <span class="cf-value" id="cfPrevRe">STATEMENT OF ACCOUNT</span>
+                            </div>
+                        </div>
+
+                        <p class="cf-salutation">Sir/Madam:</p>
+                        <p class="cf-intro">
+                            In connection with the above mentioned subject, we would like to collect the amount of
+                            <span class="cf-amount-words" id="cfPrevAmountWords">ZERO PESOS ONLY</span>
+                            <span class="cf-amount-figures">(<span id="cfPrevAmountFigures">PHP 0.00</span>)</span>
+                            Representing payment for the details below:
+                        </p>
+
+                        <table class="cf-items">
+                            <colgroup>
+                                <col class="cf-col-date">
+                                <col class="cf-col-drsi">
+                                <col class="cf-col-qty">
+                                <col class="cf-col-desc">
+                                <col class="cf-col-amt">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>DATE</th>
+                                    <th>D.R. / S.I. NO.</th>
+                                    <th>QUANTITY</th>
+                                    <th>DESCRIPTION</th>
+                                    <th class="cf-amt">AMOUNT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cfPrevItemsBody">
+                                <tr>
+                                    <td class="cf-center">&nbsp;</td>
+                                    <td class="cf-center">&nbsp;</td>
+                                    <td class="cf-center">&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td class="cf-amt">&nbsp;</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="cf-total-row">
+                                    <td colspan="4" class="cf-total-label">TOTAL</td>
+                                    <td class="cf-amt" id="cfPrevTotal">P0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <p class="cf-closing">
+                            Thank you very much for allowing us to serve on your requirements and thank you for choosing
+                            <strong>VERSATEC Industrial Corporation</strong>.
+                        </p>
+
+                        <div class="cf-signs">
+                            <div class="cf-sign-left">
+                                <div>Best Regards,</div>
+                                <div class="cf-officer-name" id="cfPrevOfficerName">&nbsp;</div>
+                                <div class="cf-officer-title" id="cfPrevOfficerTitle">Collection Officer</div>
+                            </div>
+                            <div class="cf-sign-right">
+                                <div class="cf-received">RECEIVED BY:</div>
+                                <div class="cf-sign-line"></div>
+                                <div class="cf-sign-caption">PRINTED NAME &amp; SIGNATURE</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+
+        <!-- ─── AGEING OF ACCOUNTS ─── -->
+        <div id="ageing-accounts-tab" class="tab-panel {% if active_tab == 'ageing-accounts-tab' %}is-active{% endif %}">
+            <div class="panel no-print" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">📊 Create Ageing of Accounts</h1>
+
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" type="button" id="aaSave" style="padding:10px 16px;">💾 Save</button>
+                    <button class="action" type="button" id="aaPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" type="button" id="aaReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">As of Date</label>
+                        <input type="date" id="aaAsOfDate" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Prepared For / Note</label>
+                        <input type="text" id="aaNote" placeholder="Optional note (e.g., department or recipient)"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                </div>
+
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Account Rows</legend>
+                    <div style="overflow-x:auto; margin-bottom:12px;">
+                        <table class="aa-form-table" aria-label="Ageing of accounts lines">
+                            <thead>
+                                <tr>
+                                    <th style="width:110px;">Date</th>
+                                    <th style="min-width:180px;">Customer Name</th>
+                                    <th style="width:90px;">PO No.</th>
+                                    <th style="width:80px;">Agent</th>
+                                    <th style="width:70px;">BI#</th>
+                                    <th style="width:70px;">SI#</th>
+                                    <th style="width:70px;">CI#</th>
+                                    <th style="width:110px;">DR No.</th>
+                                    <th style="width:110px; text-align:right;">Amount</th>
+                                    <th style="width:110px; text-align:right;">Amount Paid</th>
+                                    <th style="width:100px;">Paid Items</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="aaItemsBody">
+                                <tr>
+                                    <td><input type="date" class="aa-item-date"></td>
+                                    <td><input type="text" class="aa-item-customer" placeholder="CUSTOMER NAME"></td>
+                                    <td><input type="text" class="aa-item-po" placeholder="PO No."></td>
+                                    <td><input type="text" class="aa-item-agent" placeholder="Agent"></td>
+                                    <td><input type="text" class="aa-item-bi" placeholder="BI#"></td>
+                                    <td><input type="text" class="aa-item-si" placeholder="SI#"></td>
+                                    <td><input type="text" class="aa-item-ci" placeholder="CI#"></td>
+                                    <td><input type="text" class="aa-item-dr" placeholder="DR No."></td>
+                                    <td><input type="text" class="aa-item-amount" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="aa-item-paid" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="aa-item-paid-items" placeholder="Paid items"></td>
+                                    <td style="text-align:center;">
+                                        <button type="button" class="aa-row-remove"
+                                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="action" type="button" id="aaAddRow" style="padding:8px 14px;">+ Add Row</button>
+                </fieldset>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
+                    <div style="background:var(--soft); padding:12px 18px; border-radius:8px; min-width:180px; border:1px solid var(--line);">
+                        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); margin-bottom:4px;">TOTAL AMOUNT</div>
+                        <div id="aaTotalAmount" style="font-size:1.15rem; font-weight:800; color:var(--brand-dark);">PHP 0.00</div>
+                    </div>
+                    <div style="background:var(--brand); color:#fff; padding:12px 18px; border-radius:8px; min-width:180px;">
+                        <div style="font-size:0.75rem; font-weight:700; opacity:0.9; margin-bottom:4px;">TOTAL AMOUNT PAID</div>
+                        <div id="aaTotalPaid" style="font-size:1.15rem; font-weight:800;">PHP 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Ageing of Accounts preview (landscape).</p>
+                <article class="aa-doc" id="aaDocument" aria-label="Ageing of accounts preview">
+                    <div class="aa-doc-body">
+                        <div class="aa-letterhead">
+                            <div class="aa-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                            <div>#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                            <div>TIN# 453-813-356-000</div>
+                        </div>
+                        <h3 class="aa-title" id="aaPrevTitle">AGEING OF ACCOUNTS AS OF —.</h3>
+                        <p id="aaPrevNote" style="margin:0 0 12px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
+                        <table class="aa-items">
+                            <thead>
+                                <tr>
+                                    <th style="width:8%;">DATE</th>
+                                    <th style="width:18%;">CUSTOMERS NAME</th>
+                                    <th style="width:7%;">PO NO.</th>
+                                    <th style="width:7%;">AGENT</th>
+                                    <th style="width:6%;">BI#</th>
+                                    <th style="width:6%;">SI#</th>
+                                    <th style="width:6%;">CI#</th>
+                                    <th style="width:10%;">DR NO.</th>
+                                    <th style="width:10%;">AMOUNT</th>
+                                    <th style="width:11%;">AMOUNT PAID</th>
+                                    <th style="width:11%;">PAID ITEMS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aaPrevItemsBody">
+                                <tr>
+                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                    <td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="aa-total-row">
+                                    <td colspan="8" class="aa-total-label">TOTAL</td>
+                                    <td class="aa-num" id="aaPrevTotalAmount">0.00</td>
+                                    <td class="aa-num" id="aaPrevTotalPaid">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+
+        <!-- ─── RETENTION SUMMARY ─── -->
+        <div id="retention-summary-tab" class="tab-panel {% if active_tab == 'retention-summary-tab' %}is-active{% endif %}">
+            <div class="panel no-print" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">📋 Create Retention Summary</h1>
+
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" type="button" id="rsSave" style="padding:10px 16px;">💾 Save</button>
+                    <button class="action" type="button" id="rsPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" type="button" id="rsReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">As of Date</label>
+                        <input type="date" id="rsAsOfDate" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Prepared For / Note</label>
+                        <input type="text" id="rsNote" placeholder="Optional note"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                </div>
+
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Retention Rows</legend>
+                    <div style="overflow-x:auto; margin-bottom:12px;">
+                        <table class="rs-form-table" aria-label="Retention summary lines">
+                            <thead>
+                                <tr>
+                                    <th style="width:120px;">Date of Delivery</th>
+                                    <th style="min-width:180px;">Client</th>
+                                    <th style="width:120px; text-align:right;">Trxn Amount</th>
+                                    <th style="width:80px;">Percent</th>
+                                    <th style="width:120px; text-align:right;">Amount</th>
+                                    <th style="min-width:220px;">Remarks</th>
+                                    <th style="width:130px;">Flags</th>
+                                    <th style="width:40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="rsItemsBody">
+                                <tr>
+                                    <td><input type="date" class="rs-item-date"></td>
+                                    <td><input type="text" class="rs-item-client" placeholder="CLIENT NAME"></td>
+                                    <td><input type="text" class="rs-item-trxn" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="rs-item-percent" value="10" placeholder="10%" style="text-align:right;"></td>
+                                    <td><input type="text" class="rs-item-amount" value="0.00" placeholder="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><textarea class="rs-item-remarks" rows="2" placeholder="Remarks"></textarea></td>
+                                    <td>
+                                        <div class="rs-flag">
+                                            <label><input type="checkbox" class="rs-flag-red"> Red remarks</label>
+                                            <label><input type="checkbox" class="rs-flag-client"> Yellow client</label>
+                                            <label><input type="checkbox" class="rs-flag-row"> Pink row</label>
+                                        </div>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <button type="button" class="rs-row-remove"
+                                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="action" type="button" id="rsAddRow" style="padding:8px 14px;">+ Add Row</button>
+                </fieldset>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
+                    <div style="background:var(--soft); padding:12px 18px; border-radius:8px; min-width:180px; border:1px solid var(--line);">
+                        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); margin-bottom:4px;">TOTAL TRXN AMOUNT</div>
+                        <div id="rsTotalTrxn" style="font-size:1.15rem; font-weight:800; color:var(--brand-dark);">PHP 0.00</div>
+                    </div>
+                    <div style="background:var(--brand); color:#fff; padding:12px 18px; border-radius:8px; min-width:180px;">
+                        <div style="font-size:0.75rem; font-weight:700; opacity:0.9; margin-bottom:4px;">TOTAL RETENTION</div>
+                        <div id="rsTotalAmount" style="font-size:1.15rem; font-weight:800;">PHP 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Retention Summary preview (landscape).</p>
+                <article class="rs-doc" id="rsDocument" aria-label="Retention summary preview">
+                    <div class="rs-doc-body">
+                        <div class="rs-letterhead">
+                            <div class="rs-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                            <div>#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                            <div>TIN# 453-813-356-000</div>
+                        </div>
+                        <h3 class="rs-title" id="rsPrevTitle">RETENTION SUMMARY AS OF —.</h3>
+                        <p id="rsPrevNote" style="margin:0 0 12px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
+                        <table class="rs-items">
+                            <thead>
+                                <tr>
+                                    <th style="width:11%;">DATE OF DELIVERY</th>
+                                    <th style="width:20%;">CLIENT</th>
+                                    <th style="width:13%;">TRXN AMOUNT</th>
+                                    <th style="width:7%;">PERCENT</th>
+                                    <th style="width:13%;">AMOUNT</th>
+                                    <th style="width:36%;">REMARKS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rsPrevItemsBody">
+                                <tr>
+                                    <td>&nbsp;</td><td>&nbsp;</td>
+                                    <td class="rs-num">&nbsp;</td>
+                                    <td class="rs-center">&nbsp;</td>
+                                    <td class="rs-num">&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="rs-total-row">
+                                    <td colspan="2" class="rs-total-label">TOTAL</td>
+                                    <td class="rs-num" id="rsPrevTotalTrxn">0.00</td>
+                                    <td></td>
+                                    <td class="rs-num" id="rsPrevTotalAmount">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+
+        <!-- ─── SAVED DOCUMENTS ─── -->
+        <div id="saved-documents-tab" class="tab-panel {% if active_tab == 'saved-documents-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Saved Documents</h2>
+                <p>PDF records saved from Product Quotation, Service Quotation, Collection Form, Ageing of Accounts, and Retention Summary.</p>
+            </div>
+
+            <div class="panel" style="margin-bottom:20px;">
+                <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                    <input type="hidden" name="tab" value="saved-documents-tab">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Document Type</label>
+                        <select name="doc_type" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:220px;">
+                            <option value="all" {% if saved_doc_type_filter == 'all' %}selected{% endif %}>All types</option>
+                            {% for value, label in saved_document_types %}
+                            <option value="{{ value }}" {% if saved_doc_type_filter == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="action" style="padding:8px 16px;">Filter</button>
+                    <a href="?tab=saved-documents-tab" class="action" style="padding:8px 16px;">Clear</a>
+                </form>
+            </div>
+
+            <div class="panel">
+                <div class="table-wrap">
+                    <table aria-label="Saved sales documents">
+                        <thead>
+                            <tr>
+                                <th>Date Saved</th>
+                                <th>Type</th>
+                                <th>Title</th>
+                                <th>Reference</th>
+                                <th>Saved By</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in saved_documents_page %}
+                            <tr>
+                                <td>{{ doc.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ doc.get_document_type_display }}</td>
+                                <td>{{ doc.title }}</td>
+                                <td>{{ doc.reference|default:"—" }}</td>
+                                <td>{% if doc.created_by %}{{ doc.created_by.get_username }}{% else %}—{% endif %}</td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <a class="action" href="{% url 'view_sales_document_pdf' doc.id %}" target="_blank" rel="noopener"
+                                        style="font-size:0.75rem;padding:4px 12px; margin-right:6px;">View</a>
+                                    <a class="action brand-link" href="{% url 'download_sales_document_pdf' doc.id %}"
+                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">
+                                    No saved documents yet. Use Save on any form to store a PDF here.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if saved_documents_page.paginator.num_pages > 1 %}
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap;">
+                    {% if saved_documents_page.has_previous %}
+                    <a class="action" href="?tab=saved-documents-tab&doc_type={{ saved_doc_type_filter }}&docs_page={{ saved_documents_page.previous_page_number }}" style="padding:6px 12px;">Previous</a>
+                    {% endif %}
+                    <span style="align-self:center; color:var(--muted); font-size:0.85rem;">
+                        Page {{ saved_documents_page.number }} of {{ saved_documents_page.paginator.num_pages }}
+                    </span>
+                    {% if saved_documents_page.has_next %}
+                    <a class="action" href="?tab=saved-documents-tab&doc_type={{ saved_doc_type_filter }}&docs_page={{ saved_documents_page.next_page_number }}" style="padding:6px 12px;">Next</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+
     </main>
 </div>
 
 <!-- ─── SCRIPTS ─── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
     (function () {
         // ── Tab switching (now using URL parameter or active_tab) ──
@@ -2164,6 +3265,10 @@
             'analytics-tab': document.getElementById('analytics-tab'),
             'product-quotation-tab': document.getElementById('product-quotation-tab'),
             'service-quotation-tab': document.getElementById('service-quotation-tab'),
+            'collection-form-tab': document.getElementById('collection-form-tab'),
+            'ageing-accounts-tab': document.getElementById('ageing-accounts-tab'),
+            'retention-summary-tab': document.getElementById('retention-summary-tab'),
+            'saved-documents-tab': document.getElementById('saved-documents-tab'),
         };
 
         // Function to activate a tab
@@ -2176,6 +3281,139 @@
                 if (panels[id]) {
                     panels[id].classList.toggle('is-active', id === targetId);
                 }
+            });
+        }
+
+        function getCsrfToken() {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; csrftoken=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        async function uploadSalesDocumentPdf({ blob, documentType, title, reference, sourceId, fileName }) {
+            if (!blob) throw new Error('PDF blob is missing.');
+            const formData = new FormData();
+            const safeName = (fileName || title || documentType || 'document')
+                .toString()
+                .replace(/[^\w.\-]+/g, '_')
+                .slice(0, 80) + '.pdf';
+            formData.append('pdf', blob, safeName);
+            formData.append('document_type', documentType || '');
+            formData.append('title', title || '');
+            formData.append('reference', reference || '');
+            if (sourceId != null && sourceId !== '') {
+                formData.append('source_id', String(sourceId));
+            }
+
+            const response = await fetch('{% url "save_sales_document_pdf" %}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-CSRFToken': getCsrfToken() },
+                body: formData,
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const body = await response.json();
+                if (!response.ok) {
+                    throw new Error(body?.error || 'Unable to save PDF to the database.');
+                }
+                return body;
+            }
+
+            const text = await response.text();
+            throw new Error(text ? text.replace(/\s+/g, ' ').trim().slice(0, 200) : 'Server error while saving PDF.');
+        }
+
+        function goToSavedDocuments() {
+            window.location.href = '{% url "sales_dashboard" %}?tab=saved-documents-tab';
+        }
+
+        function printPdfBlob(pdfBlob) {
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const printFrame = document.createElement('iframe');
+            printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+            printFrame.src = blobUrl;
+            document.body.appendChild(printFrame);
+            const cleanup = () => setTimeout(() => {
+                printFrame.remove();
+                URL.revokeObjectURL(blobUrl);
+            }, 2500);
+            printFrame.onload = () => {
+                try {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                } catch (err) {
+                    console.error(err);
+                    window.open(blobUrl, '_blank');
+                } finally {
+                    cleanup();
+                }
+            };
+        }
+
+        // Shared currency helpers (commas + digits only)
+        function parseMoney(val) {
+            const n = parseFloat(String(val == null ? '' : val).replace(/[^0-9.-]/g, ''));
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        function formatMoney(num) {
+            const n = Number(num) || 0;
+            const neg = n < 0;
+            const [intPart, decPart] = Math.abs(n).toFixed(2).split('.');
+            return (neg ? '-' : '') + intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + decPart;
+        }
+
+        function formatMoneyTyping(raw) {
+            let s = String(raw == null ? '' : raw).replace(/[^0-9.]/g, '');
+            if (!s) return '';
+            const neg = String(raw).trim().startsWith('-');
+            const firstDot = s.indexOf('.');
+            let intPart = firstDot === -1 ? s : s.slice(0, firstDot);
+            let decPart = firstDot === -1 ? null : s.slice(firstDot + 1).replace(/\./g, '').slice(0, 2);
+            intPart = intPart.replace(/^0+(?=\d)/, '') || '0';
+            intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            let out = intPart;
+            if (decPart !== null) out += '.' + decPart;
+            return (neg ? '-' : '') + out;
+        }
+
+        function bindMoneyInputs(root, selector) {
+            if (!root) return;
+            const applyLive = (el) => {
+                const prev = el.value;
+                const start = el.selectionStart;
+                const formatted = formatMoneyTyping(prev);
+                if (formatted !== prev) {
+                    el.value = formatted;
+                    const delta = formatted.length - prev.length;
+                    const pos = Math.max(0, (start || 0) + delta);
+                    try { el.setSelectionRange(pos, pos); } catch (_) { /* ignore */ }
+                }
+            };
+            root.addEventListener('input', (e) => {
+                if (!e.target.matches || !e.target.matches(selector)) return;
+                applyLive(e.target);
+            });
+            root.addEventListener('blur', (e) => {
+                if (!e.target.matches || !e.target.matches(selector)) return;
+                if (e.target.readOnly || e.target.disabled) {
+                    e.target.value = formatMoney(parseMoney(e.target.value));
+                    return;
+                }
+                e.target.value = formatMoney(parseMoney(e.target.value));
+            }, true);
+            root.addEventListener('keypress', (e) => {
+                if (!e.target.matches || !e.target.matches(selector)) return;
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
+                const ch = e.key;
+                if (ch.length === 1 && !/[0-9.]/.test(ch)) e.preventDefault();
+            });
+            // Normalize existing values
+            root.querySelectorAll(selector).forEach((el) => {
+                if ((el.value || '').trim() !== '') el.value = formatMoney(parseMoney(el.value));
             });
         }
 
@@ -2324,7 +3562,7 @@
             const initialPaymentInput = document.getElementById('pqInitialPayment');
             const balanceDueInput = document.getElementById('pqBalanceDue');
             const addRowBtn = document.getElementById('pqAddRow');
-            const downloadPdfBtn = document.getElementById('pqDownloadPdf');
+            const saveBtn = document.getElementById('pqSave');
             const printBtn = document.getElementById('pqPrint');
             const resetBtn = document.getElementById('pqReset');
             const currencySelect = document.getElementById('pqCurrency');
@@ -2334,7 +3572,7 @@
             if (!itemsBody) return;
 
             function money(num) {
-                return (Number(num) || 0).toFixed(2);
+                return formatMoney(num);
             }
 
             function todayISO() {
@@ -2347,8 +3585,8 @@
             pqDateInput.value = todayISO();
 
             function recalcRow(row) {
-                const qty = parseFloat(row.querySelector('.pq-qty')?.value) || 0;
-                const cost = parseFloat(row.querySelector('.pq-unit-price')?.value) || 0;
+                const qty = parseMoney(row.querySelector('.pq-qty')?.value) || parseFloat(row.querySelector('.pq-qty')?.value) || 0;
+                const cost = parseMoney(row.querySelector('.pq-unit-price')?.value);
                 const total = qty * cost;
                 const totalInput = row.querySelector('.pq-line-total');
                 if (totalInput) totalInput.value = money(total);
@@ -2358,16 +3596,16 @@
                 let subtotal = 0;
                 itemsBody.querySelectorAll('tr').forEach(row => {
                     recalcRow(row);
-                    subtotal += parseFloat(row.querySelector('.pq-line-total')?.value) || 0;
+                    subtotal += parseMoney(row.querySelector('.pq-line-total')?.value);
                 });
                 subtotalInput.value = money(subtotal);
-                const tax = parseFloat(taxInput.value) || 0;
-                const discount = parseFloat(discountInput.value) || 0;
-                const shipping = parseFloat(shippingInput.value) || 0;
+                const tax = parseMoney(taxInput.value);
+                const discount = parseMoney(discountInput.value);
+                const shipping = parseMoney(shippingInput.value);
                 const grand = subtotal + tax + shipping - discount;
                 grandTotalInput.value = money(grand);
 
-                const initialPayment = parseFloat(initialPaymentInput.value) || 0;
+                const initialPayment = parseMoney(initialPaymentInput.value);
                 const balance = grand - initialPayment;
                 balanceDueInput.value = money(balance);
             }
@@ -2440,6 +3678,14 @@
                 el.addEventListener('input', recalcAll);
             });
 
+            bindMoneyInputs(itemsBody, '.pq-unit-price');
+            bindMoneyInputs(document.getElementById('product-quotation-tab'), '#pqTax, #pqDiscount, #pqShipping, #pqInitialPayment');
+            // Keep computed fields formatted
+            [subtotalInput, grandTotalInput, balanceDueInput].forEach((el) => {
+                if (!el) return;
+                el.addEventListener('input', () => { el.value = formatMoney(parseMoney(el.value)); });
+            });
+
             currencySelect.addEventListener('change', function () {
                 const isOther = this.value === 'OTHER';
                 currencyOther.hidden = !isOther;
@@ -2455,8 +3701,8 @@
                         description: row.querySelector('.pq-col-desc')?.value || '',
                         qty: row.querySelector('.pq-qty')?.value || '0',
                         unit: row.querySelector('.pq-col-unit')?.value || '',
-                        unit_price: row.querySelector('.pq-unit-price')?.value || '0',
-                        total: row.querySelector('.pq-line-total')?.value || '0',
+                        unit_price: parseMoney(row.querySelector('.pq-unit-price')?.value).toFixed(2),
+                        total: parseMoney(row.querySelector('.pq-line-total')?.value).toFixed(2),
                     });
                 });
 
@@ -2474,13 +3720,13 @@
                         phone: document.getElementById('pqCustomerPhone')?.value || '',
                     },
                     items,
-                    subtotal: subtotalInput?.value || '0',
-                    tax: taxInput?.value || '0',
-                    discount: discountInput?.value || '0',
-                    shipping: shippingInput?.value || '0',
-                    grand_total: grandTotalInput?.value || '0',
-                    initial_payment: initialPaymentInput?.value || '0',
-                    balance_due: balanceDueInput?.value || '0',
+                    subtotal: parseMoney(subtotalInput?.value).toFixed(2),
+                    tax: parseMoney(taxInput?.value).toFixed(2),
+                    discount: parseMoney(discountInput?.value).toFixed(2),
+                    shipping: parseMoney(shippingInput?.value).toFixed(2),
+                    grand_total: parseMoney(grandTotalInput?.value).toFixed(2),
+                    initial_payment: parseMoney(initialPaymentInput?.value).toFixed(2),
+                    balance_due: parseMoney(balanceDueInput?.value).toFixed(2),
                     payment_terms: document.getElementById('pqPaymentTerms')?.value || '',
                     delivery_terms: document.getElementById('pqDeliveryTerms')?.value || '',
                     warranty: document.getElementById('pqWarranty')?.value || '',
@@ -2580,25 +3826,41 @@
                 };
             }
 
-            downloadPdfBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                downloadPdfBtn.disabled = true;
-
-                savePqPayload()
-                        .then((body) => {
-                            if (body.download_url) {
-                                window.location.href = body.download_url;
-                            } else {
-                                alert('Product quotation saved successfully.');
-                            }
-                        })
-                        .catch((error) => {
-                            alert('Unable to save product quotation: ' + error.message);
-                        })
-                        .finally(() => {
-                        downloadPdfBtn.disabled = false;
-                    });
-            });
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async function (e) {
+                    e.preventDefault();
+                    const prevLabel = saveBtn.textContent;
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = 'Saving…';
+                    try {
+                        const body = await savePqPayload();
+                        if (!body.download_url) {
+                            throw new Error('Quotation saved, but no PDF URL was returned.');
+                        }
+                        const pdfRes = await fetch(body.download_url, {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                        });
+                        if (!pdfRes.ok) throw new Error('Could not generate the PDF.');
+                        const blob = await pdfRes.blob();
+                        await uploadSalesDocumentPdf({
+                            blob,
+                            documentType: 'product_quotation',
+                            title: `Product Quotation ${body.quotation_number || ''}`.trim(),
+                            reference: body.quotation_number || '',
+                            sourceId: body.id,
+                            fileName: body.quotation_number || 'product_quotation',
+                        });
+                        alert('Product quotation PDF saved to the database.');
+                        goToSavedDocuments();
+                    } catch (error) {
+                        alert('Unable to save product quotation PDF: ' + (error.message || error));
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = prevLabel;
+                    }
+                });
+            }
 
             printBtn.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -2678,7 +3940,7 @@
             const initialPaymentInput = document.getElementById('svqInitialPayment');
             const balanceDueInput = document.getElementById('svqBalanceDue');
             const addRowBtn = document.getElementById('svqAddRow');
-            const downloadPdfBtn = document.getElementById('svqDownloadPdf');
+            const saveBtn = document.getElementById('svqSave');
             const printBtn = document.getElementById('svqPrint');
             const resetBtn = document.getElementById('svqReset');
             const currencySelect = document.getElementById('svqCurrency');
@@ -2688,7 +3950,7 @@
             if (!itemsBody) return;
 
             function money(num) {
-                return (Number(num) || 0).toFixed(2);
+                return formatMoney(num);
             }
 
             function todayISO() {
@@ -2703,16 +3965,16 @@
             function recalcAll() {
                 let subtotal = 0;
                 itemsBody.querySelectorAll('tr').forEach(row => {
-                    subtotal += parseFloat(row.querySelector('.svq-line-total')?.value) || 0;
+                    subtotal += parseMoney(row.querySelector('.svq-line-total')?.value);
                 });
                 subtotalInput.value = money(subtotal);
-                const tax = parseFloat(taxInput.value) || 0;
-                const discount = parseFloat(discountInput.value) || 0;
-                const otherFees = parseFloat(otherFeesInput.value) || 0;
+                const tax = parseMoney(taxInput.value);
+                const discount = parseMoney(discountInput.value);
+                const otherFees = parseMoney(otherFeesInput.value);
                 const grand = subtotal + tax + otherFees - discount;
                 grandTotalInput.value = money(grand);
 
-                const initialPayment = parseFloat(initialPaymentInput.value) || 0;
+                const initialPayment = parseMoney(initialPaymentInput.value);
                 const balance = grand - initialPayment;
                 balanceDueInput.value = money(balance);
             }
@@ -2777,6 +4039,9 @@
                 el.addEventListener('input', recalcAll);
             });
 
+            bindMoneyInputs(itemsBody, '.svq-line-total');
+            bindMoneyInputs(document.getElementById('service-quotation-tab'), '#svqTax, #svqDiscount, #svqOtherFees, #svqInitialPayment');
+
             currencySelect.addEventListener('change', function () {
                 const isOther = this.value === 'OTHER';
                 currencyOther.hidden = !isOther;
@@ -2787,7 +4052,7 @@
                 const currency = currencySelect?.value || 'PHP';
                 const items = [];
                 itemsBody.querySelectorAll('tr').forEach(row => {
-                    const total = row.querySelector('.svq-line-total')?.value || '0';
+                    const total = parseMoney(row.querySelector('.svq-line-total')?.value).toFixed(2);
                     items.push({
                         no: row.querySelector('.svq-col-no')?.value || '',
                         description: row.querySelector('.svq-col-desc')?.value || '',
@@ -2812,13 +4077,13 @@
                         phone: document.getElementById('svqCustomerPhone')?.value || '',
                     },
                     items,
-                    subtotal: subtotalInput?.value || '0',
-                    tax: taxInput?.value || '0',
-                    discount: discountInput?.value || '0',
-                    other_fees: otherFeesInput?.value || '0',
-                    grand_total: grandTotalInput?.value || '0',
-                    initial_payment: initialPaymentInput?.value || '0',
-                    balance_due: balanceDueInput?.value || '0',
+                    subtotal: parseMoney(subtotalInput?.value).toFixed(2),
+                    tax: parseMoney(taxInput?.value).toFixed(2),
+                    discount: parseMoney(discountInput?.value).toFixed(2),
+                    other_fees: parseMoney(otherFeesInput?.value).toFixed(2),
+                    grand_total: parseMoney(grandTotalInput?.value).toFixed(2),
+                    initial_payment: parseMoney(initialPaymentInput?.value).toFixed(2),
+                    balance_due: parseMoney(balanceDueInput?.value).toFixed(2),
                     payment_terms: document.getElementById('svqPaymentTerms')?.value || '',
                     service_schedule: document.getElementById('svqServiceSchedule')?.value || '',
                     warranty: document.getElementById('svqWarranty')?.value || '',
@@ -2918,25 +4183,41 @@
                 };
             }
 
-            downloadPdfBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                downloadPdfBtn.disabled = true;
-
-                saveSvqPayload()
-                        .then((body) => {
-                            if (body.download_url) {
-                                window.location.href = body.download_url;
-                            } else {
-                                alert('Service quotation saved successfully.');
-                            }
-                        })
-                        .catch((error) => {
-                            alert('Unable to save service quotation: ' + error.message);
-                        })
-                        .finally(() => {
-                        downloadPdfBtn.disabled = false;
-                    });
-            });
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async function (e) {
+                    e.preventDefault();
+                    const prevLabel = saveBtn.textContent;
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = 'Saving…';
+                    try {
+                        const body = await saveSvqPayload();
+                        if (!body.download_url) {
+                            throw new Error('Quotation saved, but no PDF URL was returned.');
+                        }
+                        const pdfRes = await fetch(body.download_url, {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                        });
+                        if (!pdfRes.ok) throw new Error('Could not generate the PDF.');
+                        const blob = await pdfRes.blob();
+                        await uploadSalesDocumentPdf({
+                            blob,
+                            documentType: 'service_quotation',
+                            title: `Service Quotation ${body.quotation_number || ''}`.trim(),
+                            reference: body.quotation_number || '',
+                            sourceId: body.id,
+                            fileName: body.quotation_number || 'service_quotation',
+                        });
+                        alert('Service quotation PDF saved to the database.');
+                        goToSavedDocuments();
+                    } catch (error) {
+                        alert('Unable to save service quotation PDF: ' + (error.message || error));
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = prevLabel;
+                    }
+                });
+            }
 
             printBtn.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -2998,6 +4279,1294 @@
             });
 
             recalcAll();
+        })();
+
+        // ══════════════════════════════════════════════════════════════
+        // COLLECTION FORM
+        // ══════════════════════════════════════════════════════════════
+
+        (function initCollectionForm() {
+            const itemsBody = document.getElementById('cfItemsBody');
+            if (!itemsBody) return;
+
+            const dateInput = document.getElementById('cfDate');
+            const companyInput = document.getElementById('cfCompany');
+            const addressInput = document.getElementById('cfAddress');
+            const attentionInput = document.getElementById('cfAttention');
+            const reInput = document.getElementById('cfRe');
+            const officerNameInput = document.getElementById('cfOfficerName');
+            const officerTitleInput = document.getElementById('cfOfficerTitle');
+            const totalDisplay = document.getElementById('cfTotalDisplay');
+            const prevItemsBody = document.getElementById('cfPrevItemsBody');
+
+            function todayISO() {
+                const d = new Date();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${month}-${day}`;
+            }
+
+            function formatDisplayDate(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            }
+
+            function formatShortDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            }
+
+            function parseAmount(val) {
+                return parseMoney(val);
+            }
+
+            function formatPHP(num) {
+                return 'PHP ' + formatMoney(num);
+            }
+
+            function formatTableAmount(num) {
+                return 'P' + formatMoney(num);
+            }
+
+            function numberToWords(num) {
+                const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE',
+                    'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN',
+                    'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
+                const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
+
+                function chunkToWords(n) {
+                    let s = '';
+                    if (n >= 100) {
+                        s += ones[Math.floor(n / 100)] + ' HUNDRED';
+                        n %= 100;
+                        if (n) s += ' ';
+                    }
+                    if (n >= 20) {
+                        s += tens[Math.floor(n / 10)];
+                        if (n % 10) s += '-' + ones[n % 10];
+                    } else if (n > 0) {
+                        s += ones[n];
+                    }
+                    return s;
+                }
+
+                num = Math.round((Number(num) || 0) * 100) / 100;
+                if (num === 0) return 'ZERO PESOS ONLY';
+
+                const pesos = Math.floor(num);
+                const centavos = Math.round((num - pesos) * 100);
+
+                let words = '';
+                if (pesos === 0) {
+                    words = 'ZERO';
+                } else {
+                    const billions = Math.floor(pesos / 1e9);
+                    const millions = Math.floor((pesos % 1e9) / 1e6);
+                    const thousands = Math.floor((pesos % 1e6) / 1e3);
+                    const remainder = pesos % 1e3;
+                    const parts = [];
+                    if (billions) parts.push(chunkToWords(billions) + ' BILLION');
+                    if (millions) parts.push(chunkToWords(millions) + ' MILLION');
+                    if (thousands) parts.push(chunkToWords(thousands) + ' THOUSAND');
+                    if (remainder) parts.push(chunkToWords(remainder));
+                    words = parts.join(' ');
+                }
+
+                words += ' PESOS';
+                if (centavos > 0) {
+                    words += ' AND ' + chunkToWords(centavos) + ' CENTAVOS';
+                }
+                return words + ' ONLY';
+            }
+
+            function createRow() {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" class="cf-item-date"></td>
+                    <td><input type="text" class="cf-item-drsi" placeholder="DR / SI No."></td>
+                    <td><input type="text" class="cf-item-qty" placeholder="1 UNIT"></td>
+                    <td><textarea class="cf-item-desc" rows="1" placeholder="Item description"></textarea></td>
+                    <td><input type="text" class="cf-item-amount" placeholder="0.00" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                    <td><button type="button" class="cf-row-remove" style="padding:4px 8px;background:#f5f5f5;border:1px solid var(--line);border-radius:4px;cursor:pointer;color:var(--danger);font-weight:600;">✕</button></td>
+                `;
+                return tr;
+            }
+
+            function getRows() {
+                return Array.from(itemsBody.querySelectorAll('tr'));
+            }
+
+            function refreshPreview() {
+                document.getElementById('cfPrevDate').textContent = formatDisplayDate(dateInput.value);
+                document.getElementById('cfPrevCompany').textContent = (companyInput.value || '—').toUpperCase();
+                document.getElementById('cfPrevAddress').textContent = (addressInput.value || '—').toUpperCase();
+                document.getElementById('cfPrevAttention').textContent = (attentionInput.value || '—').toUpperCase();
+                document.getElementById('cfPrevRe').textContent = (reInput.value || '—').toUpperCase();
+                document.getElementById('cfPrevOfficerName').textContent = (officerNameInput.value || '\u00a0').toUpperCase();
+                document.getElementById('cfPrevOfficerTitle').textContent = officerTitleInput.value || 'Collection Officer';
+
+                let total = 0;
+                const rows = getRows();
+                prevItemsBody.innerHTML = '';
+
+                const usable = rows.filter((row) => {
+                    const desc = row.querySelector('.cf-item-desc')?.value.trim();
+                    const amount = parseAmount(row.querySelector('.cf-item-amount')?.value);
+                    const drsi = row.querySelector('.cf-item-drsi')?.value.trim();
+                    const qty = row.querySelector('.cf-item-qty')?.value.trim();
+                    return desc || amount || drsi || qty;
+                });
+
+                if (!usable.length) {
+                    const empty = document.createElement('tr');
+                    empty.innerHTML = '<td class="cf-center">&nbsp;</td><td class="cf-center">&nbsp;</td><td class="cf-center">&nbsp;</td><td>&nbsp;</td><td class="cf-amt">&nbsp;</td>';
+                    prevItemsBody.appendChild(empty);
+                } else {
+                    usable.forEach((row) => {
+                        const amount = parseAmount(row.querySelector('.cf-item-amount')?.value);
+                        total += amount;
+                        const tr = document.createElement('tr');
+                        const dateVal = row.querySelector('.cf-item-date')?.value || '';
+                        tr.innerHTML = `
+                            <td class="cf-center">${formatShortDate(dateVal) || '&nbsp;'}</td>
+                            <td class="cf-center">${(row.querySelector('.cf-item-drsi')?.value || '').toUpperCase() || '&nbsp;'}</td>
+                            <td class="cf-center">${(row.querySelector('.cf-item-qty')?.value || '').toUpperCase() || '&nbsp;'}</td>
+                            <td>${(row.querySelector('.cf-item-desc')?.value || '').toUpperCase() || '&nbsp;'}</td>
+                            <td class="cf-amt">${formatTableAmount(amount)}</td>
+                        `;
+                        prevItemsBody.appendChild(tr);
+                    });
+                }
+
+                // Always sum all row amounts for total (even blank desc)
+                total = rows.reduce((sum, row) => sum + parseAmount(row.querySelector('.cf-item-amount')?.value), 0);
+
+                totalDisplay.textContent = formatPHP(total);
+                document.getElementById('cfPrevTotal').textContent = formatTableAmount(total);
+                document.getElementById('cfPrevAmountFigures').textContent = formatPHP(total);
+                document.getElementById('cfPrevAmountWords').textContent = numberToWords(total);
+            }
+
+            itemsBody.addEventListener('input', refreshPreview);
+            itemsBody.addEventListener('change', refreshPreview);
+            [dateInput, companyInput, addressInput, attentionInput, reInput, officerNameInput, officerTitleInput]
+                .forEach((el) => {
+                    el.addEventListener('input', refreshPreview);
+                    el.addEventListener('change', refreshPreview);
+                });
+            bindMoneyInputs(itemsBody, '.cf-item-amount');
+
+            itemsBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.cf-row-remove');
+                if (!btn) return;
+                const rows = getRows();
+                if (rows.length <= 1) {
+                    rows[0].querySelectorAll('input, textarea').forEach((el) => {
+                        if (el.classList.contains('cf-item-amount')) el.value = '0.00';
+                        else el.value = '';
+                    });
+                } else {
+                    btn.closest('tr').remove();
+                }
+                refreshPreview();
+            });
+
+            document.getElementById('cfAddRow').addEventListener('click', () => {
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            document.getElementById('cfPrint').addEventListener('click', async () => {
+                await runCollectionPdf('print');
+            });
+            const cfSaveBtn = document.getElementById('cfSave');
+            if (cfSaveBtn) {
+                cfSaveBtn.addEventListener('click', async () => {
+                    await runCollectionPdf('save');
+                });
+            }
+
+            async function runCollectionPdf(mode) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'collection-form-tab');
+                window.history.pushState({}, '', url);
+                activateTab('collection-form-tab');
+
+                const docEl = document.getElementById('cfDocument');
+                if (!docEl) {
+                    alert('Collection form preview not found.');
+                    return;
+                }
+                if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+                    alert('PDF libraries failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                const btn = document.getElementById(mode === 'save' ? 'cfSave' : 'cfPrint');
+                const prevLabel = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = mode === 'save' ? 'Saving…' : 'Preparing…';
+                }
+
+                let holder = null;
+                try {
+                    // Full A4 content width @ 96dpi (210mm - 20mm margins ≈ 718px)
+                    const pageW = 718;
+                    const headerImg = docEl.querySelector('.doc-header img');
+                    const headerSrc = headerImg ? headerImg.src : '';
+                    const bodyNode = docEl.querySelector('.cf-doc-body');
+
+                    holder = document.createElement('div');
+                    holder.id = 'cf-print-holder';
+                    // Keep in-viewport and visible to layout engine (hidden via visibility)
+                    holder.style.cssText = [
+                        'position:fixed',
+                        'left:0',
+                        'top:0',
+                        `width:${pageW}px`,
+                        'background:#fff',
+                        'visibility:hidden',
+                        'pointer-events:none',
+                        'z-index:-1',
+                        'overflow:visible',
+                    ].join(';');
+
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = `
+                        #cf-print-sheet {
+                            width: ${pageW}px !important;
+                            max-width: ${pageW}px !important;
+                            min-width: ${pageW}px !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background: #fff !important;
+                            color: #111 !important;
+                            font-family: "Times New Roman", Times, serif !important;
+                            font-size: 13px !important;
+                            line-height: 1.45 !important;
+                            box-sizing: border-box !important;
+                            overflow: visible !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            border-radius: 0 !important;
+                            position: static !important;
+                            display: block !important;
+                        }
+                        #cf-print-sheet * { box-sizing: border-box !important; }
+                        #cf-print-sheet .doc-header,
+                        #cf-print-sheet .doc-header img {
+                            display: block !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            height: auto !important;
+                        }
+                        #cf-print-sheet .cf-doc-body {
+                            padding: 14px 16px 22px !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                        }
+                        #cf-print-sheet .cf-meta { margin: 0 0 14px !important; }
+                        #cf-print-sheet .cf-meta-row {
+                            display: grid !important;
+                            grid-template-columns: 88px 12px 1fr !important;
+                            gap: 4px !important;
+                            margin-bottom: 4px !important;
+                        }
+                        #cf-print-sheet .cf-label,
+                        #cf-print-sheet .cf-colon,
+                        #cf-print-sheet .cf-value {
+                            font-weight: 700 !important;
+                            text-transform: uppercase !important;
+                            color: #111 !important;
+                        }
+                        #cf-print-sheet .cf-value { white-space: pre-wrap !important; word-break: break-word !important; }
+                        #cf-print-sheet .cf-salutation { margin: 14px 0 8px !important; font-weight: 700 !important; }
+                        #cf-print-sheet .cf-intro { margin: 0 0 14px !important; text-align: justify !important; }
+                        #cf-print-sheet .cf-amount-words,
+                        #cf-print-sheet .cf-amount-figures { font-weight: 700 !important; text-transform: uppercase !important; }
+                        #cf-print-sheet table,
+                        #cf-print-sheet table.cf-items {
+                            width: 100% !important;
+                            min-width: 0 !important;
+                            max-width: 100% !important;
+                            border-collapse: collapse !important;
+                            table-layout: fixed !important;
+                            margin: 0 0 16px !important;
+                            font-size: 12px !important;
+                        }
+                        #cf-print-sheet .cf-col-date { width: 14% !important; }
+                        #cf-print-sheet .cf-col-drsi { width: 16% !important; }
+                        #cf-print-sheet .cf-col-qty { width: 12% !important; }
+                        #cf-print-sheet .cf-col-desc { width: 35% !important; }
+                        #cf-print-sheet .cf-col-amt { width: 23% !important; }
+                        #cf-print-sheet .cf-items th,
+                        #cf-print-sheet .cf-items td {
+                            border: 1px solid #222 !important;
+                            padding: 6px 7px !important;
+                            vertical-align: top !important;
+                            word-break: break-word !important;
+                            color: #111 !important;
+                        }
+                        #cf-print-sheet .cf-items th {
+                            background: #f3f4f6 !important;
+                            color: #000 !important;
+                            font-weight: 700 !important;
+                            text-align: center !important;
+                            text-transform: uppercase !important;
+                            font-size: 10.5px !important;
+                        }
+                        #cf-print-sheet .cf-amt { text-align: right !important; white-space: nowrap !important; font-size: 11px !important; }
+                        #cf-print-sheet .cf-center { text-align: center !important; }
+                        #cf-print-sheet .cf-total-row td { font-weight: 700 !important; }
+                        #cf-print-sheet .cf-total-label { text-align: right !important; padding-right: 12px !important; }
+                        #cf-print-sheet .cf-closing { margin: 0 0 24px !important; text-align: justify !important; }
+                        #cf-print-sheet .cf-signs { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 36px !important; }
+                        #cf-print-sheet .cf-officer-name { margin-top: 44px !important; font-weight: 700 !important; text-transform: uppercase !important; }
+                        #cf-print-sheet .cf-officer-title { font-size: 12px !important; }
+                        #cf-print-sheet .cf-received { font-weight: 700 !important; text-align: left !important; margin-bottom: 40px !important; }
+                        #cf-print-sheet .cf-sign-line { border-bottom: 1px solid #222 !important; height: 28px !important; margin: 0 12px 6px !important; }
+                        #cf-print-sheet .cf-sign-caption { font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; text-align: center !important; }
+                        #cf-print-sheet .cf-sign-right { text-align: center !important; }
+                    `;
+
+                    const sheet = document.createElement('div');
+                    sheet.id = 'cf-print-sheet';
+
+                    const header = document.createElement('header');
+                    header.className = 'doc-header';
+                    const img = document.createElement('img');
+                    img.crossOrigin = 'anonymous';
+                    img.src = headerSrc;
+                    img.alt = '';
+                    header.appendChild(img);
+                    sheet.appendChild(header);
+
+                    const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
+                    bodyClone.className = 'cf-doc-body';
+                    sheet.appendChild(bodyClone);
+
+                    holder.appendChild(styleEl);
+                    holder.appendChild(sheet);
+                    document.body.appendChild(holder);
+
+                    await new Promise((resolve) => {
+                        if (img.complete && img.naturalWidth) resolve();
+                        else {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                            setTimeout(resolve, 2000);
+                        }
+                    });
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                    const canvas = await html2canvas(sheet, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: pageW,
+                        width: pageW,
+                        onclone: (clonedDoc) => {
+                            const clonedSheet = clonedDoc.getElementById('cf-print-sheet');
+                            if (clonedSheet) {
+                                clonedSheet.style.visibility = 'visible';
+                                clonedSheet.style.width = pageW + 'px';
+                            }
+                            const clonedHolder = clonedDoc.getElementById('cf-print-holder');
+                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
+                        },
+                    });
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                    const margin = 10;
+                    const usableW = 210 - margin * 2;
+                    const usableH = 297 - margin * 2;
+
+                    // Stretch image to full printable width so it is not tiny in the corner
+                    const imgW = usableW;
+                    const imgH = (canvas.height * imgW) / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+                    let y = margin;
+                    let remaining = imgH;
+                    let srcY = 0;
+                    const pxPerMm = canvas.height / imgH;
+
+                    // Single page if it fits; otherwise slice across pages
+                    if (imgH <= usableH) {
+                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+                    } else {
+                        let page = 0;
+                        while (remaining > 0.5) {
+                            if (page > 0) pdf.addPage();
+                            const sliceH = Math.min(usableH, remaining);
+                            const sliceCanvas = document.createElement('canvas');
+                            sliceCanvas.width = canvas.width;
+                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
+                            const ctx = sliceCanvas.getContext('2d');
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                            ctx.drawImage(
+                                canvas,
+                                0, Math.round(srcY * pxPerMm),
+                                canvas.width, sliceCanvas.height,
+                                0, 0,
+                                sliceCanvas.width, sliceCanvas.height
+                            );
+                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
+                            srcY += sliceH;
+                            remaining -= sliceH;
+                            page += 1;
+                            if (page > 10) break;
+                        }
+                    }
+
+                    const pdfBlob = pdf.output('blob');
+                    holder.remove();
+                    holder = null;
+
+                    if (mode === 'save') {
+                        const company = (companyInput.value || '').trim() || 'Collection Form';
+                        const dateVal = dateInput.value || todayISO();
+                        await uploadSalesDocumentPdf({
+                            blob: pdfBlob,
+                            documentType: 'collection_form',
+                            title: `Collection Form – ${company}`,
+                            reference: dateVal,
+                            fileName: `collection_form_${dateVal}`,
+                        });
+                        alert('Collection form PDF saved to the database.');
+                        goToSavedDocuments();
+                    } else {
+                        printPdfBlob(pdfBlob);
+                    }
+                } catch (error) {
+                    if (holder) holder.remove();
+                    console.error('Collection form PDF error:', error);
+                    alert(error && error.message ? error.message : 'Could not prepare the collection form PDF.');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = prevLabel;
+                    }
+                }
+            }
+            document.getElementById('cfReset').addEventListener('click', () => {
+                dateInput.value = todayISO();
+                companyInput.value = '';
+                addressInput.value = '';
+                attentionInput.value = 'ACCOUNTING DEPARTMENT';
+                reInput.value = 'STATEMENT OF ACCOUNT';
+                officerNameInput.value = '';
+                officerTitleInput.value = 'Collection Officer';
+                itemsBody.innerHTML = '';
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            dateInput.value = todayISO();
+            refreshPreview();
+        })();
+
+        // ══════════════════════════════════════════════════════════════
+        // AGEING OF ACCOUNTS
+        // ══════════════════════════════════════════════════════════════
+
+        (function initAgeingAccounts() {
+            const itemsBody = document.getElementById('aaItemsBody');
+            if (!itemsBody) return;
+
+            const asOfInput = document.getElementById('aaAsOfDate');
+            const noteInput = document.getElementById('aaNote');
+            const prevBody = document.getElementById('aaPrevItemsBody');
+
+            function todayISO() {
+                const d = new Date();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${m}-${day}`;
+            }
+
+            function formatDisplayDate(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            }
+
+            function formatShortDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+            }
+
+            function parseAmount(val) {
+                return parseMoney(val);
+            }
+
+            function formatMoneyLocal(num) {
+                return formatMoney(num);
+            }
+
+            function formatPHP(num) {
+                return 'PHP ' + formatMoney(num);
+            }
+
+            function escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function createRow() {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" class="aa-item-date"></td>
+                    <td><input type="text" class="aa-item-customer" placeholder="CUSTOMER NAME"></td>
+                    <td><input type="text" class="aa-item-po" placeholder="PO No."></td>
+                    <td><input type="text" class="aa-item-agent" placeholder="Agent"></td>
+                    <td><input type="text" class="aa-item-bi" placeholder="BI#"></td>
+                    <td><input type="text" class="aa-item-si" placeholder="SI#"></td>
+                    <td><input type="text" class="aa-item-ci" placeholder="CI#"></td>
+                    <td><input type="text" class="aa-item-dr" placeholder="DR No."></td>
+                    <td><input type="text" class="aa-item-amount" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                    <td><input type="text" class="aa-item-paid" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                    <td><input type="text" class="aa-item-paid-items" placeholder="Paid items"></td>
+                    <td style="text-align:center;">
+                        <button type="button" class="aa-row-remove"
+                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                    </td>
+                `;
+                return tr;
+            }
+
+            function refreshPreview() {
+                document.getElementById('aaPrevTitle').textContent =
+                    'AGEING OF ACCOUNTS AS OF ' + formatDisplayDate(asOfInput.value) + '.';
+                const note = (noteInput.value || '').trim();
+                document.getElementById('aaPrevNote').textContent = note ? note.toUpperCase() : '';
+
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                let totalAmount = 0;
+                let totalPaid = 0;
+                prevBody.innerHTML = '';
+
+                const usable = rows.filter((row) => {
+                    const customer = row.querySelector('.aa-item-customer')?.value.trim();
+                    const amount = parseAmount(row.querySelector('.aa-item-amount')?.value);
+                    const paid = parseAmount(row.querySelector('.aa-item-paid')?.value);
+                    const po = row.querySelector('.aa-item-po')?.value.trim();
+                    const agent = row.querySelector('.aa-item-agent')?.value.trim();
+                    const dr = row.querySelector('.aa-item-dr')?.value.trim();
+                    return customer || amount || paid || po || agent || dr;
+                });
+
+                if (!usable.length) {
+                    const empty = document.createElement('tr');
+                    empty.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>';
+                    prevBody.appendChild(empty);
+                } else {
+                    usable.forEach((row) => {
+                        const amount = parseAmount(row.querySelector('.aa-item-amount')?.value);
+                        const paid = parseAmount(row.querySelector('.aa-item-paid')?.value);
+                        totalAmount += amount;
+                        totalPaid += paid;
+                        const tr = document.createElement('tr');
+                        const dateVal = row.querySelector('.aa-item-date')?.value || '';
+                        const amountText = formatMoney(amount);
+                        const paidText = formatMoney(paid);
+                        tr.innerHTML = `
+                            <td>${escapeHtml(formatShortDate(dateVal) || (dateVal ? dateVal : '\u00a0'))}</td>
+                            <td>${escapeHtml((row.querySelector('.aa-item-customer')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-po')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-agent')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-bi')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-si')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-ci')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-dr')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-num">${escapeHtml(amountText)}</td>
+                            <td class="aa-num">${escapeHtml(paidText)}</td>
+                            <td>${escapeHtml((row.querySelector('.aa-item-paid-items')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                        `;
+                        prevBody.appendChild(tr);
+                    });
+                }
+
+                totalAmount = rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-amount')?.value), 0);
+                totalPaid = rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-paid')?.value), 0);
+
+                document.getElementById('aaTotalAmount').textContent = formatPHP(totalAmount);
+                document.getElementById('aaTotalPaid').textContent = formatPHP(totalPaid);
+                document.getElementById('aaPrevTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('aaPrevTotalPaid').textContent = formatMoney(totalPaid);
+            }
+
+            itemsBody.addEventListener('input', refreshPreview);
+            itemsBody.addEventListener('change', refreshPreview);
+            asOfInput.addEventListener('input', refreshPreview);
+            asOfInput.addEventListener('change', refreshPreview);
+            noteInput.addEventListener('input', refreshPreview);
+            bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
+
+            itemsBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.aa-row-remove');
+                if (!btn) return;
+                const rows = itemsBody.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    rows[0].querySelectorAll('input, textarea').forEach((el) => {
+                        if (el.classList.contains('aa-item-amount') || el.classList.contains('aa-item-paid')) el.value = '0.00';
+                        else el.value = '';
+                    });
+                } else {
+                    btn.closest('tr').remove();
+                }
+                refreshPreview();
+            });
+
+            document.getElementById('aaAddRow').addEventListener('click', () => {
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            document.getElementById('aaPrint').addEventListener('click', async () => {
+                await runAgeingPdf('print');
+            });
+            const aaSaveBtn = document.getElementById('aaSave');
+            if (aaSaveBtn) {
+                aaSaveBtn.addEventListener('click', async () => {
+                    await runAgeingPdf('save');
+                });
+            }
+
+            async function runAgeingPdf(mode) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'ageing-accounts-tab');
+                window.history.pushState({}, '', url);
+                activateTab('ageing-accounts-tab');
+
+                const docEl = document.getElementById('aaDocument');
+                if (!docEl) {
+                    alert('Ageing preview not found.');
+                    return;
+                }
+                if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+                    alert('PDF libraries failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                const btn = document.getElementById(mode === 'save' ? 'aaSave' : 'aaPrint');
+                const prevLabel = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = mode === 'save' ? 'Saving…' : 'Preparing…';
+                }
+
+                let holder = null;
+                try {
+                    // Landscape A4 printable width @ 96dpi ≈ (297-16)mm
+                    const pageW = 1060;
+                    const bodyNode = docEl.querySelector('.aa-doc-body');
+
+                    holder = document.createElement('div');
+                    holder.id = 'aa-print-holder';
+                    holder.style.cssText = [
+                        'position:fixed', 'left:0', 'top:0', `width:${pageW}px`,
+                        'background:#fff', 'visibility:hidden', 'pointer-events:none',
+                        'z-index:-1', 'overflow:visible'
+                    ].join(';');
+
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = `
+                        #aa-print-sheet {
+                            width: ${pageW}px !important;
+                            min-width: ${pageW}px !important;
+                            max-width: ${pageW}px !important;
+                            background: #fff !important;
+                            color: #111 !important;
+                            font-family: Arial, Helvetica, sans-serif !important;
+                            font-size: 12px !important;
+                            box-sizing: border-box !important;
+                            padding: 12px 16px 20px !important;
+                        }
+                        #aa-print-sheet * { box-sizing: border-box !important; }
+                        #aa-print-sheet .aa-letterhead {
+                            margin: 0 0 12px !important;
+                            color: #1d4ed8 !important;
+                            font-weight: 700 !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 0.02em !important;
+                            line-height: 1.4 !important;
+                            font-size: 13px !important;
+                        }
+                        #aa-print-sheet .aa-letterhead .aa-company {
+                            font-size: 15px !important;
+                            font-weight: 800 !important;
+                        }
+                        #aa-print-sheet .aa-title {
+                            margin: 0 0 12px !important; font-size: 14px !important; font-weight: 800 !important;
+                            letter-spacing: 0.04em !important; text-transform: uppercase !important; color: #1d4ed8 !important;
+                        }
+                        #aa-print-sheet table.aa-items {
+                            width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
+                            table-layout: fixed !important; font-size: 10px !important;
+                        }
+                        #aa-print-sheet .aa-items th, #aa-print-sheet .aa-items td {
+                            border: 1px solid #222 !important; padding: 4px 5px !important; vertical-align: top !important;
+                            word-break: break-word !important; color: #111 !important;
+                        }
+                        #aa-print-sheet .aa-items th {
+                            background: #dbeafe !important; color: #000 !important; font-weight: 700 !important;
+                            text-align: center !important; text-transform: uppercase !important; font-size: 9px !important;
+                        }
+                        #aa-print-sheet .aa-num { text-align: right !important; white-space: nowrap !important; }
+                        #aa-print-sheet .aa-center { text-align: center !important; }
+                        #aa-print-sheet .aa-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
+                        #aa-print-sheet .aa-total-label { text-align: right !important; }
+                    `;
+
+                    const sheet = document.createElement('div');
+                    sheet.id = 'aa-print-sheet';
+                    const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
+                    // Flatten: print sheet IS the body content (no Versatec header)
+                    while (bodyClone.firstChild) sheet.appendChild(bodyClone.firstChild);
+                    holder.appendChild(styleEl);
+                    holder.appendChild(sheet);
+                    document.body.appendChild(holder);
+
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                    const canvas = await html2canvas(sheet, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: pageW,
+                        width: pageW,
+                        onclone: (clonedDoc) => {
+                            const clonedHolder = clonedDoc.getElementById('aa-print-holder');
+                            const clonedSheet = clonedDoc.getElementById('aa-print-sheet');
+                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
+                            if (clonedSheet) {
+                                clonedSheet.style.visibility = 'visible';
+                                clonedSheet.style.width = pageW + 'px';
+                            }
+                        },
+                    });
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                    const margin = 8;
+                    const usableW = 297 - margin * 2;
+                    const usableH = 210 - margin * 2;
+                    const imgW = usableW;
+                    const imgH = (canvas.height * imgW) / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+                    if (imgH <= usableH) {
+                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+                    } else {
+                        let remaining = imgH;
+                        let srcY = 0;
+                        const pxPerMm = canvas.height / imgH;
+                        let page = 0;
+                        while (remaining > 0.5 && page < 12) {
+                            if (page > 0) pdf.addPage();
+                            const sliceH = Math.min(usableH, remaining);
+                            const sliceCanvas = document.createElement('canvas');
+                            sliceCanvas.width = canvas.width;
+                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
+                            const ctx = sliceCanvas.getContext('2d');
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                            ctx.drawImage(
+                                canvas,
+                                0, Math.round(srcY * pxPerMm),
+                                canvas.width, sliceCanvas.height,
+                                0, 0, sliceCanvas.width, sliceCanvas.height
+                            );
+                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
+                            srcY += sliceH;
+                            remaining -= sliceH;
+                            page += 1;
+                        }
+                    }
+
+                    const pdfBlob = pdf.output('blob');
+                    holder.remove();
+                    holder = null;
+
+                    if (mode === 'save') {
+                        const asOf = asOfInput.value || todayISO();
+                        await uploadSalesDocumentPdf({
+                            blob: pdfBlob,
+                            documentType: 'ageing_accounts',
+                            title: `Ageing of Accounts as of ${asOf}`,
+                            reference: asOf,
+                            fileName: `ageing_accounts_${asOf}`,
+                        });
+                        alert('Ageing of Accounts PDF saved to the database.');
+                        goToSavedDocuments();
+                    } else {
+                        printPdfBlob(pdfBlob);
+                    }
+                } catch (error) {
+                    if (holder) holder.remove();
+                    console.error('Ageing PDF error:', error);
+                    alert(error && error.message ? error.message : 'Could not prepare ageing PDF.');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = prevLabel;
+                    }
+                }
+            }
+
+            document.getElementById('aaReset').addEventListener('click', () => {
+                asOfInput.value = todayISO();
+                noteInput.value = '';
+                itemsBody.innerHTML = '';
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            asOfInput.value = todayISO();
+            refreshPreview();
+        })();
+
+        // ══════════════════════════════════════════════════════════════
+        // RETENTION SUMMARY
+        // ══════════════════════════════════════════════════════════════
+
+        (function initRetentionSummary() {
+            const itemsBody = document.getElementById('rsItemsBody');
+            if (!itemsBody) return;
+
+            const asOfInput = document.getElementById('rsAsOfDate');
+            const noteInput = document.getElementById('rsNote');
+            const prevBody = document.getElementById('rsPrevItemsBody');
+
+            function todayISO() {
+                const d = new Date();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${m}-${day}`;
+            }
+
+            function formatDisplayDate(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            }
+
+            function formatShortDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+            }
+
+            function parseAmount(val) {
+                return parseMoney(val);
+            }
+
+            function parsePercent(val) {
+                const n = parseFloat(String(val == null ? '' : val).replace(/[^0-9.-]/g, ''));
+                return Number.isFinite(n) ? n : 0;
+            }
+
+            function formatPHP(num) {
+                return 'PHP ' + formatMoney(num);
+            }
+
+            function formatPercent(val) {
+                const n = parsePercent(val);
+                if (!n && !String(val || '').trim()) return '';
+                return n + '%';
+            }
+
+            function escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function syncRetentionAmount(row) {
+                const amountInput = row.querySelector('.rs-item-amount');
+                if (!amountInput || amountInput.dataset.auto !== '1') return;
+                const trxn = parseAmount(row.querySelector('.rs-item-trxn')?.value);
+                const pct = parsePercent(row.querySelector('.rs-item-percent')?.value);
+                amountInput.value = formatMoney(trxn * (pct / 100));
+            }
+
+            function createRow() {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" class="rs-item-date"></td>
+                    <td><input type="text" class="rs-item-client" placeholder="CLIENT NAME"></td>
+                    <td><input type="text" class="rs-item-trxn" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                    <td><input type="text" class="rs-item-percent" value="10" placeholder="10%" style="text-align:right;"></td>
+                    <td><input type="text" class="rs-item-amount" value="0.00" placeholder="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
+                    <td><textarea class="rs-item-remarks" rows="2" placeholder="Remarks"></textarea></td>
+                    <td>
+                        <div class="rs-flag">
+                            <label><input type="checkbox" class="rs-flag-red"> Red remarks</label>
+                            <label><input type="checkbox" class="rs-flag-client"> Yellow client</label>
+                            <label><input type="checkbox" class="rs-flag-row"> Pink row</label>
+                        </div>
+                    </td>
+                    <td style="text-align:center;">
+                        <button type="button" class="rs-row-remove"
+                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                    </td>
+                `;
+                return tr;
+            }
+
+            function refreshPreview() {
+                document.getElementById('rsPrevTitle').textContent =
+                    'RETENTION SUMMARY AS OF ' + formatDisplayDate(asOfInput.value) + '.';
+                const note = (noteInput.value || '').trim();
+                document.getElementById('rsPrevNote').textContent = note ? note.toUpperCase() : '';
+
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                prevBody.innerHTML = '';
+
+                const usable = rows.filter((row) => {
+                    const client = row.querySelector('.rs-item-client')?.value.trim();
+                    const trxn = parseAmount(row.querySelector('.rs-item-trxn')?.value);
+                    const amount = parseAmount(row.querySelector('.rs-item-amount')?.value);
+                    const remarks = row.querySelector('.rs-item-remarks')?.value.trim();
+                    const dateVal = row.querySelector('.rs-item-date')?.value;
+                    return client || trxn || amount || remarks || dateVal;
+                });
+
+                let totalTrxn = 0;
+                let totalAmount = 0;
+
+                if (!usable.length) {
+                    const empty = document.createElement('tr');
+                    empty.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td><td class="rs-num">&nbsp;</td><td class="rs-center">&nbsp;</td><td class="rs-num">&nbsp;</td><td>&nbsp;</td>';
+                    prevBody.appendChild(empty);
+                } else {
+                    usable.forEach((row) => {
+                        const trxn = parseAmount(row.querySelector('.rs-item-trxn')?.value);
+                        const amount = parseAmount(row.querySelector('.rs-item-amount')?.value);
+                        totalTrxn += trxn;
+                        totalAmount += amount;
+                        const dateVal = row.querySelector('.rs-item-date')?.value || '';
+                        const client = (row.querySelector('.rs-item-client')?.value || '').toUpperCase();
+                        const pctText = formatPercent(row.querySelector('.rs-item-percent')?.value);
+                        const remarks = row.querySelector('.rs-item-remarks')?.value || '';
+                        const red = row.querySelector('.rs-flag-red')?.checked;
+                        const clientHl = row.querySelector('.rs-flag-client')?.checked;
+                        const rowHl = row.querySelector('.rs-flag-row')?.checked;
+
+                        const tr = document.createElement('tr');
+                        if (rowHl) tr.classList.add('rs-row-hl');
+                        tr.innerHTML = `
+                            <td>${escapeHtml(formatShortDate(dateVal) || '\u00a0')}</td>
+                            <td class="${clientHl ? 'rs-client-hl' : ''}">${escapeHtml(client) || '&nbsp;'}</td>
+                            <td class="rs-num">${escapeHtml(formatMoney(trxn))}</td>
+                            <td class="rs-center">${escapeHtml(pctText) || '&nbsp;'}</td>
+                            <td class="rs-num">${escapeHtml(formatMoney(amount))}</td>
+                            <td class="${red ? 'rs-remarks-red' : ''}">${escapeHtml(remarks) || '&nbsp;'}</td>
+                        `;
+                        prevBody.appendChild(tr);
+                    });
+                }
+
+                totalTrxn = rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-trxn')?.value), 0);
+                totalAmount = rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-amount')?.value), 0);
+
+                document.getElementById('rsTotalTrxn').textContent = formatPHP(totalTrxn);
+                document.getElementById('rsTotalAmount').textContent = formatPHP(totalAmount);
+                document.getElementById('rsPrevTotalTrxn').textContent = formatMoney(totalTrxn);
+                document.getElementById('rsPrevTotalAmount').textContent = formatMoney(totalAmount);
+            }
+
+            itemsBody.addEventListener('input', (e) => {
+                const row = e.target.closest('tr');
+                if (!row) return;
+                if (e.target.classList.contains('rs-item-trxn') || e.target.classList.contains('rs-item-percent')) {
+                    syncRetentionAmount(row);
+                }
+                if (e.target.classList.contains('rs-item-amount')) {
+                    e.target.dataset.auto = '0';
+                }
+                refreshPreview();
+            });
+            itemsBody.addEventListener('blur', (e) => {
+                if (!e.target.classList.contains('rs-item-trxn')) return;
+                const row = e.target.closest('tr');
+                if (row) syncRetentionAmount(row);
+                refreshPreview();
+            }, true);
+            itemsBody.addEventListener('change', refreshPreview);
+            bindMoneyInputs(itemsBody, '.rs-item-trxn, .rs-item-amount');
+
+            asOfInput.addEventListener('input', refreshPreview);
+            asOfInput.addEventListener('change', refreshPreview);
+            noteInput.addEventListener('input', refreshPreview);
+
+            itemsBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.rs-row-remove');
+                if (!btn) return;
+                const rows = itemsBody.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    const row = rows[0];
+                    row.querySelectorAll('input, textarea').forEach((el) => {
+                        if (el.type === 'checkbox') el.checked = false;
+                        else if (el.classList.contains('rs-item-trxn') || el.classList.contains('rs-item-amount')) el.value = '0.00';
+                        else if (el.classList.contains('rs-item-percent')) el.value = '10';
+                        else el.value = '';
+                    });
+                    const amountEl = row.querySelector('.rs-item-amount');
+                    if (amountEl) amountEl.dataset.auto = '1';
+                } else {
+                    btn.closest('tr').remove();
+                }
+                refreshPreview();
+            });
+
+            document.getElementById('rsAddRow').addEventListener('click', () => {
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            document.getElementById('rsPrint').addEventListener('click', async () => {
+                await runRetentionPdf('print');
+            });
+            const rsSaveBtn = document.getElementById('rsSave');
+            if (rsSaveBtn) {
+                rsSaveBtn.addEventListener('click', async () => {
+                    await runRetentionPdf('save');
+                });
+            }
+
+            async function runRetentionPdf(mode) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'retention-summary-tab');
+                window.history.pushState({}, '', url);
+                activateTab('retention-summary-tab');
+
+                const docEl = document.getElementById('rsDocument');
+                if (!docEl) {
+                    alert('Retention preview not found.');
+                    return;
+                }
+                if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+                    alert('PDF libraries failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                const btn = document.getElementById(mode === 'save' ? 'rsSave' : 'rsPrint');
+                const prevLabel = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = mode === 'save' ? 'Saving…' : 'Preparing…';
+                }
+
+                let holder = null;
+                try {
+                    const pageW = 1060;
+                    const bodyNode = docEl.querySelector('.rs-doc-body');
+
+                    holder = document.createElement('div');
+                    holder.id = 'rs-print-holder';
+                    holder.style.cssText = [
+                        'position:fixed', 'left:0', 'top:0', `width:${pageW}px`,
+                        'background:#fff', 'visibility:hidden', 'pointer-events:none',
+                        'z-index:-1', 'overflow:visible'
+                    ].join(';');
+
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = `
+                        #rs-print-sheet {
+                            width: ${pageW}px !important;
+                            min-width: ${pageW}px !important;
+                            max-width: ${pageW}px !important;
+                            background: #fff !important;
+                            color: #111 !important;
+                            font-family: Arial, Helvetica, sans-serif !important;
+                            font-size: 12px !important;
+                            box-sizing: border-box !important;
+                            padding: 12px 16px 20px !important;
+                        }
+                        #rs-print-sheet * { box-sizing: border-box !important; }
+                        #rs-print-sheet .rs-letterhead {
+                            margin: 0 0 12px !important;
+                            color: #1d4ed8 !important;
+                            font-weight: 700 !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 0.02em !important;
+                            line-height: 1.4 !important;
+                            font-size: 13px !important;
+                        }
+                        #rs-print-sheet .rs-letterhead .rs-company {
+                            font-size: 15px !important;
+                            font-weight: 800 !important;
+                        }
+                        #rs-print-sheet .rs-title {
+                            margin: 0 0 12px !important; font-size: 14px !important; font-weight: 800 !important;
+                            letter-spacing: 0.04em !important; text-transform: uppercase !important; color: #1d4ed8 !important;
+                        }
+                        #rs-print-sheet table.rs-items {
+                            width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
+                            table-layout: fixed !important; font-size: 10px !important;
+                        }
+                        #rs-print-sheet .rs-items th, #rs-print-sheet .rs-items td {
+                            border: 1px solid #222 !important; padding: 4px 5px !important; vertical-align: top !important;
+                            word-break: break-word !important; color: #111 !important;
+                        }
+                        #rs-print-sheet .rs-items th {
+                            background: #dbeafe !important; color: #000 !important; font-weight: 700 !important;
+                            text-align: center !important; text-transform: uppercase !important; font-size: 9px !important;
+                        }
+                        #rs-print-sheet .rs-num { text-align: right !important; white-space: nowrap !important; }
+                        #rs-print-sheet .rs-center { text-align: center !important; }
+                        #rs-print-sheet .rs-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
+                        #rs-print-sheet .rs-total-label { text-align: right !important; }
+                        #rs-print-sheet .rs-remarks-red { color: #c00 !important; }
+                        #rs-print-sheet .rs-client-hl { background: #ffe566 !important; }
+                        #rs-print-sheet tr.rs-row-hl td { background: #f8c8d0 !important; }
+                        #rs-print-sheet tr.rs-row-hl td.rs-client-hl { background: #ffe566 !important; }
+                    `;
+
+                    const sheet = document.createElement('div');
+                    sheet.id = 'rs-print-sheet';
+                    const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
+                    while (bodyClone.firstChild) sheet.appendChild(bodyClone.firstChild);
+                    holder.appendChild(styleEl);
+                    holder.appendChild(sheet);
+                    document.body.appendChild(holder);
+
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                    const canvas = await html2canvas(sheet, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: pageW,
+                        width: pageW,
+                        onclone: (clonedDoc) => {
+                            const clonedHolder = clonedDoc.getElementById('rs-print-holder');
+                            const clonedSheet = clonedDoc.getElementById('rs-print-sheet');
+                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
+                            if (clonedSheet) {
+                                clonedSheet.style.visibility = 'visible';
+                                clonedSheet.style.width = pageW + 'px';
+                            }
+                        },
+                    });
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                    const margin = 8;
+                    const usableW = 297 - margin * 2;
+                    const usableH = 210 - margin * 2;
+                    const imgW = usableW;
+                    const imgH = (canvas.height * imgW) / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+                    if (imgH <= usableH) {
+                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+                    } else {
+                        let remaining = imgH;
+                        let srcY = 0;
+                        const pxPerMm = canvas.height / imgH;
+                        let page = 0;
+                        while (remaining > 0.5 && page < 12) {
+                            if (page > 0) pdf.addPage();
+                            const sliceH = Math.min(usableH, remaining);
+                            const sliceCanvas = document.createElement('canvas');
+                            sliceCanvas.width = canvas.width;
+                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
+                            const ctx = sliceCanvas.getContext('2d');
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                            ctx.drawImage(
+                                canvas,
+                                0, Math.round(srcY * pxPerMm),
+                                canvas.width, sliceCanvas.height,
+                                0, 0, sliceCanvas.width, sliceCanvas.height
+                            );
+                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
+                            srcY += sliceH;
+                            remaining -= sliceH;
+                            page += 1;
+                        }
+                    }
+
+                    const pdfBlob = pdf.output('blob');
+                    holder.remove();
+                    holder = null;
+
+                    if (mode === 'save') {
+                        const asOf = asOfInput.value || todayISO();
+                        await uploadSalesDocumentPdf({
+                            blob: pdfBlob,
+                            documentType: 'retention_summary',
+                            title: `Retention Summary as of ${asOf}`,
+                            reference: asOf,
+                            fileName: `retention_summary_${asOf}`,
+                        });
+                        alert('Retention Summary PDF saved to the database.');
+                        goToSavedDocuments();
+                    } else {
+                        printPdfBlob(pdfBlob);
+                    }
+                } catch (error) {
+                    if (holder) holder.remove();
+                    console.error('Retention PDF error:', error);
+                    alert(error && error.message ? error.message : 'Could not prepare retention summary PDF.');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = prevLabel;
+                    }
+                }
+            }
+
+            document.getElementById('rsReset').addEventListener('click', () => {
+                asOfInput.value = todayISO();
+                noteInput.value = '';
+                itemsBody.innerHTML = '';
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            asOfInput.value = todayISO();
+            refreshPreview();
         })();
 
     })();

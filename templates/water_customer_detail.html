@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ customer.display_name }} – Customer Profile{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --ink: #0b1f2a;
+    --muted: #5b6b76;
+    --line: #d7e2e8;
+    --brand: #0e7490;
+    --brand-dark: #155e75;
+    --brand-soft: #ecfeff;
+    --panel: rgba(255,255,255,0.94);
+    --soft: #f3f8fa;
+    --danger: #be123c;
+    --success: #047857;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(11, 31, 42, 0.06);
+  }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1000px 420px at 0% -10%, rgba(14, 116, 144, 0.14), transparent 55%),
+      radial-gradient(800px 360px at 100% 0%, rgba(8, 145, 178, 0.10), transparent 50%),
+      #eef4f7;
+  }
+  .page { max-width: 1120px; margin: 0 auto; padding: 28px 20px 56px; }
+  .topbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .topbar a, .topbar .btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    border: 1px solid var(--line); background: #fff; color: var(--brand-dark);
+    padding: 9px 14px; border-radius: 10px; font-weight: 700; font-size: 0.86rem;
+  }
+  .topbar .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .hero {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px;
+  }
+  .hero h1 {
+    margin: 0; font-family: Manrope, sans-serif; font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em;
+  }
+  .hero .meta { margin-top: 6px; color: var(--muted); }
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700; background: #e2e8f0; color: #334155; margin-left: 8px;
+  }
+  .badge.active { background: #d1fae5; color: #065f46; }
+  .badge.disconnected, .badge.overdue, .badge.unpaid { background: #ffe4e6; color: #9f1239; }
+  .badge.inactive, .badge.cancelled { background: #e2e8f0; color: #475569; }
+  .badge.partial, .badge.scheduled, .badge.paid, .badge.completed { background: #ffedd5; color: #9a3412; }
+  .badge.paid, .badge.completed { background: #d1fae5; color: #065f46; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .kpi .label { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .value { margin-top: 8px; font-family: Manrope, sans-serif; font-size: 1.35rem; font-weight: 800; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 4px; font-family: Manrope, sans-serif; font-size: 1.08rem; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .panel .sub { margin: 0 0 14px; color: var(--muted); font-size: 0.88rem; }
+  .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
+  .info-item .label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .info-item .value { margin-top: 4px; font-weight: 600; }
+  .info-item.full { grid-column: 1 / -1; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.data th, table.data td { padding: 10px 12px; border-bottom: 1px solid #e8eef2; text-align: left; vertical-align: top; }
+  table.data th {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+    background: var(--soft); font-weight: 700; white-space: nowrap;
+  }
+  table.data tr:last-child td { border-bottom: none; }
+  .empty { color: var(--muted); padding: 22px 10px; text-align: center; }
+  .action {
+    display: inline-flex; align-items: center; text-decoration: none; border: 1px solid var(--line);
+    background: #fff; color: var(--brand-dark); padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem;
+  }
+  .action:hover { border-color: var(--brand); background: var(--soft); }
+  .muted { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+  @media (max-width: 900px) {
+    .kpi-grid, .info-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .kpi-grid, .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="topbar">
+    <a href="{% url 'water_billing_dashboard' %}?tab=customersTab">← Back to customers</a>
+    <a class="btn primary" href="{% url 'water_billing_dashboard' %}?tab=readingsBillingTab">Record reading</a>
+  </div>
+
+  <section class="hero">
+    <h1>
+      {{ customer.display_name }}
+      <span class="badge {{ customer.connection_status }}">{{ customer.get_connection_status_display }}</span>
+    </h1>
+    <div class="meta">{{ customer.account_number }} · Meter {{ customer.meter_number }}</div>
+  </section>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Outstanding</div><div class="value">₱{{ outstanding_balance|floatformat:2 }}</div></div>
+    <div class="kpi"><div class="label">Total billed</div><div class="value">₱{{ billed_total|floatformat:2 }}</div></div>
+    <div class="kpi"><div class="label">Total paid</div><div class="value">₱{{ paid_total|floatformat:2 }}</div></div>
+    <div class="kpi"><div class="label">Installment bal</div><div class="value">₱{{ customer.installment_balance|floatformat:2 }}</div></div>
+  </div>
+
+  <section class="panel">
+    <h2>Account information</h2>
+    <p class="sub">Customer profile and connection details.</p>
+    <div class="info-grid">
+      <div class="info-item"><div class="label">Account No.</div><div class="value">{{ customer.account_number }}</div></div>
+      <div class="info-item"><div class="label">Last Name</div><div class="value">{{ customer.last_name }}</div></div>
+      <div class="info-item"><div class="label">First Name</div><div class="value">{{ customer.first_name }}</div></div>
+      <div class="info-item"><div class="label">Customer Type</div><div class="value">{{ customer.get_customer_type_display }}</div></div>
+      <div class="info-item"><div class="label">Connection Status</div><div class="value">{{ customer.get_connection_status_display }}</div></div>
+      <div class="info-item"><div class="label">Disconnection Policy</div><div class="value">{{ customer.disconnection_policy }}</div></div>
+      <div class="info-item"><div class="label">Months Unpaid</div><div class="value">{% if customer.months_unpaid %}{{ customer.months_unpaid }}{% else %}0{% endif %}</div></div>
+      <div class="info-item"><div class="label">Disconnection Monitor</div><div class="value">{{ customer.disconnection_monitor }}</div></div>
+      <div class="info-item"><div class="label">Meter Number</div><div class="value">{{ customer.meter_number }}</div></div>
+      <div class="info-item"><div class="label">Contact Number</div><div class="value">{{ customer.contact_number|default:"—" }}</div></div>
+      <div class="info-item"><div class="label">Email</div><div class="value">{{ customer.email|default:"—" }}</div></div>
+      <div class="info-item"><div class="label">Registered</div><div class="value">{{ customer.registration_date }}</div></div>
+      <div class="info-item"><div class="label">Installment Balance</div><div class="value">₱{{ customer.installment_balance|floatformat:2 }}</div></div>
+      <div class="info-item full"><div class="label">Service Address</div><div class="value">{{ customer.service_address }}</div></div>
+      {% if customer.notes %}
+      <div class="info-item full"><div class="label">Notes</div><div class="value">{{ customer.notes }}</div></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Bills</h2>
+    <p class="sub">{{ bill_count }} statement{{ bill_count|pluralize }} on record.</p>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Bill #</th>
+            <th>Period</th>
+            <th>Consumption</th>
+            <th>Current</th>
+            <th>Prev Unpaid</th>
+            <th>Installment</th>
+            <th>Total</th>
+            <th>Paid</th>
+            <th>Balance</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bills %}
+          <tr>
+            <td>{{ b.bill_number }}</td>
+            <td>{{ b.billing_period }}<div class="muted">Due {{ b.due_date }}</div></td>
+            <td>{{ b.consumption }} cu.m</td>
+            <td>₱{{ b.current_bill|floatformat:2 }}</td>
+            <td>₱{{ b.previous_bill_unpaid|floatformat:2 }}</td>
+            <td>₱{{ b.installment_balance|floatformat:2 }}</td>
+            <td><strong>₱{{ b.total_amount|floatformat:2 }}</strong></td>
+            <td>₱{{ b.amount_paid|floatformat:2 }}</td>
+            <td>₱{{ b.balance_due|floatformat:2 }}</td>
+            <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+            <td><a class="action" href="{% url 'view_water_bill' b.id %}">View</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="11" class="empty">No bills yet for this customer.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Meter readings</h2>
+    <p class="sub">{{ reading_count }} reading{{ reading_count|pluralize }} recorded.</p>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Date</th>
+            <th>Previous</th>
+            <th>Present</th>
+            <th>Consumption</th>
+            <th>Current Bill</th>
+            <th>Total Bill</th>
+            <th>Reader</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in readings %}
+          <tr>
+            <td>{{ r.billing_period }}{% if r.is_estimated %} <span class="badge scheduled">Est.</span>{% endif %}</td>
+            <td>{{ r.reading_date }}</td>
+            <td>{{ r.previous_reading }}</td>
+            <td>{{ r.current_reading }}</td>
+            <td><strong>{{ r.consumption }}</strong> cu.m</td>
+            <td>₱{{ r.current_bill|floatformat:2 }}</td>
+            <td>₱{{ r.total_bill|floatformat:2 }}</td>
+            <td>{{ r.reader_name|default:"—" }}</td>
+            <td>
+              {% if r.bill %}
+              <a class="action" href="{% url 'view_water_bill' r.bill.id %}">Statement</a>
+              {% else %}
+              <a class="action" href="{% url 'view_water_reading_preview' r.id %}">Preview</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="empty">No meter readings yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Payments</h2>
+    <p class="sub">{{ payment_count }} payment{{ payment_count|pluralize }} recorded.</p>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Receipt</th>
+            <th>Date</th>
+            <th>Bill</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th>Received By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td>{{ p.receipt_number }}</td>
+            <td>{{ p.payment_date }}</td>
+            <td>{{ p.bill.bill_number }}</td>
+            <td><strong>₱{{ p.amount|floatformat:2 }}</strong></td>
+            <td>{{ p.get_payment_method_display }}</td>
+            <td>{{ p.reference_number|default:"—" }}</td>
+            <td>{{ p.received_by|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="empty">No payments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Service status history</h2>
+    <p class="sub">Disconnection and reconnection records.</p>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Fee</th>
+            <th>Fee Paid</th>
+            <th>Performed By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in service_actions %}
+          <tr>
+            <td>{{ a.get_action_type_display }}</td>
+            <td>{{ a.action_date }}</td>
+            <td><span class="badge {{ a.status }}">{{ a.get_status_display }}</span></td>
+            <td>{{ a.reason|default:"—" }}</td>
+            <td>₱{{ a.reconnection_fee|floatformat:2 }}</td>
+            <td>{% if a.fee_paid %}Yes{% else %}No{% endif %}</td>
+            <td>{{ a.performed_by|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="empty">No disconnection or reconnection records.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

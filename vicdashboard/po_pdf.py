@@ -66,11 +66,73 @@ def _static_path(name: str) -> Path | None:
     return fallback if fallback.is_file() else None
 
 
+_FONT_REG = 'Helvetica'
+_FONT_BOLD = 'Helvetica-Bold'
+_FONTS_READY = False
+
+
+def _ensure_unicode_fonts():
+    """Register a TTF that can render ₱ and other currency symbols."""
+    global _FONT_REG, _FONT_BOLD, _FONTS_READY
+    if _FONTS_READY:
+        return _FONT_REG, _FONT_BOLD
+    _FONTS_READY = True
+
+    candidates = [
+        (
+            Path(settings.BASE_DIR) / 'static' / 'fonts' / 'DejaVuSans.ttf',
+            Path(settings.BASE_DIR) / 'static' / 'fonts' / 'DejaVuSans-Bold.ttf',
+        ),
+        (Path(r'C:\Windows\Fonts\segoeui.ttf'), Path(r'C:\Windows\Fonts\segoeuib.ttf')),
+        (Path(r'C:\Windows\Fonts\arial.ttf'), Path(r'C:\Windows\Fonts\arialbd.ttf')),
+        (Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'), Path('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf')),
+        (Path('/System/Library/Fonts/Supplemental/Arial Unicode.ttf'), Path('/System/Library/Fonts/Supplemental/Arial Unicode.ttf')),
+    ]
+    for regular, bold in candidates:
+        if not regular.is_file():
+            continue
+        try:
+            pdfmetrics.registerFont(TTFont('VICMSSans', str(regular)))
+            bold_path = bold if bold.is_file() else regular
+            pdfmetrics.registerFont(TTFont('VICMSSans-Bold', str(bold_path)))
+            _FONT_REG = 'VICMSSans'
+            _FONT_BOLD = 'VICMSSans-Bold'
+            break
+        except Exception:
+            continue
+    return _FONT_REG, _FONT_BOLD
+
+
 def _money(value) -> str:
     try:
         return f'{float(value):,.2f}'
     except (TypeError, ValueError):
         return '0.00'
+
+
+def _currency_symbol(currency_code) -> str:
+    code = (currency_code or 'PHP').strip().upper()
+    if code == 'OTHER':
+        return ''
+    mapping = {
+        'PHP': '₱',
+        'USD': '$',
+        'EUR': '€',
+        'JPY': '¥',
+        'CNY': '¥',
+        'GBP': '£',
+    }
+    if code in mapping:
+        return mapping[code]
+    return f'{code} '
+
+
+def _money_currency(value, currency='PHP', negative=False) -> str:
+    amount = _money(value)
+    symbol = _currency_symbol(currency)
+    if negative:
+        return f'-{symbol}{amount}'
+    return f'{symbol}{amount}'
 
 
 def _text(value, fallback='') -> str:
@@ -81,64 +143,67 @@ def _text(value, fallback='') -> str:
 
 
 def _styles():
+    font_reg, font_bold = _ensure_unicode_fonts()
     base = getSampleStyleSheet()
     return {
         'title': ParagraphStyle(
-            'POTitle', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POTitle', parent=base['Normal'], fontName=font_bold,
             fontSize=16, textColor=BRAND, leading=20, spaceAfter=2,
         ),
         'subtitle': ParagraphStyle(
-            'POSubtitle', parent=base['Normal'], fontName='Helvetica',
+            'POSubtitle', parent=base['Normal'], fontName=font_reg,
             fontSize=8, textColor=MUTED, leading=10, spaceAfter=8,
         ),
         'label': ParagraphStyle(
-            'POLabel', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POLabel', parent=base['Normal'], fontName=font_bold,
             fontSize=6.5, textColor=MUTED, leading=8, spaceAfter=1,
         ),
         'value': ParagraphStyle(
-            'POValue', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POValue', parent=base['Normal'], fontName=font_bold,
             fontSize=9, textColor=INK, leading=12,
         ),
         'section': ParagraphStyle(
-            'POSection', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POSection', parent=base['Normal'], fontName=font_bold,
             fontSize=8, textColor=BRAND, leading=11, spaceBefore=8, spaceAfter=4,
         ),
         'body': ParagraphStyle(
-            'POBody', parent=base['Normal'], fontName='Helvetica',
+            'POBody', parent=base['Normal'], fontName=font_reg,
             fontSize=8.5, textColor=INK, leading=12,
         ),
         'small': ParagraphStyle(
-            'POSmall', parent=base['Normal'], fontName='Helvetica',
+            'POSmall', parent=base['Normal'], fontName=font_reg,
             fontSize=7.5, textColor=INK, leading=10,
         ),
         'th': ParagraphStyle(
-            'POTh', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POTh', parent=base['Normal'], fontName=font_bold,
             fontSize=6.5, textColor=colors.white, leading=9, alignment=TA_LEFT,
         ),
         'td': ParagraphStyle(
-            'POTd', parent=base['Normal'], fontName='Helvetica',
+            'POTd', parent=base['Normal'], fontName=font_reg,
             fontSize=8, textColor=INK, leading=11,
         ),
         'td_center': ParagraphStyle(
-            'POTdCenter', parent=base['Normal'], fontName='Helvetica',
+            'POTdCenter', parent=base['Normal'], fontName=font_reg,
             fontSize=8, textColor=INK, leading=11, alignment=TA_CENTER,
         ),
         'td_right': ParagraphStyle(
-            'POTdRight', parent=base['Normal'], fontName='Helvetica',
+            'POTdRight', parent=base['Normal'], fontName=font_reg,
             fontSize=8, textColor=INK, leading=11, alignment=TA_RIGHT,
         ),
         'footnote': ParagraphStyle(
-            'POFootnote', parent=base['Normal'], fontName='Helvetica',
+            'POFootnote', parent=base['Normal'], fontName=font_reg,
             fontSize=7, textColor=MUTED, leading=9, alignment=TA_CENTER, spaceBefore=10,
         ),
         'sign_role': ParagraphStyle(
-            'POSignRole', parent=base['Normal'], fontName='Helvetica-Bold',
+            'POSignRole', parent=base['Normal'], fontName=font_bold,
             fontSize=7.5, textColor=BRAND, leading=10, spaceAfter=6,
         ),
         'sign_line': ParagraphStyle(
-            'POSignLine', parent=base['Normal'], fontName='Helvetica',
+            'POSignLine', parent=base['Normal'], fontName=font_reg,
             fontSize=7, textColor=MUTED, leading=9, spaceBefore=2, spaceAfter=10,
         ),
+        'font_reg': font_reg,
+        'font_bold': font_bold,
     }
 
 
@@ -776,13 +841,16 @@ class QuotationPDF:
 
     def _item_row(self, line):
         s = self.styles
+        currency = getattr(self.quotation, 'currency', None) or 'PHP'
+        if str(currency).upper() == 'OTHER':
+            currency = getattr(self.quotation, 'currency_other', None) or 'OTHER'
         return [
             Paragraph(str(line.item_number), s['td_center']),
             Paragraph(_text(line.product_description, ''), s['td']),
             Paragraph(str(line.quantity), s['td_center']),
             Paragraph(_text(line.unit, ''), s['td_center']),
-            Paragraph(f"₱{line.unit_price:.2f}", s['td_right']),
-            Paragraph(f"₱{line.total_amount:.2f}", s['td_right']),
+            Paragraph(_money_currency(line.unit_price, currency), s['td_right']),
+            Paragraph(_money_currency(line.total_amount, currency), s['td_right']),
         ]
 
     def _items_table_style(self):
@@ -828,26 +896,31 @@ class QuotationPDF:
 
     def _totals_table(self):
         q = self.quotation
+        currency = q.currency or 'PHP'
+        if str(currency).upper() == 'OTHER':
+            currency = q.currency_other or 'OTHER'
+        font_reg = self.styles.get('font_reg', 'Helvetica')
+        font_bold = self.styles.get('font_bold', 'Helvetica-Bold')
         rows = [
-            ['Subtotal', f"₱{q.subtotal:.2f}"],
+            ['Subtotal', _money_currency(q.subtotal, currency)],
         ]
         if q.tax:
-            rows.append(['Tax', f"₱{q.tax:.2f}"])
+            rows.append(['Tax', _money_currency(q.tax, currency)])
         if q.discount:
-            rows.append(['Discount', f"-₱{q.discount:.2f}"])
+            rows.append(['Discount', _money_currency(q.discount, currency, negative=True)])
         if q.shipping:
-            rows.append(['Shipping', f"₱{q.shipping:.2f}"])
-        rows.append(['GRAND TOTAL', f"₱{self.total_amount:.2f}"])
-        rows.append(['Initial Payment', f"-₱{q.initial_payment:.2f}"])
-        rows.append(['BALANCE DUE', f"₱{q.balance_due:.2f}"])
+            rows.append(['Shipping', _money_currency(q.shipping, currency)])
+        rows.append(['GRAND TOTAL', _money_currency(self.total_amount, currency)])
+        rows.append(['Initial Payment', _money_currency(q.initial_payment, currency, negative=True)])
+        rows.append(['BALANCE DUE', _money_currency(q.balance_due, currency)])
 
         table = Table(rows, colWidths=[2.2 * inch, 1.1 * inch], hAlign='RIGHT')
         last = len(rows) - 1
         grand_total_idx = last - 2
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), 'Helvetica-Bold'),
-            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), font_reg),
+            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), font_bold),
+            ('FONTNAME', (0, last), (-1, last), font_bold),
             ('FONTSIZE', (0, 0), (-1, -1), 8.5),
             ('TEXTCOLOR', (0, 0), (-1, -1), INK),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
@@ -1036,10 +1109,13 @@ class ServiceQuotationPDF(QuotationPDF):
 
     def _item_row(self, line):
         s = self.styles
+        currency = getattr(self.quotation, 'currency', None) or 'PHP'
+        if str(currency).upper() == 'OTHER':
+            currency = getattr(self.quotation, 'currency_other', None) or 'OTHER'
         return [
             Paragraph(str(line.item_number), s['td_center']),
             Paragraph(_text(line.service_description, ''), s['td']),
-            Paragraph(f"₱{line.total_amount:.2f}", s['td_right']),
+            Paragraph(_money_currency(line.total_amount, currency), s['td_right']),
         ]
 
     def _items_flowables(self):
@@ -1066,26 +1142,31 @@ class ServiceQuotationPDF(QuotationPDF):
 
     def _totals_table(self):
         q = self.quotation
+        currency = q.currency or 'PHP'
+        if str(currency).upper() == 'OTHER':
+            currency = q.currency_other or 'OTHER'
+        font_reg = self.styles.get('font_reg', 'Helvetica')
+        font_bold = self.styles.get('font_bold', 'Helvetica-Bold')
         rows = [
-            ['Subtotal', f"₱{q.subtotal:.2f}"],
+            ['Subtotal', _money_currency(q.subtotal, currency)],
         ]
         if q.tax:
-            rows.append(['Tax', f"₱{q.tax:.2f}"])
+            rows.append(['Tax', _money_currency(q.tax, currency)])
         if q.discount:
-            rows.append(['Discount', f"-₱{q.discount:.2f}"])
+            rows.append(['Discount', _money_currency(q.discount, currency, negative=True)])
         if q.other_fees:
-            rows.append(['Other Fees', f"₱{q.other_fees:.2f}"])
-        rows.append(['GRAND TOTAL', f"₱{self.total_amount:.2f}"])
-        rows.append(['Initial Payment', f"-₱{q.initial_payment:.2f}"])
-        rows.append(['BALANCE DUE', f"₱{q.balance_due:.2f}"])
+            rows.append(['Other Fees', _money_currency(q.other_fees, currency)])
+        rows.append(['GRAND TOTAL', _money_currency(self.total_amount, currency)])
+        rows.append(['Initial Payment', _money_currency(q.initial_payment, currency, negative=True)])
+        rows.append(['BALANCE DUE', _money_currency(q.balance_due, currency)])
 
         table = Table(rows, colWidths=[2.2 * inch, 1.1 * inch], hAlign='RIGHT')
         last = len(rows) - 1
         grand_total_idx = last - 2
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), 'Helvetica-Bold'),
-            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, -1), font_reg),
+            ('FONTNAME', (0, grand_total_idx), (-1, grand_total_idx), font_bold),
+            ('FONTNAME', (0, last), (-1, last), font_bold),
             ('FONTSIZE', (0, 0), (-1, -1), 8.5),
             ('TEXTCOLOR', (0, 0), (-1, -1), INK),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),

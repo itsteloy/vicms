@@ -1,0 +1,52 @@
+<article class="sheet" aria-label="4 by 4 inch statement of account">
+  <div class="loc">{{ location_header }}</div>
+  <h1 class="title">STATEMENT OF ACCOUNT</h1>
+  <div class="month-line">BILL FOR THE MONTH OF <span class="fill">{{ month_name|default:"________" }}</span></div>
+
+  <div class="party">
+    <div><span class="label">NAME:</span> {{ customer.display_name|upper }}</div>
+    <div><span class="label">ADDRESS:</span> {{ customer.service_address|upper }}</div>
+    <div><span class="label">METER NO.:</span> {{ customer.meter_number|upper }}</div>
+    <div><span class="label">BILLING START:</span> {{ billing_start_label|default:"JUNE 29, 2026" }}</div>
+    <div><span class="label">BILLING END:</span> {{ billing_end_label|default:"JULY 28, 2026" }}</div>
+  </div>
+
+  <div class="reading-box">
+    <div class="head">READING</div>
+    <table>
+      <tr>
+        <td>PREVIOUS</td>
+        <td class="val">{% if reading %}{{ reading.previous_reading }}{% else %}—{% endif %}</td>
+      </tr>
+      <tr>
+        <td>PRESENT</td>
+        <td class="val">{% if reading %}{{ reading.current_reading }}{% else %}—{% endif %}</td>
+      </tr>
+      <tr>
+        <td>CU. M. US</td>
+        <td class="val">{% if reading %}{{ reading.consumption }}{% else %}{{ bill.consumption }}{% endif %}</td>
+      </tr>
+    </table>
+  </div>
+
+  <table class="charges">
+    <tr>
+      <td>CURRENT BILL</td>
+      <td class="amt">{{ bill.current_bill|floatformat:0 }}</td>
+    </tr>
+    <tr>
+      <td>PREVIOUS BILL (UNPAID)</td>
+      <td class="amt">{{ bill.previous_bill_unpaid|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td>WATER INSTALLMENT BAL</td>
+      <td class="amt">{{ bill.installment_balance|floatformat:0 }}</td>
+    </tr>
+    <tr class="total">
+      <td>TOTAL BILL</td>
+      <td class="amt">₱{{ bill.total_amount|floatformat:2 }}</td>
+    </tr>
+  </table>
+
+  <div class="bottom-space" aria-hidden="true"></div>
+</article>

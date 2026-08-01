@@ -3,6 +3,9 @@
 {% block title %}Select Dashboard{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ── reset / base ── */
   *,
@@ -36,10 +39,22 @@
     padding: 0;
     margin: 0;
     background: #f6f8fc;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     color: var(--ink);
   }
+
+  h1, h2, h3, h4,
+  .logo-text,
+  .greeting h2,
+  .stat-value,
+  .kpi-card .value,
+  .hero-stats .stat-card .stat-value,
+  .aging-card strong,
+  .totals-strip .t-value {
+    font-family: Manrope, sans-serif;
+  }
+
 
     .brand-icon .logo {
     display: flex;
@@ -450,6 +465,7 @@
 
   .intro h1 {
     margin: 0;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: clamp(2rem, 4vw, 3.6rem);
     font-weight: 800;
     letter-spacing: -0.04em;
@@ -954,13 +970,6 @@
         Select a workspace module below. You will be asked to sign in before
         entering your dashboard.
       </p>
-      {% if is_authenticated and workspace_account %}
-      <div class="workspace-note">
-        Signed in as <strong>{{ workspace_account.username }}</strong> for the
-        <strong>{{ workspace_account.workspace_name }}</strong> workspace.
-        Open your assigned module or sign in to another workspace.
-      </div>
-      {% endif %}
     </div>
 
     <div class="dashboard-grid">
