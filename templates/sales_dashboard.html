@@ -1500,6 +1500,136 @@
         }
     }
 
+    /* ── Petty Cash / Revolving Fund ── */
+    .pc-form-table {
+        width: 100%;
+        min-width: 1600px;
+        border-collapse: collapse;
+        font-size: 0.72rem;
+    }
+    .pc-form-table thead tr { background: var(--brand); color: #fff; }
+    .pc-form-table th {
+        background: var(--brand);
+        color: #fff !important;
+        padding: 8px 5px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        border: none;
+        white-space: nowrap;
+        vertical-align: bottom;
+    }
+    .pc-form-table th.pc-subhead {
+        font-size: 0.6rem;
+        font-weight: 500;
+        text-align: center;
+    }
+    .pc-form-table td {
+        padding: 6px 4px;
+        border-top: 1px solid var(--line);
+        vertical-align: middle;
+    }
+    .pc-form-table input {
+        width: 100%;
+        padding: 5px 6px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 0.72rem;
+        box-sizing: border-box;
+    }
+    .pc-doc {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    .pc-doc-body {
+        padding: 16px 14px 24px;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10px;
+        color: #111;
+        box-sizing: border-box;
+        overflow-x: auto;
+    }
+    .pc-letterhead {
+        margin: 0 0 8px;
+        color: #1d4ed8;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        line-height: 1.4;
+        font-size: 0.85rem;
+    }
+    .pc-letterhead .pc-company { font-size: 0.95rem; font-weight: 800; }
+    .pc-title {
+        margin: 0 0 4px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #1d4ed8;
+        text-align: center;
+    }
+    .pc-meta {
+        margin: 0 0 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        color: #111;
+    }
+    .pc-items {
+        width: 100%;
+        min-width: 1400px;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 8px;
+    }
+    .pc-items th,
+    .pc-items td {
+        border: 1px solid #222;
+        padding: 3px 3px;
+        vertical-align: top;
+        word-break: break-word;
+        color: #111;
+    }
+    .pc-items th {
+        background: #e5e7eb;
+        color: #000 !important;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 7px;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+    }
+    .pc-items td.pc-num {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .pc-items td.pc-center { text-align: center; }
+    .pc-items .pc-total-row td {
+        font-weight: 700;
+        background: #f8fafc;
+    }
+    .pc-items .pc-total-label { text-align: right; padding-right: 6px; }
+
+    @media print {
+        .pc-doc {
+            max-width: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+    }
+
 </style>
 {% endblock %}
 
@@ -1566,6 +1696,11 @@
                 aria-selected="{% if active_tab == 'retention-summary-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="retention-summary-tab">
                 <span class="tab-icon">📋</span> Retention Summary
+            </button>
+            <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'petty-cash-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="petty-cash-tab">
+                <span class="tab-icon">💵</span> Petty Cash
             </button>
             <button class="tab-button" type="button" role="tab"
                 aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
@@ -3168,6 +3303,180 @@
         </div>
 
 
+        <!-- ─── PETTY CASH / REVOLVING FUND ─── -->
+        <div id="petty-cash-tab" class="tab-panel {% if active_tab == 'petty-cash-tab' %}is-active{% endif %}">
+            <div class="panel no-print" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">💵 Revolving Fund Replenishment Report</h1>
+
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button class="action brand-link" type="button" id="pcSave" style="padding:10px 16px;">💾 Save</button>
+                    <button class="action" type="button" id="pcPrint" style="padding:10px 16px;">🖨️ Print</button>
+                    <button class="action" type="button" id="pcReset" style="padding:10px 16px;">🔄 Reset</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">REPR #</label>
+                        <input type="text" id="pcReprNumber" placeholder="e.g., 2026-019"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Report Date</label>
+                        <input type="date" id="pcReportDate" style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Note</label>
+                        <input type="text" id="pcNote" placeholder="Optional note"
+                            style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                    </div>
+                </div>
+
+                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Expense Rows</legend>
+                    <div style="overflow-x:auto; margin-bottom:12px;">
+                        <table class="pc-form-table" aria-label="Petty cash lines">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">Date</th>
+                                    <th rowspan="2">Particulars</th>
+                                    <th rowspan="2">Explanation</th>
+                                    <th rowspan="2">TIN</th>
+                                    <th rowspan="2">PCV#</th>
+                                    <th rowspan="2" style="text-align:right;">Cash in Bank</th>
+                                    <th rowspan="2" style="text-align:right;">Input Tax</th>
+                                    <th rowspan="2" style="text-align:right;">Fuel &amp; Lubricant</th>
+                                    <th rowspan="2" style="text-align:right;">Fare / Transpo</th>
+                                    <th colspan="2" style="text-align:center;">Travel Allowance</th>
+                                    <th rowspan="2" style="text-align:right;">Purchases</th>
+                                    <th rowspan="2" style="text-align:right;">Repair &amp; Maint.</th>
+                                    <th rowspan="2" style="text-align:right;">Freight</th>
+                                    <th rowspan="2" style="text-align:right;">Meeting</th>
+                                    <th rowspan="2" style="text-align:right;">Office Supplies</th>
+                                    <th rowspan="2" style="text-align:right;">Communication</th>
+                                    <th rowspan="2" style="text-align:right;">Bidding</th>
+                                    <th rowspan="2" style="text-align:right;">Fines</th>
+                                    <th rowspan="2" style="text-align:right;">Misc</th>
+                                    <th rowspan="2"></th>
+                                </tr>
+                                <tr>
+                                    <th class="pc-subhead">Lodging</th>
+                                    <th class="pc-subhead">Meal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pcItemsBody">
+                                <tr>
+                                    <td><input type="date" class="pc-item-date"></td>
+                                    <td><input type="text" class="pc-item-particulars" placeholder="Name"></td>
+                                    <td><input type="text" class="pc-item-explanation" placeholder="Explanation"></td>
+                                    <td><input type="text" class="pc-item-tin" placeholder="TIN"></td>
+                                    <td><input type="text" class="pc-item-pcv" placeholder="PCV#"></td>
+                                    <td><input type="text" class="pc-item-cash pc-money" value="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-input-tax pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-fuel pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-fare pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-lodging pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-meal pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-purchases pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-repair pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-freight pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-meeting pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-office pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-communication pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-bidding pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-fines pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td><input type="text" class="pc-item-misc pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td style="text-align:center;">
+                                        <button type="button" class="pc-row-remove"
+                                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="action" type="button" id="pcAddRow" style="padding:8px 14px;">+ Add Row</button>
+                </fieldset>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;">
+                    <div style="background:var(--brand); color:#fff; padding:12px 18px; border-radius:8px; min-width:200px;">
+                        <div style="font-size:0.75rem; font-weight:700; opacity:0.9; margin-bottom:4px;">TOTAL CASH IN BANK</div>
+                        <div id="pcTotalCash" style="font-size:1.15rem; font-weight:800;">PHP 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Revolving Fund Replenishment Report preview (landscape).</p>
+                <article class="pc-doc" id="pcDocument" aria-label="Petty cash preview">
+                    <div class="pc-doc-body">
+                        <div class="pc-letterhead">
+                            <div class="pc-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                            <div>#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                            <div>TIN# 453-813-356-000</div>
+                        </div>
+                        <h3 class="pc-title">REVOLVING FUND REPLENISHMENT REPORT</h3>
+                        <p class="pc-meta" id="pcPrevMeta">REPR # — &nbsp;&nbsp; DATE: —</p>
+                        <p id="pcPrevNote" style="margin:0 0 8px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
+                        <table class="pc-items">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="width:5%;">DATE</th>
+                                    <th rowspan="2" style="width:9%;">PARTICULARS</th>
+                                    <th rowspan="2" style="width:12%;">EXPLANATION</th>
+                                    <th rowspan="2" style="width:6%;">TIN NUMBER</th>
+                                    <th rowspan="2" style="width:4%;">PCV#</th>
+                                    <th rowspan="2" style="width:5%;">CASH IN BANK</th>
+                                    <th rowspan="2" style="width:4%;">INPUT TAX</th>
+                                    <th rowspan="2" style="width:4%;">FUEL &amp; LUBRICANT</th>
+                                    <th rowspan="2" style="width:4%;">FARE / TRANSPORTATION</th>
+                                    <th colspan="2">TRANSPORTATION &amp; TRAVEL ALLOWANCE</th>
+                                    <th rowspan="2" style="width:4%;">PURCHASES</th>
+                                    <th rowspan="2" style="width:4%;">REPAIR &amp; MAINTENANCE</th>
+                                    <th rowspan="2" style="width:4%;">FREIGHT &amp; HANDLING</th>
+                                    <th rowspan="2" style="width:4%;">MEETING &amp; CONFERENCE</th>
+                                    <th rowspan="2" style="width:4%;">OFFICE SUPPLIES</th>
+                                    <th rowspan="2" style="width:4%;">COMMUNICATION</th>
+                                    <th rowspan="2" style="width:4%;">BIDDING EXPENSES</th>
+                                    <th rowspan="2" style="width:4%;">FINES &amp; PENALTIES</th>
+                                    <th rowspan="2" style="width:4%;">MISC</th>
+                                </tr>
+                                <tr>
+                                    <th style="width:4%;">LODGING / HOTEL</th>
+                                    <th style="width:4%;">MEAL ALLOWANCE</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pcPrevItemsBody">
+                                <tr>
+                                    <td colspan="20" style="text-align:center; color:#667085;">&nbsp;</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="pc-total-row">
+                                    <td colspan="5" class="pc-total-label">TOTAL</td>
+                                    <td class="pc-num" id="pcPrevTotalCash">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalInputTax">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalFuel">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalFare">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalLodging">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalMeal">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalPurchases">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalRepair">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalFreight">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalMeeting">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalOffice">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalCommunication">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalBidding">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalFines">0.00</td>
+                                    <td class="pc-num" id="pcPrevTotalMisc">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+
         <!-- ─── SAVED DOCUMENTS ─── -->
         <div id="saved-documents-tab" class="tab-panel {% if active_tab == 'saved-documents-tab' %}is-active{% endif %}">
             <div class="panel-header">
@@ -3268,6 +3577,7 @@
             'collection-form-tab': document.getElementById('collection-form-tab'),
             'ageing-accounts-tab': document.getElementById('ageing-accounts-tab'),
             'retention-summary-tab': document.getElementById('retention-summary-tab'),
+            'petty-cash-tab': document.getElementById('petty-cash-tab'),
             'saved-documents-tab': document.getElementById('saved-documents-tab'),
         };
 
@@ -5566,6 +5876,405 @@
             });
 
             asOfInput.value = todayISO();
+            refreshPreview();
+        })();
+
+        // ══════════════════════════════════════════════════════════════
+        // PETTY CASH / REVOLVING FUND REPLENISHMENT REPORT
+        // ══════════════════════════════════════════════════════════════
+
+        (function initPettyCash() {
+            const itemsBody = document.getElementById('pcItemsBody');
+            if (!itemsBody) return;
+
+            const reprInput = document.getElementById('pcReprNumber');
+            const reportDateInput = document.getElementById('pcReportDate');
+            const noteInput = document.getElementById('pcNote');
+            const prevBody = document.getElementById('pcPrevItemsBody');
+
+            const CAT_FIELDS = [
+                'input-tax', 'fuel', 'fare', 'lodging', 'meal', 'purchases',
+                'repair', 'freight', 'meeting', 'office', 'communication',
+                'bidding', 'fines', 'misc'
+            ];
+
+            function todayISO() {
+                const d = new Date();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${d.getFullYear()}-${m}-${day}`;
+            }
+
+            function formatDisplayDate(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+                    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            }
+
+            function formatShortDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+            }
+
+            function escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function catSum(row) {
+                return CAT_FIELDS.reduce((s, key) => s + parseMoney(row.querySelector('.pc-item-' + key)?.value), 0);
+            }
+
+            function syncCash(row) {
+                const cashInput = row.querySelector('.pc-item-cash');
+                if (!cashInput || cashInput.dataset.auto !== '1') return;
+                cashInput.value = formatMoney(catSum(row));
+            }
+
+            function moneyCellsHtml() {
+                return CAT_FIELDS.map((key) =>
+                    `<td><input type="text" class="pc-item-${key} pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>`
+                ).join('');
+            }
+
+            function createRow() {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" class="pc-item-date"></td>
+                    <td><input type="text" class="pc-item-particulars" placeholder="Name"></td>
+                    <td><input type="text" class="pc-item-explanation" placeholder="Explanation"></td>
+                    <td><input type="text" class="pc-item-tin" placeholder="TIN"></td>
+                    <td><input type="text" class="pc-item-pcv" placeholder="PCV#"></td>
+                    <td><input type="text" class="pc-item-cash pc-money" value="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
+                    ${moneyCellsHtml()}
+                    <td style="text-align:center;">
+                        <button type="button" class="pc-row-remove"
+                            style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
+                    </td>
+                `;
+                return tr;
+            }
+
+            function blankMoney(n) {
+                return n ? formatMoney(n) : '&nbsp;';
+            }
+
+            function refreshPreview() {
+                const repr = (reprInput.value || '').trim() || '—';
+                document.getElementById('pcPrevMeta').textContent =
+                    `REPR # ${repr}    DATE: ${formatDisplayDate(reportDateInput.value)}`;
+                const note = (noteInput.value || '').trim();
+                document.getElementById('pcPrevNote').textContent = note ? note.toUpperCase() : '';
+
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                const usable = rows.filter((row) => {
+                    const particulars = row.querySelector('.pc-item-particulars')?.value.trim();
+                    const explanation = row.querySelector('.pc-item-explanation')?.value.trim();
+                    const cash = parseMoney(row.querySelector('.pc-item-cash')?.value);
+                    const dateVal = row.querySelector('.pc-item-date')?.value;
+                    return particulars || explanation || cash || dateVal || catSum(row);
+                });
+
+                const totals = { cash: 0 };
+                CAT_FIELDS.forEach((k) => { totals[k] = 0; });
+                prevBody.innerHTML = '';
+
+                if (!usable.length) {
+                    const empty = document.createElement('tr');
+                    empty.innerHTML = '<td colspan="20" style="text-align:center;">&nbsp;</td>';
+                    prevBody.appendChild(empty);
+                } else {
+                    usable.forEach((row) => {
+                        const cash = parseMoney(row.querySelector('.pc-item-cash')?.value);
+                        totals.cash += cash;
+                        const vals = {};
+                        CAT_FIELDS.forEach((k) => {
+                            vals[k] = parseMoney(row.querySelector('.pc-item-' + k)?.value);
+                            totals[k] += vals[k];
+                        });
+                        const dateVal = row.querySelector('.pc-item-date')?.value || '';
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${escapeHtml(formatShortDate(dateVal) || '\u00a0')}</td>
+                            <td>${escapeHtml((row.querySelector('.pc-item-particulars')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td>${escapeHtml((row.querySelector('.pc-item-explanation')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="pc-center">${escapeHtml(row.querySelector('.pc-item-tin')?.value || '') || '&nbsp;'}</td>
+                            <td class="pc-center">${escapeHtml(row.querySelector('.pc-item-pcv')?.value || '') || '&nbsp;'}</td>
+                            <td class="pc-num">${blankMoney(cash)}</td>
+                            ${CAT_FIELDS.map((k) => `<td class="pc-num">${blankMoney(vals[k])}</td>`).join('')}
+                        `;
+                        prevBody.appendChild(tr);
+                    });
+                }
+
+                // Totals from all form rows
+                totals.cash = rows.reduce((s, row) => s + parseMoney(row.querySelector('.pc-item-cash')?.value), 0);
+                CAT_FIELDS.forEach((k) => {
+                    totals[k] = rows.reduce((s, row) => s + parseMoney(row.querySelector('.pc-item-' + k)?.value), 0);
+                });
+
+                document.getElementById('pcTotalCash').textContent = 'PHP ' + formatMoney(totals.cash);
+                document.getElementById('pcPrevTotalCash').textContent = formatMoney(totals.cash);
+                const idMap = {
+                    'input-tax': 'pcPrevTotalInputTax',
+                    fuel: 'pcPrevTotalFuel',
+                    fare: 'pcPrevTotalFare',
+                    lodging: 'pcPrevTotalLodging',
+                    meal: 'pcPrevTotalMeal',
+                    purchases: 'pcPrevTotalPurchases',
+                    repair: 'pcPrevTotalRepair',
+                    freight: 'pcPrevTotalFreight',
+                    meeting: 'pcPrevTotalMeeting',
+                    office: 'pcPrevTotalOffice',
+                    communication: 'pcPrevTotalCommunication',
+                    bidding: 'pcPrevTotalBidding',
+                    fines: 'pcPrevTotalFines',
+                    misc: 'pcPrevTotalMisc',
+                };
+                CAT_FIELDS.forEach((k) => {
+                    const el = document.getElementById(idMap[k]);
+                    if (el) el.textContent = formatMoney(totals[k]);
+                });
+            }
+
+            itemsBody.addEventListener('input', (e) => {
+                const row = e.target.closest('tr');
+                if (!row) return;
+                if (e.target.classList.contains('pc-cat')) syncCash(row);
+                if (e.target.classList.contains('pc-item-cash')) e.target.dataset.auto = '0';
+                refreshPreview();
+            });
+            itemsBody.addEventListener('change', refreshPreview);
+            bindMoneyInputs(itemsBody, '.pc-money');
+
+            [reprInput, reportDateInput, noteInput].forEach((el) => {
+                el.addEventListener('input', refreshPreview);
+                el.addEventListener('change', refreshPreview);
+            });
+
+            itemsBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.pc-row-remove');
+                if (!btn) return;
+                const rows = itemsBody.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    const row = rows[0];
+                    row.querySelectorAll('input').forEach((el) => {
+                        if (el.classList.contains('pc-money')) el.value = '0.00';
+                        else el.value = '';
+                    });
+                    const cash = row.querySelector('.pc-item-cash');
+                    if (cash) cash.dataset.auto = '1';
+                } else {
+                    btn.closest('tr').remove();
+                }
+                refreshPreview();
+            });
+
+            document.getElementById('pcAddRow').addEventListener('click', () => {
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            async function runPettyCashPdf(mode) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'petty-cash-tab');
+                window.history.pushState({}, '', url);
+                activateTab('petty-cash-tab');
+
+                const docEl = document.getElementById('pcDocument');
+                if (!docEl) {
+                    alert('Petty cash preview not found.');
+                    return;
+                }
+                if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+                    alert('PDF libraries failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                const btn = document.getElementById(mode === 'save' ? 'pcSave' : 'pcPrint');
+                const prevLabel = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = mode === 'save' ? 'Saving…' : 'Preparing…';
+                }
+
+                let holder = null;
+                try {
+                    const pageW = 1500;
+                    const bodyNode = docEl.querySelector('.pc-doc-body');
+
+                    holder = document.createElement('div');
+                    holder.id = 'pc-print-holder';
+                    holder.style.cssText = [
+                        'position:fixed', 'left:0', 'top:0', `width:${pageW}px`,
+                        'background:#fff', 'visibility:hidden', 'pointer-events:none',
+                        'z-index:-1', 'overflow:visible'
+                    ].join(';');
+
+                    const styleEl = document.createElement('style');
+                    styleEl.textContent = `
+                        #pc-print-sheet {
+                            width: ${pageW}px !important;
+                            background: #fff !important;
+                            color: #111 !important;
+                            font-family: Arial, Helvetica, sans-serif !important;
+                            font-size: 10px !important;
+                            box-sizing: border-box !important;
+                            padding: 10px 12px 16px !important;
+                        }
+                        #pc-print-sheet * { box-sizing: border-box !important; }
+                        #pc-print-sheet .pc-letterhead {
+                            margin: 0 0 8px !important; color: #1d4ed8 !important; font-weight: 700 !important;
+                            text-transform: uppercase !important; line-height: 1.35 !important; font-size: 11px !important;
+                        }
+                        #pc-print-sheet .pc-company { font-size: 13px !important; font-weight: 800 !important; }
+                        #pc-print-sheet .pc-title {
+                            margin: 0 0 4px !important; font-size: 13px !important; font-weight: 800 !important;
+                            text-align: center !important; text-transform: uppercase !important; color: #1d4ed8 !important;
+                        }
+                        #pc-print-sheet .pc-meta {
+                            margin: 0 0 10px !important; font-size: 11px !important; font-weight: 700 !important;
+                            text-align: center !important; text-transform: uppercase !important;
+                        }
+                        #pc-print-sheet table.pc-items {
+                            width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
+                            table-layout: fixed !important; font-size: 7.5px !important;
+                        }
+                        #pc-print-sheet .pc-items th, #pc-print-sheet .pc-items td {
+                            border: 1px solid #222 !important; padding: 2px 2px !important; vertical-align: top !important;
+                            word-break: break-word !important; color: #111 !important;
+                        }
+                        #pc-print-sheet .pc-items th {
+                            background: #e5e7eb !important; font-weight: 700 !important; text-align: center !important;
+                            text-transform: uppercase !important; font-size: 6.5px !important; line-height: 1.15 !important;
+                        }
+                        #pc-print-sheet .pc-num { text-align: right !important; white-space: nowrap !important; }
+                        #pc-print-sheet .pc-center { text-align: center !important; }
+                        #pc-print-sheet .pc-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
+                        #pc-print-sheet .pc-total-label { text-align: right !important; }
+                    `;
+
+                    const sheet = document.createElement('div');
+                    sheet.id = 'pc-print-sheet';
+                    const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
+                    while (bodyClone.firstChild) sheet.appendChild(bodyClone.firstChild);
+                    holder.appendChild(styleEl);
+                    holder.appendChild(sheet);
+                    document.body.appendChild(holder);
+
+                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                    const canvas = await html2canvas(sheet, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: pageW,
+                        width: pageW,
+                        onclone: (clonedDoc) => {
+                            const clonedHolder = clonedDoc.getElementById('pc-print-holder');
+                            const clonedSheet = clonedDoc.getElementById('pc-print-sheet');
+                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
+                            if (clonedSheet) {
+                                clonedSheet.style.visibility = 'visible';
+                                clonedSheet.style.width = pageW + 'px';
+                            }
+                        },
+                    });
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                    const margin = 6;
+                    const usableW = 297 - margin * 2;
+                    const usableH = 210 - margin * 2;
+                    const imgW = usableW;
+                    const imgH = (canvas.height * imgW) / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.96);
+
+                    if (imgH <= usableH) {
+                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
+                    } else {
+                        let remaining = imgH;
+                        let srcY = 0;
+                        const pxPerMm = canvas.height / imgH;
+                        let page = 0;
+                        while (remaining > 0.5 && page < 16) {
+                            if (page > 0) pdf.addPage();
+                            const sliceH = Math.min(usableH, remaining);
+                            const sliceCanvas = document.createElement('canvas');
+                            sliceCanvas.width = canvas.width;
+                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
+                            const ctx = sliceCanvas.getContext('2d');
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                            ctx.drawImage(
+                                canvas,
+                                0, Math.round(srcY * pxPerMm),
+                                canvas.width, sliceCanvas.height,
+                                0, 0, sliceCanvas.width, sliceCanvas.height
+                            );
+                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, imgW, sliceH);
+                            srcY += sliceH;
+                            remaining -= sliceH;
+                            page += 1;
+                        }
+                    }
+
+                    const pdfBlob = pdf.output('blob');
+                    holder.remove();
+                    holder = null;
+
+                    if (mode === 'save') {
+                        const repr = (reprInput.value || '').trim() || reportDateInput.value || todayISO();
+                        await uploadSalesDocumentPdf({
+                            blob: pdfBlob,
+                            documentType: 'petty_cash',
+                            title: `Revolving Fund Replenishment Report ${repr}`,
+                            reference: repr,
+                            fileName: `petty_cash_${repr}`,
+                        });
+                        alert('Petty cash PDF saved to the database.');
+                        goToSavedDocuments();
+                    } else {
+                        printPdfBlob(pdfBlob);
+                    }
+                } catch (error) {
+                    if (holder) holder.remove();
+                    console.error('Petty cash PDF error:', error);
+                    alert(error && error.message ? error.message : 'Could not prepare petty cash PDF.');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = prevLabel;
+                    }
+                }
+            }
+
+            document.getElementById('pcPrint').addEventListener('click', () => runPettyCashPdf('print'));
+            const pcSaveBtn = document.getElementById('pcSave');
+            if (pcSaveBtn) pcSaveBtn.addEventListener('click', () => runPettyCashPdf('save'));
+
+            document.getElementById('pcReset').addEventListener('click', () => {
+                reprInput.value = '';
+                reportDateInput.value = todayISO();
+                noteInput.value = '';
+                itemsBody.innerHTML = '';
+                itemsBody.appendChild(createRow());
+                refreshPreview();
+            });
+
+            reportDateInput.value = todayISO();
             refreshPreview();
         })();
 

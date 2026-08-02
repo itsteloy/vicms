@@ -235,6 +235,7 @@ class SalesDocumentArchive(models.Model):
         ('collection_form', 'Collection Form'),
         ('ageing_accounts', 'Ageing of Accounts'),
         ('retention_summary', 'Retention Summary'),
+        ('petty_cash', 'Petty Cash / Revolving Fund'),
     ]
 
     document_type = models.CharField(max_length=40, choices=DOCUMENT_TYPES)
