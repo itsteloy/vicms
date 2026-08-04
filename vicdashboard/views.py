@@ -2,9 +2,10 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
+from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -32,7 +33,7 @@ import csv
 MANAGEMENT_MODULES = [
     {
         'name': 'HR',
-        'summary': 'Employee records, attendance, onboarding, and staff requests.',
+        'summary': 'Employee records, attendance, payroll, staff requests, job orders, and official business.',
         'status': 'Active',
         'url_name': 'hr_dashboard',
         'workspace_key': 'hr',
@@ -52,13 +53,6 @@ MANAGEMENT_MODULES = [
         'workspace_key': 'sales',
     },
     {
-        'name': 'Payroll',
-        'summary': 'Salary records, deductions, approvals, and pay schedules.',
-        'status': 'Active',
-        'url_name': 'payroll_dashboard',
-        'workspace_key': 'payroll',
-    },
-    {
         'name': 'Accounting',
         'summary': 'Salary records, deductions, approvals, and pay schedules.',
         'status': 'Active',
@@ -67,7 +61,7 @@ MANAGEMENT_MODULES = [
     },
     {
         'name': 'Services',
-        'summary': 'Repair reports, job orders, borrow slips, official business, delivery receipts, and travel orders.',
+        'summary': 'Repair reports, borrow slips, delivery receipts, and travel orders.',
         'status': 'Active',
         'url_name': 'services_dashboard',
         'workspace_key': 'services',
@@ -118,7 +112,12 @@ def user_has_dashboard_access(user, url_name):
     workspace = get_user_workspace(user)
     if workspace is None:
         return True
-    return workspace.dashboard_url_name == url_name
+    if workspace.dashboard_url_name == url_name:
+        return True
+    # Payroll was merged into HR â€” keep legacy payroll workspace accounts working.
+    if url_name == 'hr_dashboard' and workspace.dashboard_url_name == 'payroll_dashboard':
+        return True
+    return False
 
 
 def require_dashboard(url_name):
@@ -250,6 +249,8 @@ def dashboard(request):
 def hr_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action', '').strip()
+        if action in PAYROLL_POST_ACTIONS:
+            return _process_payroll_post(request)
 
         if action == 'create_department':
             name = request.POST.get('department_name', '').strip()
@@ -378,6 +379,108 @@ def hr_dashboard(request):
                 messages.success(request, 'Attendance record removed.')
             return redirect(f"{reverse('hr_dashboard')}?tab=attendanceTab")
 
+        # Upload biometric punch sheet (.xls) and generate editable layout
+        if action == 'upload_punch_sheet':
+            uploaded = request.FILES.get('punch_sheet_file')
+            if not uploaded:
+                messages.error(request, 'Please choose an attendance sheet (.xls) file to upload.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+
+            filename = (uploaded.name or '').lower()
+            if not (filename.endswith('.xls') or filename.endswith('.xml')):
+                messages.error(request, 'Only .xls attendance sheet exports are supported.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+
+            try:
+                parsed = parse_attendance_sheet_file(uploaded)
+            except AttendanceSheetParseError as exc:
+                messages.error(request, str(exc))
+                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+
+            with transaction.atomic():
+                sheet = AttendanceSheet.objects.create(
+                    title=parsed['title'],
+                    period_year=parsed.get('period_year'),
+                    period_start=parsed.get('period_start'),
+                    period_end=parsed.get('period_end'),
+                    source_file=uploaded,
+                    original_filename=uploaded.name or '',
+                )
+                for emp_idx, emp in enumerate(parsed['employees']):
+                    entry = AttendanceSheetEntry.objects.create(
+                        sheet=sheet,
+                        device_employee_id=emp.get('device_employee_id', ''),
+                        employee_name=emp.get('employee_name', ''),
+                        department=emp.get('department', ''),
+                        shift=emp.get('shift', ''),
+                        sort_order=emp_idx,
+                    )
+                    AttendanceSheetPunch.objects.bulk_create([
+                        AttendanceSheetPunch(
+                            entry=entry,
+                            day=int(punch['day']),
+                            punch_date=punch.get('punch_date'),
+                            punch_times=punch.get('punch_times', '') or '',
+                            morning_in=punch.get('morning_in', '') or '',
+                            morning_out=punch.get('morning_out', '') or '',
+                            afternoon_in=punch.get('afternoon_in', '') or '',
+                            afternoon_out=punch.get('afternoon_out', '') or '',
+                            sort_order=punch.get('sort_order', idx),
+                        )
+                        for idx, punch in enumerate(emp.get('punches') or [])
+                    ])
+
+            messages.success(
+                request,
+                f'Punch sheet imported with {len(parsed["employees"])} employee(s). You can edit the layout below.',
+            )
+            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab&sheet={sheet.id}")
+
+        # Save edits to an imported punch sheet layout
+        if action == 'save_punch_sheet':
+            sheet_id = request.POST.get('sheet_id', '').strip()
+            sheet = AttendanceSheet.objects.filter(pk=sheet_id).first()
+            if not sheet:
+                messages.error(request, 'Punch sheet not found.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+
+            title = request.POST.get('sheet_title', '').strip() or sheet.title
+            with transaction.atomic():
+                sheet.title = title
+                sheet.save(update_fields=['title', 'updated_at'])
+
+                for entry in sheet.entries.all():
+                    prefix = f'entry_{entry.id}_'
+                    entry.device_employee_id = request.POST.get(f'{prefix}device_id', entry.device_employee_id).strip()
+                    entry.employee_name = request.POST.get(f'{prefix}name', entry.employee_name).strip()
+                    entry.department = request.POST.get(f'{prefix}department', entry.department).strip()
+                    entry.shift = request.POST.get(f'{prefix}shift', entry.shift).strip()
+                    entry.save(update_fields=['device_employee_id', 'employee_name', 'department', 'shift'])
+
+                    for punch in entry.punches.all():
+                        punch.morning_in = request.POST.get(f'punch_{punch.id}_morning_in', punch.morning_in).strip()
+                        punch.morning_out = request.POST.get(f'punch_{punch.id}_morning_out', punch.morning_out).strip()
+                        punch.afternoon_in = request.POST.get(f'punch_{punch.id}_afternoon_in', punch.afternoon_in).strip()
+                        punch.afternoon_out = request.POST.get(f'punch_{punch.id}_afternoon_out', punch.afternoon_out).strip()
+                        punch.sync_to_punch_times()
+                        punch.save(update_fields=[
+                            'morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'punch_times',
+                        ])
+
+            messages.success(request, 'Punch sheet saved.')
+            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab&sheet={sheet.id}")
+
+        # Delete an imported punch sheet
+        if action == 'delete_punch_sheet':
+            sheet_id = request.POST.get('sheet_id', '').strip()
+            sheet = AttendanceSheet.objects.filter(pk=sheet_id).first()
+            if sheet:
+                sheet.delete()
+                messages.success(request, 'Punch sheet deleted.')
+            else:
+                messages.error(request, 'Punch sheet not found.')
+            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+
         # Submit a new leave request on behalf of an employee
         if action == 'create_leave_request':
             employee_id = request.POST.get('lr_employee', '').strip()
@@ -467,7 +570,7 @@ def hr_dashboard(request):
     active_employee_count = employees.filter(termination_date__isnull=True).count()
     documents = HRDocument.objects.all()
 
-    # ── Attendance tab: optional filters (employee / date range), defaults to last 14 days ──
+    # â”€â”€ Attendance tab: optional filters (employee / date range), defaults to last 14 days â”€â”€
     att_employee_filter = request.GET.get('att_employee_filter', '').strip()
     att_date_from = parse_date(request.GET.get('att_date_from', '').strip()) if request.GET.get('att_date_from') else None
     att_date_to = parse_date(request.GET.get('att_date_to', '').strip()) if request.GET.get('att_date_to') else None
@@ -490,6 +593,19 @@ def hr_dashboard(request):
     today_present = today_logs.filter(status='present').count()
     today_absent = today_logs.filter(status='absent').count()
     today_on_leave = today_logs.filter(status='leave').count()
+
+    # ── Punch sheets tab ──
+    punch_sheets = AttendanceSheet.objects.annotate(
+        entry_count=Count('entries'),
+    ).order_by('-uploaded_at')[:50]
+    selected_punch_sheet = None
+    punch_sheet_id = request.GET.get('sheet', '').strip()
+    if punch_sheet_id:
+        selected_punch_sheet = (
+            AttendanceSheet.objects.prefetch_related('entries__punches')
+            .filter(pk=punch_sheet_id)
+            .first()
+        )
 
     # ── Requests tab: leave requests ──
     leave_requests = LeaveRequest.objects.select_related('employee').order_by('-submitted_at')[:200]
@@ -519,9 +635,17 @@ def hr_dashboard(request):
             'today_present': today_present,
             'today_absent': today_absent,
             'today_on_leave': today_on_leave,
+            'punch_sheets': punch_sheets,
+            'selected_punch_sheet': selected_punch_sheet,
             'leave_requests': leave_requests,
             'leave_type_choices': LeaveBalance.LEAVE_TYPES,
             'pending_leave_count': pending_leave_count,
+            'job_orders': JobOrder.objects.all()[:8],
+            'job_order_count': JobOrder.objects.count(),
+            'next_job_order_number': JobOrder.generate_job_order_number(),
+            'official_business_forms': OfficialBusinessForm.objects.all()[:8],
+            'official_business_count': OfficialBusinessForm.objects.count(),
+            **_payroll_dashboard_context(),
         },
     )
 
@@ -1286,295 +1410,302 @@ def inventory_dashboard(request):
     )
 
 
-@require_dashboard('payroll_dashboard')
-def payroll_dashboard(request):
-    if request.method == 'POST':
-        action = request.POST.get('action', '').strip()
+PAYROLL_POST_ACTIONS = frozenset({
+    'create_pay_period',
+    'create_payrun',
+    'compute_payroll',
+    'approve_payroll',
+    'disburse_payroll',
+    'add_deduction',
+    'assign_deduction',
+    'delete_run',
+    'close_period',
+})
 
-        # ---------- CREATE PAY PERIOD ----------
-        if action == 'create_pay_period':
-            start_date = request.POST.get('start_date', '').strip()
-            end_date = request.POST.get('end_date', '').strip()
-            pay_date = request.POST.get('pay_date', '').strip()
-            period_type = request.POST.get('period_type', 'monthly').strip()
 
-            if not all([start_date, end_date, pay_date]):
-                messages.error(request, 'Start date, end date, and pay date are required.')
-            else:
-                try:
-                    start = date.fromisoformat(start_date)
-                    end = date.fromisoformat(end_date)
-                    pay = date.fromisoformat(pay_date)
-                    if end < start:
-                        messages.error(request, 'End date must be on or after the start date.')
-                    else:
-                        if pay < end:
-                            messages.warning(request, 'Pay date is before the period end date.')
-                        period = PayPeriod.objects.create(
-                            start_date=start,
-                            end_date=end,
-                            pay_date=pay,
-                            period_type=period_type if period_type in ('monthly', 'semi-monthly') else 'monthly',
-                        )
-                        messages.success(
-                            request,
-                            f'Pay period {period.start_date} – {period.end_date} created. You can now create a pay run.',
-                        )
-                except ValueError:
-                    messages.error(request, 'Invalid date format.')
-                except Exception as exc:
-                    messages.error(request, f'Could not create pay period: {exc}')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
+def _process_payroll_post(request):
+    action = request.POST.get('action', '').strip()
 
-        # ---------- CREATE PAY RUN ----------
-        if action == 'create_payrun':
-            pay_period_id = request.POST.get('pay_period_id')
-            if pay_period_id:
-                try:
-                    pay_period = PayPeriod.objects.get(pk=pay_period_id)
-                    if pay_period.is_closed:
-                        messages.error(request, 'Pay period is closed.')
-                    else:
-                        # Check if a run already exists for this period
-                        existing = PayrollRun.objects.filter(pay_period=pay_period).first()
-                        if existing:
-                            messages.warning(request, f'A payroll run already exists for this period (ID {existing.id}).')
-                        else:
-                            run = PayrollRun.objects.create(
-                                pay_period=pay_period,
-                                cutoff_start=pay_period.start_date,
-                                cutoff_end=pay_period.end_date,
-                                status='draft'
-                            )
-                            messages.success(request, f'Payroll run #{run.id} created. Click "Compute" to calculate.')
-                except PayPeriod.DoesNotExist:
-                    messages.error(request, 'Invalid pay period.')
-            else:
-                messages.error(request, 'Please select a pay period.')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
+    # ---------- CREATE PAY PERIOD ----------
+    if action == 'create_pay_period':
+        start_date = request.POST.get('start_date', '').strip()
+        end_date = request.POST.get('end_date', '').strip()
+        pay_date = request.POST.get('pay_date', '').strip()
+        period_type = request.POST.get('period_type', 'monthly').strip()
 
-        if action == 'compute_payroll':
-            run_id = request.POST.get('run_id')
-            if run_id:
-                try:
-                    run = PayrollRun.objects.get(pk=run_id)
-                    if run.status != 'draft':
-                        messages.warning(request, 'Only draft runs can be computed.')
-                    else:
-                        from .payroll_calculator import (
-                            compute_daily_hours,
-                            get_attendance_for_period,
-                            get_effective_shift_schedule,
-                            get_statutory_deductions,
-                            get_tax,
-                            get_voluntary_deductions,
-                        )
-
-                        employees = Employee.objects.filter(
-                            Q(termination_date__isnull=True) | Q(termination_date__gt=run.cutoff_end)
-                        )
-                        run.lines.all().delete()
-
-                        computed_count = 0
-                        for emp in employees:
-                            if emp.hire_date > run.cutoff_end:
-                                continue
-
-                            if emp.hire_date > run.cutoff_start:
-                                working_days_in_month = Decimal('22')
-                                days_worked = (run.cutoff_end - max(emp.hire_date, run.cutoff_start)).days + 1
-                                if days_worked < 0:
-                                    days_worked = 0
-                                prorated = Decimal(days_worked) / working_days_in_month
-                                base_pay = emp.base_salary * prorated
-                            elif emp.salary_frequency == 'monthly':
-                                base_pay = emp.base_salary
-                            else:
-                                base_pay = emp.base_salary * Decimal('0.5')
-
-                            logs = get_attendance_for_period(emp, run.cutoff_start, run.cutoff_end)
-                            total_regular = Decimal('0')
-                            total_overtime = Decimal('0')
-                            holiday_pay = Decimal('0')
-
-                            for log in logs:
-                                shift = get_effective_shift_schedule(emp, log.date)
-                                if shift:
-                                    regular, overtime = compute_daily_hours(log, shift)
-                                    total_regular += regular
-                                    total_overtime += overtime
-
-                            hourly_rate = base_pay / Decimal('22') / Decimal('8')
-                            overtime_pay = total_overtime * hourly_rate * Decimal('1.25')
-                            gross_pay = base_pay + overtime_pay + holiday_pay
-
-                            tax = get_tax(emp, gross_pay, run.cutoff_end)
-                            statutory = get_statutory_deductions(emp, gross_pay, run.cutoff_end)
-                            voluntary = get_voluntary_deductions(emp, run.cutoff_start, run.cutoff_end)
-                            total_deductions = tax + statutory + voluntary
-                            net_pay = gross_pay - total_deductions
-
-                            PayrollLine.objects.create(
-                                payroll_run=run,
-                                employee=emp,
-                                gross_pay=gross_pay,
-                                total_deductions=total_deductions,
-                                net_pay=net_pay,
-                                breakdown={
-                                    'base_pay': float(base_pay),
-                                    'overtime_pay': float(overtime_pay),
-                                    'holiday_pay': float(holiday_pay),
-                                    'regular_hours': float(total_regular),
-                                    'overtime_hours': float(total_overtime),
-                                    'tax': float(tax),
-                                    'statutory': float(statutory),
-                                    'voluntary': float(voluntary),
-                                },
-                                regular_hours=total_regular,
-                                overtime_hours=total_overtime,
-                                holiday_pay=holiday_pay,
-                            )
-                            computed_count += 1
-
-                        run.status = 'computed'
-                        run.save()
-                        messages.success(
-                            request,
-                            f'Payroll run #{run.id} computed for {computed_count} employee(s).',
-                        )
-                except PayrollRun.DoesNotExist:
-                    messages.error(request, 'Run not found.')
-                except Exception as exc:
-                    messages.error(request, f'Compute failed: {exc}')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
-
-        # ---------- APPROVE PAYROLL ----------
-        if action == 'approve_payroll':
-            run_id = request.POST.get('run_id')
-            if run_id:
-                try:
-                    run = PayrollRun.objects.get(pk=run_id)
-                    if run.status != 'computed':
-                        messages.warning(request, 'Only computed runs can be approved.')
-                    else:
-                        run.status = 'approved'
-                        run.save()
-                        messages.success(request, f'Payroll run #{run.id} approved.')
-                except PayrollRun.DoesNotExist:
-                    messages.error(request, 'Run not found.')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=approvalsTab")
-
-        # ---------- DISBURSE PAYROLL ----------
-        if action == 'disburse_payroll':
-            run_id = request.POST.get('run_id')
-            if run_id:
-                try:
-                    run = PayrollRun.objects.select_related('pay_period').get(pk=run_id)
-                    if run.status != 'approved':
-                        messages.warning(request, 'Only approved runs can be disbursed.')
-                    else:
-                        run.status = 'disbursed'
-                        run.save()
-                        period = run.pay_period
-                        period.is_closed = True
-                        period.save(update_fields=['is_closed'])
-                        messages.success(
-                            request,
-                            f'Payroll run #{run.id} disbursed and pay period closed.',
-                        )
-                except PayrollRun.DoesNotExist:
-                    messages.error(request, 'Run not found.')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
-
-        # ---------- ADD DEDUCTION CONFIG ----------
-        if action == 'add_deduction':
-            code = request.POST.get('code', '').strip()
-            name = request.POST.get('name', '').strip()
-            ded_type = request.POST.get('ded_type', 'voluntary')
-            fixed_amount = request.POST.get('fixed_amount', '0')
-            percentage = request.POST.get('percentage', '0')
-            effective = request.POST.get('effective_date')
+        if not all([start_date, end_date, pay_date]):
+            messages.error(request, 'Start date, end date, and pay date are required.')
+        else:
             try:
-                fixed = Decimal(fixed_amount)
-                pct = Decimal(percentage)
-                if not code or not name or not effective:
-                    messages.error(request, 'Code, name, and effective date are required.')
+                start = date.fromisoformat(start_date)
+                end = date.fromisoformat(end_date)
+                pay = date.fromisoformat(pay_date)
+                if end < start:
+                    messages.error(request, 'End date must be on or after the start date.')
                 else:
-                    DeductionConfig.objects.create(
-                        code=code,
-                        name=name,
-                        type=ded_type,
-                        fixed_amount=fixed,
-                        percentage_of_gross=pct,
-                        effective_date=effective,
-                        is_active=True
+                    if pay < end:
+                        messages.warning(request, 'Pay date is before the period end date.')
+                    period = PayPeriod.objects.create(
+                        start_date=start,
+                        end_date=end,
+                        pay_date=pay,
+                        period_type=period_type if period_type in ('monthly', 'semi-monthly') else 'monthly',
                     )
-                    messages.success(request, 'Deduction configuration added.')
-            except Exception as e:
-                messages.error(request, f'Error: {e}')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=deductionsTab")
+                    messages.success(
+                        request,
+                        f'Pay period {period.start_date} â€“ {period.end_date} created. You can now create a pay run.',
+                    )
+            except ValueError:
+                messages.error(request, 'Invalid date format.')
+            except Exception as exc:
+                messages.error(request, f'Could not create pay period: {exc}')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
 
-        # ---------- ASSIGN DEDUCTION TO EMPLOYEE ----------
-        if action == 'assign_deduction':
-            employee_id = request.POST.get('employee_id')
-            config_id = request.POST.get('config_id')
-            amount = request.POST.get('amount', '0')
-            start = request.POST.get('start_date')
-            end = request.POST.get('end_date', '')
-            total_remaining = request.POST.get('total_remaining', '0')
+    # ---------- CREATE PAY RUN ----------
+    if action == 'create_payrun':
+        pay_period_id = request.POST.get('pay_period_id')
+        if pay_period_id:
             try:
-                emp = Employee.objects.get(pk=employee_id)
-                config = DeductionConfig.objects.get(pk=config_id)
-                EmployeeDeduction.objects.create(
-                    employee=emp,
-                    deduction_config=config,
-                    amount=Decimal(amount),
-                    start_date=start,
-                    end_date=end or None,
-                    total_remaining=Decimal(total_remaining)
-                )
-                messages.success(request, 'Deduction assigned.')
-            except Exception as e:
-                messages.error(request, f'Error: {e}')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=deductionsTab")
-
-        # ---------- DELETE PAYROLL RUN ----------
-        if action == 'delete_run':
-            run_id = request.POST.get('run_id')
-            if run_id:
-                try:
-                    run = PayrollRun.objects.get(pk=run_id)
-                    if run.status == 'draft':
-                        run.delete()
-                        messages.success(request, 'Payroll run deleted.')
+                pay_period = PayPeriod.objects.get(pk=pay_period_id)
+                if pay_period.is_closed:
+                    messages.error(request, 'Pay period is closed.')
+                else:
+                    # Check if a run already exists for this period
+                    existing = PayrollRun.objects.filter(pay_period=pay_period).first()
+                    if existing:
+                        messages.warning(request, f'A payroll run already exists for this period (ID {existing.id}).')
                     else:
-                        messages.warning(request, 'Cannot delete a run that is not in draft status.')
-                except PayrollRun.DoesNotExist:
-                    messages.error(request, 'Run not found.')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
+                        run = PayrollRun.objects.create(
+                            pay_period=pay_period,
+                            cutoff_start=pay_period.start_date,
+                            cutoff_end=pay_period.end_date,
+                            status='draft'
+                        )
+                        messages.success(request, f'Payroll run #{run.id} created. Click "Compute" to calculate.')
+            except PayPeriod.DoesNotExist:
+                messages.error(request, 'Invalid pay period.')
+        else:
+            messages.error(request, 'Please select a pay period.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
 
-        # ---------- CLOSE PAY PERIOD ----------
-        if action == 'close_period':
-            period_id = request.POST.get('period_id')
-            if period_id:
-                try:
-                    period = PayPeriod.objects.get(pk=period_id)
+    if action == 'compute_payroll':
+        run_id = request.POST.get('run_id')
+        if run_id:
+            try:
+                run = PayrollRun.objects.get(pk=run_id)
+                if run.status != 'draft':
+                    messages.warning(request, 'Only draft runs can be computed.')
+                else:
+                    from .payroll_calculator import (
+                        compute_daily_hours,
+                        get_attendance_for_period,
+                        get_effective_shift_schedule,
+                        get_statutory_deductions,
+                        get_tax,
+                        get_voluntary_deductions,
+                    )
+
+                    employees = Employee.objects.filter(
+                        Q(termination_date__isnull=True) | Q(termination_date__gt=run.cutoff_end)
+                    )
+                    run.lines.all().delete()
+
+                    computed_count = 0
+                    for emp in employees:
+                        if emp.hire_date > run.cutoff_end:
+                            continue
+
+                        if emp.hire_date > run.cutoff_start:
+                            working_days_in_month = Decimal('22')
+                            days_worked = (run.cutoff_end - max(emp.hire_date, run.cutoff_start)).days + 1
+                            if days_worked < 0:
+                                days_worked = 0
+                            prorated = Decimal(days_worked) / working_days_in_month
+                            base_pay = emp.base_salary * prorated
+                        elif emp.salary_frequency == 'monthly':
+                            base_pay = emp.base_salary
+                        else:
+                            base_pay = emp.base_salary * Decimal('0.5')
+
+                        logs = get_attendance_for_period(emp, run.cutoff_start, run.cutoff_end)
+                        total_regular = Decimal('0')
+                        total_overtime = Decimal('0')
+                        holiday_pay = Decimal('0')
+
+                        for log in logs:
+                            shift = get_effective_shift_schedule(emp, log.date)
+                            if shift:
+                                regular, overtime = compute_daily_hours(log, shift)
+                                total_regular += regular
+                                total_overtime += overtime
+
+                        hourly_rate = base_pay / Decimal('22') / Decimal('8')
+                        overtime_pay = total_overtime * hourly_rate * Decimal('1.25')
+                        gross_pay = base_pay + overtime_pay + holiday_pay
+
+                        tax = get_tax(emp, gross_pay, run.cutoff_end)
+                        statutory = get_statutory_deductions(emp, gross_pay, run.cutoff_end)
+                        voluntary = get_voluntary_deductions(emp, run.cutoff_start, run.cutoff_end)
+                        total_deductions = tax + statutory + voluntary
+                        net_pay = gross_pay - total_deductions
+
+                        PayrollLine.objects.create(
+                            payroll_run=run,
+                            employee=emp,
+                            gross_pay=gross_pay,
+                            total_deductions=total_deductions,
+                            net_pay=net_pay,
+                            breakdown={
+                                'base_pay': float(base_pay),
+                                'overtime_pay': float(overtime_pay),
+                                'holiday_pay': float(holiday_pay),
+                                'regular_hours': float(total_regular),
+                                'overtime_hours': float(total_overtime),
+                                'tax': float(tax),
+                                'statutory': float(statutory),
+                                'voluntary': float(voluntary),
+                            },
+                            regular_hours=total_regular,
+                            overtime_hours=total_overtime,
+                            holiday_pay=holiday_pay,
+                        )
+                        computed_count += 1
+
+                    run.status = 'computed'
+                    run.save()
+                    messages.success(
+                        request,
+                        f'Payroll run #{run.id} computed for {computed_count} employee(s).',
+                    )
+            except PayrollRun.DoesNotExist:
+                messages.error(request, 'Run not found.')
+            except Exception as exc:
+                messages.error(request, f'Compute failed: {exc}')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+    # ---------- APPROVE PAYROLL ----------
+    if action == 'approve_payroll':
+        run_id = request.POST.get('run_id')
+        if run_id:
+            try:
+                run = PayrollRun.objects.get(pk=run_id)
+                if run.status != 'computed':
+                    messages.warning(request, 'Only computed runs can be approved.')
+                else:
+                    run.status = 'approved'
+                    run.save()
+                    messages.success(request, f'Payroll run #{run.id} approved.')
+            except PayrollRun.DoesNotExist:
+                messages.error(request, 'Run not found.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=approvalsTab")
+
+    # ---------- DISBURSE PAYROLL ----------
+    if action == 'disburse_payroll':
+        run_id = request.POST.get('run_id')
+        if run_id:
+            try:
+                run = PayrollRun.objects.select_related('pay_period').get(pk=run_id)
+                if run.status != 'approved':
+                    messages.warning(request, 'Only approved runs can be disbursed.')
+                else:
+                    run.status = 'disbursed'
+                    run.save()
+                    period = run.pay_period
                     period.is_closed = True
-                    period.save()
-                    messages.success(request, 'Pay period closed.')
-                except PayPeriod.DoesNotExist:
-                    messages.error(request, 'Period not found.')
-            return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
+                    period.save(update_fields=['is_closed'])
+                    messages.success(
+                        request,
+                        f'Payroll run #{run.id} disbursed and pay period closed.',
+                    )
+            except PayrollRun.DoesNotExist:
+                messages.error(request, 'Run not found.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
 
-        # fallback
-        return redirect(f"{reverse('payroll_dashboard')}?tab=payrunsTab")
+    # ---------- ADD DEDUCTION CONFIG ----------
+    if action == 'add_deduction':
+        code = request.POST.get('code', '').strip()
+        name = request.POST.get('name', '').strip()
+        ded_type = request.POST.get('ded_type', 'voluntary')
+        fixed_amount = request.POST.get('fixed_amount', '0')
+        percentage = request.POST.get('percentage', '0')
+        effective = request.POST.get('effective_date')
+        try:
+            fixed = Decimal(fixed_amount)
+            pct = Decimal(percentage)
+            if not code or not name or not effective:
+                messages.error(request, 'Code, name, and effective date are required.')
+            else:
+                DeductionConfig.objects.create(
+                    code=code,
+                    name=name,
+                    type=ded_type,
+                    fixed_amount=fixed,
+                    percentage_of_gross=pct,
+                    effective_date=effective,
+                    is_active=True
+                )
+                messages.success(request, 'Deduction configuration added.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
 
-    # ----- GET request: gather data for the dashboard -----
+    # ---------- ASSIGN DEDUCTION TO EMPLOYEE ----------
+    if action == 'assign_deduction':
+        employee_id = request.POST.get('employee_id')
+        config_id = request.POST.get('config_id')
+        amount = request.POST.get('amount', '0')
+        start = request.POST.get('start_date')
+        end = request.POST.get('end_date', '')
+        total_remaining = request.POST.get('total_remaining', '0')
+        try:
+            emp = Employee.objects.get(pk=employee_id)
+            config = DeductionConfig.objects.get(pk=config_id)
+            EmployeeDeduction.objects.create(
+                employee=emp,
+                deduction_config=config,
+                amount=Decimal(amount),
+                start_date=start,
+                end_date=end or None,
+                total_remaining=Decimal(total_remaining)
+            )
+            messages.success(request, 'Deduction assigned.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
 
-    # Pay periods
+    # ---------- DELETE PAYROLL RUN ----------
+    if action == 'delete_run':
+        run_id = request.POST.get('run_id')
+        if run_id:
+            try:
+                run = PayrollRun.objects.get(pk=run_id)
+                if run.status == 'draft':
+                    run.delete()
+                    messages.success(request, 'Payroll run deleted.')
+                else:
+                    messages.warning(request, 'Cannot delete a run that is not in draft status.')
+            except PayrollRun.DoesNotExist:
+                messages.error(request, 'Run not found.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+    # ---------- CLOSE PAY PERIOD ----------
+    if action == 'close_period':
+        period_id = request.POST.get('period_id')
+        if period_id:
+            try:
+                period = PayPeriod.objects.get(pk=period_id)
+                period.is_closed = True
+                period.save()
+                messages.success(request, 'Pay period closed.')
+            except PayPeriod.DoesNotExist:
+                messages.error(request, 'Period not found.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+    # fallback
+    return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+def _payroll_dashboard_context():
     pay_periods = PayPeriod.objects.all().order_by('-start_date')
-
-    # Payroll runs with aggregated counts
     runs = PayrollRun.objects.select_related('pay_period').prefetch_related(
         'lines__employee',
     ).annotate(
@@ -1582,33 +1713,26 @@ def payroll_dashboard(request):
         total_gross=Sum('lines__gross_pay'),
         total_net=Sum('lines__net_pay'),
     ).order_by('-created_at')
-
-    # Deduction configs
     deduction_configs = DeductionConfig.objects.filter(is_active=True)
-
-    # Employees for assigning deductions
-    employees = Employee.objects.all().order_by('last_name', 'first_name')
-
-    # Deductions assigned to employees (with employee and config prefetch)
     assigned_deductions = EmployeeDeduction.objects.select_related('employee', 'deduction_config').all()
-
-    # Tax brackets (for display)
     tax_brackets = TaxBracket.objects.filter(tax_type='withholding').order_by('effective_date', 'min_amount')
-
-    context = {
-        'modules': MANAGEMENT_MODULES,
+    return {
         'pay_periods': pay_periods,
         'runs': runs,
         'deduction_configs': deduction_configs,
-        'employees': employees,
         'assigned_deductions': assigned_deductions,
         'tax_brackets': tax_brackets,
     }
-    return render(request, 'payroll_dashboard.html', context)
+
+
+@require_dashboard('hr_dashboard')
+def payroll_dashboard(request):
+    """Payroll lives inside HR; keep URL for bookmarks/legacy workspace accounts."""
+    return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
 
 
 def purchase_order_pdf(request):
-    """Generate a Long Bond (8.5×13) Purchase Order PDF via ReportLab."""
+    """Generate a Long Bond (8.5Ã—13) Purchase Order PDF via ReportLab."""
     try:
         payload = json.loads(request.body.decode('utf-8') or '{}')
     except json.JSONDecodeError:
@@ -1658,7 +1782,7 @@ def accounting_dashboard(request):
                     code=code, name=name, account_type=account_type,
                     category=category or 'other', description=description,
                 )
-                messages.success(request, f'Account "{code} – {name}" created.')
+                messages.success(request, f'Account "{code} â€“ {name}" created.')
             return redirect(f"{reverse('accounting_dashboard')}?tab=journalTab")
 
         # ---------- CUSTOMERS ----------
@@ -1725,7 +1849,7 @@ def accounting_dashboard(request):
                         bank_account=bank_account, reference=request.POST.get('reference', '').strip(),
                     )
                     accounting_engine.post_invoice_payment(payment, user=request.user)
-                    messages.success(request, f'Payment of ₱{amount:.2f} recorded against {invoice.invoice_number}.')
+                    messages.success(request, f'Payment of â‚±{amount:.2f} recorded against {invoice.invoice_number}.')
             except (Invoice.DoesNotExist, BankAccount.DoesNotExist):
                 messages.error(request, 'Invalid invoice or bank account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -1797,7 +1921,7 @@ def accounting_dashboard(request):
                         bank_account=bank_account, reference=request.POST.get('reference', '').strip(),
                     )
                     accounting_engine.post_bill_payment(payment, user=request.user)
-                    messages.success(request, f'Payment of ₱{amount:.2f} recorded against {bill.bill_number}.')
+                    messages.success(request, f'Payment of â‚±{amount:.2f} recorded against {bill.bill_number}.')
             except (Bill.DoesNotExist, BankAccount.DoesNotExist):
                 messages.error(request, 'Invalid bill or bank account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -1852,7 +1976,7 @@ def accounting_dashboard(request):
                         description=request.POST.get('description', '').strip(),
                     )
                     accounting_engine.post_bank_transaction(txn, user=request.user)
-                    messages.success(request, f'{txn.get_transaction_type_display()} of ₱{amount:.2f} recorded.')
+                    messages.success(request, f'{txn.get_transaction_type_display()} of â‚±{amount:.2f} recorded.')
             except (BankAccount.DoesNotExist, Account.DoesNotExist):
                 messages.error(request, 'Invalid bank account or contra account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -1877,7 +2001,7 @@ def accounting_dashboard(request):
                         expense_account=Account.objects.get(pk=expense_account_id),
                     )
                     accounting_engine.post_payroll_expense(entry_row, user=request.user)
-                    messages.success(request, f'Payroll expense of ₱{amount:.2f} recorded.')
+                    messages.success(request, f'Payroll expense of â‚±{amount:.2f} recorded.')
             except (BankAccount.DoesNotExist, Account.DoesNotExist):
                 messages.error(request, 'Invalid bank account or expense account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -2086,20 +2210,15 @@ def services_dashboard(request):
         {
             'modules': MANAGEMENT_MODULES,
             'repair_reports': ServiceRepairReport.objects.all()[:8],
-            'job_orders': JobOrder.objects.all()[:8],
             'material_borrows': MaterialBorrow.objects.prefetch_related('lines').all()[:8],
-            'official_business_forms': OfficialBusinessForm.objects.all()[:8],
             'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
             'travel_order_forms': TravelOrderForm.objects.all()[:8],
             'inventory_items': InventoryItem.objects.order_by('name'),
             'repair_report_count': ServiceRepairReport.objects.count(),
-            'job_order_count': JobOrder.objects.count(),
             'material_borrow_count': MaterialBorrow.objects.count(),
-            'official_business_count': OfficialBusinessForm.objects.count(),
             'delivery_receipt_count': DeliveryReceipt.objects.count(),
             'travel_order_count': TravelOrderForm.objects.count(),
             'next_report_number': ServiceRepairReport.generate_report_number(),
-            'next_job_order_number': JobOrder.generate_job_order_number(),
             'next_borrow_number': MaterialBorrow.generate_borrow_number(),
             'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
         }
@@ -2137,7 +2256,7 @@ def create_job_order(request):
     required = ('date_filed', 'job_description')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Job Order fields.')
-        return redirect(f"{reverse('services_dashboard')}?tab=jobOrderTab")
+        return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
     names = '\n'.join(
         name.strip()
         for name in request.POST.getlist('assignee_names')
@@ -2163,7 +2282,7 @@ def create_job_order(request):
         messages.success(request, 'Job Order saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save job order: {exc}')
-    return redirect(f"{reverse('services_dashboard')}?tab=jobOrderTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
 
 
 @login_required
@@ -2270,7 +2389,7 @@ def create_official_business_form(request):
     required = ('name', 'application_date')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Official Business Form fields.')
-        return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+        return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
 
     ob_dates = '\n'.join(
         date_value.strip()
@@ -2294,7 +2413,7 @@ def create_official_business_form(request):
         messages.success(request, 'Official Business Form saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Official Business Form: {exc}')
-    return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
 
 
 @login_required
@@ -2305,7 +2424,7 @@ def approve_official_business_form(request, ob_id):
     ob_form.approved_at = timezone.now()
     ob_form.save(update_fields=['status', 'approved_at'])
     messages.success(request, f'Official Business Form for {ob_form.name} approved.')
-    return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
 
 
 @login_required
@@ -2316,7 +2435,7 @@ def reject_official_business_form(request, ob_id):
     ob_form.approved_at = timezone.now()
     ob_form.save(update_fields=['status', 'approved_at'])
     messages.success(request, f'Official Business Form for {ob_form.name} rejected.')
-    return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
 
 
 @login_required
@@ -2468,7 +2587,7 @@ def _service_record_context(record, document_type):
             value = value.strftime('%B %d, %Y')
         elif isinstance(value, time):
             value = value.strftime('%I:%M %p').lstrip('0')
-        fields.append((label, value or '—'))
+        fields.append((label, value or 'â€”'))
     return {'record': record, 'fields': fields, 'document_type': document_type}
 
 
@@ -2532,7 +2651,7 @@ def edit_job_order(request, order_id):
 def delete_job_order(request, order_id):
     get_object_or_404(JobOrder, pk=order_id).delete()
     messages.success(request, 'Job Order deleted.')
-    return redirect('services_dashboard')
+    return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
 
 
 @login_required
@@ -2557,7 +2676,7 @@ def edit_official_business_form(request, ob_id):
 def delete_official_business_form(request, ob_id):
     get_object_or_404(OfficialBusinessForm, pk=ob_id).delete()
     messages.success(request, 'Official Business Form deleted.')
-    return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
 
 
 @login_required
@@ -2925,12 +3044,12 @@ def _water_create_customer(request):
             'Created customer',
             'WaterCustomer',
             customer.account_number,
-            f'{customer.display_name} | install fee ₱{WATER_INSTALLATION_FEE} paid ₱{installation_paid} bal ₱{installment_balance}',
+            f'{customer.display_name} | install fee â‚±{WATER_INSTALLATION_FEE} paid â‚±{installation_paid} bal â‚±{installment_balance}',
         )
         messages.success(
             request,
             f'Customer {customer.account_number} registered. '
-            f'Installation paid ₱{installation_paid:.2f}; balance ₱{installment_balance:.2f}.',
+            f'Installation paid â‚±{installation_paid:.2f}; balance â‚±{installment_balance:.2f}.',
         )
     except Exception as exc:
         messages.error(request, f'Could not save customer: {exc}')
@@ -2976,7 +3095,7 @@ def _water_create_reading(request):
         messages.success(
             request,
             f'Reading saved for {customer.account_number} '
-            f'({reading.consumption} cu.m · current ₱{reading.current_bill} · total ₱{reading.total_bill}). '
+            f'({reading.consumption} cu.m Â· current â‚±{reading.current_bill} Â· total â‚±{reading.total_bill}). '
             f'Use Generate Bill to create the statement.',
         )
     except Exception as exc:
@@ -3015,7 +3134,7 @@ def _water_generate_bill_from_reading(request):
         messages.success(
             request,
             f'Bill {bill.bill_number} generated for {reading.customer.display_name} '
-            f'(total ₱{bill.total_amount}).',
+            f'(total â‚±{bill.total_amount}).',
         )
         return redirect('view_water_bill', bill_id=bill.id)
     except Exception as exc:

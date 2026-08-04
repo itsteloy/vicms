@@ -510,8 +510,108 @@ class AttendanceLog(models.Model):
                 seconds -= (b_end - b_start).total_seconds()
         return round(max(seconds, 0) / 3600, 2)
 
+
+class AttendanceSheet(models.Model):
+    """Imported biometric punch sheet (SpreadsheetML / .xls) — editable in HR."""
+    title = models.CharField(max_length=255)
+    period_year = models.PositiveIntegerField(null=True, blank=True)
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
+    source_file = models.FileField(upload_to='hr_attendance_sheets/', blank=True)
+    original_filename = models.CharField(max_length=255, blank=True, default='')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
     def __str__(self):
-        return f'{self.employee} – {self.date}'
+        return self.title
+
+    @property
+    def employee_count(self):
+        return self.entries.count()
+
+
+class AttendanceSheetEntry(models.Model):
+    sheet = models.ForeignKey(AttendanceSheet, on_delete=models.CASCADE, related_name='entries')
+    device_employee_id = models.CharField(max_length=40, blank=True, default='')
+    employee_name = models.CharField(max_length=200, blank=True, default='')
+    department = models.CharField(max_length=100, blank=True, default='')
+    shift = models.CharField(max_length=100, blank=True, default='')
+    sort_order = models.PositiveIntegerField(default=0)
+    linked_employee = models.ForeignKey(
+        Employee, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='punch_sheet_entries',
+    )
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.device_employee_id} {self.employee_name}'.strip() or f'Entry {self.pk}'
+
+
+class AttendanceSheetPunch(models.Model):
+    entry = models.ForeignKey(AttendanceSheetEntry, on_delete=models.CASCADE, related_name='punches')
+    day = models.PositiveSmallIntegerField()
+    punch_date = models.DateField(null=True, blank=True)
+    punch_times = models.CharField(max_length=255, blank=True, default='')
+    morning_in = models.CharField(max_length=20, blank=True, default='')
+    morning_out = models.CharField(max_length=20, blank=True, default='')
+    afternoon_in = models.CharField(max_length=20, blank=True, default='')
+    afternoon_out = models.CharField(max_length=20, blank=True, default='')
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'day', 'id']
+
+    def __str__(self):
+        return f'Day {self.day}: {self.combined_times or "—"}'
+
+    @staticmethod
+    def split_times(text: str) -> tuple[str, str, str, str]:
+        """Map space-separated punch times to morning/afternoon in & out."""
+        times = [part for part in str(text or '').split() if part]
+        morning_in = morning_out = afternoon_in = afternoon_out = ''
+        if len(times) == 1:
+            morning_in = times[0]
+        elif len(times) == 2:
+            morning_in, afternoon_out = times[0], times[1]
+        elif len(times) == 3:
+            morning_in, morning_out, afternoon_out = times[0], times[1], times[2]
+        elif len(times) >= 4:
+            morning_in, morning_out, afternoon_in, afternoon_out = times[0], times[1], times[2], times[3]
+        return morning_in, morning_out, afternoon_in, afternoon_out
+
+    @staticmethod
+    def join_times(morning_in: str, morning_out: str, afternoon_in: str, afternoon_out: str) -> str:
+        return ' '.join(
+            part.strip()
+            for part in (morning_in, morning_out, afternoon_in, afternoon_out)
+            if part and str(part).strip()
+        )
+
+    @property
+    def combined_times(self) -> str:
+        joined = self.join_times(self.morning_in, self.morning_out, self.afternoon_in, self.afternoon_out)
+        return joined or self.punch_times
+
+    def sync_from_punch_times(self):
+        self.morning_in, self.morning_out, self.afternoon_in, self.afternoon_out = self.split_times(self.punch_times)
+
+    def sync_to_punch_times(self):
+        self.punch_times = self.join_times(
+            self.morning_in, self.morning_out, self.afternoon_in, self.afternoon_out,
+        )
+
+    def save(self, *args, **kwargs):
+        # Keep legacy punch_times string aligned with labeled slots.
+        if any([self.morning_in, self.morning_out, self.afternoon_in, self.afternoon_out]):
+            self.sync_to_punch_times()
+        elif self.punch_times:
+            self.sync_from_punch_times()
+        super().save(*args, **kwargs)
 
 
 class ShiftSchedule(models.Model):
@@ -752,7 +852,18 @@ class JobOrder(models.Model):
 
     @property
     def dates_covered_display(self):
-        return ', '.join(line.strip() for line in self.dates_covered.splitlines() if line.strip()) or '—'
+        from datetime import datetime
+
+        formatted = []
+        for line in self.dates_covered.splitlines():
+            value = line.strip()
+            if not value:
+                continue
+            try:
+                formatted.append(datetime.strptime(value, '%Y-%m-%d').strftime('%b %d, %Y').replace(' 0', ' '))
+            except ValueError:
+                formatted.append(value)
+        return ', '.join(formatted) or '—'
 
 
 class OfficialBusinessForm(models.Model):
@@ -787,7 +898,18 @@ class OfficialBusinessForm(models.Model):
 
     @property
     def ob_dates_display(self):
-        return ', '.join(line.strip() for line in self.ob_dates.splitlines() if line.strip()) or '—'
+        from datetime import datetime
+
+        formatted = []
+        for line in self.ob_dates.splitlines():
+            value = line.strip()
+            if not value:
+                continue
+            try:
+                formatted.append(datetime.strptime(value, '%Y-%m-%d').strftime('%b %d, %Y').replace(' 0', ' '))
+            except ValueError:
+                formatted.append(value)
+        return ', '.join(formatted) or '—'
 
     @property
     def approved_by_display(self):

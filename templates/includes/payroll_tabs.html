@@ -1,0 +1,349 @@
+﻿    <!-- ==================== PAY RUNS TAB ==================== -->
+    <div id="payrunsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Pay Runs</h2>
+        <p>Create pay periods, run payroll, compute, approve, and disburse.</p>
+
+        <!-- Create pay period -->
+        <div class="form-section">
+          <h4>Create Pay Period</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_pay_period">
+            <div class="form-field">
+              <label for="period_start_date">Start Date</label>
+              <input type="date" id="period_start_date" name="start_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_end_date">End Date</label>
+              <input type="date" id="period_end_date" name="end_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_pay_date">Pay Date</label>
+              <input type="date" id="period_pay_date" name="pay_date" required class="field-input">
+            </div>
+            <div class="form-field">
+              <label for="period_type">Period Type</label>
+              <select id="period_type" name="period_type" class="field-input">
+                <option value="monthly">Monthly</option>
+                <option value="semi-monthly">Semi-monthly</option>
+              </select>
+            </div>
+            <button type="submit" class="action btn-primary">+ Create Pay Period</button>
+          </form>
+        </div>
+
+        <!-- Pay periods list -->
+        {% if pay_periods %}
+        <div class="table-wrap" style="margin-bottom:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Pay Date</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for period in pay_periods %}
+              <tr>
+                <td>{{ period.start_date|date:"M d, Y" }} â€“ {{ period.end_date|date:"M d, Y" }}</td>
+                <td>{{ period.pay_date|date:"M d, Y" }}</td>
+                <td>{{ period.get_period_type_display }}</td>
+                <td>{% if period.is_closed %}<span class="badge-status badge-disbursed">Closed</span>{% else %}<span class="badge-status badge-computed">Open</span>{% endif %}</td>
+                <td>
+                  {% if not period.is_closed %}
+                  <form method="post" style="display:inline;" onsubmit="return confirm('Close this pay period?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="close_period">
+                    <input type="hidden" name="period_id" value="{{ period.id }}">
+                    <button type="submit" class="action" style="padding:4px 10px;">Close</button>
+                  </form>
+                  {% else %}
+                  <span style="color:var(--muted);font-size:0.8rem;">â€”</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <!-- Create new run -->
+        <div class="form-section">
+          <h4>Create Pay Run</h4>
+          <form method="post" class="form-row">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_payrun">
+            <div class="form-field" style="flex:1 1 240px;">
+              <label for="pay_period_id">Pay Period</label>
+              <select id="pay_period_id" name="pay_period_id" required class="field-input">
+                <option value="">Select period</option>
+                {% for period in pay_periods %}
+                  <option value="{{ period.id }}" {% if period.is_closed %}disabled{% endif %}>
+                    {{ period.start_date|date:"M d, Y" }} â€“ {{ period.end_date|date:"M d, Y" }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="action btn-primary">+ Create Run</button>
+          </form>
+        </div>
+
+        <!-- List of runs -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Period</th>
+                <th>Cutoff</th>
+                <th>Employees</th>
+                <th>Gross</th>
+                <th>Net</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for run in runs %}
+              <tr>
+                <td>#{{ run.id }}</td>
+                <td>{{ run.pay_period.start_date|date:"Y-m-d" }} â€“ {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                <td>{{ run.cutoff_start|date:"m/d" }} â€“ {{ run.cutoff_end|date:"m/d" }}</td>
+                <td>{{ run.employee_count|default:"0" }}</td>
+                <td>â‚±{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                <td>â‚±{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                <td>
+                  <span class="badge-status badge-{{ run.status }}">
+                    {{ run.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    {% if run.lines.all %}
+                    <button type="button" class="action toggle-run-details" data-target="run-details-{{ run.id }}" style="padding:4px 10px;">Details</button>
+                    {% endif %}
+                    <!-- Compute -->
+                    {% if run.status == 'draft' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="compute_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#ecfdf3; color:#027a48; border-color:#abefc6;">Compute</button>
+                    </form>
+                    {% endif %}
+                    <!-- Approve -->
+                    {% if run.status == 'computed' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="approve_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#eff6ff; color:#1d4ed8; border-color:#93c5fd;">Approve</button>
+                    </form>
+                    {% endif %}
+                    <!-- Disburse -->
+                    {% if run.status == 'approved' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="disburse_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; background:#fef3f2; color:#b42318; border-color:#fecdca;">Disburse</button>
+                    </form>
+                    {% endif %}
+                    <!-- Delete (only draft) -->
+                    {% if run.status == 'draft' %}
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Delete this payroll run?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_run">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 10px; color:var(--danger); border-color:var(--danger);">Delete</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% if run.lines.all %}
+              <tr id="run-details-{{ run.id }}" class="run-details-row" hidden>
+                <td colspan="8" class="run-details">
+                  <strong style="display:block;margin-bottom:8px;">Employee breakdown â€” Run #{{ run.id }}</strong>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Gross</th>
+                        <th>Deductions</th>
+                        <th>Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for line in run.lines.all %}
+                      <tr>
+                        <td>{{ line.employee.full_name }}</td>
+                        <td>â‚±{{ line.gross_pay|floatformat:2 }}</td>
+                        <td>â‚±{{ line.total_deductions|floatformat:2 }}</td>
+                        <td>â‚±{{ line.net_pay|floatformat:2 }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              {% endif %}
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:#667085;padding:24px;">No payroll runs yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DEDUCTIONS TAB ==================== -->
+    <div id="deductionsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Deductions Management</h2>
+        <p>Configure deduction types and assign them to employees.</p>
+
+        <!-- Add Deduction Config -->
+        <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+          <h4 style="margin:0 0 10px;">Add Deduction Configuration</h4>
+          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_deduction">
+            <div><input type="text" name="code" placeholder="Code" required class="field-input" style="width:140px;"></div>
+            <div><input type="text" name="name" placeholder="Name" required class="field-input" style="width:160px;"></div>
+            <div>
+              <select name="ded_type" class="field-input" style="width:120px;">
+                <option value="statutory">Statutory</option>
+                <option value="loan">Loan</option>
+                <option value="voluntary">Voluntary</option>
+              </select>
+            </div>
+            <div><input type="number" name="fixed_amount" step="0.01" placeholder="Fixed amount" class="field-input" style="width:120px;"></div>
+            <div><input type="number" name="percentage" step="0.01" placeholder="% of gross" class="field-input" style="width:100px;"></div>
+            <div><input type="date" name="effective_date" required class="field-input" style="width:150px;"></div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Add</button>
+          </form>
+        </div>
+
+        <!-- List of configs -->
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Fixed</th><th>% of Gross</th><th>Active</th></tr></thead>
+            <tbody>
+              {% for config in deduction_configs %}
+              <tr>
+                <td>{{ config.code }}</td>
+                <td>{{ config.name }}</td>
+                <td>{{ config.get_type_display }}</td>
+                <td>â‚±{{ config.fixed_amount }}</td>
+                <td>{{ config.percentage_of_gross|floatformat:2 }}%</td>
+                <td>{% if config.is_active %}âœ…{% else %}âŒ{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deduction configurations.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Assign deduction to employee -->
+        <div style="margin-top:24px; background: var(--soft); padding: 16px; border-radius: var(--radius);">
+          <h4 style="margin:0 0 10px;">Assign Deduction to Employee</h4>
+          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_deduction">
+            <div>
+              <select name="employee_id" required class="field-input" style="width:180px;">
+                <option value="">Select Employee</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <select name="config_id" required class="field-input" style="width:160px;">
+                <option value="">Select Deduction</option>
+                {% for config in deduction_configs %}
+                <option value="{{ config.id }}">{{ config.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div><input type="number" name="amount" step="0.01" placeholder="Amount" required class="field-input" style="width:120px;"></div>
+            <div><input type="date" name="start_date" required class="field-input" style="width:150px;"></div>
+            <div><input type="date" name="end_date" placeholder="End date (optional)" class="field-input" style="width:150px;"></div>
+            <div><input type="number" name="total_remaining" step="0.01" placeholder="Remaining balance" class="field-input" style="width:130px;"></div>
+            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Assign</button>
+          </form>
+        </div>
+
+        <!-- Show assigned deductions -->
+        <div style="margin-top:24px;">
+          <h4>Assigned Employee Deductions</h4>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Employee</th><th>Deduction</th><th>Amount</th><th>Start</th><th>End</th><th>Remaining</th></tr></thead>
+              <tbody>
+                {% for ad in assigned_deductions %}
+                <tr>
+                  <td>{{ ad.employee.full_name }}</td>
+                  <td>{{ ad.deduction_config.name }}</td>
+                  <td>â‚±{{ ad.amount }}</td>
+                  <td>{{ ad.start_date|date:"Y-m-d" }}</td>
+                  <td>{{ ad.end_date|date:"Y-m-d"|default:"-" }}</td>
+                  <td>â‚±{{ ad.total_remaining }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== APPROVALS TAB ==================== -->
+    <div id="approvalsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Approvals</h2>
+        <p>Review pending payroll runs and approve them.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Run ID</th><th>Period</th><th>Total Gross</th><th>Total Net</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for run in runs %}
+                {% if run.status == 'computed' or run.status == 'draft' %}
+                <tr>
+                  <td>#{{ run.id }}</td>
+                  <td>{{ run.pay_period.start_date|date:"Y-m-d" }} â€“ {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                  <td>â‚±{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                  <td>â‚±{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                  <td><span class="badge-status badge-{{ run.status }}">{{ run.get_status_display }}</span></td>
+                  <td>
+                    {% if run.status == 'computed' %}
+                    <form method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="approve_payroll">
+                      <input type="hidden" name="run_id" value="{{ run.id }}">
+                      <button type="submit" class="action" style="padding:4px 12px; background:#eff6ff; color:#1d4ed8; border-color:#93c5fd;">Approve</button>
+                    </form>
+                    {% endif %}
+                    {% if run.status == 'draft' %}
+                    <span style="color:var(--muted);font-size:0.8rem;">Compute first</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No runs pending approval.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>

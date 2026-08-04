@@ -33,18 +33,164 @@
   .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 24px; }
   .field { border-bottom: 1px solid #d8dee8; padding: 11px 0; }
   .field:nth-child(6n), .field:nth-child(7n), .field:nth-child(8n), .field:nth-child(9n), .field:nth-child(10n), .field:nth-child(11n), .field:nth-child(12n), .field:nth-child(13n), .field:nth-child(14n), .field:nth-child(15n), .field:nth-child(16n) { grid-column: 1 / -1; }
-  .repair-document .fields, .job-order-document .fields, .ob-document .fields, .travel-document .fields { grid-template-columns: 1fr; }
-  .repair-document .field, .job-order-document .field, .ob-document .field, .travel-document .field { grid-column: auto; }
+  .repair-document .fields, .ob-document .fields, .travel-document .fields { grid-template-columns: 1fr; }
+  .repair-document .field, .ob-document .field, .travel-document .field { grid-column: auto; }
   .field-full { grid-column: 1 / -1; }
   .label { font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
   .value { white-space: pre-wrap; line-height: 1.5; color: #344054; }
   .items-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
   .items-table th, .items-table td { border: 1px solid #d8dee8; padding: 8px 10px; text-align: left; }
   .items-table th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #0f766e; }
+
+  /* Job Order layout (screen + print) */
+  .job-order-document .job-order-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 24px;
+  }
+  .job-order-document .doc-section {
+    margin-top: 14px;
+    font-size: 0.9rem;
+  }
+  .job-order-document .doc-section-full {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+  }
+  .job-order-document .job-order-area {
+    grid-column: 1;
+  }
+  .job-order-document .doc-section strong,
+  .job-order-document .auth-heading {
+    display: block;
+    color: #0f766e;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+    font-weight: 800;
+  }
+  .job-order-document .preview-text,
+  .job-order-document .value {
+    white-space: pre-wrap;
+    line-height: 1.45;
+    color: #344054;
+    min-height: 20px;
+    border-bottom: none;
+  }
+  .job-order-document .job-order-signatures {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 18px;
+  }
+  .job-order-document .signature-block {
+    text-align: center;
+  }
+  .job-order-document .signature-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #667085;
+    margin-bottom: 36px;
+  }
+  .job-order-document .signature-line {
+    border-top: 1px solid #98a2b3;
+    min-height: 0;
+    margin: 0 8px;
+  }
+  .job-order-document .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
+
+  /* Official Business layout (screen + print) */
+  .ob-document .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #d8dee8;
+    padding-bottom: 10px;
+    font-size: 0.82rem;
+    color: #667085;
+  }
+  .ob-document .doc-meta b {
+    color: #344054;
+    font-weight: 700;
+  }
+  .ob-document .ob-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 24px;
+  }
+  .ob-document .doc-section {
+    margin-top: 14px;
+    font-size: 0.9rem;
+  }
+  .ob-document .doc-section-full {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+  }
+  .ob-document .doc-section strong {
+    display: block;
+    color: #0f766e;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+    font-weight: 800;
+  }
+  .ob-document .value {
+    white-space: pre-wrap;
+    line-height: 1.45;
+    color: #344054;
+    min-height: 20px;
+    border-bottom: none;
+  }
+  .ob-document .ob-signatures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: 18px;
+  }
+  .ob-document .signature-block {
+    text-align: center;
+  }
+  .ob-document .signature-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #667085;
+    margin-bottom: 36px;
+  }
+  .ob-document .signature-line {
+    border-top: 1px solid #98a2b3;
+    min-height: 0;
+    margin: 0 8px;
+  }
+  .ob-document .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
+  .ob-document .signature-sub {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #667085;
+    margin-top: 4px;
+  }
+
   @media print {
     @page { size: 8.5in 13in; margin: 0; }
     body { padding: 0; background: #fff; }
-    .actions { display: none; }
+    .actions { display: none !important; }
     .page { max-width: none; }
     .document {
       box-shadow: none;
@@ -52,50 +198,165 @@
       flex-direction: column;
       min-height: 13in;
     }
-    .document .doc-header, .document .doc-footer { flex-shrink: 0; }
+    .document .doc-header,
+    .document .doc-footer { flex-shrink: 0; }
     .document .doc-footer { margin-top: auto; }
     .document .content {
       flex: 1 1 auto;
-      padding: 0.1in 0.45in 0.2in;
+      padding: 0.12in 0.45in 0.2in;
     }
-    .repair-document .fields, .job-order-document .fields, .ob-document .fields {
+    .document .doc-header img,
+    .document .doc-footer img {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      display: block !important;
+    }
+    .title {
+      font-size: 14pt !important;
+      margin: 0 0 8pt !important;
+      color: #0b1f3a;
+    }
+    .repair-document .fields {
       grid-template-columns: 1fr 1fr !important;
       gap: 6pt 12pt;
     }
-    .repair-document .field, .job-order-document .field, .ob-document .field {
+    .repair-document .field {
       border-bottom: none;
       padding: 4pt 0;
       page-break-inside: avoid;
     }
-    .job-order-document .field:nth-child(1) { grid-column: 1; }
-    .job-order-document .field:nth-child(2) { grid-column: 2; }
-    .job-order-document .field:nth-child(3) { grid-column: 1; }
-    .job-order-document .field:nth-child(4) { grid-column: 2; }
-    .job-order-document .field:nth-child(5) { grid-column: 1; }
-    .job-order-document .field:nth-child(n+6) { grid-column: 1 / -1; }
-    .ob-document .field:nth-child(1) { grid-column: 1; }
-    .ob-document .field:nth-child(2) { grid-column: 2; }
-    .ob-document .field:nth-child(3) { grid-column: 1; }
-    .ob-document .field:nth-child(4) { grid-column: 2; }
-    .ob-document .field:nth-child(5) { grid-column: 1 / -1; }
-    .ob-document .field:nth-child(6) { grid-column: 1; }
-    .ob-document .field:nth-child(7) { grid-column: 2; }
-    .ob-document .field:nth-child(n+8) { grid-column: 1 / -1; }
-    .repair-document .label, .job-order-document .label, .ob-document .label { font-size: 7.5pt; margin-bottom: 2pt; }
-    .repair-document .value, .job-order-document .value, .ob-document .value { font-size: 8.5pt; line-height: 1.3; }
-    .repair-document .title, .job-order-document .title, .ob-document .title { font-size: 14pt; margin-bottom: 8pt; }
+    .repair-document .label { font-size: 7.5pt; margin-bottom: 2pt; }
+    .repair-document .value { font-size: 8.5pt; line-height: 1.3; }
+    .repair-document .title { font-size: 14pt; margin-bottom: 8pt; }
+
+    /* Job Order print: keep dashboard preview layout */
+    .job-order-document .job-order-fields-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 0 14pt !important;
+    }
+    .job-order-document .doc-section {
+      margin-top: 8pt !important;
+      page-break-inside: avoid;
+    }
+    .job-order-document .job-order-area {
+      grid-column: 1 !important;
+    }
+    .job-order-document .doc-section-full {
+      grid-column: 1 / -1 !important;
+      margin-top: 10pt !important;
+    }
+    .job-order-document .doc-section strong,
+    .job-order-document .auth-heading {
+      font-size: 7.5pt !important;
+      margin-bottom: 2pt !important;
+      color: #0f766e !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .job-order-document .preview-text,
+    .job-order-document .value {
+      font-size: 8.5pt !important;
+      line-height: 1.3 !important;
+    }
+    .job-order-document .job-order-signatures {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 12pt !important;
+      margin-top: 14pt !important;
+      page-break-inside: avoid;
+    }
+    .job-order-document .signature-label {
+      font-size: 8pt !important;
+      margin-bottom: 28pt !important;
+      color: #667085 !important;
+    }
+    .job-order-document .signature-line {
+      border-top: 1px solid #667085 !important;
+      margin: 0 6pt !important;
+    }
+    .job-order-document .signature-name {
+      margin-top: 6pt !important;
+      font-size: 8.5pt !important;
+    }
+
+    /* Official Business print: keep dashboard preview layout */
+    .ob-document .doc-meta {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6pt 14pt !important;
+      margin-bottom: 6pt !important;
+      padding-bottom: 6pt !important;
+      font-size: 8pt !important;
+      border-bottom: 1px solid #d8dee8 !important;
+    }
+    .ob-document .ob-fields-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 0 14pt !important;
+    }
+    .ob-document .doc-section {
+      margin-top: 8pt !important;
+      page-break-inside: avoid;
+    }
+    .ob-document .doc-section-full {
+      grid-column: 1 / -1 !important;
+      margin-top: 10pt !important;
+    }
+    .ob-document .doc-section strong {
+      font-size: 7.5pt !important;
+      margin-bottom: 2pt !important;
+      color: #0f766e !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ob-document .value {
+      font-size: 8.5pt !important;
+      line-height: 1.3 !important;
+    }
+    .ob-document .ob-signatures {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 16pt !important;
+      margin-top: 14pt !important;
+      page-break-inside: avoid;
+    }
+    .ob-document .signature-label {
+      font-size: 8pt !important;
+      margin-bottom: 28pt !important;
+      color: #667085 !important;
+    }
+    .ob-document .signature-line {
+      border-top: 1px solid #667085 !important;
+      margin: 0 6pt !important;
+    }
+    .ob-document .signature-name {
+      margin-top: 6pt !important;
+      font-size: 8.5pt !important;
+    }
+    .ob-document .signature-sub {
+      font-size: 7pt !important;
+      margin-top: 3pt !important;
+    }
   }
   @media (max-width: 600px) {
     body { padding: 12px; }
     .content { padding: 20px; }
     .fields { grid-template-columns: 1fr; }
+    .job-order-document .job-order-fields-grid,
+    .job-order-document .job-order-signatures,
+    .ob-document .ob-fields-grid,
+    .ob-document .ob-signatures {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 {% endblock %}
 {% block content %}
 <main class="page">
   <div class="actions">
-    <a class="back" href="{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'job' %}?tab=jobOrderTab{% elif document_type == 'ob' %}?tab=officialBusinessTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% elif document_type == 'travel' %}?tab=travelOrderTab{% endif %}">← Services Dashboard</a>
+    <a class="back" href="{% if document_type == 'job' or document_type == 'ob' %}{% url 'hr_dashboard' %}?tab={% if document_type == 'job' %}jobOrderTab{% else %}officialBusinessTab{% endif %}{% else %}{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% elif document_type == 'travel' %}?tab=travelOrderTab{% endif %}{% endif %}">{% if document_type == 'job' or document_type == 'ob' %}← HR Dashboard{% else %}← Services Dashboard{% endif %}</a>
     <div class="actions-group">
       {% if document_type == 'repair' %}
       <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
@@ -129,14 +390,110 @@
         {% else %}BORROW MATERIAL SLIP{% endif %}
       </h1>
 
+      {% if document_type == 'job' %}
+      <div class="job-order-fields-grid">
+        <div class="doc-section">
+          <strong>Job Order No.</strong>
+          <div class="value">{{ record.job_order_number }}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Name/s</strong>
+          <div class="value">{{ record.names_display }}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Date Filed</strong>
+          <div class="value">{{ record.date_filed|date:"M j, Y" }}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Date/s Covered</strong>
+          <div class="value">{{ record.dates_covered_display }}</div>
+        </div>
+        <div class="doc-section job-order-area">
+          <strong>Area Assignment</strong>
+          <div class="value">{{ record.area_assignment|default:"—" }}</div>
+        </div>
+      </div>
+      <div class="doc-section doc-section-full">
+        <strong>Job Description</strong>
+        <div class="value">{{ record.job_description|default:"—" }}</div>
+      </div>
+      <div class="doc-section doc-section-full">
+        <strong class="auth-heading">Authorization</strong>
+        <div class="job-order-signatures">
+          <div class="signature-block">
+            <span class="signature-label">Prepared by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">{{ record.prepared_by|default:"—" }}</span>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Noted by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">{{ record.noted_by|default:"—" }}</span>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Approved by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">{{ record.approved_by|default:"—" }}</span>
+          </div>
+        </div>
+      </div>
+      {% elif document_type == 'ob' %}
+      <div class="doc-meta">
+        <span>Application Date: <b>{{ record.application_date|date:"M j, Y" }}</b></span>
+        <span>OB Date/s: <b>{{ record.ob_dates_display }}</b></span>
+      </div>
+      <div class="ob-fields-grid">
+        <div class="doc-section">
+          <strong>Name</strong>
+          <div class="value">{{ record.name }}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Designation</strong>
+          <div class="value">{{ record.designation|default:"—" }}</div>
+        </div>
+        <div class="doc-section doc-section-full">
+          <strong>OB Address / Destination</strong>
+          <div class="value">{{ record.destination|default:"—" }}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Time of Departure</strong>
+          <div class="value">{% if record.time_departure %}{{ record.time_departure|time:"g:i A" }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="doc-section">
+          <strong>Return</strong>
+          <div class="value">{% if record.time_return %}{{ record.time_return|time:"g:i A" }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="doc-section doc-section-full">
+          <strong>Purpose/s</strong>
+          <div class="value">{{ record.purpose|default:"—" }}</div>
+        </div>
+      </div>
+      <div class="doc-section doc-section-full">
+        <div class="ob-signatures">
+          <div class="signature-block">
+            <span class="signature-label">Prepared by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">{{ record.prepared_by|default:"—" }}</span>
+            <span class="signature-sub">(Employee's Name &amp; Signature)</span>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Approved by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">{{ record.APPROVER_NAME }}</span>
+            <span class="signature-sub">President/Gen. Manager</span>
+          </div>
+        </div>
+      </div>
+      {% else %}
       <div class="fields">
         {% for label, value in fields %}
-        <div class="field{% if document_type == 'repair' %}{% if label == 'Customer Address' or label == 'Reported Complaint / Issue' or label == 'Diagnosis' or label == 'Repairs Performed' or label == 'Parts / Materials Used' or label == 'Recommendations' %} field-full{% endif %}{% elif document_type == 'job' %}{% if label == 'Job Description' or label == 'Prepared by' or label == 'Noted by' or label == 'Approved by' %} field-full{% endif %}{% elif document_type == 'ob' %}{% if label == 'OB Address / Destination' or label == 'Purpose/s' or label == 'Prepared by (Employee)' or label == 'Approved by' %} field-full{% endif %}{% endif %}">
+        <div class="field{% if document_type == 'repair' %}{% if label == 'Customer Address' or label == 'Reported Complaint / Issue' or label == 'Diagnosis' or label == 'Repairs Performed' or label == 'Parts / Materials Used' or label == 'Recommendations' %} field-full{% endif %}{% endif %}">
           <div class="label">{{ label }}</div>
           <div class="value">{{ value }}</div>
         </div>
         {% endfor %}
       </div>
+      {% endif %}
 
       {% if document_type == 'borrow' and borrow_lines %}
       <table class="items-table">

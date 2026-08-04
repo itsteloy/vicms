@@ -520,8 +520,401 @@
   .status-active { background: #ecfdf3; color: #027a48; }
   .status-terminated { background: #fef3f2; color: #b42318; }
 
+  /* Shared document form sections (Job Order + Official Business) */
+  #jobOrderTab .jo-grid,
+  #officialBusinessTab .jo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 24px;
+  }
+  #jobOrderTab .jo-form .form-grid,
+  #officialBusinessTab .jo-form .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #jobOrderTab .jo-form textarea.field-input,
+  #officialBusinessTab .jo-form textarea.field-input {
+    min-height: 74px;
+    resize: vertical;
+  }
+  #jobOrderTab .field-readonly,
+  #officialBusinessTab .field-readonly {
+    background: var(--soft);
+    color: #475467;
+    cursor: default;
+  }
+  #jobOrderTab .section-heading,
+  #officialBusinessTab .section-heading {
+    grid-column: 1 / -1;
+    color: var(--brand);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #eaecf0;
+    padding: 8px 0 4px;
+    margin-top: 4px;
+  }
+  #jobOrderTab .repeatable-list,
+  #officialBusinessTab .repeatable-list {
+    display: grid;
+    gap: 8px;
+  }
+  #jobOrderTab .repeatable-row,
+  #officialBusinessTab .repeatable-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #jobOrderTab .repeatable-row .field-input,
+  #officialBusinessTab .repeatable-row .field-input {
+    flex: 1;
+  }
+  #jobOrderTab .repeatable-add,
+  #officialBusinessTab .repeatable-add {
+    margin-top: 8px;
+    width: fit-content;
+  }
+  #jobOrderTab .signature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    grid-column: 1 / -1;
+  }
+  #officialBusinessTab .signature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    grid-column: 1 / -1;
+  }
+  #jobOrderTab .form-actions,
+  #officialBusinessTab .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #eaecf0;
+  }
+  #jobOrderTab .action.danger,
+  #officialBusinessTab .action.danger {
+    color: var(--danger);
+    border-color: #fecdca;
+  }
+  #jobOrderTab .action.danger:hover,
+  #officialBusinessTab .action.danger:hover {
+    background: #fef3f2;
+    border-color: var(--danger);
+  }
+  #jobOrderTab .record-actions,
+  #officialBusinessTab .record-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  #jobOrderTab .record-actions form,
+  #officialBusinessTab .record-actions form {
+    display: inline;
+    margin: 0;
+  }
+  #jobOrderTab .jo-document,
+  #officialBusinessTab .jo-document {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: sticky;
+    top: 22px;
+  }
+  #jobOrderTab .jo-document img,
+  #officialBusinessTab .jo-document img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  #jobOrderTab .jo-document .doc-body,
+  #officialBusinessTab .jo-document .doc-body {
+    padding: 18px 20px 22px;
+  }
+  #jobOrderTab .jo-document .doc-title,
+  #officialBusinessTab .jo-document .doc-title {
+    margin: 0 0 14px;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+  #jobOrderTab .job-order-fields-grid,
+  #officialBusinessTab .ob-fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+  #jobOrderTab .doc-section,
+  #officialBusinessTab .doc-section {
+    margin-top: 14px;
+    font-size: 0.82rem;
+  }
+  #jobOrderTab .doc-section-full {
+    grid-column: 1 / -1;
+  }
+  #jobOrderTab .job-order-area {
+    grid-column: 1;
+  }
+  #officialBusinessTab .doc-section-full {
+    grid-column: 1 / -1;
+  }
+  #jobOrderTab .doc-section strong,
+  #officialBusinessTab .doc-section strong {
+    display: block;
+    color: var(--brand);
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  #jobOrderTab .preview-text,
+  #officialBusinessTab .preview-text {
+    white-space: pre-wrap;
+    line-height: 1.45;
+    color: #344054;
+    min-height: 20px;
+  }
+  #officialBusinessTab .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 10px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  #jobOrderTab .job-order-signatures {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+  }
+  #officialBusinessTab .ob-signatures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+  }
+  #jobOrderTab .signature-block,
+  #officialBusinessTab .signature-block {
+    text-align: center;
+  }
+  #jobOrderTab .signature-label,
+  #officialBusinessTab .signature-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 36px;
+  }
+  #jobOrderTab .signature-line,
+  #officialBusinessTab .signature-line {
+    border-top: 1px solid #98a2b3;
+    padding-top: 0;
+    min-height: 0;
+    margin: 0 8px;
+    font-size: 0.82rem;
+  }
+  #jobOrderTab .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
+  #officialBusinessTab .signature-sub {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  #officialBusinessTab .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
+  .status-pending { background: #fffaeb; color: #b54708; }
+  .status-approved { background: #ecfdf3; color: #027a48; }
+  .status-rejected { background: #fef3f2; color: #b42318; }
+
+  /* Payroll badges / run details */
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge-draft { background: #f2f4f7; color: #475467; }
+  .badge-computed { background: #ecfdf3; color: #027a48; }
+  .badge-approved { background: #eff6ff; color: #1d4ed8; }
+  .badge-disbursed { background: #fef3f2; color: #b42318; }
+  .run-details {
+    background: #f8fafc;
+    padding: 12px 14px;
+  }
+  .run-details table {
+    min-width: 520px;
+    font-size: 0.82rem;
+  }
+
+  /* Punch sheet layout */
+  .punch-upload-box {
+    background: var(--soft);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+  }
+  .punch-sheet-editor {
+    margin-top: 8px;
+  }
+  .punch-sheet-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+  .punch-sheet-title-row .form-field {
+    flex: 1 1 280px;
+  }
+  .punch-employee-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .punch-employee-header {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--line);
+  }
+  .punch-employee-header label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .punch-grid-wrap {
+    overflow-x: auto;
+    padding: 0;
+  }
+  .punch-grid {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 560px;
+  }
+  .punch-grid th,
+  .punch-grid td {
+    border: 1px solid #d0d5dd;
+    padding: 6px 8px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .punch-grid thead th {
+    background: #e4e7ec;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #344054;
+    white-space: nowrap;
+  }
+  .punch-grid .punch-day-col,
+  .punch-grid .punch-date-col {
+    width: 4.5rem;
+    background: #f8fafc;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .punch-grid .punch-date-col {
+    width: 7rem;
+    font-weight: 500;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .punch-grid td input {
+    width: 100%;
+    min-width: 64px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: #fff;
+    text-align: center;
+    font-size: 0.82rem;
+    padding: 6px 4px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .punch-grid td input:focus {
+    outline: none;
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
+  }
+  .punch-grid tbody tr:nth-child(even) {
+    background: #fafbfc;
+  }
+  .punch-slot-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .punch-slot-legend strong {
+    color: var(--ink);
+  }
+  .punch-meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 14px;
+  }
+  @media (max-width: 900px) {
+    .punch-employee-header {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
   @media (max-width: 768px) {
     .form-grid {
+      grid-template-columns: 1fr;
+    }
+    #jobOrderTab .jo-grid,
+    #officialBusinessTab .jo-grid {
+      grid-template-columns: 1fr;
+    }
+    #jobOrderTab .signature-grid,
+    #jobOrderTab .job-order-signatures,
+    #jobOrderTab .job-order-fields-grid,
+    #officialBusinessTab .signature-grid,
+    #officialBusinessTab .ob-signatures,
+    #officialBusinessTab .ob-fields-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -546,6 +939,10 @@
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="attendanceTab">
         <span class="tab-icon">⏰</span> Attendance
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="punchSheetsTab">
+        <span class="tab-icon">📊</span> Punch Sheets
+        <span class="tab-badge">{{ punch_sheets|length }}</span>
+      </button>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="requestsTab">
         <span class="tab-icon">📋</span> Requests
         <span class="tab-badge">{{ pending_leave_count }}</span>
@@ -554,11 +951,34 @@
         <span class="tab-icon">📄</span> Documents
         <span class="tab-badge">2</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="jobOrderTab">
+        <span class="tab-icon">🧾</span> Job Orders
+        <span class="tab-badge">{{ job_order_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="officialBusinessTab">
+        <span class="tab-icon">🧳</span> Official Business
+        <span class="tab-badge">{{ official_business_count }}</span>
+      </button>
+      <div class="nav-label" style="margin-top:14px;">Payroll</div>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> Pay Runs
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> Deductions
+        <span class="tab-badge">{{ deduction_configs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> Approvals
+      </button>
     </nav>
     <div class="sidebar-stats">
       <div class="stat-row"><span>Total employees</span><strong>{{ employee_count }}</strong></div>
       <div class="stat-row"><span>Active</span><strong>{{ active_employee_count }}</strong></div>
       <div class="stat-row"><span>Departments</span><strong>{{ departments|length }}</strong></div>
+      <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
+      <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
+      <div class="stat-row"><span>Payroll runs</span><strong>{{ runs|length }}</strong></div>
     </div>
   </aside>
 
@@ -566,7 +986,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>HR Dashboard</h2>
-        <p>Manage employee records, attendance, onboarding, staff requests, and documents.</p>
+        <p>Manage employee records, attendance, payroll, documents, job orders, and official business forms.</p>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -584,7 +1004,9 @@
     <div class="hero-stats">
       <div class="stat-card"><div class="stat-label">Total Employees</div><div class="stat-value">{{ employee_count }}</div></div>
       <div class="stat-card"><div class="stat-label">Active Employees</div><div class="stat-value">{{ active_employee_count }}</div></div>
-      <div class="stat-card"><div class="stat-label">Departments</div><div class="stat-value">{{ departments|length }}</div></div>
+      <div class="stat-card"><div class="stat-label">Payroll Runs</div><div class="stat-value">{{ runs|length }}</div></div>
+      <div class="stat-card"><div class="stat-label">Job Orders</div><div class="stat-value">{{ job_order_count }}</div></div>
+      <div class="stat-card"><div class="stat-label">Official Business</div><div class="stat-value">{{ official_business_count }}</div></div>
     </div>
 
     <!-- Employee Records -->
@@ -848,6 +1270,198 @@
       </div>
     </div>
 
+    <!-- Punch Sheets -->
+    <div id="punchSheetsTab" class="tab-panel">
+      <div class="panel">
+        <h2>Employee Attendance Sheets</h2>
+        <p>Upload a biometric punch sheet (.xls), then review and edit the generated layout in the system.</p>
+
+        <div class="punch-upload-box">
+          <h4 style="margin:0 0 8px;">Upload Punch Sheet</h4>
+          <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">
+            Accepts the device export format (e.g. <code>01Punch-26-07.XLS</code>) with period title, employee ID/Name/Dept/Shift rows, and daily punch times.
+          </p>
+          <form method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_punch_sheet">
+            <div class="form-field" style="flex:1 1 280px;">
+              <label for="punch_sheet_file">Attendance sheet (.xls)</label>
+              <input type="file" id="punch_sheet_file" name="punch_sheet_file" accept=".xls,.XLS,.xml" class="field-input" required>
+            </div>
+            <button type="submit" class="action btn-primary">Upload &amp; Generate Layout</button>
+          </form>
+        </div>
+
+        <div class="table-wrap" style="margin-bottom:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Title / Period</th>
+                <th>Employees</th>
+                <th>Source file</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sheet in punch_sheets %}
+              <tr{% if selected_punch_sheet and selected_punch_sheet.id == sheet.id %} style="background:#eff8ff;"{% endif %}>
+                <td>
+                  <strong>{{ sheet.title }}</strong>
+                  {% if sheet.period_start and sheet.period_end %}
+                  <div style="color:var(--muted);font-size:0.8rem;">{{ sheet.period_start|date:"M j, Y" }} – {{ sheet.period_end|date:"M j, Y" }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ sheet.entry_count }}</td>
+                <td>{{ sheet.original_filename|default:"—" }}</td>
+                <td>{{ sheet.uploaded_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                  <a class="action" href="?tab=punchSheetsTab&sheet={{ sheet.id }}" style="padding:4px 10px;">Edit</a>
+                  {% if sheet.source_file %}
+                  <a class="action" href="{{ sheet.source_file.url }}" target="_blank" style="padding:4px 10px;">File</a>
+                  {% endif %}
+                  <form method="post" style="display:inline;" onsubmit="return confirm('Delete this punch sheet and all edited punch data?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_punch_sheet">
+                    <input type="hidden" name="sheet_id" value="{{ sheet.id }}">
+                    <button type="submit" class="action" style="padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;color:#667085;padding:24px;">No punch sheets uploaded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if selected_punch_sheet %}
+        <div class="punch-sheet-editor">
+          <h3 style="margin:0 0 6px;">Editable Layout</h3>
+          <p class="punch-meta">
+            Edit employee details and daily morning/afternoon in–out times, then save.
+            {% if selected_punch_sheet.period_start and selected_punch_sheet.period_end %}
+            Period: {{ selected_punch_sheet.period_start|date:"Y-m-d" }} to {{ selected_punch_sheet.period_end|date:"Y-m-d" }}.
+            {% endif %}
+          </p>
+
+          <div class="punch-slot-legend">
+            <span><strong>Morning In</strong> — clock in (AM)</span>
+            <span><strong>Morning Out</strong> — lunch out (AM)</span>
+            <span><strong>Afternoon In</strong> — clock in (PM)</span>
+            <span><strong>Afternoon Out</strong> — clock out (PM)</span>
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_punch_sheet">
+            <input type="hidden" name="sheet_id" value="{{ selected_punch_sheet.id }}">
+
+            <div class="punch-sheet-title-row">
+              <div class="form-field">
+                <label for="sheet_title">Sheet title</label>
+                <input type="text" id="sheet_title" name="sheet_title" class="field-input" value="{{ selected_punch_sheet.title }}">
+              </div>
+              <button type="submit" class="action btn-primary">Save Changes</button>
+              <a class="action" href="?tab=punchSheetsTab">Close</a>
+            </div>
+
+            {% for entry in selected_punch_sheet.entries.all %}
+            <div class="punch-employee-block">
+              <div class="punch-employee-header">
+                <div>
+                  <label for="entry_{{ entry.id }}_device_id">ID</label>
+                  <input type="text" id="entry_{{ entry.id }}_device_id" name="entry_{{ entry.id }}_device_id" class="field-input" value="{{ entry.device_employee_id }}">
+                </div>
+                <div>
+                  <label for="entry_{{ entry.id }}_name">Name</label>
+                  <input type="text" id="entry_{{ entry.id }}_name" name="entry_{{ entry.id }}_name" class="field-input" value="{{ entry.employee_name }}">
+                </div>
+                <div>
+                  <label for="entry_{{ entry.id }}_department">Dept</label>
+                  <input type="text" id="entry_{{ entry.id }}_department" name="entry_{{ entry.id }}_department" class="field-input" value="{{ entry.department }}">
+                </div>
+                <div>
+                  <label for="entry_{{ entry.id }}_shift">Shift</label>
+                  <input type="text" id="entry_{{ entry.id }}_shift" name="entry_{{ entry.id }}_shift" class="field-input" value="{{ entry.shift }}">
+                </div>
+              </div>
+              <div class="punch-grid-wrap">
+                <table class="punch-grid">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Date</th>
+                      <th>Morning In</th>
+                      <th>Morning Out</th>
+                      <th>Afternoon In</th>
+                      <th>Afternoon Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for punch in entry.punches.all %}
+                    <tr>
+                      <td class="punch-day-col">{{ punch.day }}</td>
+                      <td class="punch-date-col">
+                        {% if punch.punch_date %}{{ punch.punch_date|date:"Y-m-d" }}{% else %}—{% endif %}
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="punch_{{ punch.id }}_morning_in"
+                          value="{{ punch.morning_in }}"
+                          placeholder="—"
+                          aria-label="Morning in for day {{ punch.day }}"
+                        >
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="punch_{{ punch.id }}_morning_out"
+                          value="{{ punch.morning_out }}"
+                          placeholder="—"
+                          aria-label="Morning out for day {{ punch.day }}"
+                        >
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="punch_{{ punch.id }}_afternoon_in"
+                          value="{{ punch.afternoon_in }}"
+                          placeholder="—"
+                          aria-label="Afternoon in for day {{ punch.day }}"
+                        >
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          name="punch_{{ punch.id }}_afternoon_out"
+                          value="{{ punch.afternoon_out }}"
+                          placeholder="—"
+                          aria-label="Afternoon out for day {{ punch.day }}"
+                        >
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}
+            <p style="color:var(--muted);">This sheet has no employee rows.</p>
+            {% endfor %}
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+              <button type="submit" class="action btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Requests -->
     <div id="requestsTab" class="tab-panel">
       <div class="panel">
@@ -1068,6 +1682,376 @@
       </div>
     </div>
 
+    <!-- Job Orders -->
+    <div id="jobOrderTab" class="tab-panel">
+      <div class="panel">
+        <h2>Job Order</h2>
+        <p>Assign and track field or workshop service work.</p>
+
+        <div class="jo-grid" style="margin-top:18px;">
+          <section class="form-section jo-form" style="margin-bottom:0;">
+            <form method="post" action="{% url 'create_job_order' %}" id="jobOrderForm">
+              {% csrf_token %}
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="job_order_number">Job Order No.</label>
+                  <input id="job_order_number" name="job_order_number" value="{{ next_job_order_number }}" class="field-input field-readonly" readonly title="Assigned automatically">
+                  <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
+                </div>
+                <div class="form-field">
+                  <label for="date_filed">Date Filed *</label>
+                  <input id="date_filed" name="date_filed" type="date" class="field-input" required>
+                </div>
+
+                <div class="form-field full">
+                  <label>Name/s *</label>
+                  <div class="repeatable-list" id="jobNamesList">
+                    <div class="repeatable-row">
+                      <input type="text" name="assignee_names" class="field-input" placeholder="Full name" required>
+                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove name">✕</button>
+                    </div>
+                  </div>
+                  <button type="button" class="action repeatable-add" id="jobAddName">+ Add name</button>
+                </div>
+
+                <div class="form-field full">
+                  <label>Date/s Covered</label>
+                  <div class="repeatable-list" id="jobDatesList">
+                    <div class="repeatable-row">
+                      <input type="date" name="dates_covered" class="field-input">
+                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove date">✕</button>
+                    </div>
+                  </div>
+                  <button type="button" class="action repeatable-add" id="jobAddDate">+ Add date</button>
+                </div>
+
+                <div class="form-field full">
+                  <label for="area_assignment">Area Assignment</label>
+                  <textarea id="area_assignment" name="area_assignment" class="field-input" placeholder="Site, plant, or service area"></textarea>
+                </div>
+
+                <div class="form-field full">
+                  <label for="job_description">Job Description *</label>
+                  <textarea id="job_description" name="job_description" class="field-input" required placeholder="Describe the work to be performed"></textarea>
+                </div>
+
+                <div class="section-heading">Authorization</div>
+                <div class="signature-grid">
+                  <div class="form-field">
+                    <label for="prepared_by">Prepared by</label>
+                    <input id="prepared_by" name="prepared_by" class="field-input" placeholder="Name">
+                  </div>
+                  <div class="form-field">
+                    <label for="noted_by">Noted by</label>
+                    <input id="noted_by" name="noted_by" class="field-input" placeholder="Name">
+                  </div>
+                  <div class="form-field">
+                    <label for="approved_by">Approved by</label>
+                    <input id="approved_by" name="approved_by" class="field-input" placeholder="Name">
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="reset" class="action">Clear</button>
+                <button type="submit" class="action btn-primary">Save job order</button>
+              </div>
+            </form>
+          </section>
+
+          <article class="jo-document job-order-document">
+            <header class="doc-header">
+              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+            </header>
+            <div class="doc-body">
+              <h3 class="doc-title">JOB ORDER</h3>
+              <div class="job-order-fields-grid">
+                <div class="doc-section">
+                  <strong>Job Order No.</strong>
+                  <div class="preview-text" data-preview="job_order_number">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Name/s</strong>
+                  <div class="preview-text" data-preview="assignee_names">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Date Filed</strong>
+                  <div class="preview-text" data-preview="date_filed">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Date/s Covered</strong>
+                  <div class="preview-text" data-preview="dates_covered">—</div>
+                </div>
+                <div class="doc-section job-order-area">
+                  <strong>Area Assignment</strong>
+                  <div class="preview-text" data-preview="area_assignment">—</div>
+                </div>
+              </div>
+              <div class="doc-section doc-section-full">
+                <strong>Job Description</strong>
+                <div class="preview-text" data-preview="job_description">—</div>
+              </div>
+              <div class="doc-section doc-section-full">
+                <strong>Authorization</strong>
+                <div class="job-order-signatures">
+                  <div class="signature-block">
+                    <span class="signature-label">Prepared by</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name" data-preview="prepared_by">—</span>
+                  </div>
+                  <div class="signature-block">
+                    <span class="signature-label">Noted by</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name" data-preview="noted_by">—</span>
+                  </div>
+                  <div class="signature-block">
+                    <span class="signature-label">Approved by</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name" data-preview="approved_by">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer class="doc-footer">
+              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+            </footer>
+          </article>
+        </div>
+
+        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Job Orders</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved job orders.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job Order</th>
+                <th>Date Filed</th>
+                <th>Name/s</th>
+                <th>Area</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in job_orders %}
+              <tr>
+                <td>{{ order.job_order_number }}</td>
+                <td>{{ order.date_filed|date:'M d, Y' }}</td>
+                <td>{{ order.names_display }}</td>
+                <td>{{ order.area_assignment|default:'—'|truncatechars:40 }}</td>
+                <td><span class="status-chip status-active">{{ order.get_status_display }}</span></td>
+                <td>
+                  <div class="record-actions">
+                    <a class="action" href="{% url 'view_job_order' order.id %}">View</a>
+                    <a class="action" href="{% url 'edit_job_order' order.id %}">Edit</a>
+                    <form method="post" action="{% url 'delete_job_order' order.id %}" onsubmit="return confirm('Delete Job Order {{ order.job_order_number }}? This cannot be undone.');">
+                      {% csrf_token %}
+                      <button class="action danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No job orders saved yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Business -->
+    <div id="officialBusinessTab" class="tab-panel">
+      <div class="panel">
+        <h2>Official Business Form</h2>
+        <p>File and track employee official business (OB) travel authorizations.</p>
+
+        <div class="jo-grid" style="margin-top:18px;">
+          <section class="form-section jo-form" style="margin-bottom:0;">
+            <form method="post" action="{% url 'create_official_business_form' %}" id="obForm">
+              {% csrf_token %}
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="ob_name">Name *</label>
+                  <input id="ob_name" name="name" class="field-input" required placeholder="Employee full name">
+                </div>
+                <div class="form-field">
+                  <label for="ob_designation">Designation</label>
+                  <input id="ob_designation" name="designation" class="field-input" placeholder="e.g. Field Technician">
+                </div>
+                <div class="form-field">
+                  <label for="ob_application_date">Application Date *</label>
+                  <input id="ob_application_date" name="application_date" type="date" class="field-input" required>
+                </div>
+                <div class="form-field full">
+                  <label>OB Date/s</label>
+                  <div class="repeatable-list" id="obDatesList">
+                    <div class="repeatable-row">
+                      <input type="date" name="ob_dates" class="field-input">
+                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove date">✕</button>
+                    </div>
+                  </div>
+                  <button type="button" class="action repeatable-add" id="obAddDate">+ Add date</button>
+                </div>
+
+                <div class="form-field full">
+                  <label for="ob_destination">OB Address / Destination</label>
+                  <textarea id="ob_destination" name="destination" class="field-input" placeholder="Site, client, or destination address"></textarea>
+                </div>
+
+                <div class="form-field">
+                  <label for="ob_time_departure">Time of Departure</label>
+                  <input id="ob_time_departure" name="time_departure" type="time" class="field-input">
+                </div>
+                <div class="form-field">
+                  <label for="ob_time_return">Return</label>
+                  <input id="ob_time_return" name="time_return" type="time" class="field-input">
+                </div>
+
+                <div class="form-field full">
+                  <label for="ob_purpose">Purpose/s</label>
+                  <textarea id="ob_purpose" name="purpose" class="field-input" placeholder="Reason for the official business"></textarea>
+                </div>
+
+                <div class="section-heading">Signatures</div>
+                <div class="signature-grid">
+                  <div class="form-field">
+                    <label for="ob_prepared_by">Prepared by (Employee's Name &amp; Signature)</label>
+                    <input id="ob_prepared_by" name="prepared_by" class="field-input" placeholder="Name">
+                  </div>
+                  <div class="form-field">
+                    <label>Approved by</label>
+                    <input class="field-input field-readonly" value="ENGR. ARTURO I. DAVIS, PME — PRESIDENT/GEN. MANAGER" readonly disabled>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="reset" class="action">Clear</button>
+                <button type="submit" class="action btn-primary">Save OB form</button>
+              </div>
+            </form>
+          </section>
+
+          <article class="jo-document ob-document">
+            <header class="doc-header">
+              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+            </header>
+            <div class="doc-body">
+              <h3 class="doc-title">OFFICIAL BUSINESS FORM</h3>
+              <div class="doc-meta">
+                <span>Application Date: <b data-preview="application_date">—</b></span>
+                <span>OB Date/s: <b data-preview="ob_dates">—</b></span>
+              </div>
+              <div class="ob-fields-grid">
+                <div class="doc-section">
+                  <strong>Name</strong>
+                  <div class="preview-text" data-preview="name">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Designation</strong>
+                  <div class="preview-text" data-preview="designation">—</div>
+                </div>
+                <div class="doc-section doc-section-full">
+                  <strong>OB Address / Destination</strong>
+                  <div class="preview-text" data-preview="destination">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Time of Departure</strong>
+                  <div class="preview-text" data-preview="time_departure">—</div>
+                </div>
+                <div class="doc-section">
+                  <strong>Return</strong>
+                  <div class="preview-text" data-preview="time_return">—</div>
+                </div>
+                <div class="doc-section doc-section-full">
+                  <strong>Purpose/s</strong>
+                  <div class="preview-text" data-preview="purpose">—</div>
+                </div>
+              </div>
+              <div class="doc-section doc-section-full">
+                <div class="ob-signatures">
+                  <div class="signature-block">
+                    <span class="signature-label">Prepared by</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name" data-preview="prepared_by">—</span>
+                    <span class="signature-sub">(Employee's Name &amp; Signature)</span>
+                  </div>
+                  <div class="signature-block">
+                    <span class="signature-label">Approved by</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name">ENGR. ARTURO I. DAVIS, PME</span>
+                    <span class="signature-sub">President/Gen. Manager</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer class="doc-footer">
+              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+            </footer>
+          </article>
+        </div>
+
+        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Official Business Forms</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed official business (OB) forms.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Application Date</th>
+                <th>OB Date/s</th>
+                <th>Destination</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ob in official_business_forms %}
+              <tr>
+                <td>{{ ob.name }}</td>
+                <td>{{ ob.application_date|date:'M d, Y' }}</td>
+                <td>{{ ob.ob_dates_display|truncatechars:30 }}</td>
+                <td>{{ ob.destination|default:'—'|truncatechars:30 }}</td>
+                <td>
+                  <span class="status-chip {% if ob.status == 'approved' %}status-approved{% elif ob.status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
+                    {{ ob.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div class="record-actions">
+                    <a class="action" href="{% url 'view_official_business_form' ob.id %}">View</a>
+                    <a class="action" href="{% url 'edit_official_business_form' ob.id %}">Edit</a>
+                    {% if ob.status == 'pending' %}
+                    <form method="post" action="{% url 'approve_official_business_form' ob.id %}">
+                      {% csrf_token %}
+                      <button class="action" type="submit" style="background:#ecfdf3;color:#027a48;border-color:#abefc6;">Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'reject_official_business_form' ob.id %}">
+                      {% csrf_token %}
+                      <button class="action danger" type="submit">Reject</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'delete_official_business_form' ob.id %}" onsubmit="return confirm('Delete Official Business Form for {{ ob.name }}? This cannot be undone.');">
+                      {% csrf_token %}
+                      <button class="action danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No official business forms saved yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% include "includes/payroll_tabs.html" %}
+
     <div style="margin-top:12px;">
     </div>
   </main>
@@ -1079,8 +2063,14 @@
     const panels = {
       employeesTab: document.getElementById('employeesTab'),
       attendanceTab: document.getElementById('attendanceTab'),
+      punchSheetsTab: document.getElementById('punchSheetsTab'),
       requestsTab: document.getElementById('requestsTab'),
       documentsTab: document.getElementById('documentsTab'),
+      jobOrderTab: document.getElementById('jobOrderTab'),
+      officialBusinessTab: document.getElementById('officialBusinessTab'),
+      payrunsTab: document.getElementById('payrunsTab'),
+      deductionsTab: document.getElementById('deductionsTab'),
+      approvalsTab: document.getElementById('approvalsTab'),
     };
     const defaultTab = 'employeesTab';
 
@@ -1139,6 +2129,164 @@
       });
       lrEnd.min = lrStart.value;
     }
+
+    // ── Document forms: live preview + repeatable rows ──
+    function formatPreviewDate(value) {
+      if (!value) return '—';
+      const parsed = new Date(value + 'T00:00:00');
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function formatPreviewTime(value) {
+      if (!value) return '—';
+      const [hoursStr, minutesStr] = value.split(':');
+      const hours = parseInt(hoursStr, 10);
+      if (Number.isNaN(hours)) return value;
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHour = ((hours + 11) % 12) + 1;
+      return `${displayHour}:${minutesStr} ${period}`;
+    }
+
+    function updateRepeatablePreview(panel, previewKey, selector, isDate) {
+      if (!panel) return;
+      const values = [...panel.querySelectorAll(selector)]
+        .map((input) => input.value.trim())
+        .filter(Boolean)
+        .map((value) => (isDate ? formatPreviewDate(value) : value));
+      panel.querySelectorAll(`[data-preview="${previewKey}"]`).forEach((target) => {
+        target.textContent = values.length ? values.join(', ') : '—';
+      });
+    }
+
+    function syncFieldPreview(panel, field) {
+      if (!panel || !field || !field.name) return;
+      if (field.name === 'assignee_names') {
+        updateRepeatablePreview(panel, 'assignee_names', 'input[name="assignee_names"]', false);
+        return;
+      }
+      if (field.name === 'dates_covered') {
+        updateRepeatablePreview(panel, 'dates_covered', 'input[name="dates_covered"]', true);
+        return;
+      }
+      if (field.name === 'ob_dates') {
+        updateRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
+        return;
+      }
+      let displayValue = field.value || '—';
+      if (field.type === 'date' && field.value) {
+        displayValue = formatPreviewDate(field.value);
+      } else if (field.type === 'time' && field.value) {
+        displayValue = formatPreviewTime(field.value);
+      }
+      panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach((target) => {
+        target.textContent = displayValue;
+      });
+    }
+
+    function setupRepeatableList(listId, addBtnId, inputType, inputName, placeholder) {
+      const list = document.getElementById(listId);
+      const addBtn = document.getElementById(addBtnId);
+      if (!list || !addBtn) return;
+      const ownerPanel = list.closest('.tab-panel');
+
+      function refreshRemoveButtons() {
+        const rows = list.querySelectorAll('.repeatable-row');
+        rows.forEach((row, index) => {
+          const removeBtn = row.querySelector('[data-remove-row]');
+          if (removeBtn) removeBtn.hidden = rows.length === 1;
+          const input = row.querySelector('input');
+          if (input && index === 0 && inputType === 'text') {
+            input.required = true;
+          } else if (input) {
+            input.required = false;
+          }
+        });
+      }
+
+      function bindRow(row) {
+        row.querySelectorAll('input').forEach((input) => {
+          const update = () => updateRepeatablePreview(ownerPanel, inputName, `input[name="${inputName}"]`, inputType === 'date');
+          input.addEventListener('input', update);
+          input.addEventListener('change', update);
+        });
+        const removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            if (list.querySelectorAll('.repeatable-row').length === 1) return;
+            row.remove();
+            refreshRemoveButtons();
+            updateRepeatablePreview(ownerPanel, inputName, `input[name="${inputName}"]`, inputType === 'date');
+          });
+        }
+      }
+
+      addBtn.addEventListener('click', () => {
+        const row = document.createElement('div');
+        row.className = 'repeatable-row';
+        row.innerHTML = `
+          <input type="${inputType}" name="${inputName}" class="field-input" placeholder="${placeholder || ''}">
+          <button type="button" class="action row-remove" data-remove-row aria-label="Remove row">✕</button>
+        `;
+        list.appendChild(row);
+        bindRow(row);
+        refreshRemoveButtons();
+        row.querySelector('input').focus();
+      });
+
+      list.querySelectorAll('.repeatable-row').forEach(bindRow);
+      refreshRemoveButtons();
+    }
+
+    function setupDocPanel(panel, defaultDateId, formId) {
+      if (!panel) return;
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        if (field.disabled) return;
+        const update = () => syncFieldPreview(panel, field);
+        field.addEventListener('input', update);
+        field.addEventListener('change', update);
+        syncFieldPreview(panel, field);
+      });
+
+      const defaultDate = defaultDateId ? document.getElementById(defaultDateId) : null;
+      if (defaultDate && !defaultDate.value) {
+        defaultDate.value = today;
+        syncFieldPreview(panel, defaultDate);
+      }
+
+      const form = formId ? document.getElementById(formId) : null;
+      if (form) {
+        form.addEventListener('reset', () => {
+          setTimeout(() => {
+            if (defaultDate) defaultDate.value = today;
+            panel.querySelectorAll('input, textarea, select').forEach((field) => {
+              if (!field.disabled) syncFieldPreview(panel, field);
+            });
+          }, 0);
+        });
+      }
+    }
+
+    setupDocPanel(document.getElementById('jobOrderTab'), 'date_filed', 'jobOrderForm');
+    setupDocPanel(document.getElementById('officialBusinessTab'), 'ob_application_date', 'obForm');
+    setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name');
+    setupRepeatableList('jobDatesList', 'jobAddDate', 'date', 'dates_covered', '');
+    setupRepeatableList('obDatesList', 'obAddDate', 'date', 'ob_dates', '');
+
+    document.querySelectorAll('.toggle-run-details').forEach((button) => {
+      button.addEventListener('click', function() {
+        const target = document.getElementById(this.dataset.target);
+        if (!target) return;
+        const isHidden = target.hasAttribute('hidden');
+        if (isHidden) {
+          target.removeAttribute('hidden');
+          this.textContent = 'Hide';
+        } else {
+          target.setAttribute('hidden', '');
+          this.textContent = 'Details';
+        }
+      });
+    });
   })();
 </script>
 {% endblock %}
