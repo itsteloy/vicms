@@ -291,11 +291,53 @@ class HRDocument(models.Model):
 
 # ========== PAYROLL MODELS ==========
 
-class Department(models.Model):
+class Company(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name = self.name.upper().strip()
+        super().save(*args, **kwargs)
+
+
+def format_position_title(value):
+    """Title Case for positions, e.g. 'Admin and Finance Officer', 'IT Staff'."""
+    value = (value or '').strip()
+    if not value:
+        return value
+
+    acronyms = {'IT', 'HR', 'QA', 'OB'}
+    small_words = {'and', 'or', 'of', 'the', 'in', 'for', 'a', 'an'}
+
+    def format_segment(segment, force_capitalize=False):
+        if not segment:
+            return segment
+        upper = segment.upper()
+        lower = segment.lower()
+        if upper in acronyms:
+            return upper
+        if not force_capitalize and lower in small_words:
+            return lower
+        if '-' in segment:
+            return '-'.join(
+                format_segment(part, force_capitalize=True) for part in segment.split('-')
+            )
+        return segment[:1].upper() + segment[1:].lower()
+
+    words = []
+    for word_index, raw in enumerate(value.split()):
+        segments = []
+        for segment_index, segment in enumerate(raw.split('/')):
+            force = word_index == 0 and segment_index == 0
+            if force:
+                segments.append(format_segment(segment, force_capitalize=True))
+            else:
+                segments.append(format_segment(segment, force_capitalize=False))
+        words.append('/'.join(segments))
+    return ' '.join(words)
 
 
 class Position(models.Model):
@@ -305,12 +347,13 @@ class Position(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.title:
+            self.title = format_position_title(self.title)
+        super().save(*args, **kwargs)
+
 
 class Employee(models.Model):
-    FREQUENCY_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('semi-monthly', 'Semi-monthly'),
-    ]
     user = models.OneToOneField(
         'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employee_profile'
@@ -318,12 +361,14 @@ class Employee(models.Model):
     employee_id = models.CharField(max_length=20, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    birth_date = models.DateField()
-    hire_date = models.DateField()
     termination_date = models.DateField(null=True, blank=True)
-    base_salary = models.DecimalField(max_digits=12, decimal_places=2)
-    salary_frequency = models.CharField(max_length=15, choices=FREQUENCY_CHOICES, default='monthly')
-    department = models.ForeignKey(Department, on_delete=models.PROTECT)
+    daily_rate = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=525,
+        help_text='Daily wage used for payroll and idle-day estimates (default ₱525).',
+    )
+    company = models.ForeignKey('Company', on_delete=models.PROTECT)
     position = models.ForeignKey(Position, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -332,11 +377,11 @@ class Employee(models.Model):
         ordering = ['last_name', 'first_name']
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name} ({self.employee_id})'
+        return f'{self.last_name}, {self.first_name} ({self.employee_id})'
 
     @property
     def full_name(self):
-        return f'{self.first_name} {self.last_name}'
+        return f'{self.last_name}, {self.first_name}'
 
     @classmethod
     def generate_employee_id(cls):
@@ -351,15 +396,19 @@ class Employee(models.Model):
     def save(self, *args, **kwargs):
         if not self.employee_id:
             self.employee_id = self.generate_employee_id()
+        if self.first_name:
+            self.first_name = self.first_name.upper().strip()
+        if self.last_name:
+            self.last_name = self.last_name.upper().strip()
         super().save(*args, **kwargs)
 
 
 class PayPeriod(models.Model):
-    PERIOD_TYPES = [('monthly', 'Monthly'), ('semi-monthly', 'Semi-monthly')]
+    PERIOD_TYPES = [('semi-monthly', 'Semi-monthly (10th & 25th)'), ('monthly', 'Monthly')]
     start_date = models.DateField()
     end_date = models.DateField()
     pay_date = models.DateField()
-    period_type = models.CharField(max_length=15, choices=PERIOD_TYPES, default='monthly')
+    period_type = models.CharField(max_length=15, choices=PERIOD_TYPES, default='semi-monthly')
     is_closed = models.BooleanField(default=False)
 
     class Meta:
@@ -821,6 +870,11 @@ class JobOrder(models.Model):
     names = models.TextField(blank=True, default='', help_text='One or more assignee names, one per line.')
     date_filed = models.DateField()
     dates_covered = models.TextField(blank=True, default='', help_text='Coverage date or date range entries, one per line.')
+    coverage_start = models.DateField(null=True, blank=True)
+    coverage_end = models.DateField(null=True, blank=True)
+    assignees = models.ManyToManyField(
+        'Employee', blank=True, related_name='job_orders',
+    )
     area_assignment = models.TextField(blank=True, default='')
     job_description = models.TextField()
     prepared_by = models.CharField(max_length=200, blank=True, default='')
@@ -846,12 +900,39 @@ class JobOrder(models.Model):
             self.job_order_number = self.generate_job_order_number()
         super().save(*args, **kwargs)
 
+    def sync_legacy_text_fields(self):
+        """Keep paper-form text fields aligned with structured coverage + assignees."""
+        assignee_names = [
+            emp.full_name for emp in self.assignees.all().order_by('last_name', 'first_name')
+        ]
+        if assignee_names:
+            self.names = '\n'.join(assignee_names)
+        if self.coverage_start and self.coverage_end:
+            self.dates_covered = f'{self.coverage_start.isoformat()}\n{self.coverage_end.isoformat()}'
+        elif self.coverage_start:
+            self.dates_covered = self.coverage_start.isoformat()
+        elif self.coverage_end:
+            self.dates_covered = self.coverage_end.isoformat()
+        self.save(update_fields=['names', 'dates_covered', 'updated_at'])
+
     @property
     def names_display(self):
+        linked = list(self.assignees.all())
+        if linked:
+            return ', '.join(emp.full_name for emp in linked) or '—'
         return ', '.join(line.strip() for line in self.names.splitlines() if line.strip()) or '—'
 
     @property
     def dates_covered_display(self):
+        if self.coverage_start and self.coverage_end:
+            start = self.coverage_start.strftime('%b %d, %Y').replace(' 0', ' ')
+            end = self.coverage_end.strftime('%b %d, %Y').replace(' 0', ' ')
+            return f'{start} – {end}'
+        if self.coverage_start:
+            return self.coverage_start.strftime('%b %d, %Y').replace(' 0', ' ')
+        if self.coverage_end:
+            return self.coverage_end.strftime('%b %d, %Y').replace(' 0', ' ')
+
         from datetime import datetime
 
         formatted = []
@@ -864,6 +945,73 @@ class JobOrder(models.Model):
             except ValueError:
                 formatted.append(value)
         return ', '.join(formatted) or '—'
+
+
+def estimated_daily_rate(employee):
+    """Report-only daily rate for idle-day waste estimates (not a payroll figure)."""
+    from decimal import Decimal, ROUND_HALF_UP
+
+    if employee.daily_rate is not None:
+        return Decimal(employee.daily_rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    return Decimal('525.00')
+
+
+def idle_calendar_days(start_date, end_date, exclude_sundays=True):
+    """Inclusive calendar days in [start_date, end_date]; Sundays excluded by default."""
+    from datetime import timedelta
+
+    if not start_date or not end_date or end_date < start_date:
+        return []
+    days = []
+    current = start_date
+    while current <= end_date:
+        if not exclude_sundays or current.weekday() != 6:
+            days.append(current)
+        current += timedelta(days=1)
+    return days
+
+
+class JobOrderIdlePeriod(models.Model):
+    REASON_CHOICES = [
+        ('waiting_materials', 'Waiting for materials'),
+        ('other', 'Other'),
+    ]
+
+    job_order = models.ForeignKey(
+        JobOrder, on_delete=models.CASCADE, related_name='idle_periods',
+    )
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.CharField(
+        max_length=32, choices=REASON_CHOICES, default='waiting_materials',
+    )
+    notes = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-start_date', '-id']
+
+    def __str__(self):
+        return f'{self.job_order.job_order_number}: {self.start_date}–{self.end_date}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError({'end_date': 'End date must be on or after start date.'})
+        jo = self.job_order
+        if jo and jo.coverage_start and self.start_date and self.start_date < jo.coverage_start:
+            raise ValidationError({'start_date': 'Idle start is before the job coverage start.'})
+        if jo and jo.coverage_end and self.end_date and self.end_date > jo.coverage_end:
+            raise ValidationError({'end_date': 'Idle end is after the job coverage end.'})
+
+    def idle_days(self, exclude_sundays=True):
+        return idle_calendar_days(self.start_date, self.end_date, exclude_sundays=exclude_sundays)
+
+    @property
+    def idle_day_count(self):
+        return len(self.idle_days())
 
 
 class OfficialBusinessForm(models.Model):

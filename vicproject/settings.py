@@ -131,3 +131,7 @@ LOGOUT_REDIRECT_URL = 'landing'
 # Media files (uploaded images)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Attendance sheet save posts many punch fields (employees × days × slots).
+# Default 1000 is too low for a full imported sheet (~2000+ fields).
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

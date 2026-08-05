@@ -351,6 +351,44 @@
       grid-template-columns: 1fr;
     }
   }
+
+  .idle-panel {
+    margin-top: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px #1720331a;
+    padding: 22px 24px;
+  }
+  .idle-panel h2 { margin: 0 0 6px; font-size: 1.05rem; }
+  .idle-panel .muted { color: #667085; font-size: 0.88rem; margin: 0 0 14px; }
+  .idle-panel table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .idle-panel th, .idle-panel td { border-bottom: 1px solid #e4e7ec; padding: 10px 8px; text-align: left; }
+  .idle-panel th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .04em; color: #667085; }
+  .idle-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+    align-items: end;
+  }
+  .idle-form .full { grid-column: 1 / -1; }
+  .idle-form label { display: block; font-size: 12px; font-weight: 700; color: #344054; margin-bottom: 4px; }
+  .idle-form input, .idle-form select {
+    width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 7px; padding: 9px 10px; font: inherit;
+  }
+  .idle-form button {
+    border: 0; border-radius: 7px; padding: 10px 14px; background: #0f766e; color: #fff; font-weight: 700; cursor: pointer;
+  }
+  .idle-panel button.danger,
+  .idle-form .danger {
+    background: #b42318; padding: 6px 10px; font-size: 0.8rem; border: 0; border-radius: 7px; color: #fff; font-weight: 700; cursor: pointer;
+  }
+  @media print {
+    .idle-panel { display: none; }
+  }
+  @media (max-width: 700px) {
+    .idle-form { grid-template-columns: 1fr; }
+  }
 </style>
 {% endblock %}
 {% block content %}
@@ -554,5 +592,79 @@
       <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
     </footer>
   </article>
+
+  {% if document_type == 'job' %}
+  <section class="idle-panel">
+    <h2>No-work / idle periods</h2>
+    <p class="muted">Mark date ranges when assignees had no work (e.g. waiting for materials). Shown on the Idle Days report; does not change payroll.</p>
+
+    {% if record.assignees.all %}
+    <p class="muted" style="margin-bottom:10px;">Assignees: {% for emp in record.assignees.all %}{{ emp.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}
+    <p class="muted" style="margin-bottom:10px;">No employees linked yet — link assignees on Edit so estimated waste can be calculated.</p>
+    {% endif %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Start</th>
+          <th>End</th>
+          <th>Reason</th>
+          <th>Days</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for period in idle_periods %}
+        <tr>
+          <td>{{ period.start_date|date:"M j, Y" }}</td>
+          <td>{{ period.end_date|date:"M j, Y" }}</td>
+          <td>{{ period.get_reason_display }}</td>
+          <td>{{ period.idle_day_count }}</td>
+          <td>{{ period.notes|default:"—" }}</td>
+          <td>
+            <form method="post" action="{% url 'delete_job_order_idle_period' record.id period.id %}" onsubmit="return confirm('Remove this idle period?');">
+              {% csrf_token %}
+              <button type="submit" class="danger">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;color:#667085;padding:18px;">No idle periods recorded for this job order.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <form method="post" action="{% url 'add_job_order_idle_period' record.id %}" class="idle-form">
+      {% csrf_token %}
+      <div>
+        <label for="idle_start_date">Start date *</label>
+        <input id="idle_start_date" type="date" name="start_date" required{% if record.coverage_start %} min="{{ record.coverage_start|date:'Y-m-d' }}"{% endif %}{% if record.coverage_end %} max="{{ record.coverage_end|date:'Y-m-d' }}"{% endif %}>
+      </div>
+      <div>
+        <label for="idle_end_date">End date *</label>
+        <input id="idle_end_date" type="date" name="end_date" required{% if record.coverage_start %} min="{{ record.coverage_start|date:'Y-m-d' }}"{% endif %}{% if record.coverage_end %} max="{{ record.coverage_end|date:'Y-m-d' }}"{% endif %}>
+      </div>
+      <div>
+        <label for="idle_reason">Reason</label>
+        <select id="idle_reason" name="reason">
+          {% for value, label in idle_reason_choices %}
+          <option value="{{ value }}"{% if value == 'waiting_materials' %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="full">
+        <label for="idle_notes">Notes</label>
+        <input id="idle_notes" type="text" name="notes" maxlength="255" placeholder="Optional notes">
+      </div>
+      <div>
+        <button type="submit">Add idle period</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
 </main>
 {% endblock %}

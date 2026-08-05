@@ -364,6 +364,7 @@
   .action:hover {
     background: var(--soft);
     border-color: var(--brand);
+    color: var(--brand);
   }
   .field-input {
   width: 100%;
@@ -504,10 +505,20 @@
     border-color: var(--brand);
     box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
   }
+  .field-input.uppercase-input,
+  #employeesTab #id_first_name,
+  #employeesTab #id_last_name {
+    text-transform: uppercase;
+  }
   .btn-primary {
     background: var(--brand);
     color: #fff;
     border-color: var(--brand);
+  }
+  .btn-primary:hover {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #fff;
   }
   .status-chip {
     display: inline-flex;
@@ -606,6 +617,7 @@
   #officialBusinessTab .action.danger:hover {
     background: #fef3f2;
     border-color: var(--danger);
+    color: var(--danger);
   }
   #jobOrderTab .record-actions,
   #officialBusinessTab .record-actions {
@@ -803,11 +815,32 @@
   }
   .punch-employee-header {
     display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    grid-template-columns: repeat(5, minmax(110px, 1fr));
     gap: 10px;
     padding: 12px 14px;
     background: #f8fafc;
     border-bottom: 1px solid var(--line);
+  }
+  .punch-employee-metrics {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px dashed #d0d5dd;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .punch-employee-metrics strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .punch-employee-metrics .metric-pill {
+    display: inline-flex;
+    gap: 4px;
+    align-items: baseline;
   }
   .punch-employee-header label {
     display: block;
@@ -818,6 +851,11 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
+  .punch-employee-header .field-readonly {
+    background: #eef2f6;
+    color: var(--ink);
+    cursor: default;
+  }
   .punch-grid-wrap {
     overflow-x: auto;
     padding: 0;
@@ -825,7 +863,7 @@
   .punch-grid {
     width: 100%;
     border-collapse: collapse;
-    min-width: 560px;
+    min-width: 920px;
   }
   .punch-grid th,
   .punch-grid td {
@@ -854,6 +892,25 @@
     color: var(--muted);
     font-size: 0.78rem;
   }
+  .punch-grid .punch-metric-col {
+    min-width: 4.2rem;
+    background: #f8fafc;
+    font-size: 0.78rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .punch-grid .punch-undertime-col {
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .punch-grid .punch-absent-col {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .punch-grid .punch-absent-col.is-absent {
+    color: #b42318;
+  }
   .punch-grid td input {
     width: 100%;
     min-width: 64px;
@@ -874,6 +931,9 @@
   }
   .punch-grid tbody tr:nth-child(even) {
     background: #fafbfc;
+  }
+  .punch-grid tbody tr.is-absent-row {
+    background: #fff5f5;
   }
   .punch-slot-legend {
     display: flex;
@@ -936,11 +996,8 @@
         <span class="tab-icon">👤</span> Employee Records
         <span class="tab-badge">{{ employee_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="attendanceTab">
-        <span class="tab-icon">⏰</span> Attendance
-      </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="punchSheetsTab">
-        <span class="tab-icon">📊</span> Punch Sheets
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="attendanceSheetsTab">
+        <span class="tab-icon">📊</span> Attendance Sheets
         <span class="tab-badge">{{ punch_sheets|length }}</span>
       </button>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="requestsTab">
@@ -954,6 +1011,10 @@
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="jobOrderTab">
         <span class="tab-icon">🧾</span> Job Orders
         <span class="tab-badge">{{ job_order_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
+        <span class="tab-icon">⏸</span> Idle Days
+        <span class="tab-badge">{{ idle_jobs_affected }}</span>
       </button>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="officialBusinessTab">
         <span class="tab-icon">🧳</span> Official Business
@@ -975,7 +1036,7 @@
     <div class="sidebar-stats">
       <div class="stat-row"><span>Total employees</span><strong>{{ employee_count }}</strong></div>
       <div class="stat-row"><span>Active</span><strong>{{ active_employee_count }}</strong></div>
-      <div class="stat-row"><span>Departments</span><strong>{{ departments|length }}</strong></div>
+      <div class="stat-row"><span>Companies</span><strong>{{ companies|length }}</strong></div>
       <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
       <div class="stat-row"><span>Payroll runs</span><strong>{{ runs|length }}</strong></div>
@@ -1016,17 +1077,17 @@
         <p>Add employees here. They will automatically be included when you compute payroll.</p>
 
         <div class="form-section">
-          <h4>Setup: Department &amp; Position</h4>
-          <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Create at least one department and position before adding an employee.</p>
+          <h4>Setup: Company &amp; Position</h4>
+          <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Create at least one company and position before adding an employee.</p>
           <div class="form-row">
             <form method="post" class="form-row" style="flex:1 1 260px;">
               {% csrf_token %}
-              <input type="hidden" name="action" value="create_department">
+              <input type="hidden" name="action" value="create_company">
               <div class="form-field" style="flex:1;">
-                <label for="department_name">New Department</label>
-                <input type="text" id="department_name" name="department_name" class="field-input" placeholder="e.g. Operations" required>
+                <label for="company_name">New Company</label>
+                <input type="text" id="company_name" name="company_name" class="field-input uppercase-input" placeholder="e.g. VERSATEC" required autocomplete="organization">
               </div>
-              <button type="submit" class="action btn-primary">+ Add Department</button>
+              <button type="submit" class="action btn-primary">+ Add Company</button>
             </form>
             <form method="post" class="form-row" style="flex:1 1 260px;">
               {% csrf_token %}
@@ -1043,44 +1104,33 @@
         <div class="form-section">
           <h4>Add Employee</h4>
           <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Employee ID will be assigned automatically (next: <strong>{{ next_employee_id }}</strong>).</p>
-          {% if not departments or not positions %}
-          <p style="margin:0;color:var(--muted);font-size:0.88rem;">Add a department and position above first.</p>
+          {% if not companies or not positions %}
+          <p style="margin:0;color:var(--muted);font-size:0.88rem;">Add a company and position above first.</p>
           {% else %}
           <form method="post">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_employee">
             <div class="form-grid">
               <div class="form-field">
-                <label for="id_first_name">First Name *</label>
-                {{ employee_form.first_name }}
-              </div>
-              <div class="form-field">
                 <label for="id_last_name">Last Name *</label>
                 {{ employee_form.last_name }}
               </div>
               <div class="form-field">
-                <label for="id_birth_date">Birth Date *</label>
-                {{ employee_form.birth_date }}
+                <label for="id_first_name">First Name *</label>
+                {{ employee_form.first_name }}
               </div>
               <div class="form-field">
-                <label for="id_hire_date">Hire Date *</label>
-                {{ employee_form.hire_date }}
-              </div>
-              <div class="form-field">
-                <label for="id_department">Department *</label>
-                {{ employee_form.department }}
+                <label for="id_company">Company *</label>
+                {{ employee_form.company }}
               </div>
               <div class="form-field">
                 <label for="id_position">Position *</label>
                 {{ employee_form.position }}
               </div>
               <div class="form-field">
-                <label for="id_base_salary">Base Salary (₱) *</label>
-                {{ employee_form.base_salary }}
-              </div>
-              <div class="form-field">
-                <label for="id_salary_frequency">Salary Frequency *</label>
-                {{ employee_form.salary_frequency }}
+                <label for="id_daily_rate">Daily Rate (₱)</label>
+                {{ employee_form.daily_rate }}
+                <small style="color:var(--muted);font-size:0.75rem;">Used for payroll and idle-day estimates (default ₱525).</small>
               </div>
             </div>
             <div style="margin-top:16px;display:flex;justify-content:flex-end;">
@@ -1096,10 +1146,9 @@
               <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Department</th>
+                <th>Company</th>
                 <th>Position</th>
-                <th>Salary</th>
-                <th>Frequency</th>
+                <th>Daily Rate</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -1108,10 +1157,9 @@
               <tr>
                 <td>{{ employee.employee_id }}</td>
                 <td>{{ employee.full_name }}</td>
-                <td>{{ employee.department.name }}</td>
+                <td>{{ employee.company.name }}</td>
                 <td>{{ employee.position.title }}</td>
-                <td>₱{{ employee.base_salary|floatformat:2 }}</td>
-                <td>{{ employee.get_salary_frequency_display }}</td>
+                <td>₱{{ employee.daily_rate|floatformat:2 }}</td>
                 <td>
                   {% if employee.termination_date %}
                   <span class="status-chip status-terminated">Terminated</span>
@@ -1122,7 +1170,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="7" style="text-align:center;color:#667085;padding:24px;">No employees yet. Add a department, position, then create an employee.</td>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No employees yet. Add a company, position, then create an employee.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -1131,153 +1179,14 @@
       </div>
     </div>
 
-    <!-- Attendance -->
-    <div id="attendanceTab" class="tab-panel">
-      <div class="panel">
-        <h2>Attendance</h2>
-        <p>Daily logs, absences, leaves, and schedule monitoring.</p>
-
-        <div class="hero-stats" style="margin:18px 0 4px;">
-          <div class="stat-card"><div class="stat-label">Present Today</div><div class="stat-value">{{ today_present }}</div></div>
-          <div class="stat-card"><div class="stat-label">Absent Today</div><div class="stat-value">{{ today_absent }}</div></div>
-          <div class="stat-card"><div class="stat-label">On Leave Today</div><div class="stat-value">{{ today_on_leave }}</div></div>
-        </div>
-
-        <div class="form-section">
-          <h4>Record / Correct Attendance</h4>
-          <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Log today's clock-in/out, or fix an existing entry — saving again for the same employee &amp; date updates that record.</p>
-          {% if not employees %}
-          <p style="margin:0;color:var(--muted);font-size:0.88rem;">Add an employee first before logging attendance.</p>
-          {% else %}
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="log_attendance">
-            <div class="form-grid">
-              <div class="form-field">
-                <label for="att_employee">Employee *</label>
-                <select id="att_employee" name="att_employee" class="field-input" required>
-                  <option value="">Select employee</option>
-                  {% for employee in employees %}
-                  <option value="{{ employee.id }}">{{ employee.full_name }} ({{ employee.employee_id }})</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="form-field">
-                <label for="att_date">Date *</label>
-                <input type="date" id="att_date" name="att_date" class="field-input" required>
-              </div>
-              <div class="form-field">
-                <label for="att_status">Status *</label>
-                <select id="att_status" name="att_status" class="field-input">
-                  {% for value, label in attendance_status_choices %}
-                  <option value="{{ value }}"{% if value == 'present' %} selected{% endif %}>{{ label }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="form-field">
-                <label for="att_clock_in">Clock In</label>
-                <input type="time" id="att_clock_in" name="att_clock_in" class="field-input">
-              </div>
-              <div class="form-field">
-                <label for="att_clock_out">Clock Out</label>
-                <input type="time" id="att_clock_out" name="att_clock_out" class="field-input">
-              </div>
-              <div class="form-field">
-                <label for="att_break_start">Break Start</label>
-                <input type="time" id="att_break_start" name="att_break_start" class="field-input">
-              </div>
-              <div class="form-field">
-                <label for="att_break_end">Break End</label>
-                <input type="time" id="att_break_end" name="att_break_end" class="field-input">
-              </div>
-              <div class="form-field full">
-                <label for="att_remarks">Remarks</label>
-                <input type="text" id="att_remarks" name="att_remarks" class="field-input" placeholder="e.g. Sick leave, late – traffic">
-              </div>
-            </div>
-            <div style="margin-top:16px;display:flex;justify-content:flex-end;">
-              <button type="submit" class="action btn-primary">Save Attendance</button>
-            </div>
-          </form>
-          {% endif %}
-        </div>
-
-        <form method="get" class="form-row" style="margin-bottom:12px;align-items:end;">
-          <input type="hidden" name="tab" value="attendanceTab">
-          <div class="form-field" style="flex:1 1 200px;">
-            <label for="att_employee_filter">Employee</label>
-            <select id="att_employee_filter" name="att_employee_filter" class="field-input">
-              <option value="">All employees</option>
-              {% for employee in employees %}
-              <option value="{{ employee.id }}"{% if att_employee_filter == employee.id|stringformat:"s" %} selected{% endif %}>{{ employee.full_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-field" style="flex:1 1 150px;">
-            <label for="att_date_from">From</label>
-            <input type="date" id="att_date_from" name="att_date_from" class="field-input" value="{{ att_date_from|date:'Y-m-d' }}">
-          </div>
-          <div class="form-field" style="flex:1 1 150px;">
-            <label for="att_date_to">To</label>
-            <input type="date" id="att_date_to" name="att_date_to" class="field-input" value="{{ att_date_to|date:'Y-m-d' }}">
-          </div>
-          <button type="submit" class="action">Filter</button>
-          <a href="?tab=attendanceTab" class="action">Reset</a>
-        </form>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th><th>Employee</th><th>Status</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Remarks</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for log in attendance_logs %}
-              <tr>
-                <td>{{ log.date|date:"Y-m-d" }}</td>
-                <td>{{ log.employee.full_name }}</td>
-                <td>
-                  <span class="status-chip" style="
-                    {% if log.status == 'present' %}background:#ecfdf3;color:#027a48;
-                    {% elif log.status == 'absent' %}background:#fef3f2;color:#b42318;
-                    {% elif log.status == 'leave' %}background:#fffaeb;color:#b54708;
-                    {% else %}background:#eff8ff;color:#175cd3;{% endif %}">
-                    {{ log.get_status_display }}
-                  </span>
-                </td>
-                <td>{{ log.clock_in|time:"H:i"|default:"–" }}</td>
-                <td>{{ log.clock_out|time:"H:i"|default:"–" }}</td>
-                <td>{{ log.hours_worked|default:"–" }}</td>
-                <td>{{ log.remarks|default:"–" }}</td>
-                <td>
-                  <form method="post" style="display:inline;" onsubmit="return confirm('Remove this attendance record?')">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="delete_attendance">
-                    <input type="hidden" name="attendance_id" value="{{ log.id }}">
-                    <button type="submit" class="action" style="padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No attendance records for this filter.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Punch Sheets -->
-    <div id="punchSheetsTab" class="tab-panel">
+    <!-- Attendance Sheets -->
+    <div id="attendanceSheetsTab" class="tab-panel">
       <div class="panel">
         <h2>Employee Attendance Sheets</h2>
         <p>Upload a biometric punch sheet (.xls), then review and edit the generated layout in the system.</p>
 
         <div class="punch-upload-box">
-          <h4 style="margin:0 0 8px;">Upload Punch Sheet</h4>
+          <h4 style="margin:0 0 8px;">Upload Attendance Sheet</h4>
           <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">
             Accepts the device export format (e.g. <code>01Punch-26-07.XLS</code>) with period title, employee ID/Name/Dept/Shift rows, and daily punch times.
           </p>
@@ -1316,7 +1225,7 @@
                 <td>{{ sheet.original_filename|default:"—" }}</td>
                 <td>{{ sheet.uploaded_at|date:"Y-m-d H:i" }}</td>
                 <td>
-                  <a class="action" href="?tab=punchSheetsTab&sheet={{ sheet.id }}" style="padding:4px 10px;">Edit</a>
+                  <a class="action" href="?tab=attendanceSheetsTab&sheet={{ sheet.id }}" style="padding:4px 10px;">Edit</a>
                   {% if sheet.source_file %}
                   <a class="action" href="{{ sheet.source_file.url }}" target="_blank" style="padding:4px 10px;">File</a>
                   {% endif %}
@@ -1365,15 +1274,19 @@
                 <input type="text" id="sheet_title" name="sheet_title" class="field-input" value="{{ selected_punch_sheet.title }}">
               </div>
               <button type="submit" class="action btn-primary">Save Changes</button>
-              <a class="action" href="?tab=punchSheetsTab">Close</a>
+              <a class="action" href="?tab=attendanceSheetsTab">Close</a>
             </div>
 
             {% for entry in selected_punch_sheet.entries.all %}
             <div class="punch-employee-block">
               <div class="punch-employee-header">
                 <div>
-                  <label for="entry_{{ entry.id }}_device_id">ID</label>
+                  <label for="entry_{{ entry.id }}_device_id">Device ID</label>
                   <input type="text" id="entry_{{ entry.id }}_device_id" name="entry_{{ entry.id }}_device_id" class="field-input" value="{{ entry.device_employee_id }}">
+                </div>
+                <div>
+                  <label>EMP ID</label>
+                  <input type="text" class="field-input field-readonly" value="{% if entry.linked_employee %}{{ entry.linked_employee.employee_id }}{% else %}—{% endif %}" readonly title="Linked from Employee Records by name">
                 </div>
                 <div>
                   <label for="entry_{{ entry.id }}_name">Name</label>
@@ -1387,6 +1300,20 @@
                   <label for="entry_{{ entry.id }}_shift">Shift</label>
                   <input type="text" id="entry_{{ entry.id }}_shift" name="entry_{{ entry.id }}_shift" class="field-input" value="{{ entry.shift }}">
                 </div>
+                <div class="punch-employee-metrics">
+                  {% if entry.metrics.is_mapped %}
+                  <span class="metric-pill">Company: <strong>{{ entry.metrics.company_name }}</strong></span>
+                  <span class="metric-pill">Expected: <strong>{{ entry.metrics.expected_morning_in }} / {{ entry.metrics.expected_morning_out }} / {{ entry.metrics.expected_afternoon_in }} / {{ entry.metrics.expected_afternoon_out }}</strong></span>
+                  <span class="metric-pill">Hourly rate: <strong>{{ entry.metrics.hourly_rate_display }}</strong></span>
+                  <span class="metric-pill">Total undertime: <strong>{{ entry.metrics.total_undertime_display }}</strong></span>
+                  <span class="metric-pill">Undertime deduction: <strong>{{ entry.metrics.undertime_deduction_display }}</strong></span>
+                  <span class="metric-pill">Absent days: <strong>{{ entry.metrics.absent_days }}</strong></span>
+                  <span class="metric-pill">Absence deduction: <strong>{{ entry.metrics.absence_deduction_display }}</strong></span>
+                  <span class="metric-pill">Total deduction: <strong>{{ entry.metrics.total_deduction_display }}</strong></span>
+                  {% else %}
+                  <span class="metric-pill">Mapped employee required for schedule / undertime</span>
+                  {% endif %}
+                </div>
               </div>
               <div class="punch-grid-wrap">
                 <table class="punch-grid">
@@ -1398,11 +1325,17 @@
                       <th>Morning Out</th>
                       <th>Afternoon In</th>
                       <th>Afternoon Out</th>
+                      <th>Exp AM In</th>
+                      <th>Exp AM Out</th>
+                      <th>Exp PM In</th>
+                      <th>Exp PM Out</th>
+                      <th>Undertime</th>
+                      <th>Absent</th>
                     </tr>
                   </thead>
                   <tbody>
                     {% for punch in entry.punches.all %}
-                    <tr>
+                    <tr{% if punch.metrics.is_absent %} class="is-absent-row"{% endif %}>
                       <td class="punch-day-col">{{ punch.day }}</td>
                       <td class="punch-date-col">
                         {% if punch.punch_date %}{{ punch.punch_date|date:"Y-m-d" }}{% else %}—{% endif %}
@@ -1443,6 +1376,18 @@
                           aria-label="Afternoon out for day {{ punch.day }}"
                         >
                       </td>
+                      <td class="punch-metric-col">{{ punch.metrics.expected_morning_in }}</td>
+                      <td class="punch-metric-col">{{ punch.metrics.expected_morning_out }}</td>
+                      <td class="punch-metric-col">{{ punch.metrics.expected_afternoon_in }}</td>
+                      <td class="punch-metric-col">{{ punch.metrics.expected_afternoon_out }}</td>
+                      <td class="punch-undertime-col">{{ punch.metrics.undertime_display }}</td>
+                      <td class="punch-absent-col{% if punch.metrics.is_absent %} is-absent{% endif %}">
+                        {% if punch.metrics.is_mapped %}
+                          {% if punch.metrics.is_absent %}Absent{% else %}—{% endif %}
+                        {% else %}
+                          —
+                        {% endif %}
+                      </td>
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -1466,7 +1411,7 @@
     <div id="requestsTab" class="tab-panel">
       <div class="panel">
         <h2>Leave Requests</h2>
-        <p>Submit leave requests on behalf of employees, then approve or reject them. Approving a request automatically marks the covered days as "On Leave" in Attendance.</p>
+        <p>Submit leave requests on behalf of employees, then approve or reject them. Approving a request marks the covered days as on leave.</p>
 
         <div class="form-section">
           <h4>New Leave Request</h4>
@@ -1704,18 +1649,39 @@
                 </div>
 
                 <div class="form-field full">
-                  <label>Name/s *</label>
+                  <label for="assignee_ids">Assignees (employees)</label>
+                  <select id="assignee_ids" name="assignee_ids" class="field-input" multiple size="6">
+                    {% for emp in active_employees_for_jo %}
+                    <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+                    {% empty %}
+                    <option value="" disabled>No active employees — add employees first</option>
+                    {% endfor %}
+                  </select>
+                  <small style="color:var(--muted);font-size:0.75rem;">Hold Ctrl/Cmd to select multiple. Selected employees are used for idle-day reports.</small>
+                </div>
+
+                <div class="form-field full">
+                  <label>Name/s (optional free text)</label>
                   <div class="repeatable-list" id="jobNamesList">
                     <div class="repeatable-row">
-                      <input type="text" name="assignee_names" class="field-input" placeholder="Full name" required>
+                      <input type="text" name="assignee_names" class="field-input" placeholder="Full name (if not selecting employees above)">
                       <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove name">✕</button>
                     </div>
                   </div>
                   <button type="button" class="action repeatable-add" id="jobAddName">+ Add name</button>
                 </div>
 
+                <div class="form-field">
+                  <label for="coverage_start">Coverage start</label>
+                  <input id="coverage_start" name="coverage_start" type="date" class="field-input">
+                </div>
+                <div class="form-field">
+                  <label for="coverage_end">Coverage end</label>
+                  <input id="coverage_end" name="coverage_end" type="date" class="field-input">
+                </div>
+
                 <div class="form-field full">
-                  <label>Date/s Covered</label>
+                  <label>Extra date/s covered (optional)</label>
                   <div class="repeatable-list" id="jobDatesList">
                     <div class="repeatable-row">
                       <input type="date" name="dates_covered" class="field-input">
@@ -1861,6 +1827,79 @@
       </div>
     </div>
 
+    <!-- Idle Days Report -->
+    <div id="idleDaysTab" class="tab-panel">
+      <div class="panel">
+        <h2>Idle Days Report</h2>
+        <p>Days assignees had no work on a job order (e.g. waiting for materials). Estimates only — payroll is not changed.</p>
+
+        <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:16px 0;">
+          <input type="hidden" name="tab" value="idleDaysTab">
+          <div class="form-field">
+            <label for="idle_from">From</label>
+            <input id="idle_from" type="date" name="idle_from" value="{{ idle_from }}" class="field-input">
+          </div>
+          <div class="form-field">
+            <label for="idle_to">To</label>
+            <input id="idle_to" type="date" name="idle_to" value="{{ idle_to }}" class="field-input">
+          </div>
+          <div class="form-field">
+            <label for="idle_job_order">Job order</label>
+            <select id="idle_job_order" name="idle_job_order" class="field-input">
+              <option value="">All</option>
+              {% for jo in idle_filter_job_orders %}
+              <option value="{{ jo.id }}" {% if idle_job_order_id == jo.id|stringformat:"s" %}selected{% endif %}>{{ jo.job_order_number }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="idle_employee">Employee</label>
+            <select id="idle_employee" name="idle_employee" class="field-input">
+              <option value="">All</option>
+              {% for emp in idle_filter_employees %}
+              <option value="{{ emp.id }}" {% if idle_employee_id == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="action btn-primary">Filter</button>
+          <a href="?tab=idleDaysTab" class="action">Reset</a>
+        </form>
+
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Uses each employee’s daily rate (default ₱525). Sundays are excluded from day counts.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job Order</th>
+                <th>Employee</th>
+                <th>Idle range(s)</th>
+                <th>Idle days</th>
+                <th>Est. daily rate</th>
+                <th>Est. wasted pay</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in idle_report_rows %}
+              <tr>
+                <td><a href="{% url 'view_job_order' row.job_order.id %}">{{ row.job_order.job_order_number }}</a></td>
+                <td>{% if row.employee %}{{ row.employee.full_name }}{% else %}<em style="color:#667085;">No assignees linked</em>{% endif %}</td>
+                <td>{{ row.ranges }}</td>
+                <td>{{ row.idle_day_count }}</td>
+                <td>₱{{ row.daily_rate }}</td>
+                <td>₱{{ row.estimated_waste }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No idle periods match this filter. Open a job order and add a wait range when materials delay work.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Official Business -->
     <div id="officialBusinessTab" class="tab-panel">
       <div class="panel">
@@ -1873,12 +1912,17 @@
               {% csrf_token %}
               <div class="form-grid">
                 <div class="form-field">
-                  <label for="ob_name">Name *</label>
-                  <input id="ob_name" name="name" class="field-input" required placeholder="Employee full name">
+                  <label for="ob_name">Employee *</label>
+                  <select id="ob_name" name="name" class="field-input" required>
+                    <option value="">Select employee</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.full_name }}" data-designation="{{ employee.position.title }}">{{ employee.full_name }} ({{ employee.employee_id }})</option>
+                    {% endfor %}
+                  </select>
                 </div>
                 <div class="form-field">
                   <label for="ob_designation">Designation</label>
-                  <input id="ob_designation" name="designation" class="field-input" placeholder="e.g. Field Technician">
+                  <input id="ob_designation" name="designation" class="field-input field-readonly" placeholder="Auto-filled from employee position" readonly>
                 </div>
                 <div class="form-field">
                   <label for="ob_application_date">Application Date *</label>
@@ -2062,11 +2106,11 @@
     const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
     const panels = {
       employeesTab: document.getElementById('employeesTab'),
-      attendanceTab: document.getElementById('attendanceTab'),
-      punchSheetsTab: document.getElementById('punchSheetsTab'),
+      attendanceSheetsTab: document.getElementById('attendanceSheetsTab'),
       requestsTab: document.getElementById('requestsTab'),
       documentsTab: document.getElementById('documentsTab'),
       jobOrderTab: document.getElementById('jobOrderTab'),
+      idleDaysTab: document.getElementById('idleDaysTab'),
       officialBusinessTab: document.getElementById('officialBusinessTab'),
       payrunsTab: document.getElementById('payrunsTab'),
       deductionsTab: document.getElementById('deductionsTab'),
@@ -2112,8 +2156,20 @@
     });
 
     const today = new Date().toISOString().slice(0, 10);
-    const hireDate = document.getElementById('id_hire_date');
-    if (hireDate && !hireDate.value) hireDate.value = today;
+
+    // Force CAPITAL LETTERS while typing on employee name / company fields
+    document.querySelectorAll(
+      '#employeesTab #company_name, #employeesTab #id_first_name, #employeesTab #id_last_name'
+    ).forEach((input) => {
+      input.addEventListener('input', function() {
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.toUpperCase();
+        if (typeof start === 'number' && typeof end === 'number') {
+          this.setSelectionRange(start, end);
+        }
+      });
+    });
 
     const attDate = document.getElementById('att_date');
     if (attDate && !attDate.value) attDate.value = today;
@@ -2128,6 +2184,17 @@
         lrEnd.min = lrStart.value;
       });
       lrEnd.min = lrStart.value;
+    }
+
+    const obName = document.getElementById('ob_name');
+    const obDesignation = document.getElementById('ob_designation');
+    if (obName && obDesignation) {
+      const syncObDesignation = () => {
+        const option = obName.options[obName.selectedIndex];
+        obDesignation.value = option ? (option.dataset.designation || '') : '';
+      };
+      obName.addEventListener('change', syncObDesignation);
+      syncObDesignation();
     }
 
     // ── Document forms: live preview + repeatable rows ──
@@ -2165,8 +2232,37 @@
         updateRepeatablePreview(panel, 'assignee_names', 'input[name="assignee_names"]', false);
         return;
       }
-      if (field.name === 'dates_covered') {
-        updateRepeatablePreview(panel, 'dates_covered', 'input[name="dates_covered"]', true);
+      if (field.name === 'assignee_ids') {
+        const selected = [...field.selectedOptions].map((opt) => opt.textContent.trim()).filter(Boolean);
+        const freeText = [...panel.querySelectorAll('input[name="assignee_names"]')]
+          .map((input) => input.value.trim())
+          .filter(Boolean);
+        const values = [...selected, ...freeText];
+        panel.querySelectorAll('[data-preview="assignee_names"]').forEach((target) => {
+          target.textContent = values.length ? values.join(', ') : '—';
+        });
+        return;
+      }
+      if (field.name === 'dates_covered' || field.name === 'coverage_start' || field.name === 'coverage_end') {
+        const start = panel.querySelector('#coverage_start')?.value;
+        const end = panel.querySelector('#coverage_end')?.value;
+        let coverageLabel = '—';
+        if (start && end) {
+          coverageLabel = `${formatPreviewDate(start)} – ${formatPreviewDate(end)}`;
+        } else if (start) {
+          coverageLabel = formatPreviewDate(start);
+        } else if (end) {
+          coverageLabel = formatPreviewDate(end);
+        } else {
+          const values = [...panel.querySelectorAll('input[name="dates_covered"]')]
+            .map((input) => input.value.trim())
+            .filter(Boolean)
+            .map((value) => formatPreviewDate(value));
+          coverageLabel = values.length ? values.join(', ') : '—';
+        }
+        panel.querySelectorAll('[data-preview="dates_covered"]').forEach((target) => {
+          target.textContent = coverageLabel;
+        });
         return;
       }
       if (field.name === 'ob_dates') {
@@ -2184,7 +2280,7 @@
       });
     }
 
-    function setupRepeatableList(listId, addBtnId, inputType, inputName, placeholder) {
+    function setupRepeatableList(listId, addBtnId, inputType, inputName, placeholder, requireFirst = false) {
       const list = document.getElementById(listId);
       const addBtn = document.getElementById(addBtnId);
       if (!list || !addBtn) return;
@@ -2196,7 +2292,7 @@
           const removeBtn = row.querySelector('[data-remove-row]');
           if (removeBtn) removeBtn.hidden = rows.length === 1;
           const input = row.querySelector('input');
-          if (input && index === 0 && inputType === 'text') {
+          if (input && index === 0 && inputType === 'text' && requireFirst) {
             input.required = true;
           } else if (input) {
             input.required = false;
@@ -2269,7 +2365,7 @@
 
     setupDocPanel(document.getElementById('jobOrderTab'), 'date_filed', 'jobOrderForm');
     setupDocPanel(document.getElementById('officialBusinessTab'), 'ob_application_date', 'obForm');
-    setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name');
+    setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name (if not selecting employees above)', false);
     setupRepeatableList('jobDatesList', 'jobAddDate', 'date', 'dates_covered', '');
     setupRepeatableList('obDatesList', 'obAddDate', 'date', 'ob_dates', '');
 
@@ -2287,6 +2383,52 @@
         }
       });
     });
+
+    // Prefill next 10th / 25th semi-monthly pay period
+    (function prefillNextPayrollCycle() {
+      const startInput = document.getElementById('period_start_date');
+      const endInput = document.getElementById('period_end_date');
+      const payInput = document.getElementById('period_pay_date');
+      if (!startInput || !endInput || !payInput) return;
+      if (startInput.value || endInput.value || payInput.value) return;
+
+      function iso(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const day = today.getDate();
+
+      let start;
+      let end;
+      let pay;
+      if (day <= 10) {
+        // Next pay: 10th — coverage 26th previous month through 10th
+        start = new Date(y, m - 1, 26);
+        end = new Date(y, m, 10);
+        pay = new Date(y, m, 10);
+      } else if (day <= 25) {
+        // Next pay: 25th — coverage 11th through 25th
+        start = new Date(y, m, 11);
+        end = new Date(y, m, 25);
+        pay = new Date(y, m, 25);
+      } else {
+        // Next pay: 10th next month — coverage 26th through 10th next month
+        start = new Date(y, m, 26);
+        end = new Date(y, m + 1, 10);
+        pay = new Date(y, m + 1, 10);
+      }
+
+      startInput.value = iso(start);
+      endInput.value = iso(end);
+      payInput.value = iso(pay);
+    })();
   })();
 </script>
 {% endblock %}

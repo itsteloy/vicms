@@ -2,10 +2,11 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Department, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
+from .attendance_sheet_metrics import annotate_attendance_sheet
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -22,7 +23,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from .po_pdf import build_purchase_order_pdf
-from .forms import EmployeeForm, JobOrderForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, TravelOrderFormForm, ServiceRepairReportForm
+from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q, OuterRef, Subquery
@@ -252,15 +253,15 @@ def hr_dashboard(request):
         if action in PAYROLL_POST_ACTIONS:
             return _process_payroll_post(request)
 
-        if action == 'create_department':
-            name = request.POST.get('department_name', '').strip()
+        if action == 'create_company':
+            name = request.POST.get('company_name', '').strip()
             if not name:
-                messages.error(request, 'Department name is required.')
-            elif Department.objects.filter(name__iexact=name).exists():
-                messages.warning(request, f'Department "{name}" already exists.')
+                messages.error(request, 'Company name is required.')
+            elif Company.objects.filter(name__iexact=name).exists():
+                messages.warning(request, f'Company "{name}" already exists.')
             else:
-                Department.objects.create(name=name)
-                messages.success(request, f'Department "{name}" created.')
+                Company.objects.create(name=name)
+                messages.success(request, f'Company "{name}" created.')
             return redirect(f"{reverse('hr_dashboard')}?tab=employeesTab")
 
         if action == 'create_position':
@@ -369,7 +370,7 @@ def hr_dashboard(request):
                     },
                 )
                 messages.success(request, f'Attendance for {employee.full_name} on {parsed_date} saved.')
-            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceTab")
+            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
         # Remove an incorrect attendance log
         if action == 'delete_attendance':
@@ -377,25 +378,25 @@ def hr_dashboard(request):
             if att_id:
                 AttendanceLog.objects.filter(pk=att_id).delete()
                 messages.success(request, 'Attendance record removed.')
-            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceTab")
+            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
         # Upload biometric punch sheet (.xls) and generate editable layout
         if action == 'upload_punch_sheet':
             uploaded = request.FILES.get('punch_sheet_file')
             if not uploaded:
                 messages.error(request, 'Please choose an attendance sheet (.xls) file to upload.')
-                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+                return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
             filename = (uploaded.name or '').lower()
             if not (filename.endswith('.xls') or filename.endswith('.xml')):
                 messages.error(request, 'Only .xls attendance sheet exports are supported.')
-                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+                return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
             try:
                 parsed = parse_attendance_sheet_file(uploaded)
             except AttendanceSheetParseError as exc:
                 messages.error(request, str(exc))
-                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+                return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
             with transaction.atomic():
                 sheet = AttendanceSheet.objects.create(
@@ -430,11 +431,18 @@ def hr_dashboard(request):
                         for idx, punch in enumerate(emp.get('punches') or [])
                     ])
 
+                from .employee_name_match import link_attendance_entries
+                link_result = link_attendance_entries(
+                    list(sheet.entries.all()),
+                    clear_existing=False,
+                )
+
             messages.success(
                 request,
-                f'Punch sheet imported with {len(parsed["employees"])} employee(s). You can edit the layout below.',
+                f'Attendance sheet imported with {len(parsed["employees"])} row(s); '
+                f'{link_result["linked"]} linked to EMP IDs. You can edit the layout below.',
             )
-            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab&sheet={sheet.id}")
+            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab&sheet={sheet.id}")
 
         # Save edits to an imported punch sheet layout
         if action == 'save_punch_sheet':
@@ -442,7 +450,7 @@ def hr_dashboard(request):
             sheet = AttendanceSheet.objects.filter(pk=sheet_id).first()
             if not sheet:
                 messages.error(request, 'Punch sheet not found.')
-                return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+                return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
             title = request.POST.get('sheet_title', '').strip() or sheet.title
             with transaction.atomic():
@@ -467,8 +475,11 @@ def hr_dashboard(request):
                             'morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'punch_times',
                         ])
 
-            messages.success(request, 'Punch sheet saved.')
-            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab&sheet={sheet.id}")
+                from .employee_name_match import link_attendance_entries
+                link_attendance_entries(list(sheet.entries.all()), clear_existing=True)
+
+            messages.success(request, 'Attendance sheet saved and EMP links refreshed.')
+            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab&sheet={sheet.id}")
 
         # Delete an imported punch sheet
         if action == 'delete_punch_sheet':
@@ -479,7 +490,7 @@ def hr_dashboard(request):
                 messages.success(request, 'Punch sheet deleted.')
             else:
                 messages.error(request, 'Punch sheet not found.')
-            return redirect(f"{reverse('hr_dashboard')}?tab=punchSheetsTab")
+            return redirect(f"{reverse('hr_dashboard')}?tab=attendanceSheetsTab")
 
         # Submit a new leave request on behalf of an employee
         if action == 'create_leave_request':
@@ -566,7 +577,7 @@ def hr_dashboard(request):
             messages.success(request, 'Leave request deleted.')
             return redirect(f"{reverse('hr_dashboard')}?tab=requestsTab")
 
-    employees = Employee.objects.select_related('department', 'position').order_by('last_name', 'first_name')
+    employees = Employee.objects.select_related('company', 'position').order_by('last_name', 'first_name')
     active_employee_count = employees.filter(termination_date__isnull=True).count()
     documents = HRDocument.objects.all()
 
@@ -602,10 +613,14 @@ def hr_dashboard(request):
     punch_sheet_id = request.GET.get('sheet', '').strip()
     if punch_sheet_id:
         selected_punch_sheet = (
-            AttendanceSheet.objects.prefetch_related('entries__punches')
+            AttendanceSheet.objects.prefetch_related(
+                'entries__punches',
+                'entries__linked_employee__company',
+            )
             .filter(pk=punch_sheet_id)
             .first()
         )
+        selected_punch_sheet = annotate_attendance_sheet(selected_punch_sheet)
 
     # ── Requests tab: leave requests ──
     leave_requests = LeaveRequest.objects.select_related('employee').order_by('-submitted_at')[:200]
@@ -620,7 +635,7 @@ def hr_dashboard(request):
             'document_types': HRDocument.DOCUMENT_TYPES,
             'status_choices': HRDocument.STATUS_CHOICES,
             'employees': employees,
-            'departments': Department.objects.order_by('name'),
+            'companies': Company.objects.order_by('name'),
             'positions': Position.objects.order_by('title'),
             'employee_count': employees.count(),
             'active_employee_count': active_employee_count,
@@ -640,11 +655,12 @@ def hr_dashboard(request):
             'leave_requests': leave_requests,
             'leave_type_choices': LeaveBalance.LEAVE_TYPES,
             'pending_leave_count': pending_leave_count,
-            'job_orders': JobOrder.objects.all()[:8],
+            'job_orders': JobOrder.objects.prefetch_related('assignees', 'idle_periods').all()[:8],
             'job_order_count': JobOrder.objects.count(),
             'next_job_order_number': JobOrder.generate_job_order_number(),
             'official_business_forms': OfficialBusinessForm.objects.all()[:8],
             'official_business_count': OfficialBusinessForm.objects.count(),
+            **_build_idle_days_report(request),
             **_payroll_dashboard_context(),
         },
     )
@@ -1431,7 +1447,7 @@ def _process_payroll_post(request):
         start_date = request.POST.get('start_date', '').strip()
         end_date = request.POST.get('end_date', '').strip()
         pay_date = request.POST.get('pay_date', '').strip()
-        period_type = request.POST.get('period_type', 'monthly').strip()
+        period_type = request.POST.get('period_type', 'semi-monthly').strip()
 
         if not all([start_date, end_date, pay_date]):
             messages.error(request, 'Start date, end date, and pay date are required.')
@@ -1449,7 +1465,7 @@ def _process_payroll_post(request):
                         start_date=start,
                         end_date=end,
                         pay_date=pay,
-                        period_type=period_type if period_type in ('monthly', 'semi-monthly') else 'monthly',
+                        period_type=period_type if period_type in ('monthly', 'semi-monthly') else 'semi-monthly',
                     )
                     messages.success(
                         request,
@@ -1512,20 +1528,8 @@ def _process_payroll_post(request):
 
                     computed_count = 0
                     for emp in employees:
-                        if emp.hire_date > run.cutoff_end:
-                            continue
-
-                        if emp.hire_date > run.cutoff_start:
-                            working_days_in_month = Decimal('22')
-                            days_worked = (run.cutoff_end - max(emp.hire_date, run.cutoff_start)).days + 1
-                            if days_worked < 0:
-                                days_worked = 0
-                            prorated = Decimal(days_worked) / working_days_in_month
-                            base_pay = emp.base_salary * prorated
-                        elif emp.salary_frequency == 'monthly':
-                            base_pay = emp.base_salary
-                        else:
-                            base_pay = emp.base_salary * Decimal('0.5')
+                        payable_days = idle_calendar_days(run.cutoff_start, run.cutoff_end)
+                        base_pay = (estimated_daily_rate(emp) * Decimal(len(payable_days))).quantize(Decimal('0.01'))
 
                         logs = get_attendance_for_period(emp, run.cutoff_start, run.cutoff_end)
                         total_regular = Decimal('0')
@@ -1539,7 +1543,8 @@ def _process_payroll_post(request):
                                 total_regular += regular
                                 total_overtime += overtime
 
-                        hourly_rate = base_pay / Decimal('22') / Decimal('8')
+                        daily = estimated_daily_rate(emp)
+                        hourly_rate = (daily / Decimal('8')) if daily else Decimal('0')
                         overtime_pay = total_overtime * hourly_rate * Decimal('1.25')
                         gross_pay = base_pay + overtime_pay + holiday_pay
 
@@ -2257,28 +2262,53 @@ def create_job_order(request):
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Job Order fields.')
         return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
-    names = '\n'.join(
+
+    assignee_ids = [aid for aid in request.POST.getlist('assignee_ids') if aid.strip()]
+    free_text_names = [
         name.strip()
         for name in request.POST.getlist('assignee_names')
         if name.strip()
-    )
-    dates_covered = '\n'.join(
+    ]
+    coverage_start = parse_date(request.POST.get('coverage_start', '').strip() or '')
+    coverage_end = parse_date(request.POST.get('coverage_end', '').strip() or '')
+    if coverage_start and coverage_end and coverage_end < coverage_start:
+        messages.error(request, 'Coverage end must be on or after coverage start.')
+        return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+
+    dates_covered_lines = [
         date_value.strip()
         for date_value in request.POST.getlist('dates_covered')
         if date_value.strip()
-    )
+    ]
+    if coverage_start and coverage_end:
+        dates_covered = f'{coverage_start.isoformat()}\n{coverage_end.isoformat()}'
+    elif coverage_start:
+        dates_covered = coverage_start.isoformat()
+    elif coverage_end:
+        dates_covered = coverage_end.isoformat()
+    else:
+        dates_covered = '\n'.join(dates_covered_lines)
+
     try:
-        JobOrder.objects.create(
+        order = JobOrder.objects.create(
             job_order_number=request.POST.get('job_order_number', '').strip() or JobOrder.generate_job_order_number(),
-            names=names,
+            names='\n'.join(free_text_names),
             date_filed=request.POST['date_filed'],
             dates_covered=dates_covered,
+            coverage_start=coverage_start,
+            coverage_end=coverage_end,
             area_assignment=request.POST.get('area_assignment', '').strip(),
             job_description=request.POST['job_description'].strip(),
             prepared_by=request.POST.get('prepared_by', '').strip(),
             noted_by=request.POST.get('noted_by', '').strip(),
             approved_by=request.POST.get('approved_by', '').strip(),
         )
+        if assignee_ids:
+            employees = Employee.objects.filter(
+                pk__in=assignee_ids, termination_date__isnull=True,
+            )
+            order.assignees.set(employees)
+            order.sync_legacy_text_fields()
         messages.success(request, 'Job Order saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save job order: {exc}')
@@ -2398,10 +2428,19 @@ def create_official_business_form(request):
     )
     time_departure = request.POST.get('time_departure', '').strip() or None
     time_return = request.POST.get('time_return', '').strip() or None
+    employee_name = request.POST['name'].strip()
+    designation = request.POST.get('designation', '').strip()
+    if not designation:
+        matched_employee = next(
+            (emp for emp in Employee.objects.select_related('position').all() if emp.full_name == employee_name),
+            None,
+        )
+        if matched_employee:
+            designation = matched_employee.position.title
     try:
         OfficialBusinessForm.objects.create(
-            name=request.POST['name'].strip(),
-            designation=request.POST.get('designation', '').strip(),
+            name=employee_name,
+            designation=designation,
             application_date=request.POST['application_date'],
             ob_dates=ob_dates,
             destination=request.POST.get('destination', '').strip(),
@@ -2576,6 +2615,122 @@ SERVICE_FIELD_LABELS = {
 }
 
 
+def _build_idle_days_report(request):
+    """Build report rows for job-order idle periods (report-only; no payroll impact)."""
+    idle_from = parse_date(request.GET.get('idle_from', '').strip() or '')
+    idle_to = parse_date(request.GET.get('idle_to', '').strip() or '')
+    idle_job_order_id = request.GET.get('idle_job_order', '').strip()
+    idle_employee_id = request.GET.get('idle_employee', '').strip()
+
+    periods = JobOrderIdlePeriod.objects.select_related('job_order').prefetch_related(
+        'job_order__assignees',
+    )
+    if idle_job_order_id:
+        periods = periods.filter(job_order_id=idle_job_order_id)
+    if idle_from:
+        periods = periods.filter(end_date__gte=idle_from)
+    if idle_to:
+        periods = periods.filter(start_date__lte=idle_to)
+
+    # employee_id -> {job_order, days set, ranges list, employee}
+    buckets = {}
+    jobs_affected = set()
+
+    for period in periods:
+        period_days = set(period.idle_days())
+        if idle_from or idle_to:
+            filtered = set()
+            for day in period_days:
+                if idle_from and day < idle_from:
+                    continue
+                if idle_to and day > idle_to:
+                    continue
+                filtered.add(day)
+            period_days = filtered
+        if not period_days:
+            continue
+
+        assignees = list(period.job_order.assignees.all())
+        if idle_employee_id:
+            assignees = [e for e in assignees if str(e.pk) == idle_employee_id]
+            if not assignees:
+                continue
+
+        jobs_affected.add(period.job_order_id)
+        range_label = f'{period.start_date.isoformat()} – {period.end_date.isoformat()}'
+
+        if not assignees:
+            key = (period.job_order_id, None)
+            bucket = buckets.setdefault(key, {
+                'job_order': period.job_order,
+                'employee': None,
+                'days': set(),
+                'ranges': [],
+            })
+            bucket['days'] |= period_days
+            if range_label not in bucket['ranges']:
+                bucket['ranges'].append(range_label)
+            continue
+
+        for emp in assignees:
+            key = (period.job_order_id, emp.pk)
+            bucket = buckets.setdefault(key, {
+                'job_order': period.job_order,
+                'employee': emp,
+                'days': set(),
+                'ranges': [],
+            })
+            bucket['days'] |= period_days
+            if range_label not in bucket['ranges']:
+                bucket['ranges'].append(range_label)
+
+    rows = []
+    total_idle_days = 0
+    total_estimated_waste = Decimal('0.00')
+
+    for bucket in buckets.values():
+        day_count = len(bucket['days'])
+        emp = bucket['employee']
+        daily_rate = estimated_daily_rate(emp) if emp else Decimal('0.00')
+        estimated_waste = (daily_rate * day_count).quantize(Decimal('0.01'))
+        total_idle_days += day_count
+        total_estimated_waste += estimated_waste
+        rows.append({
+            'job_order': bucket['job_order'],
+            'employee': emp,
+            'ranges': ', '.join(bucket['ranges']),
+            'idle_day_count': day_count,
+            'daily_rate': daily_rate,
+            'estimated_waste': estimated_waste,
+        })
+
+    rows.sort(
+        key=lambda r: (
+            r['job_order'].job_order_number,
+            (r['employee'].last_name if r['employee'] else ''),
+            (r['employee'].first_name if r['employee'] else ''),
+        )
+    )
+
+    return {
+        'idle_report_rows': rows,
+        'idle_total_days': total_idle_days,
+        'idle_total_waste': total_estimated_waste,
+        'idle_jobs_affected': len(jobs_affected),
+        'idle_from': idle_from.isoformat() if idle_from else '',
+        'idle_to': idle_to.isoformat() if idle_to else '',
+        'idle_job_order_id': idle_job_order_id,
+        'idle_employee_id': idle_employee_id,
+        'idle_filter_job_orders': JobOrder.objects.order_by('-date_filed')[:200],
+        'idle_filter_employees': Employee.objects.filter(termination_date__isnull=True).order_by(
+            'last_name', 'first_name',
+        ),
+        'active_employees_for_jo': Employee.objects.filter(termination_date__isnull=True).order_by(
+            'last_name', 'first_name',
+        ),
+    }
+
+
 def _service_record_context(record, document_type):
     fields = []
     for label, attribute in SERVICE_FIELD_LABELS[document_type]:
@@ -2631,8 +2786,15 @@ def delete_service_repair_report(request, report_id):
 
 @login_required
 def view_job_order(request, order_id):
-    return render(request, 'service_document_detail.html', _service_record_context(
-        get_object_or_404(JobOrder, pk=order_id), 'job'))
+    order = get_object_or_404(
+        JobOrder.objects.prefetch_related('assignees', 'idle_periods'),
+        pk=order_id,
+    )
+    context = _service_record_context(order, 'job')
+    context['idle_periods'] = order.idle_periods.all()
+    context['idle_period_form'] = JobOrderIdlePeriodForm(job_order=order)
+    context['idle_reason_choices'] = JobOrderIdlePeriod.REASON_CHOICES
+    return render(request, 'service_document_detail.html', context)
 
 
 @login_required
@@ -2652,6 +2814,38 @@ def delete_job_order(request, order_id):
     get_object_or_404(JobOrder, pk=order_id).delete()
     messages.success(request, 'Job Order deleted.')
     return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+
+
+@login_required
+@require_POST
+def add_job_order_idle_period(request, order_id):
+    order = get_object_or_404(JobOrder, pk=order_id)
+    form = JobOrderIdlePeriodForm(request.POST, job_order=order)
+    if form.is_valid():
+        period = form.save(commit=False)
+        period.job_order = order
+        period.save()
+        messages.success(
+            request,
+            f'Idle period recorded: {period.start_date} – {period.end_date} '
+            f'({period.idle_day_count} day(s), Sundays excluded).',
+        )
+    else:
+        for field, errors in form.errors.items():
+            label = 'Idle period' if field == '__all__' else field.replace('_', ' ').title()
+            for error in errors:
+                messages.error(request, f'{label}: {error}')
+    return redirect('view_job_order', order_id=order.id)
+
+
+@login_required
+@require_POST
+def delete_job_order_idle_period(request, order_id, period_id):
+    order = get_object_or_404(JobOrder, pk=order_id)
+    period = get_object_or_404(JobOrderIdlePeriod, pk=period_id, job_order=order)
+    period.delete()
+    messages.success(request, 'Idle period removed.')
+    return redirect('view_job_order', order_id=order.id)
 
 
 @login_required

@@ -2,12 +2,15 @@
     <div id="payrunsTab" class="tab-panel">
       <div class="panel">
         <h2>Pay Runs</h2>
-        <p>Create pay periods, run payroll, compute, approve, and disburse.</p>
+        <p>Payroll is semi-monthly — pay dates are the <strong>10th</strong> and <strong>25th</strong> of each month. Create the matching pay period, then run, compute, approve, and disburse.</p>
 
         <!-- Create pay period -->
         <div class="form-section">
           <h4>Create Pay Period</h4>
-          <form method="post" class="form-row">
+          <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">
+            Suggested cycles: <strong>26th–10th</strong> (pay on the 10th) and <strong>11th–25th</strong> (pay on the 25th). Dates below are prefilled for the next upcoming cycle.
+          </p>
+          <form method="post" class="form-row" id="createPayPeriodForm">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_pay_period">
             <div class="form-field">
@@ -19,14 +22,14 @@
               <input type="date" id="period_end_date" name="end_date" required class="field-input">
             </div>
             <div class="form-field">
-              <label for="period_pay_date">Pay Date</label>
+              <label for="period_pay_date">Pay Date (10th or 25th)</label>
               <input type="date" id="period_pay_date" name="pay_date" required class="field-input">
             </div>
             <div class="form-field">
               <label for="period_type">Period Type</label>
               <select id="period_type" name="period_type" class="field-input">
+                <option value="semi-monthly" selected>Semi-monthly (10th &amp; 25th)</option>
                 <option value="monthly">Monthly</option>
-                <option value="semi-monthly">Semi-monthly</option>
               </select>
             </div>
             <button type="submit" class="action btn-primary">+ Create Pay Period</button>
