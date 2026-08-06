@@ -660,6 +660,8 @@ def hr_dashboard(request):
             'next_job_order_number': JobOrder.generate_job_order_number(),
             'official_business_forms': OfficialBusinessForm.objects.all()[:8],
             'official_business_count': OfficialBusinessForm.objects.count(),
+            'travel_order_forms': TravelOrderForm.objects.all()[:8],
+            'travel_order_count': TravelOrderForm.objects.count(),
             **_build_idle_days_report(request),
             **_payroll_dashboard_context(),
         },
@@ -908,7 +910,16 @@ def sales_dashboard(request):
     history_page = request.GET.get('history_page', 1)
     history_page_obj = history_paginator.get_page(history_page)
     active_tab = 'sales-tab'  # default
-    if any([start_date, end_date, customer, item_name, refund_status]):
+    tab_param = (request.GET.get('tab') or '').strip()
+    valid_sales_tabs = {
+        'sales-tab', 'history-tab', 'refund-tab', 'analytics-tab',
+        'product-quotation-tab', 'service-quotation-tab', 'collection-form-tab',
+        'ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab',
+        'saved-documents-tab', 'delivery-receipt-tab',
+    }
+    if tab_param in valid_sales_tabs:
+        active_tab = tab_param
+    elif any([start_date, end_date, customer, item_name, refund_status]):
         active_tab = 'history-tab'
 
     recent_quotations = Quotation.objects.all()[:10]
@@ -955,6 +966,9 @@ def sales_dashboard(request):
             'saved_documents_page': saved_documents_page,
             'saved_document_types': SalesDocumentArchive.DOCUMENT_TYPES,
             'saved_doc_type_filter': doc_type_filter,
+            'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
+            'delivery_receipt_count': DeliveryReceipt.objects.count(),
+            'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
         },
     )
 
@@ -2216,16 +2230,11 @@ def services_dashboard(request):
             'modules': MANAGEMENT_MODULES,
             'repair_reports': ServiceRepairReport.objects.all()[:8],
             'material_borrows': MaterialBorrow.objects.prefetch_related('lines').all()[:8],
-            'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
-            'travel_order_forms': TravelOrderForm.objects.all()[:8],
             'inventory_items': InventoryItem.objects.order_by('name'),
             'repair_report_count': ServiceRepairReport.objects.count(),
             'material_borrow_count': MaterialBorrow.objects.count(),
-            'delivery_receipt_count': DeliveryReceipt.objects.count(),
-            'travel_order_count': TravelOrderForm.objects.count(),
             'next_report_number': ServiceRepairReport.generate_report_number(),
             'next_borrow_number': MaterialBorrow.generate_borrow_number(),
-            'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
         }
     )
 
@@ -2387,7 +2396,7 @@ def create_travel_order_form(request):
     required = ('travel_date', 'driver_name')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Travel Order Form fields.')
-        return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+        return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
 
     travel_with = '\n'.join(
         name.strip()
@@ -2410,7 +2419,7 @@ def create_travel_order_form(request):
         messages.success(request, 'Travel Order Form saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Travel Order Form: {exc}')
-    return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
 
 
 @login_required
@@ -2483,7 +2492,7 @@ def create_delivery_receipt(request):
     required = ('receipt_date', 'delivered_to')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Delivery Receipt fields.')
-        return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+        return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
 
     descriptions = request.POST.getlist('dr_item_description')
     quantities = request.POST.getlist('dr_item_quantity')
@@ -2519,7 +2528,7 @@ def create_delivery_receipt(request):
 
     if not lines:
         messages.error(request, 'Please add at least one article to the delivery receipt.')
-        return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+        return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
 
     try:
         receipt = DeliveryReceipt.objects.create(
@@ -2541,7 +2550,7 @@ def create_delivery_receipt(request):
         messages.success(request, 'Delivery Receipt saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Delivery Receipt: {exc}')
-    return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+    return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
 
 
 SERVICE_FIELD_LABELS = {
@@ -2899,7 +2908,7 @@ def edit_travel_order_form(request, order_id):
 def delete_travel_order_form(request, order_id):
     get_object_or_404(TravelOrderForm, pk=order_id).delete()
     messages.success(request, 'Travel Order Form deleted.')
-    return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+    return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
 
 
 @login_required
@@ -2928,7 +2937,7 @@ def edit_delivery_receipt(request, receipt_id):
 def delete_delivery_receipt(request, receipt_id):
     get_object_or_404(DeliveryReceipt, pk=receipt_id).delete()
     messages.success(request, 'Delivery Receipt deleted.')
-    return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+    return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
 
 
 @login_required

@@ -531,9 +531,10 @@
   .status-active { background: #ecfdf3; color: #027a48; }
   .status-terminated { background: #fef3f2; color: #b42318; }
 
-  /* Shared document form sections (Job Order + Official Business) */
+  /* Shared document form sections (Job Order + Official Business + Travel Order) */
   #jobOrderTab .jo-grid,
-  #officialBusinessTab .jo-grid {
+  #officialBusinessTab .jo-grid,
+  #travelOrderTab .jo-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
     gap: 20px;
@@ -541,22 +542,26 @@
     margin-bottom: 24px;
   }
   #jobOrderTab .jo-form .form-grid,
-  #officialBusinessTab .jo-form .form-grid {
+  #officialBusinessTab .jo-form .form-grid,
+  #travelOrderTab .jo-form .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   #jobOrderTab .jo-form textarea.field-input,
-  #officialBusinessTab .jo-form textarea.field-input {
+  #officialBusinessTab .jo-form textarea.field-input,
+  #travelOrderTab .jo-form textarea.field-input {
     min-height: 74px;
     resize: vertical;
   }
   #jobOrderTab .field-readonly,
-  #officialBusinessTab .field-readonly {
+  #officialBusinessTab .field-readonly,
+  #travelOrderTab .field-readonly {
     background: var(--soft);
     color: #475467;
     cursor: default;
   }
   #jobOrderTab .section-heading,
-  #officialBusinessTab .section-heading {
+  #officialBusinessTab .section-heading,
+  #travelOrderTab .section-heading {
     grid-column: 1 / -1;
     color: var(--brand);
     font-size: 0.72rem;
@@ -568,22 +573,26 @@
     margin-top: 4px;
   }
   #jobOrderTab .repeatable-list,
-  #officialBusinessTab .repeatable-list {
+  #officialBusinessTab .repeatable-list,
+  #travelOrderTab .repeatable-list {
     display: grid;
     gap: 8px;
   }
   #jobOrderTab .repeatable-row,
-  #officialBusinessTab .repeatable-row {
+  #officialBusinessTab .repeatable-row,
+  #travelOrderTab .repeatable-row {
     display: flex;
     gap: 8px;
     align-items: center;
   }
   #jobOrderTab .repeatable-row .field-input,
-  #officialBusinessTab .repeatable-row .field-input {
+  #officialBusinessTab .repeatable-row .field-input,
+  #travelOrderTab .repeatable-row .field-input {
     flex: 1;
   }
   #jobOrderTab .repeatable-add,
-  #officialBusinessTab .repeatable-add {
+  #officialBusinessTab .repeatable-add,
+  #travelOrderTab .repeatable-add {
     margin-top: 8px;
     width: fit-content;
   }
@@ -593,14 +602,16 @@
     gap: 14px;
     grid-column: 1 / -1;
   }
-  #officialBusinessTab .signature-grid {
+  #officialBusinessTab .signature-grid,
+  #travelOrderTab .signature-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     grid-column: 1 / -1;
   }
   #jobOrderTab .form-actions,
-  #officialBusinessTab .form-actions {
+  #officialBusinessTab .form-actions,
+  #travelOrderTab .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -609,30 +620,35 @@
     border-top: 1px solid #eaecf0;
   }
   #jobOrderTab .action.danger,
-  #officialBusinessTab .action.danger {
+  #officialBusinessTab .action.danger,
+  #travelOrderTab .action.danger {
     color: var(--danger);
     border-color: #fecdca;
   }
   #jobOrderTab .action.danger:hover,
-  #officialBusinessTab .action.danger:hover {
+  #officialBusinessTab .action.danger:hover,
+  #travelOrderTab .action.danger:hover {
     background: #fef3f2;
     border-color: var(--danger);
     color: var(--danger);
   }
   #jobOrderTab .record-actions,
-  #officialBusinessTab .record-actions {
+  #officialBusinessTab .record-actions,
+  #travelOrderTab .record-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
   }
   #jobOrderTab .record-actions form,
-  #officialBusinessTab .record-actions form {
+  #officialBusinessTab .record-actions form,
+  #travelOrderTab .record-actions form {
     display: inline;
     margin: 0;
   }
   #jobOrderTab .jo-document,
-  #officialBusinessTab .jo-document {
+  #officialBusinessTab .jo-document,
+  #travelOrderTab .jo-document {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -642,17 +658,20 @@
     top: 22px;
   }
   #jobOrderTab .jo-document img,
-  #officialBusinessTab .jo-document img {
+  #officialBusinessTab .jo-document img,
+  #travelOrderTab .jo-document img {
     display: block;
     width: 100%;
     height: auto;
   }
   #jobOrderTab .jo-document .doc-body,
-  #officialBusinessTab .jo-document .doc-body {
+  #officialBusinessTab .jo-document .doc-body,
+  #travelOrderTab .jo-document .doc-body {
     padding: 18px 20px 22px;
   }
   #jobOrderTab .jo-document .doc-title,
-  #officialBusinessTab .jo-document .doc-title {
+  #officialBusinessTab .jo-document .doc-title,
+  #travelOrderTab .jo-document .doc-title {
     margin: 0 0 14px;
     text-align: center;
     font-size: 1.15rem;
@@ -759,6 +778,83 @@
     color: #344054;
     min-height: 1.2em;
   }
+
+  #travelOrderTab .travel-form-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 0.88rem;
+  }
+  #travelOrderTab .travel-form-table th,
+  #travelOrderTab .travel-form-table td {
+    border: 1px solid #101828;
+    padding: 10px 12px;
+    vertical-align: top;
+    text-align: left;
+  }
+  #travelOrderTab .travel-form-table th {
+    width: 38%;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  #travelOrderTab .travel-form-table td {
+    min-height: 36px;
+    white-space: pre-wrap;
+    color: #344054;
+    line-height: 1.45;
+  }
+  #travelOrderTab .travel-form-table .travel-with-cell {
+    min-height: 72px;
+  }
+  #travelOrderTab .travel-signatures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 22px;
+  }
+  #travelOrderTab .signature-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    text-align: center;
+  }
+  #travelOrderTab .signature-block .signature-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+    margin-bottom: 36px;
+  }
+  #travelOrderTab .signature-block .signature-line {
+    border: none;
+    border-top: 1px solid #98a2b3;
+    min-height: 0;
+    margin: 0 8px;
+    padding: 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: #344054;
+    word-break: break-word;
+  }
+  #travelOrderTab .signature-block .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
+  #travelOrderTab .jo-form .form-field.full,
+  #travelOrderTab .jo-form .section-heading,
+  #travelOrderTab .jo-form .signature-grid {
+    grid-column: 1 / -1;
+  }
+
   .status-pending { background: #fffaeb; color: #b54708; }
   .status-approved { background: #ecfdf3; color: #027a48; }
   .status-rejected { background: #fef3f2; color: #b42318; }
@@ -966,7 +1062,8 @@
       grid-template-columns: 1fr;
     }
     #jobOrderTab .jo-grid,
-    #officialBusinessTab .jo-grid {
+    #officialBusinessTab .jo-grid,
+    #travelOrderTab .jo-grid {
       grid-template-columns: 1fr;
     }
     #jobOrderTab .signature-grid,
@@ -974,7 +1071,9 @@
     #jobOrderTab .job-order-fields-grid,
     #officialBusinessTab .signature-grid,
     #officialBusinessTab .ob-signatures,
-    #officialBusinessTab .ob-fields-grid {
+    #officialBusinessTab .ob-fields-grid,
+    #travelOrderTab .signature-grid,
+    #travelOrderTab .travel-signatures {
       grid-template-columns: 1fr;
     }
   }
@@ -1020,6 +1119,10 @@
         <span class="tab-icon">🧳</span> Official Business
         <span class="tab-badge">{{ official_business_count }}</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
+        <span class="tab-icon">🚗</span> Travel Order
+        <span class="tab-badge">{{ travel_order_count }}</span>
+      </button>
       <div class="nav-label" style="margin-top:14px;">Payroll</div>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="payrunsTab">
         <span class="tab-icon">💰</span> Pay Runs
@@ -1039,6 +1142,7 @@
       <div class="stat-row"><span>Companies</span><strong>{{ companies|length }}</strong></div>
       <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
+      <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
       <div class="stat-row"><span>Payroll runs</span><strong>{{ runs|length }}</strong></div>
     </div>
   </aside>
@@ -1047,7 +1151,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>HR Dashboard</h2>
-        <p>Manage employee records, attendance, payroll, documents, job orders, and official business forms.</p>
+        <p>Manage employee records, attendance, payroll, documents, job orders, official business, and travel orders.</p>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -2094,6 +2198,183 @@
       </div>
     </div>
 
+      </div>
+    </div>
+
+    <!-- Travel Order -->
+    <div id="travelOrderTab" class="tab-panel">
+      <div class="panel">
+        <h2>Travel Order Form</h2>
+        <p>Issue and track vehicle travel orders for drivers and passengers.</p>
+
+        <div class="jo-grid" style="margin-top:18px;">
+          <section class="form-section jo-form" style="margin-bottom:0;">
+            <form method="post" action="{% url 'create_travel_order_form' %}" id="travelOrderForm">
+              {% csrf_token %}
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="to_travel_date">Date *</label>
+                  <input id="to_travel_date" name="travel_date" type="date" class="field-input" required>
+                </div>
+                <div class="form-field">
+                  <label for="to_driver_name">Driver's Name *</label>
+                  <input id="to_driver_name" name="driver_name" class="field-input" required placeholder="e.g. J. Ramirez">
+                </div>
+
+                <div class="form-field full">
+                  <label>Travel with</label>
+                  <div class="repeatable-list" id="travelWithList">
+                    <div class="repeatable-row">
+                      <input type="text" name="travel_with" class="field-input" placeholder="Passenger name">
+                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove passenger">✕</button>
+                    </div>
+                  </div>
+                  <button type="button" class="action repeatable-add" id="travelAddPassenger">+ Add passenger</button>
+                </div>
+
+                <div class="form-field full">
+                  <label for="to_destination">Venue / Destination</label>
+                  <input id="to_destination" name="destination" class="field-input" placeholder="e.g. Carmen">
+                </div>
+                <div class="form-field full">
+                  <label for="to_purpose">Purpose of Travel</label>
+                  <textarea id="to_purpose" name="purpose" class="field-input" placeholder="e.g. Pump test"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="to_departure_time">Departure Time</label>
+                  <input id="to_departure_time" name="departure_time" type="time" class="field-input">
+                </div>
+                <div class="form-field">
+                  <label for="to_vehicle_plate">Vehicle / Plate No.</label>
+                  <input id="to_vehicle_plate" name="vehicle_plate" class="field-input" placeholder="e.g. MAO 7401 BOOM">
+                </div>
+                <div class="form-field full">
+                  <label for="to_fuel_allowance">Fuel Allowance (PO# Amount/Liters)</label>
+                  <input id="to_fuel_allowance" name="fuel_allowance" class="field-input" placeholder="PO# / Amount / Liters">
+                </div>
+
+                <div class="section-heading">Authorization</div>
+                <div class="signature-grid">
+                  <div class="form-field">
+                    <label>Issued by</label>
+                    <input class="field-input field-readonly" value="AIZA MAE POQUITA" readonly disabled>
+                  </div>
+                  <div class="form-field">
+                    <label for="to_approved_by">Approved by</label>
+                    <input id="to_approved_by" name="approved_by" class="field-input" placeholder="Name">
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="reset" class="action">Clear</button>
+                <button type="submit" class="action btn-primary">Save travel order</button>
+              </div>
+            </form>
+          </section>
+
+          <article class="jo-document travel-document">
+            <header class="doc-header">
+              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+            </header>
+            <div class="doc-body">
+              <h3 class="doc-title">TRAVEL ORDER FORM</h3>
+              <table class="travel-form-table">
+                <tr>
+                  <th>Date</th>
+                  <td data-preview="travel_date">—</td>
+                </tr>
+                <tr>
+                  <th>Driver's Name</th>
+                  <td data-preview="driver_name">—</td>
+                </tr>
+                <tr>
+                  <th>Travel with</th>
+                  <td class="travel-with-cell" data-preview="travel_with">—</td>
+                </tr>
+                <tr>
+                  <th>Venue/Destination</th>
+                  <td data-preview="destination">—</td>
+                </tr>
+                <tr>
+                  <th>Purpose of Travel</th>
+                  <td data-preview="purpose">—</td>
+                </tr>
+                <tr>
+                  <th>Departure Time</th>
+                  <td data-preview="departure_time">—</td>
+                </tr>
+                <tr>
+                  <th>Vehicle/ Plate No.</th>
+                  <td data-preview="vehicle_plate">—</td>
+                </tr>
+                <tr>
+                  <th>Fuel Allowance (PO# Amount/Liters)</th>
+                  <td data-preview="fuel_allowance">—</td>
+                </tr>
+              </table>
+              <div class="travel-signatures">
+                  <div class="signature-block">
+                    <span class="signature-label">Issued by:</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name">AIZA MAE POQUITA</span>
+                  </div>
+                  <div class="signature-block">
+                    <span class="signature-label">Approved by:</span>
+                    <div class="signature-line"></div>
+                    <span class="signature-name" data-preview="approved_by">—</span>
+                  </div>
+                </div>
+            </div>
+            <footer class="doc-footer">
+              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+            </footer>
+          </article>
+        </div>
+
+        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Travel Orders</h2>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed travel order forms.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>Destination</th>
+                <th>Vehicle</th>
+                <th>Departure</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in travel_order_forms %}
+              <tr>
+                <td>{{ order.travel_date|date:'M d, Y' }}</td>
+                <td>{{ order.driver_name }}</td>
+                <td>{{ order.destination|default:'—'|truncatechars:30 }}</td>
+                <td>{{ order.vehicle_plate|default:'—'|truncatechars:20 }}</td>
+                <td>{% if order.departure_time %}{{ order.departure_time|time:'g:i A' }}{% else %}—{% endif %}</td>
+                <td>
+                  <div class="record-actions">
+                    <a class="action" href="{% url 'view_travel_order_form' order.id %}">View</a>
+                    <a class="action" href="{% url 'edit_travel_order_form' order.id %}">Edit</a>
+                    <form method="post" action="{% url 'delete_travel_order_form' order.id %}" onsubmit="return confirm('Delete Travel Order for {{ order.driver_name }}? This cannot be undone.');">
+                      {% csrf_token %}
+                      <button class="action danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No travel orders saved yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     {% include "includes/payroll_tabs.html" %}
 
     <div style="margin-top:12px;">
@@ -2112,6 +2393,7 @@
       jobOrderTab: document.getElementById('jobOrderTab'),
       idleDaysTab: document.getElementById('idleDaysTab'),
       officialBusinessTab: document.getElementById('officialBusinessTab'),
+      travelOrderTab: document.getElementById('travelOrderTab'),
       payrunsTab: document.getElementById('payrunsTab'),
       deductionsTab: document.getElementById('deductionsTab'),
       approvalsTab: document.getElementById('approvalsTab'),
@@ -2222,7 +2504,8 @@
         .filter(Boolean)
         .map((value) => (isDate ? formatPreviewDate(value) : value));
       panel.querySelectorAll(`[data-preview="${previewKey}"]`).forEach((target) => {
-        target.textContent = values.length ? values.join(', ') : '—';
+        const joiner = previewKey === 'travel_with' ? '\n' : ', ';
+        target.textContent = values.length ? values.join(joiner) : '—';
       });
     }
 
@@ -2267,6 +2550,10 @@
       }
       if (field.name === 'ob_dates') {
         updateRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
+        return;
+      }
+      if (field.name === 'travel_with') {
+        updateRepeatablePreview(panel, 'travel_with', 'input[name="travel_with"]', false);
         return;
       }
       let displayValue = field.value || '—';
@@ -2365,9 +2652,11 @@
 
     setupDocPanel(document.getElementById('jobOrderTab'), 'date_filed', 'jobOrderForm');
     setupDocPanel(document.getElementById('officialBusinessTab'), 'ob_application_date', 'obForm');
+    setupDocPanel(document.getElementById('travelOrderTab'), 'to_travel_date', 'travelOrderForm');
     setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name (if not selecting employees above)', false);
     setupRepeatableList('jobDatesList', 'jobAddDate', 'date', 'dates_covered', '');
     setupRepeatableList('obDatesList', 'obAddDate', 'date', 'ob_dates', '');
+    setupRepeatableList('travelWithList', 'travelAddPassenger', 'text', 'travel_with', 'Passenger name');
 
     document.querySelectorAll('.toggle-run-details').forEach((button) => {
       button.addEventListener('click', function() {

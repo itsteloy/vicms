@@ -479,57 +479,6 @@
     padding: 8px 10px;
   }
 
-  .dr-lines-head {
-    display: grid;
-    grid-template-columns: 1.1fr 0.55fr 0.55fr 1.5fr 0.8fr auto;
-    gap: 8px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #667085;
-    padding: 0 2px;
-  }
-
-  .dr-line-row {
-    display: grid;
-    grid-template-columns: 1.1fr 0.55fr 0.55fr 1.5fr 0.8fr auto;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .dr-line-row select,
-  .dr-line-row input {
-    width: 100%;
-    border: 1px solid var(--line);
-    background: #fff;
-    padding: 10px 12px;
-    font: inherit;
-    font-size: 0.86rem;
-    border-radius: 8px;
-    color: var(--ink);
-    min-width: 0;
-  }
-
-  .dr-line-row .row-remove {
-    min-width: 38px;
-    padding: 8px 10px;
-  }
-
-  @media (max-width: 1100px) {
-    .dr-lines-head {
-      display: none;
-    }
-
-    .dr-line-row {
-      grid-template-columns: 1fr;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fff;
-    }
-  }
-
   .doc-items-table {
     width: 100%;
     border-collapse: collapse;
@@ -1218,23 +1167,11 @@
         Borrow Material
         <span class="tab-badge">{{ material_borrow_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deliveryReceiptTab">
-        <span class="tab-icon">🚚</span>
-        Delivery Receipt
-        <span class="tab-badge">{{ delivery_receipt_count }}</span>
-      </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
-        <span class="tab-icon">🚗</span>
-        Travel Order
-        <span class="tab-badge">{{ travel_order_count }}</span>
-      </button>
     </nav>
 
     <div class="sidebar-stats">
       <div class="stat-row"><span>Repair reports</span><strong>{{ repair_report_count }}</strong></div>
       <div class="stat-row"><span>Borrow slips</span><strong>{{ material_borrow_count }}</strong></div>
-      <div class="stat-row"><span>Delivery receipts</span><strong>{{ delivery_receipt_count }}</strong></div>
-      <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
     </div>
   </aside>
 
@@ -1242,7 +1179,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>Services Dashboard</h2>
-        <p>Create, save, review, and print service repair reports, borrow material slips, delivery receipts, and travel orders.</p>
+        <p>Create, save, review, and print service repair reports and borrow material slips.</p>
       </div>
       <div class="top-actions no-print">
         <button type="button" onclick="window.print()">🖨 Print preview</button>
@@ -1258,14 +1195,6 @@
       <div class="stat-card">
         <div class="stat-label">Borrow Material</div>
         <div class="stat-value">{{ material_borrow_count }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Delivery Receipts</div>
-        <div class="stat-value">{{ delivery_receipt_count }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Travel Orders</div>
-        <div class="stat-value">{{ travel_order_count }}</div>
       </div>
     </div>
 
@@ -1681,392 +1610,6 @@
       </div>
     </div>
 
-    <!-- Delivery Receipt -->
-    <div id="deliveryReceiptTab" class="tab-panel">
-      <div class="panel-header no-print">
-        <h2>Delivery Receipt</h2>
-        <p>Record and print delivery receipts for goods handed over to customers.</p>
-      </div>
-
-      <div class="grid-2">
-        <section class="panel no-print">
-          <form method="post" action="{% url 'create_delivery_receipt' %}" id="deliveryReceiptForm">
-            {% csrf_token %}
-            <div class="form-grid">
-              <div class="field">
-                <label for="dr_receipt_number">Receipt No.</label>
-                <input id="dr_receipt_number" name="receipt_number" value="{{ next_receipt_number }}" data-auto-number="{{ next_receipt_number }}" readonly class="field-readonly" title="Assigned automatically">
-                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
-              </div>
-              <div class="field">
-                <label for="dr_receipt_date">Date *</label>
-                <input id="dr_receipt_date" name="receipt_date" type="date" required>
-              </div>
-              <div class="field">
-                <label for="dr_delivered_to">Delivered To *</label>
-                <input id="dr_delivered_to" name="delivered_to" required placeholder="Customer / company name">
-              </div>
-              <div class="field">
-                <label for="dr_tin">TIN</label>
-                <input id="dr_tin" name="tin" placeholder="000-000-000-000">
-              </div>
-              <div class="field">
-                <label for="dr_po_number">P.O. No.</label>
-                <input id="dr_po_number" name="po_number">
-              </div>
-              <div class="field">
-                <label for="dr_terms">Terms</label>
-                <input id="dr_terms" name="terms" placeholder="e.g. COD, 30 days">
-              </div>
-              <div class="field full">
-                <label for="dr_address">Address</label>
-                <textarea id="dr_address" name="address"></textarea>
-              </div>
-
-              <div class="field full section-heading">Articles</div>
-              <div class="field full">
-                <div class="dr-lines-head">
-                  <span>Inventory</span>
-                  <span>Quantity *</span>
-                  <span>Unit</span>
-                  <span>Articles *</span>
-                  <span>Unit Amount *</span>
-                  <span></span>
-                </div>
-                <div class="repeatable-list" id="drLinesList">
-                  <div class="repeatable-row dr-line-row">
-                    <select name="dr_item_inventory" data-dr-inventory aria-label="Inventory item">
-                      <option value="">Manual entry</option>
-                      {% for item in inventory_items %}
-                      <option value="{{ item.id }}" data-name="{{ item.name|escape }}" data-price="{{ item.price }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
-                      {% endfor %}
-                    </select>
-                    <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
-                    <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
-                    <input type="text" name="dr_item_description" placeholder="Item / article description" required data-dr-description>
-                    <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
-                    <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
-                  </div>
-                </div>
-                <button type="button" class="action repeatable-add" id="drAddLine">+ Add article</button>
-              </div>
-
-              <div class="field full section-heading">Acknowledgement</div>
-              <div class="signature-grid">
-                <div class="signature-field">
-                  <label for="dr_certified_by">Certified by</label>
-                  <input id="dr_certified_by" name="certified_by" placeholder="Name">
-                </div>
-                <div class="signature-field">
-                  <label for="dr_delivered_by">Delivered by</label>
-                  <input id="dr_delivered_by" name="delivered_by" placeholder="Name">
-                </div>
-                <div class="signature-field">
-                  <label for="dr_received_by">Received by (Customer)</label>
-                  <input id="dr_received_by" name="received_by" placeholder="Name">
-                </div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="reset" class="action">Clear</button>
-              <button type="submit" class="primary">Save delivery receipt</button>
-            </div>
-          </form>
-        </section>
-
-        <article class="document service-document delivery-receipt-document">
-          <header class="doc-header">
-            <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-          </header>
-          <div class="doc-body">
-            <h3 class="doc-title">DELIVERY RECEIPT</h3>
-            <div class="doc-meta">
-              <span>Receipt No.: <b data-preview="receipt_number">—</b></span>
-              <span>Date: <b data-preview="receipt_date">—</b></span>
-            </div>
-            <div class="doc-section">
-              <strong>Delivered To</strong>
-              <div class="preview-text" data-preview="delivered_to">—</div>
-              <div class="preview-text">TIN: <span data-preview="tin">—</span></div>
-              <div class="preview-text" data-preview="address"></div>
-            </div>
-            <div class="doc-section">
-              <strong>Order Details</strong>
-              <div class="preview-text">P.O. No.: <span data-preview="po_number">—</span></div>
-              <div class="preview-text">Terms: <span data-preview="terms">—</span></div>
-            </div>
-            <div class="doc-section">
-              <strong>Articles</strong>
-              <table class="doc-items-table">
-                <thead>
-                  <tr>
-                    <th>Quantity</th>
-                    <th>Unit</th>
-                    <th>Articles</th>
-                    <th>Unit Amount</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody data-preview="dr_lines">
-                  <tr class="empty-row">
-                    <td colspan="5">No articles added yet.</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
-                    <td style="font-weight:800;" data-preview="dr_total">₱0.00</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="doc-section">
-              <strong>Acknowledgement</strong>
-              <p class="preview-text" style="margin-bottom:8px;">Received the above goods and services in good order and condition.</p>
-              <div class="signature-row">
-                <div class="signature-block">
-                  <span class="signature-label">Certified by</span>
-                  <div class="signature-line"><span data-preview="certified_by">—</span></div>
-                </div>
-                <div class="signature-block">
-                  <span class="signature-label">Delivered by</span>
-                  <div class="signature-line"><span data-preview="delivered_by">—</span></div>
-                </div>
-                <div class="signature-block">
-                  <span class="signature-label">Received by (Customer)</span>
-                  <div class="signature-line"><span data-preview="received_by">—</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <footer class="doc-footer">
-            <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-          </footer>
-        </article>
-      </div>
-
-      <div class="panel no-print">
-        <h2 style="margin:0 0 8px;font-size:1rem;">Recent Delivery Receipts</h2>
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved delivery receipts.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Receipt No.</th>
-                <th>Date</th>
-                <th>Delivered To</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for receipt in delivery_receipts %}
-              <tr>
-                <td>{{ receipt.receipt_number }}</td>
-                <td>{{ receipt.receipt_date|date:'M d, Y' }}</td>
-                <td>{{ receipt.delivered_to }}</td>
-                <td>{{ receipt.lines.count }}</td>
-                <td>₱{{ receipt.total_amount|floatformat:2 }}</td>
-                <td>
-                  <div class="record-actions">
-                    <a class="action" href="{% url 'view_delivery_receipt' receipt.id %}">View</a>
-                    <a class="action" href="{% url 'edit_delivery_receipt' receipt.id %}">Edit</a>
-                    <form method="post" action="{% url 'delete_delivery_receipt' receipt.id %}" onsubmit="return confirm('Delete Delivery Receipt {{ receipt.receipt_number }}? This cannot be undone.');">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Delete</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No delivery receipts saved yet.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Travel Order Form -->
-    <div id="travelOrderTab" class="tab-panel">
-      <div class="panel-header no-print">
-        <h2>Travel Order Form</h2>
-        <p>Issue and track vehicle travel orders for drivers and passengers.</p>
-      </div>
-
-      <div class="grid-2">
-        <section class="panel no-print">
-          <form method="post" action="{% url 'create_travel_order_form' %}" id="travelOrderForm">
-            {% csrf_token %}
-            <div class="form-grid">
-              <div class="field">
-                <label for="to_travel_date">Date *</label>
-                <input id="to_travel_date" name="travel_date" type="date" required>
-              </div>
-              <div class="field">
-                <label for="to_driver_name">Driver's Name *</label>
-                <input id="to_driver_name" name="driver_name" required placeholder="e.g. J. Ramirez">
-              </div>
-
-              <div class="field full">
-                <label>Travel with</label>
-                <div class="repeatable-list" id="travelWithList">
-                  <div class="repeatable-row">
-                    <input type="text" name="travel_with" placeholder="Passenger name" data-travel-repeatable="names">
-                    <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove passenger">✕</button>
-                  </div>
-                </div>
-                <button type="button" class="action repeatable-add" id="travelAddPassenger">+ Add passenger</button>
-              </div>
-
-              <div class="field full">
-                <label for="to_destination">Venue / Destination</label>
-                <input id="to_destination" name="destination" placeholder="e.g. Carmen">
-              </div>
-              <div class="field full">
-                <label for="to_purpose">Purpose of Travel</label>
-                <textarea id="to_purpose" name="purpose" placeholder="e.g. Pump test"></textarea>
-              </div>
-              <div class="field">
-                <label for="to_departure_time">Departure Time</label>
-                <input id="to_departure_time" name="departure_time" type="time">
-              </div>
-              <div class="field">
-                <label for="to_vehicle_plate">Vehicle / Plate No.</label>
-                <input id="to_vehicle_plate" name="vehicle_plate" placeholder="e.g. MAO 7401 BOOM">
-              </div>
-              <div class="field full">
-                <label for="to_fuel_allowance">Fuel Allowance (PO# Amount/Liters)</label>
-                <input id="to_fuel_allowance" name="fuel_allowance" placeholder="PO# / Amount / Liters">
-              </div>
-
-              <div class="field full section-heading">Authorization</div>
-              <div class="signature-grid signature-grid-2">
-                <div class="signature-field">
-                  <label>Issued by</label>
-                  <input value="AIZA MAE POQUITA" disabled style="color:var(--muted);background:var(--soft);cursor:not-allowed;">
-                </div>
-                <div class="signature-field">
-                  <label for="to_approved_by">Approved by</label>
-                  <input id="to_approved_by" name="approved_by" placeholder="Name">
-                </div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="reset" class="action">Clear</button>
-              <button type="submit" class="primary">Save travel order</button>
-            </div>
-          </form>
-        </section>
-
-        <article class="document service-document travel-document">
-          <header class="doc-header">
-            <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-          </header>
-          <div class="doc-body">
-            <h3 class="doc-title">TRAVEL ORDER FORM</h3>
-            <table class="travel-form-table">
-              <tr>
-                <th>Date</th>
-                <td data-preview="travel_date">—</td>
-              </tr>
-              <tr>
-                <th>Driver's Name</th>
-                <td data-preview="driver_name">—</td>
-              </tr>
-              <tr>
-                <th>Travel with</th>
-                <td class="travel-with-cell" data-preview="travel_with">—</td>
-              </tr>
-              <tr>
-                <th>Venue/Destination</th>
-                <td data-preview="destination">—</td>
-              </tr>
-              <tr>
-                <th>Purpose of Travel</th>
-                <td data-preview="purpose">—</td>
-              </tr>
-              <tr>
-                <th>Departure Time</th>
-                <td data-preview="departure_time">—</td>
-              </tr>
-              <tr>
-                <th>Vehicle/ Plate No.</th>
-                <td data-preview="vehicle_plate">—</td>
-              </tr>
-              <tr>
-                <th>Fuel Allowance (PO# Amount/Liters)</th>
-                <td data-preview="fuel_allowance">—</td>
-              </tr>
-            </table>
-            <div class="doc-section doc-section-full">
-              <div class="signature-row travel-signatures">
-                <div class="signature-block">
-                  <span class="signature-label">Issued by:</span>
-                  <div class="signature-line">&nbsp;</div>
-                  <span>AIZA MAE POQUITA</span>
-                </div>
-                <div class="signature-block">
-                  <span class="signature-label">Approved by:</span>
-                  <div class="signature-line"><span data-preview="approved_by">—</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <footer class="doc-footer">
-            <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-          </footer>
-        </article>
-      </div>
-
-      <div class="panel no-print">
-        <h2 style="margin:0 0 8px;font-size:1rem;">Recent Travel Orders</h2>
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed travel order forms.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Driver</th>
-                <th>Destination</th>
-                <th>Vehicle</th>
-                <th>Departure</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for order in travel_order_forms %}
-              <tr>
-                <td>{{ order.travel_date|date:'M d, Y' }}</td>
-                <td>{{ order.driver_name }}</td>
-                <td>{{ order.destination|default:'—'|truncatechars:30 }}</td>
-                <td>{{ order.vehicle_plate|default:'—'|truncatechars:20 }}</td>
-                <td>{% if order.departure_time %}{{ order.departure_time|time:'g:i A' }}{% else %}—{% endif %}</td>
-                <td>
-                  <div class="record-actions">
-                    <a class="action" href="{% url 'view_travel_order_form' order.id %}">View</a>
-                    <a class="action" href="{% url 'edit_travel_order_form' order.id %}">Edit</a>
-                    <form method="post" action="{% url 'delete_travel_order_form' order.id %}" onsubmit="return confirm('Delete Travel Order for {{ order.driver_name }}? This cannot be undone.');">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Delete</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No travel orders saved yet.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <div class="no-print" style="margin-top:12px;"></div>
   </main>
 </div>
@@ -2077,8 +1620,6 @@
     const panels = {
       repairTab: document.getElementById('repairTab'),
       borrowMaterialTab: document.getElementById('borrowMaterialTab'),
-      deliveryReceiptTab: document.getElementById('deliveryReceiptTab'),
-      travelOrderTab: document.getElementById('travelOrderTab'),
     };
     const defaultTab = 'repairTab';
 
@@ -2098,11 +1639,7 @@
     const tabParam = urlParams.get('tab');
     const hashTab = location.hash === '#repair'
         ? 'repairTab'
-        : (location.hash === '#borrow'
-          ? 'borrowMaterialTab'
-          : (location.hash === '#delivery'
-              ? 'deliveryReceiptTab'
-              : (location.hash === '#travel' ? 'travelOrderTab' : null)));
+        : (location.hash === '#borrow' ? 'borrowMaterialTab' : null);
     const initialTab = (tabParam && panels[tabParam]) ? tabParam : (hashTab || defaultTab);
     activateTab(initialTab);
 
@@ -2145,15 +1682,6 @@
       }
       if (field.name === 'ob_dates') {
         updateJobRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
-        return;
-      }
-      if (field.name === 'travel_with') {
-        const values = [...panel.querySelectorAll('input[name="travel_with"]')]
-          .map((input) => input.value.trim())
-          .filter(Boolean);
-        panel.querySelectorAll('[data-preview="travel_with"]').forEach((target) => {
-          target.textContent = values.length ? values.join('\n') : '—';
-        });
         return;
       }
       panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach(target => {
@@ -2222,7 +1750,7 @@
             ? value
             : parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         });
-      const joiner = previewKey === 'travel_with' ? '\n' : ', ';
+      const joiner = ', ';
       panel.querySelectorAll(`[data-preview="${previewKey}"]`).forEach((target) => {
         target.textContent = values.length ? values.join(joiner) : '—';
       });
@@ -2301,8 +1829,6 @@
       list.querySelectorAll('.repeatable-row').forEach(bindRow);
       refreshRemoveButtons();
     }
-
-    setupRepeatableList('travelWithList', 'travelAddPassenger', 'text', 'travel_with', 'Passenger name');
 
     function updateBorrowLinesPreview() {
       const panel = document.getElementById('borrowMaterialTab');
@@ -2418,133 +1944,9 @@
 
     setupBorrowLines();
 
-    function formatCurrency(value) {
-      return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-
-    function updateDeliveryReceiptLinesPreview() {
-      const panel = document.getElementById('deliveryReceiptTab');
-      const tbody = panel?.querySelector('[data-preview="dr_lines"]');
-      const totalCell = panel?.querySelector('[data-preview="dr_total"]');
-      if (!panel || !tbody) return;
-
-      const rows = [...panel.querySelectorAll('.dr-line-row')];
-      const lines = rows.map((row) => {
-        const description = row.querySelector('[data-dr-description]')?.value.trim() || '';
-        const quantity = parseFloat(row.querySelector('[data-dr-quantity]')?.value) || 0;
-        const unit = row.querySelector('[data-dr-unit]')?.value.trim() || 'pcs';
-        const unitPrice = parseFloat(row.querySelector('[data-dr-unit-price]')?.value) || 0;
-        // Line amount = quantity × unit amount
-        const amount = quantity * unitPrice;
-        return { description, quantity, unit, unitPrice, amount };
-      }).filter((line) => line.description || line.quantity || line.unitPrice);
-
-      if (!lines.length) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No articles added yet.</td></tr>';
-        if (totalCell) totalCell.textContent = formatCurrency(0);
-        return;
-      }
-
-      tbody.innerHTML = lines.map((line) => `
-        <tr>
-          <td>${escapeHtml(line.quantity)}</td>
-          <td>${escapeHtml(line.unit)}</td>
-          <td>${escapeHtml(line.description || '—')}</td>
-          <td>${formatCurrency(line.unitPrice)}</td>
-          <td>${formatCurrency(line.amount)}</td>
-        </tr>
-      `).join('');
-
-      const total = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
-      if (totalCell) totalCell.textContent = formatCurrency(total);
-    }
-
-    function setupDeliveryReceiptLines() {
-      const list = document.getElementById('drLinesList');
-      const addBtn = document.getElementById('drAddLine');
-      if (!list || !addBtn) return;
-
-      const inventoryTemplate = list.querySelector('[data-dr-inventory]')?.innerHTML || '';
-
-      function refreshRemoveButtons() {
-        const rows = list.querySelectorAll('.dr-line-row');
-        rows.forEach((row) => {
-          const removeBtn = row.querySelector('[data-remove-row]');
-          if (removeBtn) {
-            removeBtn.hidden = rows.length === 1;
-          }
-          const description = row.querySelector('[data-dr-description]');
-          if (description) {
-            description.required = rows.length >= 1 && row === rows[0];
-          }
-        });
-      }
-
-      function bindInventorySelect(select) {
-        if (!select) return;
-        select.addEventListener('change', () => {
-          const option = select.options[select.selectedIndex];
-          const row = select.closest('.dr-line-row');
-          const description = row?.querySelector('[data-dr-description]');
-          const unitPrice = row?.querySelector('[data-dr-unit-price]');
-          if (description && option?.dataset.name) {
-            description.value = option.dataset.name;
-          }
-          if (unitPrice && option?.dataset.price) {
-            unitPrice.value = option.dataset.price;
-          }
-          updateDeliveryReceiptLinesPreview();
-        });
-      }
-
-      function bindRow(row) {
-        row.querySelectorAll('input, select').forEach((field) => {
-          field.addEventListener('input', updateDeliveryReceiptLinesPreview);
-          field.addEventListener('change', updateDeliveryReceiptLinesPreview);
-        });
-        bindInventorySelect(row.querySelector('[data-dr-inventory]'));
-
-        const removeBtn = row.querySelector('[data-remove-row]');
-        if (removeBtn) {
-          removeBtn.addEventListener('click', () => {
-            if (list.querySelectorAll('.dr-line-row').length === 1) return;
-            row.remove();
-            refreshRemoveButtons();
-            updateDeliveryReceiptLinesPreview();
-          });
-        }
-      }
-
-      addBtn.addEventListener('click', () => {
-        const row = document.createElement('div');
-        row.className = 'repeatable-row dr-line-row';
-        row.innerHTML = `
-          <select name="dr_item_inventory" data-dr-inventory aria-label="Inventory item">${inventoryTemplate}</select>
-          <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
-          <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
-          <input type="text" name="dr_item_description" placeholder="Item / article description" data-dr-description>
-          <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
-          <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
-        `;
-        list.appendChild(row);
-        bindRow(row);
-        refreshRemoveButtons();
-        row.querySelector('[data-dr-description]')?.focus();
-        updateDeliveryReceiptLinesPreview();
-      });
-
-      list.querySelectorAll('.dr-line-row').forEach(bindRow);
-      refreshRemoveButtons();
-      updateDeliveryReceiptLinesPreview();
-    }
-
-    setupDeliveryReceiptLines();
-
     const today = localTodayISO();
     setDefaultDate(document.getElementById('report_date'), today);
     setDefaultDate(document.getElementById('date_borrowed'), today);
-    setDefaultDate(document.getElementById('dr_receipt_date'), today);
-    setDefaultDate(document.getElementById('to_travel_date'), today);
 
     // After Clear/reset, restore today's date, auto numbers, and refresh the preview.
     document.querySelectorAll('.tab-panel form').forEach((form) => {
@@ -2560,9 +1962,6 @@
           syncPanelPreviews(panel);
           if (panel?.id === 'borrowMaterialTab' && typeof updateBorrowLinesPreview === 'function') {
             updateBorrowLinesPreview();
-          }
-          if (panel?.id === 'deliveryReceiptTab' && typeof updateDeliveryReceiptLinesPreview === 'function') {
-            updateDeliveryReceiptLinesPreview();
           }
         });
       });

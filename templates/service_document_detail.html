@@ -178,6 +178,67 @@
     color: #344054;
     min-height: 1.2em;
   }
+
+  /* Travel Order layout (screen + print) */
+  .travel-document .travel-form-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 0.92rem;
+  }
+  .travel-document .travel-form-table th,
+  .travel-document .travel-form-table td {
+    border: 1px solid #101828;
+    padding: 10px 12px;
+    vertical-align: top;
+    text-align: left;
+  }
+  .travel-document .travel-form-table th {
+    width: 38%;
+    background: #fff;
+    color: #101828;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .travel-document .travel-form-table td {
+    min-height: 36px;
+    white-space: pre-wrap;
+    color: #344054;
+    line-height: 1.45;
+  }
+  .travel-document .travel-form-table .travel-with-cell {
+    min-height: 72px;
+  }
+  .travel-document .travel-signatures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    margin-top: 28px;
+  }
+  .travel-document .signature-block {
+    text-align: center;
+  }
+  .travel-document .signature-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #667085;
+    margin-bottom: 36px;
+  }
+  .travel-document .signature-line {
+    border-top: 1px solid #98a2b3;
+    min-height: 0;
+    margin: 0 8px;
+  }
+  .travel-document .signature-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.88rem;
+    color: #344054;
+    min-height: 1.2em;
+  }
   .ob-document .signature-sub {
     display: block;
     font-size: 0.68rem;
@@ -339,6 +400,43 @@
       font-size: 7pt !important;
       margin-top: 3pt !important;
     }
+
+    .travel-document .travel-form-table {
+      font-size: 9pt !important;
+      margin-top: 4pt !important;
+    }
+    .travel-document .travel-form-table th,
+    .travel-document .travel-form-table td {
+      padding: 6pt 8pt !important;
+      border-width: 1pt !important;
+    }
+    .travel-document .travel-form-table th {
+      width: 38% !important;
+      font-size: 8.5pt !important;
+    }
+    .travel-document .travel-form-table .travel-with-cell {
+      min-height: 48pt !important;
+    }
+    .travel-document .travel-signatures {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 16pt !important;
+      margin-top: 18pt !important;
+      page-break-inside: avoid;
+    }
+    .travel-document .signature-label {
+      font-size: 8pt !important;
+      margin-bottom: 28pt !important;
+      color: #667085 !important;
+    }
+    .travel-document .signature-line {
+      border-top: 1px solid #667085 !important;
+      margin: 0 6pt !important;
+    }
+    .travel-document .signature-name {
+      margin-top: 6pt !important;
+      font-size: 8.5pt !important;
+    }
   }
   @media (max-width: 600px) {
     body { padding: 12px; }
@@ -394,7 +492,7 @@
 {% block content %}
 <main class="page">
   <div class="actions">
-    <a class="back" href="{% if document_type == 'job' or document_type == 'ob' %}{% url 'hr_dashboard' %}?tab={% if document_type == 'job' %}jobOrderTab{% else %}officialBusinessTab{% endif %}{% else %}{% url 'services_dashboard' %}{% if document_type == 'borrow' %}?tab=borrowMaterialTab{% elif document_type == 'delivery_receipt' %}?tab=deliveryReceiptTab{% elif document_type == 'travel' %}?tab=travelOrderTab{% endif %}{% endif %}">{% if document_type == 'job' or document_type == 'ob' %}← HR Dashboard{% else %}← Services Dashboard{% endif %}</a>
+    <a class="back" href="{% if document_type == 'job' or document_type == 'ob' %}{% url 'hr_dashboard' %}?tab={% if document_type == 'job' %}jobOrderTab{% else %}officialBusinessTab{% endif %}{% elif document_type == 'delivery_receipt' %}{% url 'sales_dashboard' %}?tab=delivery-receipt-tab{% elif document_type == 'travel' %}{% url 'hr_dashboard' %}?tab=travelOrderTab{% else %}{% url 'services_dashboard' %}?tab=borrowMaterialTab{% endif %}">{% if document_type == 'job' or document_type == 'ob' or document_type == 'travel' %}← HR Dashboard{% elif document_type == 'delivery_receipt' %}← Sales Dashboard{% else %}← Services Dashboard{% endif %}</a>
     <div class="actions-group">
       {% if document_type == 'repair' %}
       <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
@@ -520,6 +618,53 @@
             <span class="signature-name">{{ record.APPROVER_NAME }}</span>
             <span class="signature-sub">President/Gen. Manager</span>
           </div>
+        </div>
+      </div>
+      {% elif document_type == 'travel' %}
+      <table class="travel-form-table">
+        <tr>
+          <th>Date</th>
+          <td>{% if record.travel_date %}{{ record.travel_date|date:"M j, Y" }}{% else %}—{% endif %}</td>
+        </tr>
+        <tr>
+          <th>Driver's Name</th>
+          <td>{{ record.driver_name|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Travel with</th>
+          <td class="travel-with-cell">{{ record.travel_with_display|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Venue/Destination</th>
+          <td>{{ record.destination|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Purpose of Travel</th>
+          <td>{{ record.purpose|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Departure Time</th>
+          <td>{% if record.departure_time %}{{ record.departure_time|time:"g:i A" }}{% else %}—{% endif %}</td>
+        </tr>
+        <tr>
+          <th>Vehicle/ Plate No.</th>
+          <td>{{ record.vehicle_plate|default:"—" }}</td>
+        </tr>
+        <tr>
+          <th>Fuel Allowance (PO# Amount/Liters)</th>
+          <td>{{ record.fuel_allowance|default:"—" }}</td>
+        </tr>
+      </table>
+      <div class="travel-signatures">
+        <div class="signature-block">
+          <span class="signature-label">Issued by:</span>
+          <div class="signature-line"></div>
+          <span class="signature-name">{{ record.issued_by_display }}</span>
+        </div>
+        <div class="signature-block">
+          <span class="signature-label">Approved by:</span>
+          <div class="signature-line"></div>
+          <span class="signature-name">{{ record.approved_by|default:"—" }}</span>
         </div>
       </div>
       {% else %}
