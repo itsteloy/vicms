@@ -81,7 +81,7 @@ DATABASES = {
         'NAME': 'vicms',
         'USER': 'vicms_admin',
         'PASSWORD': 'Vicms2026',
-        'HOST': '192.168.5.103',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }

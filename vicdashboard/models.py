@@ -14,9 +14,47 @@ PAYMENT_METHODS = [
 ]
 
 
+class InventoryCategory(models.Model):
+    """Nested inventory category / subcategory tree (unlimited depth)."""
+    name = models.CharField(max_length=200)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'inventory categories'
+
+    def __str__(self):
+        return self.path_label
+
+    @property
+    def path_label(self):
+        parts = []
+        node = self
+        seen = set()
+        while node is not None and node.pk not in seen:
+            seen.add(node.pk)
+            parts.append(node.name)
+            node = node.parent
+        return ' › '.join(reversed(parts))
+
+
 class InventoryItem(models.Model):
     product_code = models.CharField(max_length=50, blank=True, default='')
     name = models.CharField(max_length=200)
+    category = models.ForeignKey(
+        InventoryCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+    )
     picture = models.ImageField(upload_to='inventory_pics/', blank=True, null=True)
     size = models.CharField(max_length=100, blank=True, default='')
     stock_available = models.PositiveIntegerField(default=0)

@@ -2,11 +2,12 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
 from .attendance_sheet_metrics import annotate_attendance_sheet
+from .inventory_product_code import generate_inventory_product_code, next_product_codes_by_category
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -95,8 +96,103 @@ INVENTORY_ITEM_OPTIONS = [
     'REPAIR CLAMP',
     'WATER PIPES',
     'PE-TECH',
-    
 ]
+
+
+def _inventory_category_path(category, cache=None):
+    """Build 'Parent › Child › Leaf' label for a category."""
+    if category is None:
+        return ''
+    if cache is not None and category.pk in cache:
+        return cache[category.pk]
+    parts = []
+    node = category
+    seen = set()
+    while node is not None and node.pk not in seen:
+        seen.add(node.pk)
+        parts.append(node.name)
+        node = node.parent
+    label = ' › '.join(reversed(parts))
+    if cache is not None:
+        cache[category.pk] = label
+    return label
+
+
+def inventory_category_choices():
+    """Flattened nested categories for selects, indented by depth."""
+    categories = list(
+        InventoryCategory.objects.select_related('parent').order_by('name', 'id')
+    )
+    children_map = defaultdict(list)
+    for category in categories:
+        parent_id = category.parent_id
+        children_map[parent_id].append(category)
+
+    for siblings in children_map.values():
+        siblings.sort(key=lambda c: (c.name.lower(), c.id))
+
+    path_cache = {}
+    choices = []
+
+    def walk(parent_id, depth, root_name=None, root_id=None):
+        for category in children_map.get(parent_id, []):
+            label = _inventory_category_path(category, path_cache)
+            current_root_name = root_name if root_name else category.name
+            current_root_id = root_id if root_id else category.id
+            choices.append({
+                'id': category.id,
+                'name': category.name,
+                'path': label,
+                'depth': depth,
+                'display': category.name,
+                'parent_id': category.parent_id,
+                'root_id': current_root_id,
+                'root_name': current_root_name,
+            })
+            walk(category.id, depth + 1, current_root_name, current_root_id)
+
+    walk(None, 0)
+    return choices
+
+
+def inventory_category_tree():
+    """Nested category tree for cascading menu UI."""
+    categories = list(
+        InventoryCategory.objects.select_related('parent').order_by('name', 'id')
+    )
+    children_map = defaultdict(list)
+    for category in categories:
+        children_map[category.parent_id].append(category)
+
+    for siblings in children_map.values():
+        siblings.sort(key=lambda c: (c.name.lower(), c.id))
+
+    path_cache = {}
+
+    def build_node(category):
+        return {
+            'id': category.id,
+            'name': category.name,
+            'path': _inventory_category_path(category, path_cache),
+            'children': [build_node(child) for child in children_map.get(category.id, [])],
+        }
+
+    return [build_node(category) for category in children_map.get(None, [])]
+
+
+def inventory_category_groups():
+    """Group flat category choices under their root for dropdown UI."""
+    groups = []
+    index = {}
+    for choice in inventory_category_choices():
+        root_id = choice['root_id']
+        if root_id not in index:
+            group = {'root_id': root_id, 'name': choice['root_name'], 'items': []}
+            index[root_id] = group
+            groups.append(group)
+        index[root_id]['items'].append(choice)
+    groups.sort(key=lambda g: g['name'].lower())
+    return groups
 
 
 def get_user_workspace(user):
@@ -1310,6 +1406,36 @@ def inventory_dashboard(request):
         item_id = request.POST.get('itemId', '').strip()
         name = request.POST.get('itemName', '').strip()
 
+        if action == 'create_category':
+            category_name = request.POST.get('category_name', '').strip()
+            parent_id = request.POST.get('category_parent', '').strip()
+            if not category_name:
+                messages.error(request, 'Category name is required.')
+                return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            parent = None
+            if parent_id:
+                parent = InventoryCategory.objects.filter(pk=parent_id).first()
+                if parent is None:
+                    messages.error(request, 'Selected parent category was not found.')
+                    return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            exists = InventoryCategory.objects.filter(
+                name__iexact=category_name,
+                parent=parent,
+            ).exists()
+            if exists:
+                label = parent.path_label if parent else 'top level'
+                messages.error(request, f'“{category_name}” already exists under {label}.')
+                return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            category = InventoryCategory.objects.create(name=category_name, parent=parent)
+            messages.success(
+                request,
+                f'Category “{category.path_label}” created. It is now available in the item dropdown.',
+            )
+            return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
         if action == 'delete' and item_id:
             password = request.POST.get('password', '')
             if not password:
@@ -1381,35 +1507,63 @@ def inventory_dashboard(request):
 
             return redirect('inventory_dashboard')
 
+        category_id = request.POST.get('categoryId', '').strip()
+        category = None
+        if category_id:
+            category = InventoryCategory.objects.filter(pk=category_id).first()
+            if category is None:
+                messages.error(request, 'Selected category was not found.')
+                return redirect('inventory_dashboard')
+            name = category.path_label
+
         if name:
             if item_id:
                 item = InventoryItem.objects.get(pk=item_id)
+                previous_category_id = item.category_id
             else:
                 item = InventoryItem()
+                previous_category_id = None
 
-            item.product_code = request.POST.get('productCode', '').strip()
             item.name = name
-            # handle uploaded picture file
+            item.category = category
+            if category and (not item_id or previous_category_id != category.id):
+                item.product_code = generate_inventory_product_code(
+                    category,
+                    exclude_item_id=item.pk,
+                )
+            elif not item.product_code and category:
+                item.product_code = generate_inventory_product_code(
+                    category,
+                    exclude_item_id=item.pk,
+                )
             if request.FILES.get('picture'):
                 item.picture = request.FILES.get('picture')
-                item.size = request.POST.get('size', '').strip()
-                item.stock_available = int(request.POST.get('stockAvailable', 0) or 0)
-                item.pcs_per_ctn = int(request.POST.get('pcsPerCtn', 0) or 0)
-                item.carton_size = request.POST.get('cartonSize', '').strip()
-                item.net_weight = Decimal(request.POST.get('netWeight', '0') or '0')
-                item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
-                item.price = Decimal(request.POST.get('price', '0') or '0')
-                item.description = request.POST.get('description', '').strip()
-                item.save()
+            item.size = request.POST.get('size', '').strip()
+            item.stock_available = int(request.POST.get('stockAvailable', 0) or 0)
+            item.pcs_per_ctn = int(request.POST.get('pcsPerCtn', 0) or 0)
+            item.carton_size = request.POST.get('cartonSize', '').strip()
+            item.net_weight = Decimal(request.POST.get('netWeight', '0') or '0')
+            item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
+            item.price = Decimal(request.POST.get('price', '0') or '0')
+            item.description = request.POST.get('description', '').strip()
+            item.save()
+            messages.success(request, 'Inventory item saved.')
 
         return redirect('inventory_dashboard')
 
-    inventory_items = InventoryItem.objects.all().order_by('-created_at')
+    inventory_items = InventoryItem.objects.select_related('category').all().order_by('-created_at')
+    category_choices = inventory_category_choices()
+    category_groups = inventory_category_groups()
+    category_tree = inventory_category_tree()
+    next_product_codes = next_product_codes_by_category()
+    path_by_id = {c['id']: c['path'] for c in category_choices}
     inventory_items_json = [
         {
             'id': item.id,
             'productCode': item.product_code,
             'name': item.name,
+            'categoryId': item.category_id,
+            'categoryPath': path_by_id.get(item.category_id, item.name),
             'picture': item.picture.url if getattr(item, 'picture') else '',
             'size': item.size,
             'stockAvailable': item.stock_available,
@@ -1432,6 +1586,10 @@ def inventory_dashboard(request):
             'inventory_items': inventory_items,
             'inventory_items_json': inventory_items_json,
             'inventory_item_options': INVENTORY_ITEM_OPTIONS,
+            'inventory_categories': category_choices,
+            'inventory_category_groups': category_groups,
+            'inventory_category_tree': category_tree,
+            'next_product_codes': next_product_codes,
             'deliveries': deliveries,
             'total_stock': sum(item.stock_available for item in inventory_items),
             'low_stock_count': sum(1 for item in inventory_items if item.stock_available < 10),

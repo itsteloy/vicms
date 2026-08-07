@@ -377,15 +377,340 @@
     gap: 16px;
   }
 
+  .category-manager {
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+  }
+  .category-manager[open] {
+    z-index: 20;
+  }
+  .category-manager summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--soft);
+    font-weight: 700;
+    color: var(--ink);
+    user-select: none;
+    border-radius: 12px;
+  }
+  .category-manager[open] summary {
+    border-radius: 12px 12px 0 0;
+  }
+  .category-manager summary::-webkit-details-marker {
+    display: none;
+  }
+  .category-manager summary::after {
+    content: '▾';
+    color: var(--muted);
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+  }
+  .category-manager[open] summary::after {
+    transform: rotate(180deg);
+  }
+  .category-manager-body {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--line);
+    overflow: visible;
+    border-radius: 0 0 12px 12px;
+  }
+  .category-manager-body > p {
+    margin: 0 0 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .category-form-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.8fr) auto;
+    gap: 12px;
+    align-items: start;
+  }
+  .cat-picker {
+    position: relative;
+    width: 100%;
+  }
+  .cat-picker.is-open {
+    z-index: 30;
+  }
+  .cat-picker-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--ink);
+    transition: border 0.2s, box-shadow 0.2s;
+    text-align: left;
+  }
+  .cat-picker-trigger:hover {
+    border-color: #98a2b3;
+  }
+  .cat-picker.is-open .cat-picker-trigger,
+  .cat-picker-trigger:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+  .cat-picker-value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cat-picker-value.is-placeholder {
+    color: var(--muted);
+  }
+  .cat-picker-chevron {
+    color: var(--muted);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+  .cat-picker-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 100%;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 48px));
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #d9dee7;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+    overflow: visible;
+    padding: 4px 0;
+  }
+  #managePanel .panel,
+  #allItemsPanel .panel {
+    overflow: visible;
+  }
+  .cat-picker.is-open .cat-picker-menu {
+    display: block;
+  }
+  .cat-menu-root,
+  .cat-menu-submenu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cat-menu-item {
+    position: relative;
+    margin: 0;
+  }
+  .cat-menu-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: none;
+    background: transparent;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 0.88rem;
+    color: #1f2937;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .cat-menu-row:hover,
+  .cat-menu-item.is-active > .cat-menu-row,
+  .cat-menu-item.is-open > .cat-menu-row {
+    background: #eceff3;
+  }
+  .cat-menu-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cat-menu-arrow {
+    flex-shrink: 0;
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 5px solid #667085;
+    margin-left: 8px;
+  }
+  .cat-menu-root {
+    max-height: min(280px, 45vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cat-menu-submenu {
+    display: none;
+    position: absolute;
+    top: -4px;
+    left: calc(100% - 4px);
+    min-width: 220px;
+    width: max-content;
+    max-width: min(300px, calc(100vw - 24px));
+    background: #fff;
+    border: 1px solid #d9dee7;
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+    padding: 4px 0;
+    z-index: 110;
+  }
+  .cat-menu-submenu.cat-menu-submenu--floating {
+    position: fixed;
+    z-index: 1000;
+  }
+  .cat-menu-item.has-children.is-open > .cat-menu-submenu {
+    display: block;
+  }
+  .cat-menu-empty {
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  @media (max-width: 768px) {
+    .cat-picker-menu.cat-picker-menu--mobile {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      width: auto;
+      max-width: none;
+      max-height: min(60vh, 420px);
+    }
+    .cat-picker-menu.cat-picker-menu--mobile .cat-menu-root {
+      max-height: min(52vh, 380px);
+    }
+    .cat-menu-submenu {
+      position: static;
+      left: auto;
+      top: auto;
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      box-shadow: none;
+      border: none;
+      border-radius: 0;
+      background: #f4f6f9;
+      margin: 0;
+      padding-left: 8px;
+    }
+    .cat-menu-item.has-children:hover > .cat-menu-submenu {
+      display: none;
+    }
+    .cat-menu-item.has-children.is-open > .cat-menu-submenu {
+      display: block;
+    }
+    .cat-menu-arrow {
+      border-top: 5px solid #667085;
+      border-right: 4px solid transparent;
+      border-bottom: 0;
+      border-left: 4px solid transparent;
+      width: auto;
+      height: auto;
+    }
+  }
+  @media (max-width: 900px) {
+    .category-form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .flash-messages {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .flash-messages li {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .flash-messages .success {
+    background: #ecfdf3;
+    color: var(--success);
+    border: 1px solid #abefc6;
+  }
+  .flash-messages .error {
+    background: #fef3f2;
+    color: var(--danger);
+    border: 1px solid #fecdca;
+  }
+
   .field {
     display: grid;
     gap: 6px;
+  }
+
+  .field-readonly {
+    background: #eef2f6;
+    color: var(--ink);
+    cursor: default;
   }
 
   .field label {
     color: #475467;
     font-size: 0.82rem;
     font-weight: 700;
+  }
+
+  .field.field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-control-slot {
+    display: flex;
+    align-items: stretch;
+    min-height: 42px;
+  }
+
+  .field-control-slot > .cat-picker,
+  .field-control-slot > .field-control {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field-control,
+  .cat-picker-trigger {
+    min-height: 42px;
+    box-sizing: border-box;
+  }
+
+  .field input.field-control[type="file"] {
+    padding: 9px 14px;
+    line-height: 1.2;
+  }
+
+  .field-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--muted);
+  }
+
+  .field-hint--spacer {
+    visibility: hidden;
+    user-select: none;
+    pointer-events: none;
   }
 
   .field input,
@@ -413,6 +738,19 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(180px, 1fr));
     gap: 16px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .form-grid {
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .field.full {
@@ -515,30 +853,77 @@
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-end;
     margin-bottom: 16px;
   }
 
-  .toolbar input,
-  .toolbar select {
+  .toolbar-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 220px;
+  }
+
+  .toolbar-field--grow {
+    flex: 1 1 280px;
+    min-width: 200px;
+  }
+
+  .toolbar-field--action {
+    min-width: auto;
+  }
+
+  .toolbar-field label,
+  .toolbar-field-spacer {
+    color: #475467;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .toolbar-field-spacer {
+    visibility: hidden;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .toolbar-control-slot {
+    min-height: 42px;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .toolbar-control-slot > .cat-picker {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toolbar input.toolbar-control,
+  .toolbar select.toolbar-control {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
     border: 1px solid var(--line);
     padding: 10px 14px;
     border-radius: 8px;
     font: inherit;
     background: #fff;
-    flex: 1 1 200px;
   }
 
-  .toolbar button {
+  .toolbar button.toolbar-control {
+    min-height: 42px;
+    box-sizing: border-box;
     padding: 10px 18px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fff;
+    font: inherit;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
   }
 
-  .toolbar button:hover {
+  .toolbar button.toolbar-control:hover {
     background: var(--soft);
   }
 
@@ -657,9 +1042,10 @@
       align-items: stretch;
     }
 
-    .toolbar input,
-    .toolbar select {
-      flex: none;
+    .toolbar-field,
+    .toolbar-field--grow {
+      min-width: 0;
+      width: 100%;
     }
   }
 
@@ -1549,6 +1935,39 @@
     <!-- Manage Item -->
     <div id="managePanel" class="tab-panel is-active">
       <div class="panel">
+        {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <details class="category-manager"{% if messages %} open{% endif %}>
+          <summary>Manage categories &amp; subcategories</summary>
+          <div class="category-manager-body">
+            <p>Add a top-level category or nest under any existing one. New entries appear in the item dropdown on reload.</p>
+            <form method="post" id="categoryForm">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="create_category">
+              <div class="category-form-grid">
+                <div class="field">
+                  <label for="category_parent">Parent (optional)</label>
+                  {% include "partials/inventory_category_picker.html" with picker_id="category_parent" picker_name="category_parent" picker_placeholder="Top-level category" picker_allow_empty=True picker_required=False picker_value="" %}
+                </div>
+                <div class="field">
+                  <label for="category_name">New category name</label>
+                  <input id="category_name" name="category_name" type="text" required placeholder="e.g. Steel, 4-inch">
+                </div>
+                <div class="field">
+                  <label>&nbsp;</label>
+                  <button class="save" type="submit">Add Category</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+
         <h2 id="formTitle">Add Inventory Item</h2>
         <p>Create or update an inventory record.</p>
         <form id="inventoryForm" method="post" enctype="multipart/form-data">
@@ -1556,22 +1975,26 @@
           <input type="hidden" id="itemId" name="itemId" value="">
 
           <div class="form-grid">
-            <div class="field">
+            <div class="field field-stack">
+              <label for="categoryId">Item category</label>
+              <div class="field-control-slot">
+                {% include "partials/inventory_category_picker.html" with picker_id="categoryId" picker_name="categoryId" picker_placeholder="Select category / subcategory" picker_allow_empty=False picker_required=True picker_value="" %}
+              </div>
+              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
+            </div>
+            <div class="field field-stack">
               <label for="productCode">Product Code</label>
-              <input id="productCode" name="productCode" type="text" placeholder="PRD-001">
+              <div class="field-control-slot">
+                <input id="productCode" type="text" class="field-readonly field-control" value="" placeholder="Select category first" readonly title="Auto-generated from category">
+              </div>
+              <p class="field-hint">Assigned automatically when you save (e.g. COUPLING-001).</p>
             </div>
-            <div class="field">
-              <label for="itemName">Item</label>
-              <select id="itemName" name="itemName" required>
-                <option value="">Select item category</option>
-                {% for option in inventory_item_options %}
-                <option value="{{ option }}">{{ option }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field">
+            <div class="field field-stack">
               <label for="picture">Upload Image</label>
-              <input id="picture" name="picture" type="file" accept="image/*">
+              <div class="field-control-slot">
+                <input id="picture" name="picture" type="file" accept="image/*" class="field-control">
+              </div>
+              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
             </div>
             <div class="field">
               <label for="size">Size</label>
@@ -1627,14 +2050,24 @@
         <h2>All Items</h2>
         <p>View every inventory item and filter by category, code, size, or notes.</p>
         <div class="toolbar">
-          <select id="categoryFilter" aria-label="Filter by category">
-            <option value="">All categories</option>
-            {% for option in inventory_item_options %}
-            <option value="{{ option }}">{{ option }}</option>
-            {% endfor %}
-          </select>
-          <input id="searchInput" type="search" placeholder="Search all items" aria-label="Search inventory">
-          <button id="clearSearchBtn" type="button">Clear</button>
+          <div class="toolbar-field">
+            <label for="categoryFilter">Category</label>
+            <div class="toolbar-control-slot">
+              {% include "partials/inventory_category_picker.html" with picker_id="categoryFilter" picker_name="" picker_placeholder="All categories" picker_allow_empty=True picker_required=False picker_value="" %}
+            </div>
+          </div>
+          <div class="toolbar-field toolbar-field--grow">
+            <label for="searchInput">Search</label>
+            <div class="toolbar-control-slot">
+              <input id="searchInput" type="search" class="toolbar-control" placeholder="Search all items" aria-label="Search inventory">
+            </div>
+          </div>
+          <div class="toolbar-field toolbar-field--action">
+            <span class="toolbar-field-spacer">Search</span>
+            <div class="toolbar-control-slot">
+              <button id="clearSearchBtn" type="button" class="toolbar-control">Clear</button>
+            </div>
+          </div>
         </div>
 
         <div class="notice" id="emptyNotice">
@@ -1661,8 +2094,7 @@
               {% for item in inventory_items %}
               <tr data-id="{{ item.id }}">
                 <td>
-                  <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{
-                    item.product_code|default:"-" }}</span>
+                  <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
                   <strong>{{ item.name }}</strong>
                 </td>
                 <td>
@@ -2049,6 +2481,7 @@
 </div>
 
 {{ inventory_items_json|json_script:"inventory-data" }}
+{{ next_product_codes|json_script:"next-product-codes" }}
 
 <script>
   (function () {
@@ -2101,6 +2534,7 @@
     // ── Inventory management ──
     const storageKey = 'inventory-management-data-v1';
     const inventoryDataElement = document.getElementById('inventory-data');
+    const nextProductCodesElement = document.getElementById('next-product-codes');
     const form = document.getElementById('inventoryForm');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
@@ -2116,7 +2550,8 @@
     const fields = {
       itemId: document.getElementById('itemId'),
       productCode: document.getElementById('productCode'),
-      itemName: document.getElementById('itemName'),
+      itemName: document.getElementById('categoryId'),
+      categoryId: document.getElementById('categoryId'),
       picture: document.getElementById('picture'),
       size: document.getElementById('size'),
       stockAvailable: document.getElementById('stockAvailable'),
@@ -2128,9 +2563,253 @@
       description: document.getElementById('description'),
     };
 
+    function isMobileCatMenu() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function resetPickerMenuLayout(picker) {
+      const menu = picker?.querySelector('.cat-picker-menu');
+      if (!menu) return;
+      menu.classList.remove('cat-picker-menu--mobile');
+      menu.style.position = '';
+      menu.style.top = '';
+      menu.style.left = '';
+      menu.style.right = '';
+      menu.style.width = '';
+      menu.style.maxHeight = '';
+    }
+
+    function positionPickerMenu(picker) {
+      const menu = picker.querySelector('.cat-picker-menu');
+      const trigger = picker.querySelector('.cat-picker-trigger');
+      if (!menu || !trigger) return;
+
+      if (isMobileCatMenu()) {
+        const rect = trigger.getBoundingClientRect();
+        menu.classList.add('cat-picker-menu--mobile');
+        menu.style.position = 'fixed';
+        menu.style.left = '12px';
+        menu.style.right = '12px';
+        menu.style.width = 'auto';
+        menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 12)}px`;
+        menu.style.maxHeight = `${Math.max(160, window.innerHeight - rect.bottom - 20)}px`;
+        return;
+      }
+
+      resetPickerMenuLayout(picker);
+    }
+
+    function resetSubmenuStyles(submenu) {
+      if (!submenu) return;
+      submenu.classList.remove('cat-menu-submenu--floating');
+      submenu.style.position = '';
+      submenu.style.top = '';
+      submenu.style.left = '';
+    }
+
+    function openMenuBranch(picker, item) {
+      if (!picker || !item) return;
+
+      picker.querySelectorAll('.cat-menu-item.is-open').forEach(openItem => {
+        if (openItem === item || openItem.contains(item)) {
+          return;
+        }
+        openItem.classList.remove('is-open');
+        resetSubmenuStyles(openItem.querySelector(':scope > .cat-menu-submenu'));
+      });
+
+      if (!item.classList.contains('has-children')) {
+        return;
+      }
+
+      const parentList = item.parentElement;
+      parentList?.querySelectorAll(':scope > .cat-menu-item.is-open').forEach(sibling => {
+        if (sibling !== item) {
+          sibling.classList.remove('is-open');
+          resetSubmenuStyles(sibling.querySelector(':scope > .cat-menu-submenu'));
+        }
+      });
+
+      item.classList.add('is-open');
+      positionFloatingSubmenu(item);
+    }
+
+    function resetFloatingSubmenus(picker) {
+      picker?.querySelectorAll('.cat-menu-submenu--floating').forEach(submenu => {
+        resetSubmenuStyles(submenu);
+      });
+    }
+
+    function positionFloatingSubmenu(item) {
+      if (isMobileCatMenu()) return;
+      const submenu = item.querySelector(':scope > .cat-menu-submenu');
+      const row = item.querySelector('.cat-menu-row');
+      if (!submenu || !row) return;
+
+      submenu.classList.add('cat-menu-submenu--floating');
+      submenu.style.position = 'fixed';
+      const rect = row.getBoundingClientRect();
+      const submenuWidth = submenu.offsetWidth || 220;
+      let left = rect.right - 4;
+      if (left + submenuWidth > window.innerWidth - 8) {
+        left = Math.max(8, rect.left - submenuWidth + 4);
+      }
+      let top = rect.top - 4;
+      const submenuHeight = submenu.offsetHeight;
+      if (top + submenuHeight > window.innerHeight - 8) {
+        top = Math.max(8, window.innerHeight - submenuHeight - 8);
+      }
+      submenu.style.left = `${left}px`;
+      submenu.style.top = `${top}px`;
+    }
+
+    function closeCatPicker(picker) {
+      if (!picker) return;
+      picker.classList.remove('is-open');
+      picker.querySelector('.cat-picker-trigger')?.setAttribute('aria-expanded', 'false');
+      picker.querySelectorAll('.cat-menu-item.is-open').forEach(item => item.classList.remove('is-open'));
+      resetPickerMenuLayout(picker);
+      resetFloatingSubmenus(picker);
+    }
+
+    function closeAllCatPickers(exceptPicker) {
+      document.querySelectorAll('[data-cat-picker]').forEach(picker => {
+        if (picker !== exceptPicker) closeCatPicker(picker);
+      });
+    }
+
+    function setCatPickerValue(input, value, label) {
+      if (!input) return;
+      input.value = value ? String(value) : '';
+      const picker = input.closest('[data-cat-picker]');
+      if (!picker) return;
+      const valueEl = picker.querySelector('.cat-picker-value');
+      const placeholder = valueEl?.dataset.placeholder || 'Select';
+      const activeItem = picker.querySelector(`.cat-menu-item[data-value="${CSS.escape(String(value || ''))}"]`);
+      const display = label || activeItem?.dataset.path || placeholder;
+      if (valueEl) {
+        valueEl.textContent = display;
+        valueEl.classList.toggle('is-placeholder', !value);
+      }
+      picker.querySelectorAll('.cat-menu-item').forEach(item => {
+        item.classList.toggle('is-active', item.dataset.value === String(value || ''));
+      });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function initCatPickers() {
+      document.querySelectorAll('[data-cat-picker]').forEach(picker => {
+        const input = picker.querySelector('input[type="hidden"]');
+        const trigger = picker.querySelector('.cat-picker-trigger');
+        const valueEl = picker.querySelector('.cat-picker-value');
+        if (!input || !trigger || !valueEl) return;
+
+        if (!valueEl.dataset.placeholder) {
+          valueEl.dataset.placeholder = valueEl.textContent.trim();
+        }
+
+        if (input.value) {
+          setCatPickerValue(input, input.value);
+        }
+
+        trigger.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const willOpen = !picker.classList.contains('is-open');
+          closeAllCatPickers(picker);
+          picker.classList.toggle('is-open', willOpen);
+          trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+          if (willOpen) {
+            positionPickerMenu(picker);
+          }
+        });
+
+        picker.querySelectorAll('.cat-menu-row').forEach(row => {
+          row.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const item = row.closest('.cat-menu-item');
+            if (!item) return;
+
+            if (item.classList.contains('has-children') && isMobileCatMenu()) {
+              const parentList = item.parentElement;
+              parentList?.querySelectorAll(':scope > .cat-menu-item.is-open').forEach(sibling => {
+                if (sibling !== item) sibling.classList.remove('is-open');
+              });
+              item.classList.toggle('is-open');
+              return;
+            }
+
+            setCatPickerValue(
+              input,
+              item.dataset.value || '',
+              item.dataset.path || valueEl.dataset.placeholder,
+            );
+            closeCatPicker(picker);
+          });
+        });
+
+        picker.querySelectorAll('.cat-menu-item').forEach(item => {
+          item.addEventListener('mouseenter', () => {
+            if (isMobileCatMenu()) return;
+            openMenuBranch(picker, item);
+          });
+        });
+
+        const menuRoot = picker.querySelector('.cat-menu-root');
+        if (menuRoot) {
+          menuRoot.addEventListener('scroll', () => {
+            picker.querySelectorAll('.cat-menu-item.has-children.is-open').forEach(openItem => {
+              positionFloatingSubmenu(openItem);
+            });
+          });
+        }
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-cat-picker]')) {
+          closeAllCatPickers();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeAllCatPickers();
+      });
+
+      window.addEventListener('resize', () => {
+        document.querySelectorAll('[data-cat-picker].is-open').forEach(picker => {
+          positionPickerMenu(picker);
+          picker.querySelectorAll('.cat-menu-item.has-children.is-open').forEach(openItem => {
+            positionFloatingSubmenu(openItem);
+          });
+        });
+      });
+    }
+
     let inventory = [];
     let editingId = null;
     let currentPictureData = '';
+    let savedCategoryId = '';
+    let savedProductCode = '';
+    let nextProductCodes = {};
+
+    if (nextProductCodesElement?.textContent) {
+      try { nextProductCodes = JSON.parse(nextProductCodesElement.textContent); } catch { nextProductCodes = {}; }
+    }
+
+    function updateProductCodePreview() {
+      if (!fields.productCode) return;
+      const catId = fields.categoryId?.value || '';
+      if (editingId && catId && catId === savedCategoryId) {
+        fields.productCode.value = savedProductCode || '';
+        return;
+      }
+      if (catId) {
+        fields.productCode.value = nextProductCodes[catId] || nextProductCodes[String(catId)] || '';
+      } else {
+        fields.productCode.value = '';
+      }
+    }
 
     function normalizeInventory(data) {
       if (Array.isArray(data)) return data;
@@ -2160,10 +2839,11 @@
     function getFilteredInventory() {
       const items = Array.isArray(inventory) ? inventory : [];
       const query = searchInput.value.trim().toLowerCase();
-      const category = categoryFilter.value.trim().toLowerCase();
+      const category = categoryFilter.value.trim();
       return items.filter(item => {
-        const matchesCategory = !category || String(item.name || '').toLowerCase() === category;
-        const matchesSearch = !query || [item.productCode, item.name, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description]
+        const matchesCategory = !category || String(item.categoryId || '') === category
+          || String(item.name || '').toLowerCase() === category.toLowerCase();
+        const matchesSearch = !query || [item.productCode, item.name, item.categoryPath, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description]
           .join(' ').toLowerCase().includes(query);
         return matchesCategory && matchesSearch;
       });
@@ -2193,12 +2873,18 @@
       fields.netWeight.value = '0.00';
       fields.grossWeight.value = '0.00';
       fields.price.value = '0.00';
+      savedCategoryId = '';
+      savedProductCode = '';
+      setCatPickerValue(fields.categoryId, '', fields.categoryId?.closest('[data-cat-picker]')?.querySelector('.cat-picker-value')?.dataset.placeholder);
+      updateProductCodePreview();
     }
 
     function fillForm(item) {
       fields.itemId.value = item.id || '';
-      fields.productCode.value = item.productCode || '';
-      fields.itemName.value = item.name;
+      savedCategoryId = item.categoryId ? String(item.categoryId) : '';
+      savedProductCode = item.productCode || '';
+      setCatPickerValue(fields.categoryId, item.categoryId ? String(item.categoryId) : '', item.categoryPath || item.name || '');
+      updateProductCodePreview();
       fields.picture.value = '';
       currentPictureData = item.picture || '';
       renderPicturePreview(currentPictureData);
@@ -2328,7 +3014,7 @@
 
     function clearSearch() {
       searchInput.value = '';
-      categoryFilter.value = '';
+      setCatPickerValue(categoryFilter, '', categoryFilter?.closest('[data-cat-picker]')?.querySelector('.cat-picker-value')?.dataset.placeholder);
       renderInventory();
       searchInput.focus();
     }
@@ -2340,9 +3026,11 @@
     fields.picture.addEventListener('change', handlePictureChange);
     inventoryTableBody.addEventListener('click', handleTableClick);
     searchInput.addEventListener('input', renderInventory);
-    categoryFilter.addEventListener('change', renderInventory);
+    categoryFilter?.addEventListener('change', renderInventory);
+    fields.categoryId?.addEventListener('change', updateProductCodePreview);
     clearSearchBtn.addEventListener('click', clearSearch);
 
+    initCatPickers();
     loadInventory();
     renderInventory();
 
