@@ -2,100 +2,11 @@
 {% load static %}
 {% block title %}{{ customer.display_name }} – Customer Profile{% endblock %}
 
-{% block extra_head %}
+{% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; }
-  :root {
-    --ink: #0b1f2a;
-    --muted: #5b6b76;
-    --line: #d7e2e8;
-    --brand: #0e7490;
-    --brand-dark: #155e75;
-    --brand-soft: #ecfeff;
-    --panel: rgba(255,255,255,0.94);
-    --soft: #f3f8fa;
-    --danger: #be123c;
-    --success: #047857;
-    --radius: 16px;
-    --shadow: 0 10px 30px rgba(11, 31, 42, 0.06);
-  }
-  body {
-    margin: 0; min-height: 100vh; color: var(--ink);
-    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-    background:
-      radial-gradient(1000px 420px at 0% -10%, rgba(14, 116, 144, 0.14), transparent 55%),
-      radial-gradient(800px 360px at 100% 0%, rgba(8, 145, 178, 0.10), transparent 50%),
-      #eef4f7;
-  }
-  .page { max-width: 1120px; margin: 0 auto; padding: 28px 20px 56px; }
-  .topbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-  .topbar a, .topbar .btn {
-    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
-    border: 1px solid var(--line); background: #fff; color: var(--brand-dark);
-    padding: 9px 14px; border-radius: 10px; font-weight: 700; font-size: 0.86rem;
-  }
-  .topbar .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .hero {
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px;
-  }
-  .hero h1 {
-    margin: 0; font-family: Manrope, sans-serif; font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em;
-  }
-  .hero .meta { margin-top: 6px; color: var(--muted); }
-  .badge {
-    display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 700; background: #e2e8f0; color: #334155; margin-left: 8px;
-  }
-  .badge.active { background: #d1fae5; color: #065f46; }
-  .badge.disconnected, .badge.overdue, .badge.unpaid { background: #ffe4e6; color: #9f1239; }
-  .badge.inactive, .badge.cancelled { background: #e2e8f0; color: #475569; }
-  .badge.partial, .badge.scheduled, .badge.paid, .badge.completed { background: #ffedd5; color: #9a3412; }
-  .badge.paid, .badge.completed { background: #d1fae5; color: #065f46; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .kpi {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 16px; box-shadow: var(--shadow);
-  }
-  .kpi .label { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-  .kpi .value { margin-top: 8px; font-family: Manrope, sans-serif; font-size: 1.35rem; font-weight: 800; }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px;
-  }
-  .panel h2 {
-    margin: 0 0 4px; font-family: Manrope, sans-serif; font-size: 1.08rem; font-weight: 800; letter-spacing: -0.02em;
-  }
-  .panel .sub { margin: 0 0 14px; color: var(--muted); font-size: 0.88rem; }
-  .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
-  .info-item .label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-  .info-item .value { margin-top: 4px; font-weight: 600; }
-  .info-item.full { grid-column: 1 / -1; }
-  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-  table.data { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-  table.data th, table.data td { padding: 10px 12px; border-bottom: 1px solid #e8eef2; text-align: left; vertical-align: top; }
-  table.data th {
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
-    background: var(--soft); font-weight: 700; white-space: nowrap;
-  }
-  table.data tr:last-child td { border-bottom: none; }
-  .empty { color: var(--muted); padding: 22px 10px; text-align: center; }
-  .action {
-    display: inline-flex; align-items: center; text-decoration: none; border: 1px solid var(--line);
-    background: #fff; color: var(--brand-dark); padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem;
-  }
-  .action:hover { border-color: var(--brand); background: var(--soft); color: var(--brand); }
-  .muted { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
-  @media (max-width: 900px) {
-    .kpi-grid, .info-grid { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 640px) {
-    .kpi-grid, .info-grid { grid-template-columns: 1fr; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_detail.css' %}">
 {% endblock %}
 
 {% block content %}

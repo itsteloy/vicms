@@ -1,0 +1,84 @@
+<!-- All Items -->
+    <div id="allItemsPanel" class="tab-panel">
+      <div class="panel">
+        <h2>All Items</h2>
+        <p>View every inventory item and filter by category, code, size, or notes.</p>
+        <div class="toolbar">
+          <div class="toolbar-field">
+            <label for="categoryFilter">Category</label>
+            <div class="toolbar-control-slot">
+              {% include "partials/inventory_category_picker.html" with picker_id="categoryFilter" picker_name="" picker_placeholder="All categories" picker_allow_empty=True picker_required=False picker_value="" %}
+            </div>
+          </div>
+          <div class="toolbar-field toolbar-field--grow">
+            <label for="searchInput">Search</label>
+            <div class="toolbar-control-slot">
+              <input id="searchInput" type="search" class="toolbar-control" placeholder="Search all items" aria-label="Search inventory">
+            </div>
+          </div>
+          <div class="toolbar-field toolbar-field--action">
+            <span class="toolbar-field-spacer">Search</span>
+            <div class="toolbar-control-slot">
+              <button id="clearSearchBtn" type="button" class="toolbar-control">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notice" id="emptyNotice">
+          <strong>No inventory yet.</strong> Use the Manage Item tab to add the first record.
+        </div>
+
+        <div class="table-wrap">
+          <table aria-label="Inventory items">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Picture</th>
+                <th>Size</th>
+                <th>Stocks</th>
+                <th>PCS/CTN</th>
+                <th>Carton size</th>
+                <th>N.W (kg)</th>
+                <th>G.W (kg)</th>
+                <th>Unit price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              {% for item in inventory_items %}
+              <tr data-id="{{ item.id }}">
+                <td>
+                  <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
+                  <strong>{{ item.name }}</strong>
+                </td>
+                <td>
+                  {% if item.picture %}
+                  <img src="{{ item.picture.url }}" alt="{{ item.name }}"
+                    style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
+                  {% else %}
+                  <span style="color:#667085;font-size:.88rem;">No image</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.size|default:"-" }}</td>
+                <td>{{ item.stock_available }}</td>
+                <td>{{ item.pcs_per_ctn }}</td>
+                <td>{{ item.carton_size|default:"-" }}</td>
+                <td>{{ item.net_weight }}</td>
+                <td>{{ item.gross_weight }}</td>
+                <td>₱{{ item.price }}</td>
+                <td>
+                  <div class="actions" style="justify-content:flex-start;">
+                    <button class="copy" type="button" data-action="edit">Edit</button>
+                    <button class="delete" type="button" data-action="delete">Delete</button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+              <tr data-empty-state>
+                <td colspan="10" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>

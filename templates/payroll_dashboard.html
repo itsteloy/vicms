@@ -2,527 +2,16 @@
 {% load static %}
 {% block title %}Payroll Dashboard{% endblock %}
 
-{% block extra_head %}
+{% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  /* ── reset / base ── */
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-  :root {
-    --ink: #101828;
-    --muted: #667085;
-    --line: #d0d5dd;
-    --brand: #0f766e;
-    --brand-dark: #134e4a;
-    --brand-light: #ecfdf3;
-    --panel: #ffffff;
-    --soft: #f8fafc;
-    --danger: #b42318;
-    --success: #027a48;
-    --sidebar-width: 300px;
-    --radius: 14px;
-    --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
-  }
-  body {
-    display: block;
-    padding: 0;
-    margin: 0;
-    background: #f2f4f7;
-    color: var(--ink);
-    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
-    min-height: 100vh;
-  }
-  
-  h1, h2, h3, h4,
-  .logo-text,
-  .greeting h2,
-  .stat-value,
-  .kpi-card .value,
-  .hero-stats .stat-card .stat-value,
-  .aging-card strong,
-  .totals-strip .t-value {
-    font-family: Manrope, sans-serif;
-  }
-
-  .dashboard-wrapper {
-    display: flex;
-    min-height: 100vh;
-  }
-
-  /* ── sidebar ── */
-  .sidebar {
-    position: sticky;
-    top: 0;
-    flex: 0 0 var(--sidebar-width);
-    width: var(--sidebar-width);
-    height: 100vh;
-    overflow-y: auto;
-    background: var(--brand);
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    z-index: 100;
-  }
-  .sidebar-brand {
-    padding: 28px 24px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-  }
-  .sidebar-brand .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    color: #fff;
-  }
-  .sidebar-brand .logo-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 1.2rem;
-    color: #fff;
-    flex-shrink: 0;
-  }
-  .sidebar-brand .logo-text {
-    font-weight: 800;
-    font-size: 1.1rem;
-    letter-spacing: -0.01em;
-    line-height: 1.2;
-  }
-  .sidebar-brand .logo-text small {
-    display: block;
-    font-weight: 400;
-    font-size: 0.7rem;
-    opacity: 0.6;
-    letter-spacing: 0.04em;
-    margin-top: 2px;
-  }
-  .sidebar-nav {
-    padding: 20px 16px 12px;
-    flex-shrink: 0;
-  }
-  .sidebar-nav .nav-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.4;
-    color: #fff;
-    padding: 0 12px 10px;
-    font-weight: 700;
-  }
-  .sidebar-nav .tab-button {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    padding: 12px 16px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.836);
-    font: inherit;
-    font-weight: 600;
-    font-size: 0.9rem;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-    position: relative;
-  }
-  .sidebar-nav .tab-button .tab-icon {
-    font-size: 1.2rem;
-    width: 24px;
-    text-align: center;
-    flex-shrink: 0;
-    opacity: 0.7;
-  }
-  .sidebar-nav .tab-button:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-  }
-  .sidebar-nav .tab-button[aria-selected="true"] {
-    background: var(--brand-dark);
-    color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
-  }
-  .sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
-    opacity: 1;
-  }
-  .sidebar-nav .tab-button .tab-badge {
-    margin-left: auto;
-    background: rgba(255, 255, 255, 0.08);
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
-  }
-  .sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
-    background: rgba(15, 118, 110, 0.4);
-    color: #fff;
-  }
-
-  .sidebar-stats {
-    padding: 16px 16px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    margin-top: 4px;
-    flex-shrink: 0;
-  }
-  .sidebar-stats .stat-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-  }
-  .sidebar-stats .stat-row strong {
-    color: #fff;
-    font-weight: 600;
-  }
-
-  /* ── main content ── */
-  .main-content {
-    flex: 1;
-    min-width: 0;
-    padding: 0 32px 40px;
-    background: #f2f4f7;
-    overflow-x: hidden;
-  }
-
-  /* topbar */
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 18px;
-    padding: 18px 0 16px;
-    border-bottom: 1px solid #eaecf0;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    background: transparent;
-    color: var(--ink);
-  }
-  .topbar .greeting h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .topbar .greeting p {
-    margin: 2px 0 0;
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  .topbar .top-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .topbar .top-actions a {
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.82rem;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--ink);
-    transition: 0.2s;
-  }
-  .topbar .top-actions a:hover {
-    background: var(--soft);
-  }
-
-  /* hero stats */
-  .hero-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-  .hero-stats .stat-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    box-shadow: var(--shadow);
-  }
-  .hero-stats .stat-card .stat-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    font-weight: 700;
-  }
-  .hero-stats .stat-card .stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    margin-top: 4px;
-    color: var(--ink);
-  }
-
-  /* cards & panels */
-  .card,
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 22px 24px;
-  }
-  .panel {
-    margin-bottom: 24px;
-  }
-  .card h2,
-  .panel h2 {
-    margin: 0 0 8px;
-    font-size: 1rem;
-    font-weight: 700;
-  }
-  .card p,
-  .panel p {
-    margin: 0;
-    color: var(--muted);
-    line-height: 1.6;
-    font-size: 0.9rem;
-  }
-
-  /* tabs in content */
-  .tab-panel {
-    display: none;
-    animation: fadeUp 0.3s ease;
-  }
-  .tab-panel.is-active {
-    display: block;
-  }
-  @keyframes fadeUp {
-    0% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* table */
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: #fff;
-    margin-top: 12px;
-  }
-  table {
-    width: 100%;
-    min-width: 600px;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-  }
-  thead {
-    background: var(--soft);
-  }
-  th,
-  td {
-    text-align: left;
-    padding: 12px 14px;
-    border-bottom: 1px solid #eaecf0;
-    vertical-align: middle;
-  }
-  th {
-    color: #475467;
-    font-weight: 700;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  tbody tr:hover {
-    background: #f8fafc;
-  }
-
-  .action {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--brand);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.82rem;
-    transition: 0.2s;
-  }
-  .action:hover {
-    background: var(--soft);
-    border-color: var(--brand);
-    color: var(--brand);
-  }
-
-  /* responsive */
-  @media (max-width: 992px) {
-    :root {
-      --sidebar-width: 260px;
-    }
-    .main-content {
-      padding: 0 20px 32px;
-    }
-  }
-  @media (max-width: 768px) {
-    .dashboard-wrapper {
-      flex-direction: column;
-    }
-    .sidebar {
-      position: relative;
-      width: 100%;
-      height: auto;
-      max-height: 420px;
-      flex: none;
-      border-right: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      overflow-y: auto;
-    }
-    .sidebar-brand {
-      padding: 16px 20px 12px;
-    }
-    .sidebar-nav {
-      padding: 8px 12px;
-    }
-    .sidebar-nav .nav-label {
-      display: none;
-    }
-    .sidebar-nav .tab-button {
-      padding: 10px 14px;
-      font-size: 0.8rem;
-    }
-    .sidebar-stats {
-      display: none;
-    }
-    .main-content {
-      padding: 0 16px 24px;
-    }
-    .hero-stats {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .topbar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-    }
-    .topbar .top-actions {
-      justify-content: flex-start;
-    }
-  }
-  @media (max-width: 480px) {
-    .hero-stats {
-      grid-template-columns: 1fr 1fr;
-    }
-    table {
-      min-width: 400px;
-    }
-  }
-  .field-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    font: inherit;
-  }
-  .field-input:focus {
-    outline: none;
-    border-color: var(--brand);
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
-  }
-  .badge-status {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-  .badge-draft { background: #f2f4f7; color: #475467; }
-  .badge-computed { background: #ecfdf3; color: #027a48; }
-  .badge-approved { background: #eff6ff; color: #1d4ed8; }
-  .badge-disbursed { background: #fef3f2; color: #b42318; }
-
-  .messages {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .message {
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 0.88rem;
-    font-weight: 600;
-  }
-  .message.success { background: #ecfdf3; color: #027a48; border: 1px solid #abefc6; }
-  .message.error { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
-  .message.warning { background: #fffaeb; color: #b54708; border: 1px solid #fedf89; }
-  .message.info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-
-  .form-section {
-    background: var(--soft);
-    padding: 16px;
-    border-radius: var(--radius);
-    margin-bottom: 20px;
-  }
-  .form-section h4 {
-    margin: 0 0 12px;
-    font-size: 0.92rem;
-  }
-  .form-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: end;
-  }
-  .form-field {
-    display: grid;
-    gap: 4px;
-    min-width: 140px;
-  }
-  .form-field label {
-    font-weight: 600;
-    font-size: 0.78rem;
-    color: #475467;
-  }
-  .run-details {
-    background: #f8fafc;
-    padding: 12px 14px;
-  }
-  .run-details table {
-    min-width: 520px;
-    font-size: 0.82rem;
-  }
-  .btn-primary {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
-  .btn-primary:hover {
-    background: var(--brand-dark);
-    border-color: var(--brand-dark);
-    color: #fff;
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/payroll.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper">
+<div class="payroll-page dashboard-wrapper">
   <aside class="sidebar" role="navigation" aria-label="Payroll dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
@@ -663,10 +152,10 @@
         <!-- Create new run -->
         <div class="form-section">
           <h4>Create Pay Run</h4>
-          <form method="post" class="form-row">
+          <form method="post" class="form-grid" style="gap:14px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_payrun">
-            <div class="form-field" style="flex:1 1 240px;">
+            <div class="form-field full">
               <label for="pay_period_id">Pay Period</label>
               <select id="pay_period_id" name="pay_period_id" required class="field-input">
                 <option value="">Select period</option>
@@ -677,11 +166,53 @@
                 {% endfor %}
               </select>
             </div>
-            <button type="submit" class="action btn-primary">+ Create Run</button>
+            <div class="form-field full" style="padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:700;">
+                <input type="checkbox" name="use_attendance_sheets" id="use_attendance_sheets" checked style="margin-top:3px;">
+                <span>
+                  Base undertime / absence deductions on attendance sheets
+                  <small style="display:block;font-weight:500;color:var(--muted);margin-top:4px;">
+                    Uses biometric punch sheets and each employee’s daily rate.
+                  </small>
+                </span>
+              </label>
+            </div>
+            <div class="form-field full" id="attendanceSheetPicker">
+              <label for="attendance_sheet_ids">Attendance sheets</label>
+              <select id="attendance_sheet_ids" name="attendance_sheet_ids" class="field-input" multiple size="5" style="min-height:110px;">
+                {% for sheet in attendance_sheets %}
+                <option value="{{ sheet.id }}">
+                  #{{ sheet.id }} — {{ sheet.title }}{% if sheet.period_start and sheet.period_end %} ({{ sheet.period_start|date:"Y-m-d" }} → {{ sheet.period_end|date:"Y-m-d" }}){% endif %}
+                </option>
+                {% empty %}
+                <option value="" disabled>No attendance sheets uploaded yet</option>
+                {% endfor %}
+              </select>
+              <small style="color:var(--muted);display:block;margin-top:6px;">
+                Hold Ctrl/Cmd to select multiple. Leave empty to auto-match sheets that overlap the pay cutoff.
+              </small>
+            </div>
+            <div class="form-field full" id="alignCutoffField">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:600;">
+                <input type="checkbox" name="align_cutoff_to_sheets" id="align_cutoff_to_sheets" style="margin-top:3px;">
+                <span>
+                  Align run cutoff to selected sheet period dates
+                  <small style="display:block;font-weight:500;color:var(--muted);margin-top:4px;">
+                    Uses the earliest sheet start and latest sheet end when period dates are set.
+                  </small>
+                </span>
+              </label>
+            </div>
+            <div class="form-field full">
+              <button type="submit" class="action btn-primary">+ Create Run</button>
+            </div>
           </form>
         </div>
 
         <!-- List of runs -->
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">
+          When enabled, undertime and absence come from the attendance sheets chosen for each run (or auto-matched by cutoff).
+        </p>
         <div class="table-wrap">
           <table>
             <thead>
@@ -701,7 +232,20 @@
               <tr>
                 <td>#{{ run.id }}</td>
                 <td>{{ run.pay_period.start_date|date:"Y-m-d" }} – {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
-                <td>{{ run.cutoff_start|date:"m/d" }} – {{ run.cutoff_end|date:"m/d" }}</td>
+                <td>
+                  {{ run.cutoff_start|date:"m/d" }} – {{ run.cutoff_end|date:"m/d" }}
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:4px;max-width:220px;">
+                    {% if run.use_attendance_sheets %}
+                      {% if run.attendance_sheet_labels %}
+                        Sheets: {{ run.attendance_sheet_labels|join:", " }}
+                      {% else %}
+                        Sheets: auto-match by cutoff
+                      {% endif %}
+                    {% else %}
+                      Attendance sheets: off
+                    {% endif %}
+                  </div>
+                </td>
                 <td>{{ run.employee_count|default:"0" }}</td>
                 <td>₱{{ run.total_gross|default:"0"|floatformat:2 }}</td>
                 <td>₱{{ run.total_net|default:"0"|floatformat:2 }}</td>
@@ -711,9 +255,21 @@
                   </span>
                 </td>
                 <td>
-                  <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
                     {% if run.lines.all %}
-                    <button type="button" class="action toggle-run-details" data-target="run-details-{{ run.id }}" style="padding:4px 10px;">Details</button>
+                    <details class="payroll-run-menu">
+                      <summary class="action payroll-run-menu-toggle" style="padding:4px 10px;">
+                        Actions
+                        <span class="payroll-run-menu-caret" aria-hidden="true">▾</span>
+                      </summary>
+                      <div class="payroll-run-menu-panel" role="menu">
+                        <button type="button" class="payroll-run-menu-item toggle-run-details" data-target="run-details-{{ run.id }}" role="menuitem">Details</button>
+                        {% if run.status != 'draft' %}
+                        <a href="{% url 'download_payroll_register_pdf' run.id %}" class="payroll-run-menu-item" role="menuitem">PDF</a>
+                        <a href="{% url 'download_payroll_register_xlsx' run.id %}" class="payroll-run-menu-item" role="menuitem">Excel</a>
+                        {% endif %}
+                      </div>
+                    </details>
                     {% endif %}
                     <!-- Compute -->
                     {% if run.status == 'draft' %}
@@ -758,26 +314,86 @@
               <tr id="run-details-{{ run.id }}" class="run-details-row" hidden>
                 <td colspan="8" class="run-details">
                   <strong style="display:block;margin-bottom:8px;">Employee breakdown — Run #{{ run.id }}</strong>
-                  <table>
+                  {% if run.status == 'computed' %}
+                  <p class="ot-edit-hint">Enter OT hours — OT amount updates automatically (REG: hourly × 1.25, SUN/RD: hourly × 1.30). Click Save overtime to apply gross and net.</p>
+                  <form method="post" class="ot-edit-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_payroll_overtime">
+                    <input type="hidden" name="run_id" value="{{ run.id }}">
+                  {% endif %}
+                  <table class="payroll-details-table">
                     <thead>
                       <tr>
                         <th>Employee</th>
+                        <th>Base</th>
+                        <th>OT REG (hrs)</th>
+                        <th>OT SUN/RD (hrs)</th>
+                        <th>OT amount</th>
                         <th>Gross</th>
-                        <th>Deductions</th>
+                        <th>Undertime</th>
+                        <th>Absence</th>
+                        <th>PhilHealth</th>
+                        <th>SSS</th>
+                        <th>HDMF</th>
+                        <th>SSS Loan</th>
+                        <th>HDMF Loan</th>
+                        <th>Total ded.</th>
                         <th>Net</th>
                       </tr>
                     </thead>
                     <tbody>
                       {% for line in run.lines.all %}
-                      <tr>
+                      <tr class="ot-calc-row"
+                          data-hourly="{{ line.breakdown.hourly_rate|default:0 }}"
+                          data-base="{{ line.breakdown.base_pay|default:0 }}"
+                          data-holiday="{{ line.breakdown.holiday_pay|default:0 }}"
+                          data-undertime="{{ line.breakdown.undertime_deduction|default:0 }}"
+                          data-configured="{{ line.breakdown.configured_deductions|default:0 }}">
                         <td>{{ line.employee.full_name }}</td>
-                        <td>₱{{ line.gross_pay|floatformat:2 }}</td>
-                        <td>₱{{ line.total_deductions|floatformat:2 }}</td>
-                        <td>₱{{ line.net_pay|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.base_pay|default:0|floatformat:2 }}</td>
+                        <td>
+                          {% if run.status == 'computed' %}
+                          <input type="number" name="ot_reg_hours_{{ line.id }}" step="0.01" min="0"
+                                 value="{{ line.ot_reg_hours }}"
+                                 class="field-input ot-hours-input ot-reg-hours"
+                                 title="Hourly ₱{{ line.breakdown.hourly_rate|default:0|floatformat:2 }} × 1.25"
+                                 inputmode="decimal">
+                          {% else %}
+                          {{ line.ot_reg_hours }}
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if run.status == 'computed' %}
+                          <input type="number" name="ot_sun_hours_{{ line.id }}" step="0.01" min="0"
+                                 value="{{ line.ot_sun_hours }}"
+                                 class="field-input ot-hours-input ot-sun-hours"
+                                 title="Hourly ₱{{ line.breakdown.hourly_rate|default:0|floatformat:2 }} × 1.30"
+                                 inputmode="decimal">
+                          {% else %}
+                          {{ line.ot_sun_hours }}
+                          {% endif %}
+                        </td>
+                        <td class="ot-amount-display">₱{{ line.breakdown.overtime_pay|default:0|floatformat:2 }}</td>
+                        <td class="ot-gross-display">₱{{ line.gross_pay|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.undertime_deduction|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.absence_deduction|default:0|floatformat:2 }}{% if line.breakdown.absent_days %} <span style="color:var(--muted);font-size:0.75rem;">({{ line.breakdown.absent_days }}d)</span>{% endif %}</td>
+                        <td>₱{{ line.breakdown.philhealth|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.sss|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.hdmf|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.sss_loan|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.hdmf_loan|default:0|floatformat:2 }}</td>
+                        <td class="ot-ded-display">₱{{ line.total_deductions|floatformat:2 }}</td>
+                        <td class="ot-net-display">₱{{ line.net_pay|floatformat:2 }}</td>
                       </tr>
                       {% endfor %}
                     </tbody>
                   </table>
+                  {% if run.status == 'computed' %}
+                    <div class="ot-edit-actions">
+                      <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Save overtime</button>
+                    </div>
+                  </form>
+                  {% endif %}
                 </td>
               </tr>
               {% endif %}
@@ -794,7 +410,14 @@
     <div id="deductionsTab" class="tab-panel">
       <div class="panel">
         <h2>Deductions Management</h2>
-        <p>Configure deduction types and assign them to employees.</p>
+        <p>
+          Configure deduction types and assign them to employees.
+          Standard configs include <strong>PhilHealth Contribution</strong>,
+          <strong>SSS Contribution</strong>, <strong>HDMF Contribution</strong>,
+          <strong>SSS Loan</strong>, and <strong>HDMF Loan</strong>.
+          Deductions apply on a pay run only after you <strong>assign</strong> them to employees
+          for a pay period (with the amount per payroll). They are not applied automatically.
+        </p>
 
         <!-- Add Deduction Config -->
         <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
@@ -839,54 +462,127 @@
           </table>
         </div>
 
-        <!-- Assign deduction to employee -->
-        <div style="margin-top:24px; background: var(--soft); padding: 16px; border-radius: var(--radius);">
-          <h4 style="margin:0 0 10px;">Assign Deduction to Employee</h4>
-          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+        <!-- Assign deduction to employee(s) -->
+        <div class="assign-deduction-panel">
+          <h4>Assign Deduction to Employees</h4>
+          <p class="assign-deduction-help">
+            Apply one or more deductions to <strong>all employees</strong> or only the ones you select.
+            Choose the <strong>pay period</strong> this assignment applies to (same dates as that period’s pay run).
+            Existing assignments for the same period are skipped.
+          </p>
+          <form method="post" id="assignDeductionForm" class="assign-deduction-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="assign_deduction">
-            <div>
-              <select name="employee_id" required class="field-input" style="width:180px;">
-                <option value="">Select Employee</option>
-                {% for emp in employees %}
-                <option value="{{ emp.id }}">{{ emp.full_name }}</option>
-                {% endfor %}
-              </select>
+
+            <div class="assign-deduction-scope">
+              <span class="assign-deduction-label">Apply to</span>
+              <label class="assign-scope-option">
+                <input type="radio" name="employee_scope" value="all" id="deductionScopeAll">
+                All employees
+              </label>
+              <label class="assign-scope-option">
+                <input type="radio" name="employee_scope" value="selected" id="deductionScopeSelected" checked>
+                Selected employees
+              </label>
             </div>
-            <div>
-              <select name="config_id" required class="field-input" style="width:160px;">
-                <option value="">Select Deduction</option>
-                {% for config in deduction_configs %}
-                <option value="{{ config.id }}">{{ config.name }}</option>
-                {% endfor %}
-              </select>
+
+            <div class="assign-deduction-body">
+              <div id="deductionEmployeePicker" class="assign-picker assign-picker-employees">
+                <div class="assign-picker-header">
+                  <span class="assign-deduction-label">Employees</span>
+                  <label class="assign-scope-option">
+                    <input type="checkbox" id="deductionSelectAllEmployees">
+                    Select all listed
+                  </label>
+                </div>
+                <div class="assign-picker-grid assign-employee-grid">
+                  {% for emp in employees %}
+                  <label class="assign-picker-item">
+                    <input type="checkbox" name="employee_ids" value="{{ emp.id }}" class="deduction-employee-cb">
+                    <span class="assign-picker-name" title="{{ emp.full_name }}">{{ emp.full_name }}</span>
+                  </label>
+                  {% empty %}
+                  <span class="assign-picker-empty">No employees available.</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="assign-deduction-side">
+                <div class="assign-picker assign-picker-deductions">
+                  <div class="assign-picker-header">
+                    <span class="assign-deduction-label">Deductions</span>
+                    <label class="assign-scope-option">
+                      <input type="checkbox" id="deductionSelectAllConfigs">
+                      Select all
+                    </label>
+                  </div>
+                  <div class="assign-deduction-options">
+                    {% for config in deduction_configs %}
+                    <label class="assign-picker-item">
+                      <input type="checkbox" name="config_ids" value="{{ config.id }}" class="deduction-config-cb">
+                      <span>{{ config.name }}</span>
+                    </label>
+                    {% empty %}
+                    <span class="assign-picker-empty">No deduction configurations.</span>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="assign-deduction-fields">
+                  <div class="form-field assign-field-period">
+                    <label for="assign_pay_period_id">Pay period</label>
+                    <select id="assign_pay_period_id" name="pay_period_id" required class="field-input">
+                      <option value="">Select pay period</option>
+                      {% for period in pay_periods %}
+                      <option value="{{ period.id }}">
+                        {{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }}
+                        (pay {{ period.pay_date|date:"M d, Y" }}){% if period.is_closed %} — Closed{% endif %}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="assign_amount">Amount (per payroll)</label>
+                    <input type="number" id="assign_amount" name="amount" step="0.01" placeholder="0.00" required class="field-input">
+                  </div>
+                  <div class="form-field">
+                    <label for="assign_remaining">Remaining balance <span class="assign-optional">(loans)</span></label>
+                    <input type="number" id="assign_remaining" name="total_remaining" step="0.01" placeholder="0.00" class="field-input">
+                  </div>
+                </div>
+
+                <div class="assign-deduction-actions">
+                  <button type="submit" class="action assign-deduction-submit">Assign</button>
+                </div>
+              </div>
             </div>
-            <div><input type="number" name="amount" step="0.01" placeholder="Amount" required class="field-input" style="width:120px;"></div>
-            <div><input type="date" name="start_date" required class="field-input" style="width:150px;"></div>
-            <div><input type="date" name="end_date" placeholder="End date (optional)" class="field-input" style="width:150px;"></div>
-            <div><input type="number" name="total_remaining" step="0.01" placeholder="Remaining balance" class="field-input" style="width:130px;"></div>
-            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Assign</button>
           </form>
         </div>
 
         <!-- Show assigned deductions -->
         <div style="margin-top:24px;">
           <h4>Assigned Employee Deductions</h4>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:0.88rem;">Each assignment applies when a pay run’s period matches these dates.</p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Deduction</th><th>Amount</th><th>Start</th><th>End</th><th>Remaining</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Deduction</th><th>Pay period</th><th>Amount</th><th>Remaining</th></tr></thead>
               <tbody>
                 {% for ad in assigned_deductions %}
                 <tr>
                   <td>{{ ad.employee.full_name }}</td>
                   <td>{{ ad.deduction_config.name }}</td>
+                  <td>
+                    {% if ad.end_date %}
+                      {{ ad.start_date|date:"M d, Y" }} – {{ ad.end_date|date:"M d, Y" }}
+                    {% else %}
+                      {{ ad.start_date|date:"M d, Y" }} – ongoing
+                    {% endif %}
+                  </td>
                   <td>₱{{ ad.amount }}</td>
-                  <td>{{ ad.start_date|date:"Y-m-d" }}</td>
-                  <td>{{ ad.end_date|date:"Y-m-d"|default:"-" }}</td>
                   <td>₱{{ ad.total_remaining }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
+                <tr><td colspan="5" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -941,67 +637,9 @@
   </main>
 </div>
 
-<script>
-  (function() {
-    const tabButtons = document.querySelectorAll('.sidebar-nav .tab-button');
-    const panels = {
-      payrunsTab: document.getElementById('payrunsTab'),
-      deductionsTab: document.getElementById('deductionsTab'),
-      approvalsTab: document.getElementById('approvalsTab'),
-    };
-    const defaultTab = 'payrunsTab';
 
-    function activateTab(targetId) {
-      tabButtons.forEach(btn => {
-        const isTarget = btn.dataset.tabTarget === targetId;
-        btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
-      });
+{% endblock %}
 
-      Object.keys(panels).forEach(id => {
-        if (panels[id]) {
-          panels[id].classList.toggle('is-active', id === targetId);
-        }
-      });
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    const initialTab = tabParam && panels[tabParam] ? tabParam : defaultTab;
-    activateTab(initialTab);
-
-    tabButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        const targetId = this.dataset.tabTarget;
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', targetId);
-        window.history.pushState({}, '', url);
-        activateTab(targetId);
-      });
-    });
-
-    window.addEventListener('popstate', function() {
-      const activeTab = new URLSearchParams(window.location.search).get('tab');
-      if (activeTab && panels[activeTab]) {
-        activateTab(activeTab);
-      } else {
-        activateTab(defaultTab);
-      }
-    });
-
-    document.querySelectorAll('.toggle-run-details').forEach((button) => {
-      button.addEventListener('click', () => {
-        const row = document.getElementById(button.dataset.target);
-        if (!row) return;
-        const isHidden = row.hasAttribute('hidden');
-        if (isHidden) {
-          row.removeAttribute('hidden');
-          button.textContent = 'Hide';
-        } else {
-          row.setAttribute('hidden', '');
-          button.textContent = 'Details';
-        }
-      });
-    });
-  })();
-</script>
+{% block extra_js %}
+<script src="{% static 'js/dashboards/payroll.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,111 @@
+<!-- Manage Item -->
+<div id="managePanel" class="tab-panel is-active">
+      <div class="panel">
+        {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <details class="category-manager"{% if messages %} open{% endif %}>
+          <summary>Manage categories &amp; subcategories</summary>
+          <div class="category-manager-body">
+            <p>Add a top-level category or nest under any existing one. New entries appear in the item dropdown on reload.</p>
+            <form method="post" id="categoryForm">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="create_category">
+              <div class="category-form-grid">
+                <div class="field">
+                  <label for="category_parent">Parent (optional)</label>
+                  {% include "partials/inventory_category_picker.html" with picker_id="category_parent" picker_name="category_parent" picker_placeholder="Top-level category" picker_allow_empty=True picker_required=False picker_value="" %}
+                </div>
+                <div class="field">
+                  <label for="category_name">New category name</label>
+                  <input id="category_name" name="category_name" type="text" required placeholder="e.g. Steel, 4-inch">
+                </div>
+                <div class="field">
+                  <label>&nbsp;</label>
+                  <button class="save" type="submit">Add Category</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+
+        <h2 id="formTitle">Add Inventory Item</h2>
+        <p>Create or update an inventory record.</p>
+        <form id="inventoryForm" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" id="itemId" name="itemId" value="">
+
+          <div class="form-grid">
+            <div class="field field-stack">
+              <label for="categoryId">Item category</label>
+              <div class="field-control-slot">
+                {% include "partials/inventory_category_picker.html" with picker_id="categoryId" picker_name="categoryId" picker_placeholder="Select category / subcategory" picker_allow_empty=False picker_required=True picker_value="" %}
+              </div>
+              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
+            </div>
+            <div class="field field-stack">
+              <label for="productCode">Product Code</label>
+              <div class="field-control-slot">
+                <input id="productCode" type="text" class="field-readonly field-control" value="" placeholder="Select category first" readonly title="Auto-generated from category">
+              </div>
+              <p class="field-hint">Assigned automatically when you save (e.g. COUPLING-001).</p>
+            </div>
+            <div class="field field-stack">
+              <label for="picture">Upload Image</label>
+              <div class="field-control-slot">
+                <input id="picture" name="picture" type="file" accept="image/*" class="field-control">
+              </div>
+              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
+            </div>
+            <div class="field">
+              <label for="size">Size</label>
+              <input id="size" name="size" type="text" placeholder="45x30x20 cm">
+            </div>
+            <div class="field">
+              <label for="stockAvailable">Stocks available</label>
+              <input id="stockAvailable" name="stockAvailable" type="number" min="0" value="0" required>
+            </div>
+            <div class="field">
+              <label for="pcsPerCtn">PCS/CTN</label>
+              <input id="pcsPerCtn" name="pcsPerCtn" type="number" min="0" value="0" required>
+            </div>
+            <div class="field">
+              <label for="cartonSize">Carton size (m)</label>
+              <input id="cartonSize" name="cartonSize" type="text" placeholder="0.45 x 0.30 x 0.20">
+            </div>
+            <div class="field">
+              <label for="netWeight">N.W (kg)</label>
+              <input id="netWeight" name="netWeight" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field">
+              <label for="grossWeight">G.W (kg)</label>
+              <input id="grossWeight" name="grossWeight" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field">
+              <label for="price">Unit price (PESO)</label>
+              <input id="price" name="price" type="number" min="0" step="0.01" value="0.00" required>
+            </div>
+            <div class="field full">
+              <label for="description">Notes</label>
+              <textarea id="description" name="description"
+                placeholder="Additional details, location or supplier"></textarea>
+            </div>
+            <div class="field full">
+              <label>Image preview</label>
+              <div id="picturePreview" style="min-height:84px;color:#667085;">No image</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="save" type="submit">Save Item</button>
+            <button class="clear" id="resetBtn" type="button">Reset</button>
+            <button class="copy" id="viewItemsBtn" type="button">View All Items</button>
+          </div>
+        </form>
+      </div>
+    </div>

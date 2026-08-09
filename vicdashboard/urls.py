@@ -19,6 +19,16 @@ urlpatterns = [
     path('dashboard/sales/documents/<int:document_id>/download/', views.download_sales_document_pdf, name='download_sales_document_pdf'),
     path('dashboard/sales/receipt/<int:order_id>/', views.sales_receipt, name='sales_receipt'),
     path('dashboard/payroll/', views.payroll_dashboard, name='payroll_dashboard'),
+    path(
+        'dashboard/hr/payroll/<int:run_id>/register.pdf/',
+        views.download_payroll_register_pdf,
+        name='download_payroll_register_pdf',
+    ),
+    path(
+        'dashboard/hr/payroll/<int:run_id>/register.xlsx/',
+        views.download_payroll_register_xlsx,
+        name='download_payroll_register_xlsx',
+    ),
     path('dashboard/accounting_dashboard/', views.accounting_dashboard, name='accounting_dashboard'),
     path('dashboard/services_dashboard/', views.services_dashboard, name='services_dashboard'),
     path('dashboard/water_billing_dashboard/', views.water_billing_dashboard, name='water_billing_dashboard'),
