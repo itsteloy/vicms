@@ -2,11 +2,12 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
 from .attendance_sheet_metrics import annotate_attendance_sheet
+from .inventory_product_code import generate_inventory_product_code, next_product_codes_by_category
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -95,8 +96,103 @@ INVENTORY_ITEM_OPTIONS = [
     'REPAIR CLAMP',
     'WATER PIPES',
     'PE-TECH',
-    
 ]
+
+
+def _inventory_category_path(category, cache=None):
+    """Build 'Parent › Child › Leaf' label for a category."""
+    if category is None:
+        return ''
+    if cache is not None and category.pk in cache:
+        return cache[category.pk]
+    parts = []
+    node = category
+    seen = set()
+    while node is not None and node.pk not in seen:
+        seen.add(node.pk)
+        parts.append(node.name)
+        node = node.parent
+    label = ' › '.join(reversed(parts))
+    if cache is not None:
+        cache[category.pk] = label
+    return label
+
+
+def inventory_category_choices():
+    """Flattened nested categories for selects, indented by depth."""
+    categories = list(
+        InventoryCategory.objects.select_related('parent').order_by('name', 'id')
+    )
+    children_map = defaultdict(list)
+    for category in categories:
+        parent_id = category.parent_id
+        children_map[parent_id].append(category)
+
+    for siblings in children_map.values():
+        siblings.sort(key=lambda c: (c.name.lower(), c.id))
+
+    path_cache = {}
+    choices = []
+
+    def walk(parent_id, depth, root_name=None, root_id=None):
+        for category in children_map.get(parent_id, []):
+            label = _inventory_category_path(category, path_cache)
+            current_root_name = root_name if root_name else category.name
+            current_root_id = root_id if root_id else category.id
+            choices.append({
+                'id': category.id,
+                'name': category.name,
+                'path': label,
+                'depth': depth,
+                'display': category.name,
+                'parent_id': category.parent_id,
+                'root_id': current_root_id,
+                'root_name': current_root_name,
+            })
+            walk(category.id, depth + 1, current_root_name, current_root_id)
+
+    walk(None, 0)
+    return choices
+
+
+def inventory_category_tree():
+    """Nested category tree for cascading menu UI."""
+    categories = list(
+        InventoryCategory.objects.select_related('parent').order_by('name', 'id')
+    )
+    children_map = defaultdict(list)
+    for category in categories:
+        children_map[category.parent_id].append(category)
+
+    for siblings in children_map.values():
+        siblings.sort(key=lambda c: (c.name.lower(), c.id))
+
+    path_cache = {}
+
+    def build_node(category):
+        return {
+            'id': category.id,
+            'name': category.name,
+            'path': _inventory_category_path(category, path_cache),
+            'children': [build_node(child) for child in children_map.get(category.id, [])],
+        }
+
+    return [build_node(category) for category in children_map.get(None, [])]
+
+
+def inventory_category_groups():
+    """Group flat category choices under their root for dropdown UI."""
+    groups = []
+    index = {}
+    for choice in inventory_category_choices():
+        root_id = choice['root_id']
+        if root_id not in index:
+            group = {'root_id': root_id, 'name': choice['root_name'], 'items': []}
+            index[root_id] = group
+            groups.append(group)
+        index[root_id]['items'].append(choice)
+    groups.sort(key=lambda g: g['name'].lower())
+    return groups
 
 
 def get_user_workspace(user):
@@ -1310,6 +1406,36 @@ def inventory_dashboard(request):
         item_id = request.POST.get('itemId', '').strip()
         name = request.POST.get('itemName', '').strip()
 
+        if action == 'create_category':
+            category_name = request.POST.get('category_name', '').strip()
+            parent_id = request.POST.get('category_parent', '').strip()
+            if not category_name:
+                messages.error(request, 'Category name is required.')
+                return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            parent = None
+            if parent_id:
+                parent = InventoryCategory.objects.filter(pk=parent_id).first()
+                if parent is None:
+                    messages.error(request, 'Selected parent category was not found.')
+                    return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            exists = InventoryCategory.objects.filter(
+                name__iexact=category_name,
+                parent=parent,
+            ).exists()
+            if exists:
+                label = parent.path_label if parent else 'top level'
+                messages.error(request, f'“{category_name}” already exists under {label}.')
+                return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
+            category = InventoryCategory.objects.create(name=category_name, parent=parent)
+            messages.success(
+                request,
+                f'Category “{category.path_label}” created. It is now available in the item dropdown.',
+            )
+            return redirect(f"{reverse('inventory_dashboard')}?tab=managePanel")
+
         if action == 'delete' and item_id:
             password = request.POST.get('password', '')
             if not password:
@@ -1381,35 +1507,63 @@ def inventory_dashboard(request):
 
             return redirect('inventory_dashboard')
 
+        category_id = request.POST.get('categoryId', '').strip()
+        category = None
+        if category_id:
+            category = InventoryCategory.objects.filter(pk=category_id).first()
+            if category is None:
+                messages.error(request, 'Selected category was not found.')
+                return redirect('inventory_dashboard')
+            name = category.path_label
+
         if name:
             if item_id:
                 item = InventoryItem.objects.get(pk=item_id)
+                previous_category_id = item.category_id
             else:
                 item = InventoryItem()
+                previous_category_id = None
 
-            item.product_code = request.POST.get('productCode', '').strip()
             item.name = name
-            # handle uploaded picture file
+            item.category = category
+            if category and (not item_id or previous_category_id != category.id):
+                item.product_code = generate_inventory_product_code(
+                    category,
+                    exclude_item_id=item.pk,
+                )
+            elif not item.product_code and category:
+                item.product_code = generate_inventory_product_code(
+                    category,
+                    exclude_item_id=item.pk,
+                )
             if request.FILES.get('picture'):
                 item.picture = request.FILES.get('picture')
-                item.size = request.POST.get('size', '').strip()
-                item.stock_available = int(request.POST.get('stockAvailable', 0) or 0)
-                item.pcs_per_ctn = int(request.POST.get('pcsPerCtn', 0) or 0)
-                item.carton_size = request.POST.get('cartonSize', '').strip()
-                item.net_weight = Decimal(request.POST.get('netWeight', '0') or '0')
-                item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
-                item.price = Decimal(request.POST.get('price', '0') or '0')
-                item.description = request.POST.get('description', '').strip()
-                item.save()
+            item.size = request.POST.get('size', '').strip()
+            item.stock_available = int(request.POST.get('stockAvailable', 0) or 0)
+            item.pcs_per_ctn = int(request.POST.get('pcsPerCtn', 0) or 0)
+            item.carton_size = request.POST.get('cartonSize', '').strip()
+            item.net_weight = Decimal(request.POST.get('netWeight', '0') or '0')
+            item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
+            item.price = Decimal(request.POST.get('price', '0') or '0')
+            item.description = request.POST.get('description', '').strip()
+            item.save()
+            messages.success(request, 'Inventory item saved.')
 
         return redirect('inventory_dashboard')
 
-    inventory_items = InventoryItem.objects.all().order_by('-created_at')
+    inventory_items = InventoryItem.objects.select_related('category').all().order_by('-created_at')
+    category_choices = inventory_category_choices()
+    category_groups = inventory_category_groups()
+    category_tree = inventory_category_tree()
+    next_product_codes = next_product_codes_by_category()
+    path_by_id = {c['id']: c['path'] for c in category_choices}
     inventory_items_json = [
         {
             'id': item.id,
             'productCode': item.product_code,
             'name': item.name,
+            'categoryId': item.category_id,
+            'categoryPath': path_by_id.get(item.category_id, item.name),
             'picture': item.picture.url if getattr(item, 'picture') else '',
             'size': item.size,
             'stockAvailable': item.stock_available,
@@ -1432,6 +1586,10 @@ def inventory_dashboard(request):
             'inventory_items': inventory_items,
             'inventory_items_json': inventory_items_json,
             'inventory_item_options': INVENTORY_ITEM_OPTIONS,
+            'inventory_categories': category_choices,
+            'inventory_category_groups': category_groups,
+            'inventory_category_tree': category_tree,
+            'next_product_codes': next_product_codes,
             'deliveries': deliveries,
             'total_stock': sum(item.stock_available for item in inventory_items),
             'low_stock_count': sum(1 for item in inventory_items if item.stock_available < 10),
@@ -1444,6 +1602,7 @@ PAYROLL_POST_ACTIONS = frozenset({
     'create_pay_period',
     'create_payrun',
     'compute_payroll',
+    'save_payroll_overtime',
     'approve_payroll',
     'disburse_payroll',
     'add_deduction',
@@ -1494,6 +1653,23 @@ def _process_payroll_post(request):
     # ---------- CREATE PAY RUN ----------
     if action == 'create_payrun':
         pay_period_id = request.POST.get('pay_period_id')
+        use_attendance_sheets = request.POST.get('use_attendance_sheets') == 'on'
+        align_cutoff_to_sheets = request.POST.get('align_cutoff_to_sheets') == 'on'
+        raw_sheet_ids = request.POST.getlist('attendance_sheet_ids')
+        selected_sheet_ids = []
+        for raw in raw_sheet_ids:
+            try:
+                selected_sheet_ids.append(int(raw))
+            except (TypeError, ValueError):
+                continue
+        # Keep only sheets that exist
+        if selected_sheet_ids:
+            selected_sheet_ids = list(
+                AttendanceSheet.objects.filter(id__in=selected_sheet_ids)
+                .order_by('-uploaded_at', '-id')
+                .values_list('id', flat=True)
+            )
+
         if pay_period_id:
             try:
                 pay_period = PayPeriod.objects.get(pk=pay_period_id)
@@ -1505,13 +1681,54 @@ def _process_payroll_post(request):
                     if existing:
                         messages.warning(request, f'A payroll run already exists for this period (ID {existing.id}).')
                     else:
+                        cutoff_start = pay_period.start_date
+                        cutoff_end = pay_period.end_date
+                        if use_attendance_sheets and align_cutoff_to_sheets and selected_sheet_ids:
+                            sheet_qs = AttendanceSheet.objects.filter(id__in=selected_sheet_ids)
+                            starts = [s.period_start for s in sheet_qs if s.period_start]
+                            ends = [s.period_end for s in sheet_qs if s.period_end]
+                            if starts and ends:
+                                cutoff_start = min(starts)
+                                cutoff_end = max(ends)
+
+                        if use_attendance_sheets and not selected_sheet_ids:
+                            messages.warning(
+                                request,
+                                'No attendance sheets selected. Compute will auto-match sheets that overlap the cutoff.',
+                            )
+
                         run = PayrollRun.objects.create(
                             pay_period=pay_period,
-                            cutoff_start=pay_period.start_date,
-                            cutoff_end=pay_period.end_date,
-                            status='draft'
+                            cutoff_start=cutoff_start,
+                            cutoff_end=cutoff_end,
+                            status='draft',
+                            use_attendance_sheets=use_attendance_sheets,
+                            attendance_sheet_ids=selected_sheet_ids,
                         )
-                        messages.success(request, f'Payroll run #{run.id} created. Click "Compute" to calculate.')
+                        if use_attendance_sheets and selected_sheet_ids:
+                            messages.success(
+                                request,
+                                (
+                                    f'Payroll run #{run.id} created using {len(selected_sheet_ids)} '
+                                    f'attendance sheet(s). Click "Compute" to calculate.'
+                                ),
+                            )
+                        elif use_attendance_sheets:
+                            messages.success(
+                                request,
+                                (
+                                    f'Payroll run #{run.id} created. Attendance deductions will use sheets '
+                                    f'overlapping {cutoff_start}–{cutoff_end}. Click "Compute" to calculate.'
+                                ),
+                            )
+                        else:
+                            messages.success(
+                                request,
+                                (
+                                    f'Payroll run #{run.id} created without attendance-sheet deductions. '
+                                    f'Click "Compute" to calculate.'
+                                ),
+                            )
             except PayPeriod.DoesNotExist:
                 messages.error(request, 'Invalid pay period.')
         else:
@@ -1526,46 +1743,88 @@ def _process_payroll_post(request):
                 if run.status != 'draft':
                     messages.warning(request, 'Only draft runs can be computed.')
                 else:
-                    from .payroll_calculator import (
-                        compute_daily_hours,
-                        get_attendance_for_period,
-                        get_effective_shift_schedule,
-                        get_statutory_deductions,
-                        get_tax,
-                        get_voluntary_deductions,
+                    from .payroll_attendance import load_attendance_deductions_by_employee
+                    from .payroll_calculator import get_payroll_deductions
+                    from .payroll_register import (
+                        classify_holiday_days,
+                        compute_register_earnings,
+                        holidays_in_cutoff,
                     )
 
                     employees = Employee.objects.filter(
                         Q(termination_date__isnull=True) | Q(termination_date__gt=run.cutoff_end)
-                    )
+                    ).select_related('company')
                     run.lines.all().delete()
 
+                    if run.use_attendance_sheets:
+                        explicit_ids = list(run.attendance_sheet_ids or [])
+                        att_by_employee, att_sheet_ids, unmapped_entries = (
+                            load_attendance_deductions_by_employee(
+                                run.cutoff_start,
+                                run.cutoff_end,
+                                sheet_ids=explicit_ids if explicit_ids else None,
+                            )
+                        )
+                    else:
+                        att_by_employee, att_sheet_ids, unmapped_entries = {}, [], 0
+
+                    holiday_counts = classify_holiday_days(
+                        holidays_in_cutoff(run.cutoff_start, run.cutoff_end)
+                    )
+
                     computed_count = 0
+                    attendance_applied_count = 0
                     for emp in employees:
-                        payable_days = idle_calendar_days(run.cutoff_start, run.cutoff_end)
-                        base_pay = (estimated_daily_rate(emp) * Decimal(len(payable_days))).quantize(Decimal('0.01'))
+                        att = att_by_employee.get(emp.id) or {}
+                        undertime_minutes = int(att.get('undertime_minutes') or 0)
+                        undertime_hours = Decimal(str(att.get('undertime_hours') or 0))
+                        undertime_deduction = Decimal(str(att.get('undertime_deduction') or 0)).quantize(Decimal('0.01'))
+                        absent_days = int(att.get('absent_days') or 0)
+                        absence_deduction = Decimal(str(att.get('absence_deduction') or 0)).quantize(Decimal('0.01'))
+                        # Register base already excludes LWP days; undertime is the late/UT money column.
+                        attendance_deduction = undertime_deduction
+                        employee_sheet_ids = list(att.get('attendance_sheet_ids') or [])
 
-                        logs = get_attendance_for_period(emp, run.cutoff_start, run.cutoff_end)
-                        total_regular = Decimal('0')
-                        total_overtime = Decimal('0')
-                        holiday_pay = Decimal('0')
+                        earnings = compute_register_earnings(
+                            emp,
+                            run.cutoff_start,
+                            run.cutoff_end,
+                            lwp_days=absent_days,
+                            holiday_counts=holiday_counts,
+                        )
+                        # Prefer sheet-derived absence peso for display; days already reduce base.
+                        if absent_days and not absence_deduction:
+                            absence_deduction = (
+                                earnings['daily_rate'] * Decimal(absent_days)
+                            ).quantize(Decimal('0.01'))
 
-                        for log in logs:
-                            shift = get_effective_shift_schedule(emp, log.date)
-                            if shift:
-                                regular, overtime = compute_daily_hours(log, shift)
-                                total_regular += regular
-                                total_overtime += overtime
+                        base_pay = earnings['base_pay']
+                        overtime_pay = earnings['overtime_pay']
+                        holiday_pay = earnings['holiday_pay']
+                        total_regular = earnings['regular_hours']
+                        total_overtime = earnings['overtime_hours']
+                        gross_pay = earnings['gross_pay']
+                        hourly_rate = earnings['hourly_rate']
 
-                        daily = estimated_daily_rate(emp)
-                        hourly_rate = (daily / Decimal('8')) if daily else Decimal('0')
-                        overtime_pay = total_overtime * hourly_rate * Decimal('1.25')
-                        gross_pay = base_pay + overtime_pay + holiday_pay
+                        tax = Decimal('0.00')
+                        configured = get_payroll_deductions(
+                            emp, gross_pay, run.cutoff_start, run.cutoff_end,
+                        )
+                        philhealth = configured['philhealth']
+                        sss = configured['sss']
+                        hdmf = configured['hdmf']
+                        sss_loan = configured['sss_loan']
+                        hdmf_loan = configured['hdmf_loan']
+                        other_deductions = configured['other']
+                        statutory = configured['statutory']
+                        voluntary = configured['voluntary']
+                        configured_total = configured['total']
 
-                        tax = get_tax(emp, gross_pay, run.cutoff_end)
-                        statutory = get_statutory_deductions(emp, gross_pay, run.cutoff_end)
-                        voluntary = get_voluntary_deductions(emp, run.cutoff_start, run.cutoff_end)
-                        total_deductions = tax + statutory + voluntary
+                        if undertime_deduction > 0 or absent_days > 0:
+                            attendance_applied_count += 1
+
+                        # Register TOTAL (-) = contribs + loans + late/UT (LWP already in base days).
+                        total_deductions = configured_total + undertime_deduction
                         net_pay = gross_pay - total_deductions
 
                         PayrollLine.objects.create(
@@ -1580,26 +1839,182 @@ def _process_payroll_post(request):
                                 'holiday_pay': float(holiday_pay),
                                 'regular_hours': float(total_regular),
                                 'overtime_hours': float(total_overtime),
+                                'daily_rate': float(earnings['daily_rate']),
+                                'hourly_rate': float(hourly_rate),
+                                'sil_on_hand': float(earnings['sil_on_hand']),
+                                'reg_days': int(earnings['reg_days']),
+                                'lwp_days': int(earnings['lwp_days']),
+                                'total_days': int(earnings['total_days']),
+                                'reg_total': float(earnings['reg_total']),
+                                'ot_reg_hours': float(earnings['ot_reg_hours']),
+                                'ot_reg_amount': float(earnings['ot_reg_amount']),
+                                'ot_sun_hours': float(earnings['ot_sun_hours']),
+                                'ot_sun_amount': float(earnings['ot_sun_amount']),
+                                'ot_total_hours': float(earnings['ot_total_hours']),
+                                'ot_total_amount': float(earnings['ot_total_amount']),
+                                'snwd_days': int(earnings['snwd_days']),
+                                'snwd_amount': float(earnings['snwd_amount']),
+                                'snw_sun_days': int(earnings['snw_sun_days']),
+                                'snw_sun_amount': float(earnings['snw_sun_amount']),
+                                'rh_days': int(earnings['rh_days']),
+                                'rh_amount': float(earnings['rh_amount']),
+                                'gross_pay': float(gross_pay),
                                 'tax': float(tax),
+                                'philhealth': float(philhealth),
+                                'sss': float(sss),
+                                'hdmf': float(hdmf),
+                                'sss_loan': float(sss_loan),
+                                'hdmf_loan': float(hdmf_loan),
+                                'other_deductions': float(other_deductions),
                                 'statutory': float(statutory),
                                 'voluntary': float(voluntary),
+                                'configured_deductions': float(configured_total),
+                                'deduction_items': configured.get('items') or {},
+                                'undertime_minutes': undertime_minutes,
+                                'undertime_hours': float(undertime_hours),
+                                'undertime_deduction': float(undertime_deduction),
+                                'absent_days': absent_days,
+                                'absence_deduction': float(absence_deduction),
+                                'attendance_deduction': float(attendance_deduction),
+                                'attendance_sheet_ids': employee_sheet_ids,
                             },
                             regular_hours=total_regular,
                             overtime_hours=total_overtime,
+                            ot_reg_hours=earnings['ot_reg_hours'],
+                            ot_sun_hours=earnings['ot_sun_hours'],
                             holiday_pay=holiday_pay,
                         )
                         computed_count += 1
 
                     run.status = 'computed'
                     run.save()
-                    messages.success(
-                        request,
-                        f'Payroll run #{run.id} computed for {computed_count} employee(s).',
-                    )
+                    if run.use_attendance_sheets:
+                        messages.success(
+                            request,
+                            (
+                                f'Payroll run #{run.id} computed for {computed_count} employee(s). '
+                                f'Attendance deductions applied to {attendance_applied_count} employee(s) '
+                                f'from {len(att_sheet_ids)} biometric sheet(s).'
+                            ),
+                        )
+                        if not att_sheet_ids:
+                            messages.warning(
+                                request,
+                                'No biometric attendance sheets were used for this run. '
+                                'Undertime and absence deductions were ₱0 for all employees.',
+                            )
+                        elif unmapped_entries:
+                            messages.warning(
+                                request,
+                                f'{unmapped_entries} punch-sheet entr'
+                                f'{"y was" if unmapped_entries == 1 else "ies were"} '
+                                'not linked to an employee and were skipped for payroll deductions.',
+                            )
+                    else:
+                        messages.success(
+                            request,
+                            (
+                                f'Payroll run #{run.id} computed for {computed_count} employee(s) '
+                                f'without attendance-sheet deductions.'
+                            ),
+                        )
             except PayrollRun.DoesNotExist:
                 messages.error(request, 'Run not found.')
             except Exception as exc:
                 messages.error(request, f'Compute failed: {exc}')
+        return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+    # ---------- SAVE OVERTIME HOURS ----------
+    if action == 'save_payroll_overtime':
+        run_id = request.POST.get('run_id')
+        if not run_id:
+            messages.error(request, 'Payroll run is required.')
+            return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+        try:
+            run = PayrollRun.objects.prefetch_related('lines__employee').get(pk=run_id)
+            if run.status != 'computed':
+                messages.warning(request, 'Overtime can only be edited on computed runs.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+            from .payroll_calculator import get_payroll_deductions
+            from .payroll_register import ot_amounts_from_hours
+
+            updated = 0
+            for line in run.lines.all():
+                reg_raw = request.POST.get(f'ot_reg_hours_{line.id}')
+                sun_raw = request.POST.get(f'ot_sun_hours_{line.id}')
+                if reg_raw is None and sun_raw is None:
+                    continue
+                try:
+                    ot_reg = Decimal(reg_raw if reg_raw not in (None, '') else line.ot_reg_hours or 0)
+                    ot_sun = Decimal(sun_raw if sun_raw not in (None, '') else line.ot_sun_hours or 0)
+                except Exception:
+                    messages.error(request, f'Invalid overtime hours for {line.employee.full_name}.')
+                    return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+                if ot_reg < 0 or ot_sun < 0:
+                    messages.error(request, 'Overtime hours cannot be negative.')
+                    return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+                bd = dict(line.breakdown or {})
+                hourly = Decimal(str(bd.get('hourly_rate') or 0))
+                if not hourly:
+                    daily = Decimal(str(bd.get('daily_rate') or estimated_daily_rate(line.employee)))
+                    hourly = (daily / Decimal('8')).quantize(Decimal('0.01')) if daily else Decimal('0')
+
+                ot = ot_amounts_from_hours(ot_reg, ot_sun, hourly)
+                base_pay = Decimal(str(bd.get('base_pay') or 0)).quantize(Decimal('0.01'))
+                holiday_pay = Decimal(str(bd.get('holiday_pay') or line.holiday_pay or 0)).quantize(Decimal('0.01'))
+                gross_pay = (base_pay + ot['overtime_pay'] + holiday_pay).quantize(Decimal('0.01'))
+
+                configured = get_payroll_deductions(
+                    line.employee, gross_pay, run.cutoff_start, run.cutoff_end,
+                )
+                undertime_deduction = Decimal(str(bd.get('undertime_deduction') or 0)).quantize(Decimal('0.01'))
+                total_deductions = (configured['total'] + undertime_deduction).quantize(Decimal('0.01'))
+                net_pay = (gross_pay - total_deductions).quantize(Decimal('0.01'))
+
+                bd.update({
+                    'hourly_rate': float(hourly),
+                    'overtime_pay': float(ot['overtime_pay']),
+                    'overtime_hours': float(ot['overtime_hours']),
+                    'ot_reg_hours': float(ot['ot_reg_hours']),
+                    'ot_reg_amount': float(ot['ot_reg_amount']),
+                    'ot_sun_hours': float(ot['ot_sun_hours']),
+                    'ot_sun_amount': float(ot['ot_sun_amount']),
+                    'ot_total_hours': float(ot['ot_total_hours']),
+                    'ot_total_amount': float(ot['ot_total_amount']),
+                    'gross_pay': float(gross_pay),
+                    'philhealth': float(configured['philhealth']),
+                    'sss': float(configured['sss']),
+                    'hdmf': float(configured['hdmf']),
+                    'sss_loan': float(configured['sss_loan']),
+                    'hdmf_loan': float(configured['hdmf_loan']),
+                    'other_deductions': float(configured['other']),
+                    'statutory': float(configured['statutory']),
+                    'voluntary': float(configured['voluntary']),
+                    'configured_deductions': float(configured['total']),
+                    'deduction_items': configured.get('items') or {},
+                    'attendance_deduction': float(undertime_deduction),
+                })
+
+                line.ot_reg_hours = ot['ot_reg_hours']
+                line.ot_sun_hours = ot['ot_sun_hours']
+                line.overtime_hours = ot['overtime_hours']
+                line.gross_pay = gross_pay
+                line.total_deductions = total_deductions
+                line.net_pay = net_pay
+                line.breakdown = bd
+                line.save(update_fields=[
+                    'ot_reg_hours', 'ot_sun_hours', 'overtime_hours',
+                    'gross_pay', 'total_deductions', 'net_pay', 'breakdown', 'updated_at',
+                ])
+                updated += 1
+
+            messages.success(request, f'Saved overtime for {updated} employee(s) on run #{run.id}.')
+        except PayrollRun.DoesNotExist:
+            messages.error(request, 'Run not found.')
+        except Exception as exc:
+            messages.error(request, f'Could not save overtime: {exc}')
         return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
 
     # ---------- APPROVE PAYROLL ----------
@@ -1668,26 +2083,103 @@ def _process_payroll_post(request):
             messages.error(request, f'Error: {e}')
         return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
 
-    # ---------- ASSIGN DEDUCTION TO EMPLOYEE ----------
+    # ---------- ASSIGN DEDUCTION TO EMPLOYEE(S) ----------
     if action == 'assign_deduction':
-        employee_id = request.POST.get('employee_id')
-        config_id = request.POST.get('config_id')
+        scope = (request.POST.get('employee_scope') or 'selected').strip().lower()
+        employee_ids = request.POST.getlist('employee_ids')
+        config_ids = request.POST.getlist('config_ids')
+        # Backward-compatible single fields
+        if not config_ids and request.POST.get('config_id'):
+            config_ids = [request.POST.get('config_id')]
+        if scope == 'selected' and not employee_ids and request.POST.get('employee_id'):
+            employee_ids = [request.POST.get('employee_id')]
+
         amount = request.POST.get('amount', '0')
-        start = request.POST.get('start_date')
-        end = request.POST.get('end_date', '')
-        total_remaining = request.POST.get('total_remaining', '0')
+        total_remaining = request.POST.get('total_remaining', '0') or '0'
+        pay_period_id = request.POST.get('pay_period_id')
+
         try:
-            emp = Employee.objects.get(pk=employee_id)
-            config = DeductionConfig.objects.get(pk=config_id)
-            EmployeeDeduction.objects.create(
-                employee=emp,
-                deduction_config=config,
-                amount=Decimal(amount),
-                start_date=start,
-                end_date=end or None,
-                total_remaining=Decimal(total_remaining)
-            )
-            messages.success(request, 'Deduction assigned.')
+            if not config_ids:
+                messages.error(request, 'Select at least one deduction to assign.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
+            if not pay_period_id:
+                messages.error(request, 'Select a pay period for this deduction.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
+
+            pay_period = PayPeriod.objects.get(pk=pay_period_id)
+            period_start = pay_period.start_date
+            period_end = pay_period.end_date
+
+            configs = list(DeductionConfig.objects.filter(pk__in=config_ids, is_active=True))
+            if not configs:
+                messages.error(request, 'No valid deductions selected.')
+                return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
+
+            if scope == 'all':
+                employees = list(
+                    Employee.objects.filter(
+                        Q(termination_date__isnull=True) | Q(termination_date__gte=period_start)
+                    ).order_by('last_name', 'first_name')
+                )
+            else:
+                if not employee_ids:
+                    messages.error(request, 'Select at least one employee, or choose All employees.')
+                    return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
+                employees = list(
+                    Employee.objects.filter(pk__in=employee_ids).order_by('last_name', 'first_name')
+                )
+                if not employees:
+                    messages.error(request, 'No valid employees selected.')
+                    return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
+
+            amount_dec = Decimal(amount)
+            remaining_dec = Decimal(total_remaining)
+
+            created = 0
+            skipped = 0
+            to_create = []
+            for emp in employees:
+                for config in configs:
+                    already = EmployeeDeduction.objects.filter(
+                        employee=emp,
+                        deduction_config=config,
+                        start_date=period_start,
+                        end_date=period_end,
+                    ).exists()
+                    if already:
+                        skipped += 1
+                        continue
+                    to_create.append(
+                        EmployeeDeduction(
+                            employee=emp,
+                            deduction_config=config,
+                            amount=amount_dec,
+                            start_date=period_start,
+                            end_date=period_end,
+                            total_remaining=remaining_dec,
+                        )
+                    )
+                    created += 1
+
+            if to_create:
+                EmployeeDeduction.objects.bulk_create(to_create)
+
+            period_label = f'{period_start} – {period_end}'
+            if created:
+                messages.success(
+                    request,
+                    f'Created {created} deduction assignment(s) for period {period_label}'
+                    + (f' ({skipped} already assigned, skipped).' if skipped else '.'),
+                )
+            elif skipped:
+                messages.warning(
+                    request,
+                    f'No new assignments created — {skipped} already assigned for period {period_label}.',
+                )
+            else:
+                messages.warning(request, 'No assignments were created.')
+        except PayPeriod.DoesNotExist:
+            messages.error(request, 'Invalid pay period.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
         return redirect(f"{reverse('hr_dashboard')}?tab=deductionsTab")
@@ -1732,12 +2224,20 @@ def _payroll_dashboard_context():
         total_gross=Sum('lines__gross_pay'),
         total_net=Sum('lines__net_pay'),
     ).order_by('-created_at')
+    attendance_sheets = AttendanceSheet.objects.all().order_by('-uploaded_at', '-id')
+    sheet_title_by_id = {sheet.id: sheet.title for sheet in attendance_sheets}
+    for run in runs:
+        ids = list(run.attendance_sheet_ids or [])
+        run.attendance_sheet_labels = [
+            sheet_title_by_id.get(sheet_id, f'Sheet #{sheet_id}') for sheet_id in ids
+        ]
     deduction_configs = DeductionConfig.objects.filter(is_active=True)
     assigned_deductions = EmployeeDeduction.objects.select_related('employee', 'deduction_config').all()
     tax_brackets = TaxBracket.objects.filter(tax_type='withholding').order_by('effective_date', 'min_amount')
     return {
         'pay_periods': pay_periods,
         'runs': runs,
+        'attendance_sheets': attendance_sheets,
         'deduction_configs': deduction_configs,
         'assigned_deductions': assigned_deductions,
         'tax_brackets': tax_brackets,
@@ -1748,6 +2248,60 @@ def _payroll_dashboard_context():
 def payroll_dashboard(request):
     """Payroll lives inside HR; keep URL for bookmarks/legacy workspace accounts."""
     return redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+
+
+def _payroll_register_run_or_error(request, run_id):
+    try:
+        run = PayrollRun.objects.select_related('pay_period').prefetch_related(
+            'lines__employee',
+        ).get(pk=run_id)
+    except PayrollRun.DoesNotExist:
+        return None, HttpResponse('Payroll run not found.', status=404)
+    if run.status == 'draft':
+        messages.error(request, 'Compute the payroll run before downloading the register.')
+        return None, redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+    if run.status not in ('computed', 'approved', 'disbursed'):
+        messages.error(request, 'This payroll run cannot be exported.')
+        return None, redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+    if not run.lines.exists():
+        messages.error(request, 'This payroll run has no employee lines to export.')
+        return None, redirect(f"{reverse('hr_dashboard')}?tab=payrunsTab")
+    return run, None
+
+
+@require_dashboard('hr_dashboard')
+def download_payroll_register_pdf(request, run_id):
+    run, err = _payroll_register_run_or_error(request, run_id)
+    if err is not None:
+        return err
+    from .payroll_register import build_payroll_register
+    from .payroll_register_pdf import build_payroll_register_pdf
+
+    register = build_payroll_register(run)
+    pdf_bytes = build_payroll_register_pdf(register)
+    filename = f"{register['meta']['filename_stem']}.pdf"
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@require_dashboard('hr_dashboard')
+def download_payroll_register_xlsx(request, run_id):
+    run, err = _payroll_register_run_or_error(request, run_id)
+    if err is not None:
+        return err
+    from .payroll_register import build_payroll_register
+    from .payroll_register_xlsx import build_payroll_register_xlsx
+
+    register = build_payroll_register(run)
+    xlsx_bytes = build_payroll_register_xlsx(register)
+    filename = f"{register['meta']['filename_stem']}.xlsx"
+    response = HttpResponse(
+        xlsx_bytes,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 def purchase_order_pdf(request):

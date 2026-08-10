@@ -14,9 +14,47 @@ PAYMENT_METHODS = [
 ]
 
 
+class InventoryCategory(models.Model):
+    """Nested inventory category / subcategory tree (unlimited depth)."""
+    name = models.CharField(max_length=200)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'inventory categories'
+
+    def __str__(self):
+        return self.path_label
+
+    @property
+    def path_label(self):
+        parts = []
+        node = self
+        seen = set()
+        while node is not None and node.pk not in seen:
+            seen.add(node.pk)
+            parts.append(node.name)
+            node = node.parent
+        return ' › '.join(reversed(parts))
+
+
 class InventoryItem(models.Model):
     product_code = models.CharField(max_length=50, blank=True, default='')
     name = models.CharField(max_length=200)
+    category = models.ForeignKey(
+        InventoryCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+    )
     picture = models.ImageField(upload_to='inventory_pics/', blank=True, null=True)
     size = models.CharField(max_length=100, blank=True, default='')
     stock_available = models.PositiveIntegerField(default=0)
@@ -430,6 +468,13 @@ class PayrollRun(models.Model):
     cutoff_end = models.DateField()
     processing_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    # When True, undertime/absence come from biometric attendance sheets.
+    use_attendance_sheets = models.BooleanField(
+        default=True,
+        help_text='Apply undertime/absence deductions from biometric attendance sheets.',
+    )
+    # Explicit sheet IDs to use; empty + use_attendance_sheets means auto-match by cutoff overlap.
+    attendance_sheet_ids = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -448,6 +493,8 @@ class PayrollLine(models.Model):
     breakdown = models.JSONField(default=dict, blank=True)  # store detailed components
     regular_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     overtime_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    ot_reg_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    ot_sun_hours = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     holiday_pay = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -688,6 +735,7 @@ class LeaveBalance(models.Model):
         ('vacation', 'Vacation Leave'),
         ('sick', 'Sick Leave'),
         ('emergency', 'Emergency Leave'),
+        ('sil', 'SIL'),
     ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='leave_balances')
     leave_type = models.CharField(max_length=20, choices=LEAVE_TYPES)

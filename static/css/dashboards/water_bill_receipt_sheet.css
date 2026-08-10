@@ -1,0 +1,152 @@
+.sheet {
+  width: 4in;
+  height: 4in;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.18in 0.18in 0.3in;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(transparent 13px, rgba(14, 165, 233, 0.07) 14px),
+    #fffaf3;
+  background-size: 100% 14px;
+  border: 1px solid #d7e2e8;
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.sheet::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.12in;
+  background: #f97316;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.loc {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.18;
+}
+
+.title {
+  text-align: center;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin: 0.08in 0 0.06in;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.month-line {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-bottom: 0.06in;
+}
+
+.month-line .fill {
+  display: inline-block;
+  min-width: 3.2rem;
+  border-bottom: 1.5px solid #111;
+  text-align: center;
+  padding: 0 4px 1px;
+  color: #b91c1c;
+  font-weight: 800;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.party {
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.05in;
+}
+
+.party .label {
+  display: inline-block;
+  width: 4.85rem;
+}
+
+.reading-box {
+  width: 72%;
+  margin: 0 auto 0.08in;
+  border: 1.25px solid #111;
+  flex-shrink: 0;
+}
+
+.reading-box .head {
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.66rem;
+  border-bottom: 1.25px solid #111;
+  padding: 3px 4px;
+}
+
+.reading-box table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.reading-box td {
+  border-bottom: 1px solid #111;
+  padding: 3px 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.reading-box tr:last-child td { border-bottom: none; }
+
+.reading-box td.val {
+  text-align: right;
+  color: #b91c1c;
+  font-weight: 800;
+  width: 42%;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.charges {
+  width: 90%;
+  margin: 0 auto;
+  border-collapse: collapse;
+  flex-shrink: 0;
+}
+
+.charges td {
+  border: 1px solid #111;
+  padding: 3px 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.charges td.amt {
+  text-align: right;
+  width: 34%;
+}
+
+.charges tr.total td {
+  color: #b91c1c;
+  font-size: 0.7rem;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.bottom-space {
+  flex: 1 1 auto;
+  min-height: 0.72in;
+}

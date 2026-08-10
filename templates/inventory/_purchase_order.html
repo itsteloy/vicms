@@ -1,0 +1,222 @@
+{% load static %}
+<!-- Purchase Order -->
+<div id="purchaseOrderPanel" class="tab-panel">
+      <div class="panel po-toolbar-panel">
+        <h2>Purchase Order</h2>
+        <p>Fill in the fields below to generate a print-ready Purchase Order on Long Bond Paper
+          (8.5&quot; × 13&quot;). Add as many line items as needed — the header, footer, and column headings
+          repeat automatically on every printed page.</p>
+        <div class="po-toolbar">
+          <div class="po-toolbar-group">
+            <label>Paper size</label>
+            <div class="po-paper-badge">Long Bond Paper (8.5&quot; × 13&quot;)</div>
+          </div>
+          <div class="po-toolbar-actions">
+            <button type="button" class="save" id="poPrintBtn">Print / Save as PDF</button>
+            <button type="button" class="copy" id="poDownloadPdfBtn">Download as PDF</button>
+            <button type="button" class="copy" id="poAddRowBtn">+ Add Line Item</button>
+            <button type="button" class="clear" id="poResetBtn">Reset Form</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="po-canvas">
+        <div class="po-print-area" id="poPrintArea">
+          <!-- Table with header and body; footer is moved outside the table to allow fixed positioning -->
+          <table class="po-page-table">
+            <thead>
+              <tr>
+                <td>
+                  <div class="po-header-band">
+                    <img src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation header">
+                  </div>
+                </td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="po-body">
+
+                    <div class="po-doctitle-row">
+                      <div class="po-doctitle">
+                        <h1>PURCHASE ORDER</h1>
+                        <p>Versatec Industrial Corporation</p>
+                      </div>
+                      <div class="po-meta-grid">
+                        <div class="po-meta-field">
+                          <label>PO Number</label>
+                          <input type="text" id="poNumber" value="PO-2026-0001" placeholder="PO-YYYY-####">
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Currency</label>
+                          <select id="poCurrency">
+                            <option value="PHP" selected>PHP / PESO</option>
+                            <option value="USD">USD</option>
+                            <option value="RMB">RMB</option>
+                            <option value="OTHER">Other</option>
+                          </select>
+                          <input type="text" id="poCurrencyOther" class="po-currency-other"
+                            placeholder="Specify currency" hidden>
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Order Date</label>
+                          <input type="date" id="poOrderDate">
+                        </div>
+                        <div class="po-meta-field">
+                          <label>Required Delivery Date</label>
+                          <input type="date" id="poDeliveryDate">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-parties">
+                      <div class="po-party" id="poBuyer">
+                        <h3>Buyer</h3>
+                        <div class="field-line"><label>Company</label><input type="text" id="poBuyerCompany"
+                            value="Versatec Industrial Corporation"></div>
+                        <div class="field-line"><label>Address</label><textarea id="poBuyerAddress"
+                            rows="2">Lot30-B, Prk. Batong, Brgy. Nanyo, Panabo City, Davao del Norte, 8105, Philippines</textarea>
+                        </div>
+                        <div class="field-line"><label>Contact No.</label><input type="text" id="poBuyerContact" value="(+63) 917 704-4563">
+                        </div>
+                        <div class="field-line"><label>Email</label><input type="text" id="poBuyerEmail" value="it.versatec@gmail.com">
+                        </div>
+                      </div>
+                      <div class="po-party" id="poSeller">
+                        <h3>Seller</h3>
+                        <div class="field-line"><label>Company</label><input type="text" id="poSellerCompany"
+                            placeholder="Supplier company name"></div>
+                        <div class="field-line"><label>Address</label><textarea id="poSellerAddress" rows="2"
+                            placeholder="Complete address"></textarea></div>
+                        <div class="field-line"><label>Contact No.</label><input type="text" id="poSellerContact"
+                            placeholder="Contact number"></div>
+                        <div class="field-line"><label>Email</label><input type="text" id="poSellerEmail" placeholder="Email address">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-items-wrap">
+                      <table class="po-items" id="poItemsTable">
+                        <thead>
+                          <tr>
+                            <th class="col-no">Item No.</th>
+                            <th class="col-code">Product Code</th>
+                            <th class="col-desc">Description</th>
+                            <th class="col-qty">Qty</th>
+                            <th class="col-unit">Unit</th>
+                            <th class="col-cost">Unit Cost</th>
+                            <th class="col-total">Total Amount</th>
+                            <th class="po-no-print"></th>
+                          </tr>
+                        </thead>
+                        <tbody id="poItemsBody">
+                          <tr>
+                            <td class="col-no"><input type="text" value="1"></td>
+                            <td class="col-code"><input type="text" placeholder="e.g. PRD-001"></td>
+                            <td class="col-desc"><textarea rows="1" placeholder="Item description"></textarea></td>
+                            <td class="col-qty"><input type="number" class="po-qty" min="0" step="1" value="1"></td>
+                            <td class="col-unit"><input type="text" placeholder="pcs"></td>
+                            <td class="col-cost"><input type="number" class="po-cost right" min="0" step="0.01"
+                                value="0.00"></td>
+                            <td class="col-total"><input type="text" class="po-line-total right" value="0.00" readonly>
+                            </td>
+                            <td class="po-no-print"><button type="button"
+                                class="po-row-remove" title="Remove row">x</button></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="po-totals-wrap">
+                      <div class="po-totals">
+                        <div class="trow"><span>Subtotal</span><input type="text" id="poSubtotal" value="0.00" readonly>
+                        </div>
+                        <div class="trow"><span>Tax</span><input type="number" id="poTax" min="0" step="0.01"
+                            value="0.00"></div>
+                        <div class="trow"><span>Discount</span><input type="number" id="poDiscount" min="0" step="0.01"
+                            value="0.00"></div>
+                        <div class="trow"><span>Shipping / Other Charges</span><input type="number" id="poShipping"
+                            min="0" step="0.01" value="0.00"></div>
+                        <div class="trow grand"><span>Grand Total</span><input type="text" id="poGrandTotal"
+                            value="0.00" readonly></div>
+                      </div>
+                    </div>
+
+                    <div class="po-section">
+                      <h3>Payment Terms</h3>
+                      <div class="po-payment-grid">
+                        <div class="po-tc-field">
+                          <label>Payment Terms</label>
+                          <input type="text" id="poPaymentTerms" placeholder="e.g. Net 30 Days">
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Payment Method</label>
+                          <input type="text" id="poPaymentMethod" placeholder="e.g. Bank Transfer">
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Payment Due Date</label>
+                          <input type="date" id="poPaymentDueDate">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-section">
+                      <h3>Terms and Conditions</h3>
+                      <div class="po-terms-grid">
+                        <div class="po-tc-field">
+                          <label>Return Policy</label>
+                          <textarea id="poReturnPolicy" rows="2" placeholder="State the return policy"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Warranty (optional)</label>
+                          <textarea id="poWarranty" rows="2" placeholder="State warranty coverage, if any"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Delivery Conditions</label>
+                          <textarea id="poDeliveryConditions" rows="2" placeholder="State delivery conditions"></textarea>
+                        </div>
+                        <div class="po-tc-field">
+                          <label>Other Terms and Conditions</label>
+                          <textarea id="poOtherTerms" rows="2" placeholder="Any additional terms"></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="po-sign-grid">
+                      <div class="po-sign-block">
+                        <div class="sign-role">Prepared by</div>
+                        <input type="text" id="poPreparedSignature" class="sign-space" placeholder="Signature" aria-label="Prepared by signature">
+                        <input type="text" id="poPreparedName" placeholder="Name">
+                        <input type="text" id="poPreparedPosition" class="sign-position" placeholder="Position">
+                        <input type="date" id="poPreparedDate">
+                      </div>
+                      <div class="po-sign-block">
+                        <div class="sign-role">Approved by</div>
+                        <input type="text" id="poApprovedSignature" class="sign-space" placeholder="Signature" aria-label="Approved by signature">
+                        <div class="sign-name-fixed">Engr. Arturo I. Davis, PME</div>
+                        <div class="sign-title-fixed">President / CEO</div>
+                        <input type="date" id="poApprovedDate">
+                      </div>
+                    </div>
+
+                    <div class="po-footnote">This Purchase Order is generated by Versatec Industrial Corporation and is
+                      subject to the terms and conditions stated above.</div>
+
+                  </div> <!-- .po-body -->
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- FOOTER: outside the table to allow fixed positioning at the bottom of each printed page -->
+          <div class="po-footer-fixed">
+            <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec Industrial Corporation footer">
+          </div>
+
+        </div> <!-- .po-print-area -->
+      </div> <!-- .po-canvas -->
+    </div>
+
+    <div style="margin-top:12px;">
+    </div>

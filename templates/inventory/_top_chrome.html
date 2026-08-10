@@ -1,0 +1,26 @@
+<!-- top bar -->
+    <header class="topbar">
+      <div class="greeting">
+        <h2>Inventory Dashboard</h2>
+        <p>Track products, carton details, weights, unit prices, and item images.</p>
+      </div>
+      <div class="top-actions">
+        <a href="{% url 'logout' %}">🚪 Logout</a>
+      </div>
+    </header>
+
+    <!-- stats -->
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value">{{ inventory_items|length }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Units</div>
+        <div class="stat-value">{{ total_stock|default:0 }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Low Stock</div>
+        <div class="stat-value">{{ low_stock_count|default:0 }}</div>
+      </div>
+    </div>

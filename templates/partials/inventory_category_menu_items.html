@@ -1,0 +1,13 @@
+{% for node in nodes %}
+<li class="cat-menu-item{% if node.children %} has-children{% endif %}" data-value="{{ node.id }}" data-path="{{ node.path }}">
+  <button type="button" class="cat-menu-row">
+    <span class="cat-menu-label">{{ node.name }}</span>
+    {% if node.children %}<span class="cat-menu-arrow" aria-hidden="true"></span>{% endif %}
+  </button>
+  {% if node.children %}
+  <ul class="cat-menu-submenu">
+    {% include "partials/inventory_category_menu_items.html" with nodes=node.children only %}
+  </ul>
+  {% endif %}
+</li>
+{% endfor %}

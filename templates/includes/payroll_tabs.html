@@ -52,7 +52,7 @@
             <tbody>
               {% for period in pay_periods %}
               <tr>
-                <td>{{ period.start_date|date:"M d, Y" }} â€“ {{ period.end_date|date:"M d, Y" }}</td>
+                <td>{{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }}</td>
                 <td>{{ period.pay_date|date:"M d, Y" }}</td>
                 <td>{{ period.get_period_type_display }}</td>
                 <td>{% if period.is_closed %}<span class="badge-status badge-disbursed">Closed</span>{% else %}<span class="badge-status badge-computed">Open</span>{% endif %}</td>
@@ -65,7 +65,7 @@
                     <button type="submit" class="action" style="padding:4px 10px;">Close</button>
                   </form>
                   {% else %}
-                  <span style="color:var(--muted);font-size:0.8rem;">â€”</span>
+                  <span style="color:var(--muted);font-size:0.8rem;">—</span>
                   {% endif %}
                 </td>
               </tr>
@@ -78,25 +78,71 @@
         <!-- Create new run -->
         <div class="form-section">
           <h4>Create Pay Run</h4>
-          <form method="post" class="form-row">
+          <form method="post" class="form-grid" style="gap:14px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="create_payrun">
-            <div class="form-field" style="flex:1 1 240px;">
+            <div class="form-field full">
               <label for="pay_period_id">Pay Period</label>
               <select id="pay_period_id" name="pay_period_id" required class="field-input">
                 <option value="">Select period</option>
                 {% for period in pay_periods %}
                   <option value="{{ period.id }}" {% if period.is_closed %}disabled{% endif %}>
-                    {{ period.start_date|date:"M d, Y" }} â€“ {{ period.end_date|date:"M d, Y" }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
+                    {{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }} ({% if period.is_closed %}Closed{% else %}Open{% endif %})
                   </option>
                 {% endfor %}
               </select>
             </div>
-            <button type="submit" class="action btn-primary">+ Create Run</button>
+
+            <div class="form-field full" style="padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:700;">
+                <input type="checkbox" name="use_attendance_sheets" id="use_attendance_sheets" checked style="margin-top:3px;">
+                <span>
+                  Base undertime / absence deductions on attendance sheets
+                  <small style="display:block;font-weight:500;color:var(--muted);margin-top:4px;">
+                    Uses biometric punch sheets and each employee’s daily rate.
+                  </small>
+                </span>
+              </label>
+            </div>
+
+            <div class="form-field full" id="attendanceSheetPicker">
+              <label for="attendance_sheet_ids">Attendance sheets</label>
+              <select id="attendance_sheet_ids" name="attendance_sheet_ids" class="field-input" multiple size="5" style="min-height:110px;">
+                {% for sheet in attendance_sheets %}
+                <option value="{{ sheet.id }}">
+                  #{{ sheet.id }} — {{ sheet.title }}{% if sheet.period_start and sheet.period_end %} ({{ sheet.period_start|date:"Y-m-d" }} → {{ sheet.period_end|date:"Y-m-d" }}){% endif %}
+                </option>
+                {% empty %}
+                <option value="" disabled>No attendance sheets uploaded yet</option>
+                {% endfor %}
+              </select>
+              <small style="color:var(--muted);display:block;margin-top:6px;">
+                Hold Ctrl/Cmd to select multiple. Leave empty to auto-match sheets that overlap the pay cutoff.
+              </small>
+            </div>
+
+            <div class="form-field full" id="alignCutoffField">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:600;">
+                <input type="checkbox" name="align_cutoff_to_sheets" id="align_cutoff_to_sheets" style="margin-top:3px;">
+                <span>
+                  Align run cutoff to selected sheet period dates
+                  <small style="display:block;font-weight:500;color:var(--muted);margin-top:4px;">
+                    Uses the earliest sheet start and latest sheet end when period dates are set.
+                  </small>
+                </span>
+              </label>
+            </div>
+
+            <div class="form-field full">
+              <button type="submit" class="action btn-primary">+ Create Run</button>
+            </div>
           </form>
         </div>
 
         <!-- List of runs -->
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">
+          When enabled, undertime and absence come from the attendance sheets chosen for each run (or auto-matched by cutoff).
+        </p>
         <div class="table-wrap">
           <table>
             <thead>
@@ -115,20 +161,45 @@
               {% for run in runs %}
               <tr>
                 <td>#{{ run.id }}</td>
-                <td>{{ run.pay_period.start_date|date:"Y-m-d" }} â€“ {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
-                <td>{{ run.cutoff_start|date:"m/d" }} â€“ {{ run.cutoff_end|date:"m/d" }}</td>
+                <td>{{ run.pay_period.start_date|date:"Y-m-d" }} – {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                <td>
+                  {{ run.cutoff_start|date:"m/d" }} – {{ run.cutoff_end|date:"m/d" }}
+                  <div style="font-size:0.72rem;color:var(--muted);margin-top:4px;max-width:220px;">
+                    {% if run.use_attendance_sheets %}
+                      {% if run.attendance_sheet_labels %}
+                        Sheets: {{ run.attendance_sheet_labels|join:", " }}
+                      {% else %}
+                        Sheets: auto-match by cutoff
+                      {% endif %}
+                    {% else %}
+                      Attendance sheets: off
+                    {% endif %}
+                  </div>
+                </td>
                 <td>{{ run.employee_count|default:"0" }}</td>
-                <td>â‚±{{ run.total_gross|default:"0"|floatformat:2 }}</td>
-                <td>â‚±{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                <td>₱{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                <td>₱{{ run.total_net|default:"0"|floatformat:2 }}</td>
                 <td>
                   <span class="badge-status badge-{{ run.status }}">
                     {{ run.get_status_display }}
                   </span>
                 </td>
                 <td>
-                  <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
                     {% if run.lines.all %}
-                    <button type="button" class="action toggle-run-details" data-target="run-details-{{ run.id }}" style="padding:4px 10px;">Details</button>
+                    <details class="payroll-run-menu">
+                      <summary class="action payroll-run-menu-toggle" style="padding:4px 10px;">
+                        Actions
+                        <span class="payroll-run-menu-caret" aria-hidden="true">▾</span>
+                      </summary>
+                      <div class="payroll-run-menu-panel" role="menu">
+                        <button type="button" class="payroll-run-menu-item toggle-run-details" data-target="run-details-{{ run.id }}" role="menuitem">Details</button>
+                        {% if run.status != 'draft' %}
+                        <a href="{% url 'download_payroll_register_pdf' run.id %}" class="payroll-run-menu-item" role="menuitem">PDF</a>
+                        <a href="{% url 'download_payroll_register_xlsx' run.id %}" class="payroll-run-menu-item" role="menuitem">Excel</a>
+                        {% endif %}
+                      </div>
+                    </details>
                     {% endif %}
                     <!-- Compute -->
                     {% if run.status == 'draft' %}
@@ -172,27 +243,87 @@
               {% if run.lines.all %}
               <tr id="run-details-{{ run.id }}" class="run-details-row" hidden>
                 <td colspan="8" class="run-details">
-                  <strong style="display:block;margin-bottom:8px;">Employee breakdown â€” Run #{{ run.id }}</strong>
-                  <table>
+                  <strong style="display:block;margin-bottom:8px;">Employee breakdown — Run #{{ run.id }}</strong>
+                  {% if run.status == 'computed' %}
+                  <p class="ot-edit-hint">Enter OT hours — OT amount updates automatically (REG: hourly × 1.25, SUN/RD: hourly × 1.30). Click Save overtime to apply gross and net.</p>
+                  <form method="post" class="ot-edit-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_payroll_overtime">
+                    <input type="hidden" name="run_id" value="{{ run.id }}">
+                  {% endif %}
+                  <table class="payroll-details-table">
                     <thead>
                       <tr>
                         <th>Employee</th>
+                        <th>Base</th>
+                        <th>OT REG (hrs)</th>
+                        <th>OT SUN/RD (hrs)</th>
+                        <th>OT amount</th>
                         <th>Gross</th>
-                        <th>Deductions</th>
+                        <th>Undertime</th>
+                        <th>Absence</th>
+                        <th>PhilHealth</th>
+                        <th>SSS</th>
+                        <th>HDMF</th>
+                        <th>SSS Loan</th>
+                        <th>HDMF Loan</th>
+                        <th>Total ded.</th>
                         <th>Net</th>
                       </tr>
                     </thead>
                     <tbody>
                       {% for line in run.lines.all %}
-                      <tr>
+                      <tr class="ot-calc-row"
+                          data-hourly="{{ line.breakdown.hourly_rate|default:0 }}"
+                          data-base="{{ line.breakdown.base_pay|default:0 }}"
+                          data-holiday="{{ line.breakdown.holiday_pay|default:0 }}"
+                          data-undertime="{{ line.breakdown.undertime_deduction|default:0 }}"
+                          data-configured="{{ line.breakdown.configured_deductions|default:0 }}">
                         <td>{{ line.employee.full_name }}</td>
-                        <td>â‚±{{ line.gross_pay|floatformat:2 }}</td>
-                        <td>â‚±{{ line.total_deductions|floatformat:2 }}</td>
-                        <td>â‚±{{ line.net_pay|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.base_pay|default:0|floatformat:2 }}</td>
+                        <td>
+                          {% if run.status == 'computed' %}
+                          <input type="number" name="ot_reg_hours_{{ line.id }}" step="0.01" min="0"
+                                 value="{{ line.ot_reg_hours }}"
+                                 class="field-input ot-hours-input ot-reg-hours"
+                                 title="Hourly ₱{{ line.breakdown.hourly_rate|default:0|floatformat:2 }} × 1.25"
+                                 inputmode="decimal">
+                          {% else %}
+                          {{ line.ot_reg_hours }}
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if run.status == 'computed' %}
+                          <input type="number" name="ot_sun_hours_{{ line.id }}" step="0.01" min="0"
+                                 value="{{ line.ot_sun_hours }}"
+                                 class="field-input ot-hours-input ot-sun-hours"
+                                 title="Hourly ₱{{ line.breakdown.hourly_rate|default:0|floatformat:2 }} × 1.30"
+                                 inputmode="decimal">
+                          {% else %}
+                          {{ line.ot_sun_hours }}
+                          {% endif %}
+                        </td>
+                        <td class="ot-amount-display">₱{{ line.breakdown.overtime_pay|default:0|floatformat:2 }}</td>
+                        <td class="ot-gross-display">₱{{ line.gross_pay|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.undertime_deduction|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.absence_deduction|default:0|floatformat:2 }}{% if line.breakdown.absent_days %} <span style="color:var(--muted);font-size:0.75rem;">({{ line.breakdown.absent_days }}d)</span>{% endif %}</td>
+                        <td>₱{{ line.breakdown.philhealth|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.sss|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.hdmf|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.sss_loan|default:0|floatformat:2 }}</td>
+                        <td>₱{{ line.breakdown.hdmf_loan|default:0|floatformat:2 }}</td>
+                        <td class="ot-ded-display">₱{{ line.total_deductions|floatformat:2 }}</td>
+                        <td class="ot-net-display">₱{{ line.net_pay|floatformat:2 }}</td>
                       </tr>
                       {% endfor %}
                     </tbody>
                   </table>
+                  {% if run.status == 'computed' %}
+                    <div class="ot-edit-actions">
+                      <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Save overtime</button>
+                    </div>
+                  </form>
+                  {% endif %}
                 </td>
               </tr>
               {% endif %}
@@ -209,7 +340,14 @@
     <div id="deductionsTab" class="tab-panel">
       <div class="panel">
         <h2>Deductions Management</h2>
-        <p>Configure deduction types and assign them to employees.</p>
+        <p>
+          Configure deduction types and assign them to employees.
+          Standard configs include <strong>PhilHealth Contribution</strong>,
+          <strong>SSS Contribution</strong>, <strong>HDMF Contribution</strong>,
+          <strong>SSS Loan</strong>, and <strong>HDMF Loan</strong>.
+          Deductions apply on a pay run only after you <strong>assign</strong> them to employees
+          for a pay period (with the amount per payroll). They are not applied automatically.
+        </p>
 
         <!-- Add Deduction Config -->
         <div style="background: var(--soft); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
@@ -243,9 +381,9 @@
                 <td>{{ config.code }}</td>
                 <td>{{ config.name }}</td>
                 <td>{{ config.get_type_display }}</td>
-                <td>â‚±{{ config.fixed_amount }}</td>
+                <td>₱{{ config.fixed_amount }}</td>
                 <td>{{ config.percentage_of_gross|floatformat:2 }}%</td>
-                <td>{% if config.is_active %}âœ…{% else %}âŒ{% endif %}</td>
+                <td>{% if config.is_active %}Yes{% else %}No{% endif %}</td>
               </tr>
               {% empty %}
               <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deduction configurations.</td></tr>
@@ -254,54 +392,127 @@
           </table>
         </div>
 
-        <!-- Assign deduction to employee -->
-        <div style="margin-top:24px; background: var(--soft); padding: 16px; border-radius: var(--radius);">
-          <h4 style="margin:0 0 10px;">Assign Deduction to Employee</h4>
-          <form method="post" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+        <!-- Assign deduction to employee(s) -->
+        <div class="assign-deduction-panel">
+          <h4>Assign Deduction to Employees</h4>
+          <p class="assign-deduction-help">
+            Apply one or more deductions to <strong>all employees</strong> or only the ones you select.
+            Choose the <strong>pay period</strong> this assignment applies to (same dates as that period’s pay run).
+            Existing assignments for the same period are skipped.
+          </p>
+          <form method="post" id="assignDeductionForm" class="assign-deduction-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="assign_deduction">
-            <div>
-              <select name="employee_id" required class="field-input" style="width:180px;">
-                <option value="">Select Employee</option>
-                {% for emp in employees %}
-                <option value="{{ emp.id }}">{{ emp.full_name }}</option>
-                {% endfor %}
-              </select>
+
+            <div class="assign-deduction-scope">
+              <span class="assign-deduction-label">Apply to</span>
+              <label class="assign-scope-option">
+                <input type="radio" name="employee_scope" value="all" id="deductionScopeAll">
+                All employees
+              </label>
+              <label class="assign-scope-option">
+                <input type="radio" name="employee_scope" value="selected" id="deductionScopeSelected" checked>
+                Selected employees
+              </label>
             </div>
-            <div>
-              <select name="config_id" required class="field-input" style="width:160px;">
-                <option value="">Select Deduction</option>
-                {% for config in deduction_configs %}
-                <option value="{{ config.id }}">{{ config.name }}</option>
-                {% endfor %}
-              </select>
+
+            <div class="assign-deduction-body">
+              <div id="deductionEmployeePicker" class="assign-picker assign-picker-employees">
+                <div class="assign-picker-header">
+                  <span class="assign-deduction-label">Employees</span>
+                  <label class="assign-scope-option">
+                    <input type="checkbox" id="deductionSelectAllEmployees">
+                    Select all listed
+                  </label>
+                </div>
+                <div class="assign-picker-grid assign-employee-grid">
+                  {% for emp in employees %}
+                  <label class="assign-picker-item">
+                    <input type="checkbox" name="employee_ids" value="{{ emp.id }}" class="deduction-employee-cb">
+                    <span class="assign-picker-name" title="{{ emp.full_name }}">{{ emp.full_name }}</span>
+                  </label>
+                  {% empty %}
+                  <span class="assign-picker-empty">No employees available.</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="assign-deduction-side">
+                <div class="assign-picker assign-picker-deductions">
+                  <div class="assign-picker-header">
+                    <span class="assign-deduction-label">Deductions</span>
+                    <label class="assign-scope-option">
+                      <input type="checkbox" id="deductionSelectAllConfigs">
+                      Select all
+                    </label>
+                  </div>
+                  <div class="assign-deduction-options">
+                    {% for config in deduction_configs %}
+                    <label class="assign-picker-item">
+                      <input type="checkbox" name="config_ids" value="{{ config.id }}" class="deduction-config-cb">
+                      <span>{{ config.name }}</span>
+                    </label>
+                    {% empty %}
+                    <span class="assign-picker-empty">No deduction configurations.</span>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="assign-deduction-fields">
+                  <div class="form-field assign-field-period">
+                    <label for="assign_pay_period_id">Pay period</label>
+                    <select id="assign_pay_period_id" name="pay_period_id" required class="field-input">
+                      <option value="">Select pay period</option>
+                      {% for period in pay_periods %}
+                      <option value="{{ period.id }}">
+                        {{ period.start_date|date:"M d, Y" }} – {{ period.end_date|date:"M d, Y" }}
+                        (pay {{ period.pay_date|date:"M d, Y" }}){% if period.is_closed %} — Closed{% endif %}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="assign_amount">Amount (per payroll)</label>
+                    <input type="number" id="assign_amount" name="amount" step="0.01" placeholder="0.00" required class="field-input">
+                  </div>
+                  <div class="form-field">
+                    <label for="assign_remaining">Remaining balance <span class="assign-optional">(loans)</span></label>
+                    <input type="number" id="assign_remaining" name="total_remaining" step="0.01" placeholder="0.00" class="field-input">
+                  </div>
+                </div>
+
+                <div class="assign-deduction-actions">
+                  <button type="submit" class="action assign-deduction-submit">Assign</button>
+                </div>
+              </div>
             </div>
-            <div><input type="number" name="amount" step="0.01" placeholder="Amount" required class="field-input" style="width:120px;"></div>
-            <div><input type="date" name="start_date" required class="field-input" style="width:150px;"></div>
-            <div><input type="date" name="end_date" placeholder="End date (optional)" class="field-input" style="width:150px;"></div>
-            <div><input type="number" name="total_remaining" step="0.01" placeholder="Remaining balance" class="field-input" style="width:130px;"></div>
-            <button type="submit" class="action" style="background:var(--brand);color:#fff;border-color:var(--brand);">Assign</button>
           </form>
         </div>
 
         <!-- Show assigned deductions -->
         <div style="margin-top:24px;">
           <h4>Assigned Employee Deductions</h4>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:0.88rem;">Each assignment applies when a pay run’s period matches these dates.</p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Employee</th><th>Deduction</th><th>Amount</th><th>Start</th><th>End</th><th>Remaining</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Deduction</th><th>Pay period</th><th>Amount</th><th>Remaining</th></tr></thead>
               <tbody>
                 {% for ad in assigned_deductions %}
                 <tr>
                   <td>{{ ad.employee.full_name }}</td>
                   <td>{{ ad.deduction_config.name }}</td>
-                  <td>â‚±{{ ad.amount }}</td>
-                  <td>{{ ad.start_date|date:"Y-m-d" }}</td>
-                  <td>{{ ad.end_date|date:"Y-m-d"|default:"-" }}</td>
-                  <td>â‚±{{ ad.total_remaining }}</td>
+                  <td>
+                    {% if ad.end_date %}
+                      {{ ad.start_date|date:"M d, Y" }} – {{ ad.end_date|date:"M d, Y" }}
+                    {% else %}
+                      {{ ad.start_date|date:"M d, Y" }} – ongoing
+                    {% endif %}
+                  </td>
+                  <td>₱{{ ad.amount }}</td>
+                  <td>₱{{ ad.total_remaining }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
+                <tr><td colspan="5" style="text-align:center;color:#667085;padding:24px;">No deductions assigned.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -323,9 +534,9 @@
                 {% if run.status == 'computed' or run.status == 'draft' %}
                 <tr>
                   <td>#{{ run.id }}</td>
-                  <td>{{ run.pay_period.start_date|date:"Y-m-d" }} â€“ {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
-                  <td>â‚±{{ run.total_gross|default:"0"|floatformat:2 }}</td>
-                  <td>â‚±{{ run.total_net|default:"0"|floatformat:2 }}</td>
+                  <td>{{ run.pay_period.start_date|date:"Y-m-d" }} – {{ run.pay_period.end_date|date:"Y-m-d" }}</td>
+                  <td>₱{{ run.total_gross|default:"0"|floatformat:2 }}</td>
+                  <td>₱{{ run.total_net|default:"0"|floatformat:2 }}</td>
                   <td><span class="badge-status badge-{{ run.status }}">{{ run.get_status_display }}</span></td>
                   <td>
                     {% if run.status == 'computed' %}

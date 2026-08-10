@@ -1,0 +1,28 @@
+<div class="cat-picker" data-cat-picker{% if picker_required %} data-required="true"{% endif %}>
+  <input
+    type="hidden"
+    id="{{ picker_id }}"
+    {% if picker_name %}name="{{ picker_name }}"{% endif %}
+    value="{{ picker_value|default:'' }}"
+    {% if picker_required %}required{% endif %}
+  >
+  <button type="button" class="cat-picker-trigger" aria-haspopup="menu" aria-expanded="false">
+    <span class="cat-picker-value is-placeholder">{{ picker_placeholder }}</span>
+    <span class="cat-picker-chevron" aria-hidden="true">▾</span>
+  </button>
+  <div class="cat-picker-menu" role="menu">
+    <ul class="cat-menu-root">
+      {% if picker_allow_empty %}
+      <li class="cat-menu-item" data-value="" data-path="{{ picker_placeholder }}">
+        <button type="button" class="cat-menu-row">
+          <span class="cat-menu-label">{{ picker_placeholder }}</span>
+        </button>
+      </li>
+      {% endif %}
+      {% include "partials/inventory_category_menu_items.html" with nodes=inventory_category_tree only %}
+      {% if not inventory_category_tree and not picker_allow_empty %}
+      <li class="cat-menu-empty">No categories yet. Add one above.</li>
+      {% endif %}
+    </ul>
+  </div>
+</div>

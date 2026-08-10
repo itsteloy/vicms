@@ -156,6 +156,8 @@ def day_has_attendance(punch: AttendanceSheetPunch) -> bool:
 def compute_punch_metrics(
     punch: AttendanceSheetPunch,
     schedule: ExpectedSchedule | None,
+    *,
+    is_ob_day: bool = False,
 ) -> dict[str, Any]:
     """Return derived metrics for one punch day."""
     empty = {
@@ -168,6 +170,7 @@ def compute_punch_metrics(
         'is_absent': False,
         'is_mapped': False,
         'is_sunday': is_sunday_punch(punch),
+        'is_official_business': False,
     }
     if schedule is None:
         return empty
@@ -179,16 +182,18 @@ def compute_punch_metrics(
         'expected_afternoon_out': schedule.display(schedule.afternoon_out),
         'is_mapped': True,
         'is_sunday': is_sunday_punch(punch),
+        'is_official_business': False,
     }
 
     if not day_has_attendance(punch):
-        # No work on Sundays — blank Sundays are not absences.
-        is_absent = not expected['is_sunday']
+        # Blank Sundays and approved Official Business days are not absences.
+        is_absent = not (expected['is_sunday'] or is_ob_day)
         return {
             **expected,
             'undertime_minutes': 0,
             'undertime_display': '0m',
             'is_absent': is_absent,
+            'is_official_business': bool(is_ob_day),
         }
 
     morning_undertime = 0
@@ -225,6 +230,7 @@ def _unmapped_entry_metrics() -> dict[str, Any]:
         'total_undertime_minutes': 0,
         'total_undertime_display': '—',
         'absent_days': 0,
+        'ob_days': 0,
         'expected_morning_in': '—',
         'expected_morning_out': '—',
         'expected_afternoon_in': '—',
@@ -247,6 +253,32 @@ def annotate_attendance_sheet(sheet: AttendanceSheet | None) -> AttendanceSheet 
     if sheet is None:
         return None
 
+    from .official_business import ob_dates_by_employee_id
+
+    mapped_employees = [
+        entry.linked_employee
+        for entry in sheet.entries.all()
+        if entry.linked_employee_id is not None
+    ]
+    period_start = getattr(sheet, 'period_start', None)
+    period_end = getattr(sheet, 'period_end', None)
+    if period_start is None or period_end is None:
+        punch_dates = [
+            punch.punch_date
+            for entry in sheet.entries.all()
+            for punch in entry.punches.all()
+            if punch.punch_date is not None
+        ]
+        if punch_dates:
+            period_start = period_start or min(punch_dates)
+            period_end = period_end or max(punch_dates)
+
+    ob_by_employee = ob_dates_by_employee_id(
+        mapped_employees,
+        date_start=period_start,
+        date_end=period_end,
+    )
+
     for entry in sheet.entries.all():
         employee = entry.linked_employee
         schedule = get_expected_schedule(employee) if employee else None
@@ -256,14 +288,19 @@ def annotate_attendance_sheet(sheet: AttendanceSheet | None) -> AttendanceSheet 
 
         total_undertime = 0
         absent_days = 0
+        ob_days = 0
+        emp_ob_dates = ob_by_employee.get(employee.id, set()) if employee else set()
 
         for punch in entry.punches.all():
-            metrics = compute_punch_metrics(punch, schedule)
+            is_ob = bool(punch.punch_date and punch.punch_date in emp_ob_dates)
+            metrics = compute_punch_metrics(punch, schedule, is_ob_day=is_ob)
             punch.metrics = metrics
             if schedule is not None:
                 total_undertime += metrics['undertime_minutes']
                 if metrics['is_absent']:
                     absent_days += 1
+                if metrics.get('is_official_business'):
+                    ob_days += 1
 
         if schedule is None:
             entry.metrics = _unmapped_entry_metrics()
@@ -288,6 +325,7 @@ def annotate_attendance_sheet(sheet: AttendanceSheet | None) -> AttendanceSheet 
             'total_undertime_minutes': total_undertime,
             'total_undertime_display': format_minutes(total_undertime),
             'absent_days': absent_days,
+            'ob_days': ob_days,
             'expected_morning_in': schedule.display(schedule.morning_in),
             'expected_morning_out': schedule.display(schedule.morning_out),
             'expected_afternoon_in': schedule.display(schedule.afternoon_in),

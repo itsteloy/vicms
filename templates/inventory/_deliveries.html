@@ -1,0 +1,100 @@
+<!-- Deliveries -->
+<div id="deliveriesPanel" class="tab-panel">
+      <div class="panel">
+        <h2>Delivery Log</h2>
+        <p>Record incoming deliveries with items, carton quantities, and costs.</p>
+        <form id="deliveryForm" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_delivery">
+
+          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="field">
+              <label for="delivery_date">Delivery Date</label>
+              <input type="date" id="delivery_date" name="delivery_date" required>
+            </div>
+            <div class="field">
+              <label for="driver">Driver</label>
+              <input type="text" id="driver" name="driver" placeholder="Driver name" required>
+            </div>
+            <div class="field">
+              <label for="delivered_from">Delivered From</label>
+              <input type="text" id="delivered_from" name="delivered_from" placeholder="Supplier or source" required>
+            </div>
+            <div class="field">
+              <label for="delivered_to">Delivered To</label>
+              <input type="text" id="delivered_to" name="delivered_to" placeholder="Location" required>
+            </div>
+          </div>
+
+          <hr style="margin:16px 0;">
+          <h3 style="font-size:1rem;font-weight:700;">Items</h3>
+          <div id="deliveryItemsContainer">
+            <!-- First row (template) -->
+            <div class="delivery-item-row"
+              style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;margin-bottom:8px;align-items:end;">
+              <div class="field"><label>Item Type</label><input type="text" name="item_type[]" placeholder="e.g., ELBOW"
+                  required></div>
+              <div class="field"><label>Cartons</label><input type="number" name="quantity_cartons[]" min="1" value="1"
+                  required></div>
+              <div class="field"><label>Pcs per Carton</label><input type="number" name="pcs_per_carton[]" min="1"
+                  value="1" required></div>
+              <div class="field"><label>Cost per Carton (₱)</label><input type="number" name="cost_per_carton[]" min="0"
+                  step="0.01" value="0.00" required></div>
+              <div style="display:flex;gap:6px;padding-top:22px;">
+                <button type="button" class="remove-item-row"
+                  style="background:transparent;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;cursor:pointer;color:#b42318;">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" id="addItemRow"
+            style="margin:8px 0 16px;padding:8px 16px;border:1px dashed #d0d5dd;background:transparent;border-radius:8px;cursor:pointer;">+
+            Add another item</button>
+
+          <div class="actions">
+            <button class="save" type="submit">Record Delivery</button>
+            <button class="clear" type="reset">Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Recent Deliveries</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Delivery #</th>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Items</th>
+                <th>Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for delivery in deliveries %}
+              <tr>
+                <td>{{ delivery.delivery_number }}</td>
+                <td>{{ delivery.delivery_date|date:"Y-m-d" }}</td>
+                <td>{{ delivery.driver }}</td>
+                <td>{{ delivery.delivered_from }}</td>
+                <td>{{ delivery.delivered_to }}</td>
+                <td>
+                  {% for line in delivery.lines.all %}
+                  {{ line.item_type }} ({{ line.quantity_cartons }} ctn × {{ line.pcs_per_carton }} pcs)<br>
+                  {% endfor %}
+                </td>
+                <td>₱{{ delivery.total_cost|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" style="text-align:center;color:#667085;">No deliveries recorded yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
