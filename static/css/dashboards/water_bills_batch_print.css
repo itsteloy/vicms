@@ -122,8 +122,6 @@ body {
   );
 }
 
-@import url("water_bill_receipt_sheet.css");
-
 .batch-slot .sheet {
   border-radius: 4px;
   box-shadow: none;

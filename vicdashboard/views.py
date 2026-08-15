@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -3651,7 +3651,7 @@ def water_billing_dashboard(request):
     customer_q = request.GET.get('customer_q', '').strip()
     customer_type = request.GET.get('customer_type', '').strip()
     customer_status = request.GET.get('customer_status', '').strip()
-    customers_qs = WaterCustomer.objects.all()
+    customers_qs = WaterCustomer.objects.select_related('zone').all()
     if customer_q:
         customers_qs = customers_qs.filter(
             Q(account_number__icontains=customer_q)
@@ -3700,7 +3700,7 @@ def water_billing_dashboard(request):
     context = {
         'modules': MANAGEMENT_MODULES,
         'stats': _water_overview_stats(),
-        'customers': customers_qs[:100],
+        'customers': customers_qs,
         'customer_q': customer_q,
         'customer_type': customer_type,
         'customer_status': customer_status,
@@ -3717,10 +3717,10 @@ def water_billing_dashboard(request):
                 .values('current_reading')[:1]
             )
         ).order_by('account_number'),
-        'readings': WaterMeterReading.objects.select_related('customer', 'bill').all()[:50],
-        'bills': WaterBill.objects.select_related('customer').all()[:50],
-        'payments': WaterPayment.objects.select_related('customer', 'bill').all()[:50],
-        'unpaid_bills': unpaid_bills[:50],
+        'readings': WaterMeterReading.objects.select_related('customer', 'bill').all(),
+        'bills': WaterBill.objects.select_related('customer').all(),
+        'payments': WaterPayment.objects.select_related('customer', 'bill').all(),
+        'unpaid_bills': unpaid_bills,
         'aging_buckets': aging_buckets,
         'service_actions': WaterServiceAction.objects.select_related('customer').all()[:50],
         'disconnect_candidates': disconnect_candidates[:50],
@@ -3728,6 +3728,7 @@ def water_billing_dashboard(request):
         'next_account_number': WaterCustomer.generate_account_number(),
         'next_bill_number': WaterBill.generate_bill_number(),
         'next_receipt_number': WaterPayment.generate_receipt_number(),
+        'water_zones': WaterZone.objects.order_by('name'),
         'default_rate': WATER_DEFAULT_RATE,
         'default_fixed': WATER_DEFAULT_FIXED,
         'default_env': WATER_DEFAULT_ENV,
@@ -3768,28 +3769,46 @@ def _water_report_rows(report_type):
     return list(WaterBill.objects.select_related('customer').filter(bill_date__gte=month_start)[:200])
 
 
+def _water_resolve_zone(request):
+    """Resolve zone from POST zone_id / zone_name. Optional; returns None if unset."""
+    zone_id = request.POST.get('zone_id', '').strip()
+    zone_name = request.POST.get('zone_name', '').strip().upper()
+    if zone_id and zone_id != '__new__':
+        return WaterZone.objects.filter(pk=zone_id).first()
+    if zone_name:
+        zone, _ = WaterZone.objects.get_or_create(name=zone_name)
+        return zone
+    return None
+
+
 def _water_create_customer(request):
-    required = ('first_name', 'last_name', 'service_address', 'meter_number')
+    required = ('first_name', 'last_name', 'meter_number')
     if not all(request.POST.get(f, '').strip() for f in required):
         messages.error(request, 'Please complete required customer fields.')
         return _water_redirect('customersTab')
     try:
-        payment_choice = request.POST.get('installation_payment', 'partial').strip().lower()
+        payment_choice = request.POST.get('installation_payment', 'full').strip().lower()
         if payment_choice == 'full':
             installation_paid = WATER_INSTALLATION_FEE
         elif payment_choice == 'partial':
             installation_paid = WATER_INSTALLATION_PARTIAL
         else:
-            installation_paid = _dec(request.POST.get('installation_paid'), str(WATER_INSTALLATION_PARTIAL))
+            installation_paid = _dec(request.POST.get('installation_paid'), '0')
+            if installation_paid < 0:
+                installation_paid = Decimal('0.00')
+            if installation_paid > WATER_INSTALLATION_FEE:
+                installation_paid = WATER_INSTALLATION_FEE
         installment_balance = max(WATER_INSTALLATION_FEE - installation_paid, Decimal('0.00'))
+
         customer = WaterCustomer.objects.create(
             account_number=request.POST.get('account_number', '').strip() or WaterCustomer.generate_account_number(),
             first_name=request.POST['first_name'].strip().upper(),
             last_name=request.POST['last_name'].strip().upper(),
-            service_address=request.POST['service_address'].strip().upper(),
+            service_address=request.POST.get('service_address', '').strip().upper(),
             contact_number=request.POST.get('contact_number', '').strip(),
             email=request.POST.get('email', '').strip(),
             customer_type=request.POST.get('customer_type', 'residential'),
+            zone=_water_resolve_zone(request),
             meter_number=request.POST['meter_number'].strip().upper(),
             connection_status=request.POST.get('connection_status', 'active'),
             registration_date=_water_parse_date(request.POST.get('registration_date')) or date.today(),
@@ -3813,6 +3832,38 @@ def _water_create_customer(request):
     return _water_redirect('customersTab')
 
 
+def _water_update_customer(request, customer):
+    required = ('first_name', 'last_name', 'meter_number')
+    if not all(request.POST.get(f, '').strip() for f in required):
+        messages.error(request, 'Please complete required customer fields.')
+        return redirect('view_water_customer', customer_id=customer.id)
+    try:
+        customer.first_name = request.POST['first_name'].strip().upper()
+        customer.last_name = request.POST['last_name'].strip().upper()
+        customer.service_address = request.POST.get('service_address', '').strip().upper()
+        customer.contact_number = request.POST.get('contact_number', '').strip()
+        customer.email = request.POST.get('email', '').strip()
+        customer.customer_type = request.POST.get('customer_type', customer.customer_type)
+        customer.zone = _water_resolve_zone(request)
+        customer.meter_number = request.POST['meter_number'].strip().upper()
+        customer.connection_status = request.POST.get('connection_status', customer.connection_status)
+        reg_date = _water_parse_date(request.POST.get('registration_date'))
+        if reg_date:
+            customer.registration_date = reg_date
+        if 'installment_balance' in request.POST:
+            bal = _dec(request.POST.get('installment_balance'), str(customer.installment_balance or 0))
+            if bal < 0:
+                bal = Decimal('0.00')
+            customer.installment_balance = bal
+        customer.notes = request.POST.get('notes', '').strip()
+        customer.save()
+        _water_audit(request, 'Updated customer', 'WaterCustomer', customer.account_number, customer.display_name)
+        messages.success(request, f'Customer {customer.account_number} updated.')
+    except Exception as exc:
+        messages.error(request, f'Could not update customer: {exc}')
+    return redirect('view_water_customer', customer_id=customer.id)
+
+
 def _water_create_reading(request):
     customer_id = request.POST.get('customer_id', '').strip()
     reading_date = request.POST.get('reading_date', '').strip()
@@ -3823,8 +3874,14 @@ def _water_create_reading(request):
         return _water_redirect('readingsBillingTab')
     customer = get_object_or_404(WaterCustomer, pk=customer_id)
     last = customer.readings.order_by('-reading_date', '-created_at').first()
-    previous = int(last.current_reading) if last else 0
+    previous_raw = request.POST.get('previous_reading', '').strip()
     try:
+        if previous_raw != '':
+            previous = int(previous_raw)
+        else:
+            previous = int(last.current_reading) if last else 0
+        if previous < 0:
+            raise ValueError('Previous reading cannot be negative.')
         current = int(current_raw)
         parsed_reading_date = _water_parse_date(reading_date, required=True)
         unpaid = customer.outstanding_balance
@@ -3860,30 +3917,39 @@ def _water_create_reading(request):
     return _water_redirect('readingsBillingTab')
 
 
+def _water_bill_from_reading(reading):
+    """Create a WaterBill for a reading if one does not already exist. Returns the bill."""
+    existing = WaterBill.objects.filter(meter_reading=reading).first()
+    if existing:
+        return existing, False
+    due = reading.reading_date + timedelta(days=15)
+    bill = WaterBill(
+        bill_number=WaterBill.generate_bill_number(),
+        customer=reading.customer,
+        meter_reading=reading,
+        billing_period=reading.billing_period,
+        bill_date=reading.reading_date,
+        due_date=due,
+        consumption=reading.consumption,
+        rate_per_cum=WATER_DEFAULT_RATE,
+        previous_bill_unpaid=reading.previous_bill_unpaid or Decimal('0'),
+        installment_balance=reading.installment_balance or Decimal('0'),
+        fixed_charge=Decimal('0.00'),
+        environmental_fee=Decimal('0.00'),
+        maintenance_fee=Decimal('0.00'),
+    )
+    bill.save()
+    return bill, True
+
+
 def _water_generate_bill_from_reading(request):
     reading_id = request.POST.get('reading_id', '').strip()
     reading = get_object_or_404(WaterMeterReading.objects.select_related('customer'), pk=reading_id)
-    if WaterBill.objects.filter(meter_reading=reading).exists():
-        messages.info(request, 'A bill already exists for this reading.')
-        return _water_redirect('readingsBillingTab')
     try:
-        due = reading.reading_date + timedelta(days=15)
-        bill = WaterBill(
-            bill_number=WaterBill.generate_bill_number(),
-            customer=reading.customer,
-            meter_reading=reading,
-            billing_period=reading.billing_period,
-            bill_date=reading.reading_date,
-            due_date=due,
-            consumption=reading.consumption,
-            rate_per_cum=WATER_DEFAULT_RATE,
-            previous_bill_unpaid=reading.previous_bill_unpaid or Decimal('0'),
-            installment_balance=reading.installment_balance or Decimal('0'),
-            fixed_charge=Decimal('0.00'),
-            environmental_fee=Decimal('0.00'),
-            maintenance_fee=Decimal('0.00'),
-        )
-        bill.save()
+        bill, created = _water_bill_from_reading(reading)
+        if not created:
+            messages.info(request, 'A bill already exists for this reading.')
+            return _water_redirect('readingsBillingTab')
         _water_audit(
             request, 'Generated bill', 'WaterBill', bill.bill_number,
             f'{reading.customer.account_number} total={bill.total_amount}',
@@ -4012,7 +4078,10 @@ def print_water_bills_batch(request):
 
 @require_dashboard('water_billing_dashboard')
 def view_water_customer(request, customer_id):
-    customer = get_object_or_404(WaterCustomer, pk=customer_id)
+    customer = get_object_or_404(WaterCustomer.objects.select_related('zone'), pk=customer_id)
+    if request.method == 'POST' and request.POST.get('action') == 'update_customer':
+        return _water_update_customer(request, customer)
+
     readings = customer.readings.select_related('bill').all()
     bills = customer.bills.select_related('meter_reading').all()
     payments = customer.payments.select_related('bill').all()
@@ -4036,6 +4105,9 @@ def view_water_customer(request, customer_id):
         'reading_count': readings.count() if hasattr(readings, 'count') else len(readings),
         'bill_count': bills.count() if hasattr(bills, 'count') else len(bills),
         'payment_count': payments.count() if hasattr(payments, 'count') else len(payments),
+        'customer_types': WATER_CUSTOMER_TYPES,
+        'connection_statuses': WATER_CONNECTION_STATUS,
+        'water_zones': WaterZone.objects.order_by('name'),
     })
 
 

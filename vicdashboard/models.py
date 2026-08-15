@@ -129,7 +129,7 @@ class Quotation(models.Model):
     customer_email = models.EmailField(blank=True, default='')
     customer_phone = models.CharField(max_length=50, blank=True, default='')
     subject = models.CharField(max_length=255, blank=True, default='')
-    payment_terms = models.CharField(max_length=255, blank=True, default='')
+    payment_terms = models.CharField(max_length=255, blank=True, default='') 
     delivery_terms = models.CharField(max_length=255, blank=True, default='')
     warranty = models.CharField(max_length=255, blank=True, default='')
     other_terms = models.TextField(blank=True, default='')
@@ -1726,15 +1726,38 @@ WATER_SERVICE_ACTION_STATUS = [
 ]
 
 
+class WaterZone(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.name = self.name.strip().upper()
+        super().save(*args, **kwargs)
+
+
 class WaterCustomer(models.Model):
     account_number = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    service_address = models.TextField()
+    service_address = models.TextField(blank=True, default='')
     contact_number = models.CharField(max_length=50, blank=True, default='')
     email = models.EmailField(blank=True, default='')
     customer_type = models.CharField(max_length=20, choices=WATER_CUSTOMER_TYPES, default='residential')
-    meter_number = models.CharField(max_length=50, unique=True)
+    zone = models.ForeignKey(
+        WaterZone,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='customers',
+    )
+    meter_number = models.CharField(max_length=50)
     connection_status = models.CharField(max_length=20, choices=WATER_CONNECTION_STATUS, default='active')
     registration_date = models.DateField(default=date.today)
     installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -1744,6 +1767,14 @@ class WaterCustomer(models.Model):
 
     class Meta:
         ordering = ['last_name', 'first_name']
+        constraints = [
+            # Allow many customers with "—" (no meter). Real meter numbers stay unique.
+            models.UniqueConstraint(
+                fields=['meter_number'],
+                condition=~models.Q(meter_number='—'),
+                name='uniq_watercustomer_meter_number_except_placeholder',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.account_number} – {self.display_name}'
@@ -1836,7 +1867,7 @@ class WaterMeterReading(models.Model):
     billing_period = models.CharField(max_length=20, help_text='e.g. 2026-07')
     previous_reading = models.PositiveIntegerField(default=0)
     current_reading = models.PositiveIntegerField()
-    consumption = models.PositiveIntegerField(default=0)
+    consumption = models.IntegerField(default=0)
     previous_bill_unpaid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     is_estimated = models.BooleanField(default=False)
@@ -1870,8 +1901,6 @@ class WaterMeterReading(models.Model):
     def save(self, *args, **kwargs):
         prev = int(self.previous_reading or 0)
         curr = int(self.current_reading or 0)
-        if curr < prev:
-            raise ValueError('Current reading cannot be lower than previous reading.')
         self.consumption = curr - prev
         super().save(*args, **kwargs)
 
@@ -1885,7 +1914,7 @@ class WaterBill(models.Model):
     billing_period = models.CharField(max_length=20)
     bill_date = models.DateField()
     due_date = models.DateField()
-    consumption = models.PositiveIntegerField(default=0)
+    consumption = models.IntegerField(default=0)
     rate_per_cum = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('20.00'))
     consumption_charge = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     previous_bill_unpaid = models.DecimalField(max_digits=14, decimal_places=2, default=0)

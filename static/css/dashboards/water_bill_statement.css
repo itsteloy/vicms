@@ -87,8 +87,6 @@ body {
   justify-content: center;
 }
 
-@import url("water_bill_receipt_sheet.css");
-
 .preview-note {
   margin-top: 12px;
   text-align: center;

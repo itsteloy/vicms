@@ -90,16 +90,55 @@
   const installationPayment = document.getElementById('installationPayment');
   const installationPaid = document.getElementById('installationPaid');
   const installationBalance = document.getElementById('installationBalance');
+  function syncInstallationBalance() {
+    if (!installationPaid || !installationBalance) return;
+    const paid = Math.min(Math.max(Number(installationPaid.value || 0), 0), INSTALLATION_FEE);
+    installationBalance.value = Math.max(INSTALLATION_FEE - paid, 0).toFixed(2);
+  }
+  function normalizeInstallationPaid() {
+    if (!installationPaid) return;
+    const paid = Math.min(Math.max(Number(installationPaid.value || 0), 0), INSTALLATION_FEE);
+    installationPaid.value = paid.toFixed(2);
+    syncInstallationBalance();
+  }
   function syncInstallationFee() {
     if (!installationPayment || !installationPaid || !installationBalance) return;
-    const paid = installationPayment.value === 'full' ? INSTALLATION_FEE : INSTALLATION_PARTIAL;
-    installationPaid.value = paid.toFixed(2);
-    installationBalance.value = Math.max(INSTALLATION_FEE - paid, 0).toFixed(2);
+    const choice = installationPayment.value;
+    const isCustom = choice === 'custom';
+    installationPaid.readOnly = !isCustom;
+    if (choice === 'full') {
+      installationPaid.value = INSTALLATION_FEE.toFixed(2);
+    } else if (choice === 'partial') {
+      installationPaid.value = INSTALLATION_PARTIAL.toFixed(2);
+    }
+    syncInstallationBalance();
+    if (isCustom) installationPaid.focus();
   }
   if (installationPayment) {
     installationPayment.addEventListener('change', syncInstallationFee);
     syncInstallationFee();
   }
+  if (installationPaid) {
+    installationPaid.addEventListener('input', syncInstallationBalance);
+    installationPaid.addEventListener('change', normalizeInstallationPaid);
+  }
+
+  const zoneSelect = document.getElementById('zoneSelect');
+  const zoneNewField = document.getElementById('zoneNewField');
+  const zoneNewInput = document.getElementById('zoneNewInput');
+  function syncZoneNewField() {
+    if (!zoneSelect || !zoneNewField || !zoneNewInput) return;
+    const isNew = zoneSelect.value === '__new__';
+    zoneNewField.hidden = !isNew;
+    zoneNewInput.required = isNew;
+    if (!isNew) zoneNewInput.value = '';
+  }
+  if (zoneSelect) {
+    zoneSelect.addEventListener('change', syncZoneNewField);
+    syncZoneNewField();
+  }
+  forceUppercase(zoneNewInput);
+
   const readingDate = document.getElementById('readingDate');
   if (readingDate && !readingDate.value) readingDate.value = readingDateISO();
   if (readingDate) {
@@ -121,7 +160,7 @@
   function updateReadingTotals() {
     const prev = Number(previousReading?.value || 0);
     const curr = Number(currentReading?.value || 0);
-    const consumption = Math.max(curr - prev, 0);
+    const consumption = curr - prev;
     const currentBill = consumption * RATE_PER_CUM;
     const unpaid = Number(previousBillUnpaid?.value || 0);
     const installment = Number(installmentBalance?.value || 0);

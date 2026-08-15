@@ -90,6 +90,109 @@
         <div class="panel">
           <div class="panel-head">
             <div>
+              <h2>Register customer</h2>
+              <p class="sub">Create a new account. Installation fee balance is calculated automatically.</p>
+            </div>
+          </div>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_customer">
+            <div class="form-card-grid">
+              <div class="field">
+                <label>Account No.</label>
+                <input name="account_number" value="{{ next_account_number }}" readonly>
+              </div>
+              <div class="field">
+                <label>Registration Date</label>
+                <input type="date" name="registration_date" id="custRegDate">
+              </div>
+              <div class="field">
+                <label>Customer Type</label>
+                <select name="customer_type">
+                  {% for value, label in customer_types %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Zone</label>
+                <select name="zone_id" id="zoneSelect">
+                  <option value="">Select zone</option>
+                  {% for zone in water_zones %}
+                  <option value="{{ zone.id }}">{{ zone.name }}</option>
+                  {% endfor %}
+                  <option value="__new__">+ Add new zone…</option>
+                </select>
+              </div>
+              <div class="field" id="zoneNewField" hidden>
+                <label for="zoneNewInput">New Zone Name</label>
+                <input name="zone_name" id="zoneNewInput" style="text-transform:uppercase;" placeholder="e.g. ZONE 1" autocomplete="off">
+              </div>
+              <div class="field">
+                <label>Connection Status</label>
+                <select name="connection_status">
+                  {% for value, label in connection_statuses %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label>Last Name *</label>
+                <input name="last_name" id="customerLastName" required style="text-transform:uppercase;" autocomplete="family-name">
+              </div>
+              <div class="field">
+                <label>First Name *</label>
+                <input name="first_name" id="customerFirstName" required style="text-transform:uppercase;" autocomplete="given-name">
+              </div>
+              <div class="field full">
+                <label>Service Address</label>
+                <textarea name="service_address" id="customerServiceAddress" style="text-transform:uppercase;"></textarea>
+              </div>
+              <div class="field">
+                <label>Contact Number</label>
+                <input name="contact_number">
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="email" name="email">
+              </div>
+              <div class="field">
+                <label>Meter Number *</label>
+                <input name="meter_number" id="customerMeterNumber" required style="text-transform:uppercase;" autocomplete="off">
+              </div>
+              <div class="section-label">Installation fee</div>
+              <div class="field">
+                <label>Installation Fee</label>
+                <input type="number" step="0.01" id="installationFee" value="5900.00" readonly>
+              </div>
+              <div class="field">
+                <label>Payment *</label>
+                <select name="installation_payment" id="installationPayment" required>
+                  <option value="full">Full – ₱5,900.00</option>
+                  <option value="partial">Partial – ₱3,000.00</option>
+                  <option value="custom">Custom amount…</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Amount Paid</label>
+                <input type="number" step="0.01" min="0" max="5900" id="installationPaid" name="installation_paid" value="5900.00" readonly>
+              </div>
+              <div class="field">
+                <label>Balance</label>
+                <input type="number" step="0.01" min="0" name="installment_balance" id="installationBalance" value="0.00" readonly>
+              </div>
+              <div class="field span-2">
+                <label>Notes</label>
+                <textarea name="notes"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button type="submit" class="primary">Save customer</button></div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
               <h2>Customer list</h2>
               <p class="sub">Search accounts and review balances at a glance.</p>
             </div>
@@ -126,6 +229,7 @@
                 <tr>
                   <th>Account</th>
                   <th>Name</th>
+                  <th>Zone</th>
                   <th>Meter</th>
                   <th>Installment Balance</th>
                   <th>Outstanding Balance</th>
@@ -138,13 +242,14 @@
                 <tr>
                   <td><strong>{{ c.account_number }}</strong></td>
                   <td>{{ c.display_name }}</td>
+                  <td>{{ c.zone.name|default:"—" }}</td>
                   <td>{{ c.meter_number }}</td>
                   <td class="money">₱{{ c.installment_balance|floatformat:2 }}</td>
                   <td class="money">₱{{ c.outstanding_balance|floatformat:2 }}</td>
                   <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
                   <td>
                     <div class="action-group">
-                      <a class="action" href="{% url 'view_water_customer' c.id %}">View</a>
+                      <a class="action" href="{% url 'view_water_customer' c.id %}">View / Edit</a>
                       <form method="post" onsubmit="return confirm('Delete customer {{ c.account_number }}?');">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_customer">
@@ -155,99 +260,11 @@
                   </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="empty">No customers found.</td></tr>
+                <tr><td colspan="8" class="empty">No customers found.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Register customer</h2>
-              <p class="sub">Create a new account. Installation fee balance is calculated automatically.</p>
-            </div>
-          </div>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_customer">
-            <div class="form-card-grid">
-              <div class="field">
-                <label>Account No.</label>
-                <input name="account_number" value="{{ next_account_number }}" readonly>
-              </div>
-              <div class="field">
-                <label>Registration Date</label>
-                <input type="date" name="registration_date" id="custRegDate">
-              </div>
-              <div class="field">
-                <label>Customer Type</label>
-                <select name="customer_type">
-                  {% for value, label in customer_types %}
-                  <option value="{{ value }}">{{ label }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="field">
-                <label>Connection Status</label>
-                <select name="connection_status">
-                  {% for value, label in connection_statuses %}
-                  <option value="{{ value }}">{{ label }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <div class="field">
-                <label>Last Name *</label>
-                <input name="last_name" id="customerLastName" required style="text-transform:uppercase;" autocomplete="family-name">
-              </div>
-              <div class="field">
-                <label>First Name *</label>
-                <input name="first_name" id="customerFirstName" required style="text-transform:uppercase;" autocomplete="given-name">
-              </div>
-              <div class="field full">
-                <label>Service Address *</label>
-                <textarea name="service_address" id="customerServiceAddress" required style="text-transform:uppercase;"></textarea>
-              </div>
-              <div class="field">
-                <label>Contact Number</label>
-                <input name="contact_number">
-              </div>
-              <div class="field">
-                <label>Email</label>
-                <input type="email" name="email">
-              </div>
-              <div class="field">
-                <label>Meter Number *</label>
-                <input name="meter_number" id="customerMeterNumber" required style="text-transform:uppercase;" autocomplete="off">
-              </div>
-              <div class="section-label">Installation fee</div>
-              <div class="field">
-                <label>Installation Fee</label>
-                <input type="number" step="0.01" id="installationFee" value="5900.00" readonly>
-              </div>
-              <div class="field">
-                <label>Payment *</label>
-                <select name="installation_payment" id="installationPayment" required>
-                  <option value="partial">Partial – ₱3,000.00</option>
-                  <option value="full">Full – ₱5,900.00</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Amount Paid</label>
-                <input type="number" step="0.01" id="installationPaid" name="installation_paid" value="3000.00" readonly>
-              </div>
-              <div class="field">
-                <label>Balance</label>
-                <input type="number" step="0.01" min="0" name="installment_balance" id="installationBalance" value="2900.00" readonly>
-              </div>
-              <div class="field span-2">
-                <label>Notes</label>
-                <textarea name="notes"></textarea>
-              </div>
-            </div>
-            <div class="form-actions"><button type="submit" class="primary">Save customer</button></div>
-          </form>
         </div>
       </div>
     </section>
@@ -307,7 +324,7 @@
               <div class="section-label">Meter reading</div>
               <div class="field">
                 <label>Previous</label>
-                <input type="number" min="0" name="previous_reading" id="previousReading" value="0" readonly>
+                <input type="number" min="0" name="previous_reading" id="previousReading" value="0">
               </div>
               <div class="field">
                 <label>Present *</label>

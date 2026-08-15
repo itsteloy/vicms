@@ -13,15 +13,26 @@
 <div class="page">
   <div class="topbar">
     <a href="{% url 'water_billing_dashboard' %}?tab=customersTab">← Back to customers</a>
-    <a class="btn primary" href="{% url 'water_billing_dashboard' %}?tab=readingsBillingTab">Record reading</a>
+    <div class="topbar-actions">
+      <a class="btn" href="#editCustomer">Edit customer</a>
+      <a class="btn primary" href="{% url 'water_billing_dashboard' %}?tab=readingsBillingTab">Record reading</a>
+    </div>
   </div>
+
+  {% if messages %}
+  <div class="messages">
+    {% for message in messages %}
+    <div class="message {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <section class="hero">
     <h1>
       {{ customer.display_name }}
       <span class="badge {{ customer.connection_status }}">{{ customer.get_connection_status_display }}</span>
     </h1>
-    <div class="meta">{{ customer.account_number }} · Meter {{ customer.meter_number }}</div>
+    <div class="meta">{{ customer.account_number }} · Meter {{ customer.meter_number }}{% if customer.zone %} · Zone {{ customer.zone.name }}{% endif %}</div>
   </section>
 
   <div class="kpi-grid">
@@ -31,28 +42,100 @@
     <div class="kpi"><div class="label">Installment bal</div><div class="value">₱{{ customer.installment_balance|floatformat:2 }}</div></div>
   </div>
 
-  <section class="panel">
+  <section class="panel" id="editCustomer">
     <h2>Account information</h2>
-    <p class="sub">Customer profile and connection details.</p>
-    <div class="info-grid">
-      <div class="info-item"><div class="label">Account No.</div><div class="value">{{ customer.account_number }}</div></div>
-      <div class="info-item"><div class="label">Last Name</div><div class="value">{{ customer.last_name }}</div></div>
-      <div class="info-item"><div class="label">First Name</div><div class="value">{{ customer.first_name }}</div></div>
-      <div class="info-item"><div class="label">Customer Type</div><div class="value">{{ customer.get_customer_type_display }}</div></div>
-      <div class="info-item"><div class="label">Connection Status</div><div class="value">{{ customer.get_connection_status_display }}</div></div>
-      <div class="info-item"><div class="label">Disconnection Policy</div><div class="value">{{ customer.disconnection_policy }}</div></div>
-      <div class="info-item"><div class="label">Months Unpaid</div><div class="value">{% if customer.months_unpaid %}{{ customer.months_unpaid }}{% else %}0{% endif %}</div></div>
-      <div class="info-item"><div class="label">Disconnection Monitor</div><div class="value">{{ customer.disconnection_monitor }}</div></div>
-      <div class="info-item"><div class="label">Meter Number</div><div class="value">{{ customer.meter_number }}</div></div>
-      <div class="info-item"><div class="label">Contact Number</div><div class="value">{{ customer.contact_number|default:"—" }}</div></div>
-      <div class="info-item"><div class="label">Email</div><div class="value">{{ customer.email|default:"—" }}</div></div>
-      <div class="info-item"><div class="label">Registered</div><div class="value">{{ customer.registration_date }}</div></div>
-      <div class="info-item"><div class="label">Installment Balance</div><div class="value">₱{{ customer.installment_balance|floatformat:2 }}</div></div>
-      <div class="info-item full"><div class="label">Service Address</div><div class="value">{{ customer.service_address }}</div></div>
-      {% if customer.notes %}
-      <div class="info-item full"><div class="label">Notes</div><div class="value">{{ customer.notes }}</div></div>
-      {% endif %}
-    </div>
+    <p class="sub">Edit profile and connection details, then save. Account number cannot be changed.</p>
+    <form method="post" class="edit-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_customer">
+      <div class="form-grid">
+        <div class="field">
+          <label>Account No.</label>
+          <input value="{{ customer.account_number }}" readonly>
+        </div>
+        <div class="field">
+          <label>Registration Date</label>
+          <input type="date" name="registration_date" value="{{ customer.registration_date|date:'Y-m-d' }}">
+        </div>
+        <div class="field">
+          <label>Customer Type</label>
+          <select name="customer_type">
+            {% for value, label in customer_types %}
+            <option value="{{ value }}" {% if customer.customer_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Zone</label>
+          <select name="zone_id" id="zoneSelect">
+            <option value="">Select zone</option>
+            {% for zone in water_zones %}
+            <option value="{{ zone.id }}" {% if customer.zone_id == zone.id %}selected{% endif %}>{{ zone.name }}</option>
+            {% endfor %}
+            <option value="__new__">+ Add new zone…</option>
+          </select>
+        </div>
+        <div class="field" id="zoneNewField" hidden>
+          <label for="zoneNewInput">New Zone Name</label>
+          <input name="zone_name" id="zoneNewInput" style="text-transform:uppercase;" placeholder="e.g. ZONE 1" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Connection Status</label>
+          <select name="connection_status">
+            {% for value, label in connection_statuses %}
+            <option value="{{ value }}" {% if customer.connection_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Last Name *</label>
+          <input name="last_name" id="customerLastName" value="{{ customer.last_name }}" required style="text-transform:uppercase;" autocomplete="family-name">
+        </div>
+        <div class="field">
+          <label>First Name *</label>
+          <input name="first_name" id="customerFirstName" value="{{ customer.first_name }}" required style="text-transform:uppercase;" autocomplete="given-name">
+        </div>
+        <div class="field full">
+          <label>Service Address</label>
+          <textarea name="service_address" id="customerServiceAddress" style="text-transform:uppercase;">{{ customer.service_address }}</textarea>
+        </div>
+        <div class="field">
+          <label>Contact Number</label>
+          <input name="contact_number" value="{{ customer.contact_number }}">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" value="{{ customer.email }}">
+        </div>
+        <div class="field">
+          <label>Meter Number *</label>
+          <input name="meter_number" id="customerMeterNumber" value="{{ customer.meter_number }}" required style="text-transform:uppercase;" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Installment Balance</label>
+          <input type="number" step="0.01" min="0" name="installment_balance" value="{{ customer.installment_balance }}">
+        </div>
+        <div class="field">
+          <label>Disconnection Policy</label>
+          <input value="{{ customer.disconnection_policy }}" readonly>
+        </div>
+        <div class="field">
+          <label>Months Unpaid</label>
+          <input value="{% if customer.months_unpaid %}{{ customer.months_unpaid }}{% else %}0{% endif %}" readonly>
+        </div>
+        <div class="field">
+          <label>Disconnection Monitor</label>
+          <input value="{{ customer.disconnection_monitor }}" readonly>
+        </div>
+        <div class="field full">
+          <label>Notes</label>
+          <textarea name="notes">{{ customer.notes }}</textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+      </div>
+    </form>
   </section>
 
   <section class="panel">
@@ -213,4 +296,40 @@
     </div>
   </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  function forceUppercase(el) {
+    if (!el) return;
+    el.addEventListener('input', function () {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      el.value = el.value.toUpperCase();
+      if (typeof start === 'number') el.setSelectionRange(start, end);
+    });
+  }
+  forceUppercase(document.getElementById('customerLastName'));
+  forceUppercase(document.getElementById('customerFirstName'));
+  forceUppercase(document.getElementById('customerServiceAddress'));
+  forceUppercase(document.getElementById('customerMeterNumber'));
+  forceUppercase(document.getElementById('zoneNewInput'));
+
+  const zoneSelect = document.getElementById('zoneSelect');
+  const zoneNewField = document.getElementById('zoneNewField');
+  const zoneNewInput = document.getElementById('zoneNewInput');
+  function syncZoneNewField() {
+    if (!zoneSelect || !zoneNewField || !zoneNewInput) return;
+    const isNew = zoneSelect.value === '__new__';
+    zoneNewField.hidden = !isNew;
+    zoneNewInput.required = isNew;
+    if (!isNew) zoneNewInput.value = '';
+  }
+  if (zoneSelect) {
+    zoneSelect.addEventListener('change', syncZoneNewField);
+    syncZoneNewField();
+  }
+})();
+</script>
 {% endblock %}
