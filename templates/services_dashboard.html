@@ -32,11 +32,33 @@
         Borrow Material
         <span class="tab-badge">{{ material_borrow_count }}</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="jobOrderTab">
+        <span class="tab-icon">📋</span>
+        Job Orders
+        <span class="tab-badge">{{ job_order_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
+        <span class="tab-icon">🚗</span>
+        Travel Orders
+        <span class="tab-badge">{{ travel_order_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="officialBusinessTab">
+        <span class="tab-icon">🧳</span>
+        Official Business
+        <span class="tab-badge">{{ official_business_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
+        <span class="tab-icon">⏸️</span>
+        Idle Days
+      </button>
     </nav>
 
     <div class="sidebar-stats">
       <div class="stat-row"><span>Repair reports</span><strong>{{ repair_report_count }}</strong></div>
       <div class="stat-row"><span>Borrow slips</span><strong>{{ material_borrow_count }}</strong></div>
+      <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
+      <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
+      <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
     </div>
   </aside>
 
@@ -44,7 +66,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>Services Dashboard</h2>
-        <p>Create, save, review, and print service repair reports and borrow material slips.</p>
+        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, and official business forms.</p>
       </div>
       <div class="top-actions no-print">
         <button type="button" onclick="window.print()">🖨 Print preview</button>
@@ -60,6 +82,18 @@
       <div class="stat-card">
         <div class="stat-label">Borrow Material</div>
         <div class="stat-value">{{ material_borrow_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Job Orders</div>
+        <div class="stat-value">{{ job_order_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Travel Orders</div>
+        <div class="stat-value">{{ travel_order_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Official Business</div>
+        <div class="stat-value">{{ official_business_count }}</div>
       </div>
     </div>
 
@@ -244,7 +278,7 @@
                 <td><span class="status-chip">{{ report.get_status_display }}</span></td>
                 <td>
                   <div class="record-actions">
-                    <a class="action" href="{% url 'view_service_repair_report' report.id %}">View</a>
+                    <a class="action" href="{% url 'view_service_repair_report' report.id %}?from=services">View</a>
                     <a class="action" href="{% url 'edit_service_repair_report' report.id %}">Edit</a>
                     <form method="post" action="{% url 'delete_service_repair_report' report.id %}" onsubmit="return confirm('Delete Service Repair Report {{ report.report_number }}? This cannot be undone.');">
                       {% csrf_token %}
@@ -449,7 +483,7 @@
                 <td><span class="status-chip">{{ borrow.get_status_display }}</span></td>
                 <td>
                   <div class="record-actions">
-                    <a class="action" href="{% url 'view_material_borrow' borrow.id %}">View</a>
+                    <a class="action" href="{% url 'view_material_borrow' borrow.id %}?from=services">View</a>
                     <a class="action" href="{% url 'edit_material_borrow' borrow.id %}">Edit</a>
                     {% if borrow.status != 'returned' %}
                     <form method="post" action="{% url 'return_material_borrow' borrow.id %}" onsubmit="return confirm('Mark Borrow Slip {{ borrow.borrow_number }} as returned?');">
@@ -472,6 +506,42 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- Official Business -->
+    <div id="officialBusinessTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Official Business Form</h2>
+        <p>File and approve employee official business (OB) authorizations. Approved forms show as OB on Attendance Sheets instead of Absent.</p>
+      </div>
+      {% include "includes/official_business_encode.html" %}
+    </div>
+
+    <!-- Job Orders -->
+    <div id="jobOrderTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Job Order</h2>
+        <p>Assign and track field or workshop service work. Link assignees so idle-day reports can estimate wasted pay.</p>
+      </div>
+      {% include "includes/job_order_encode.html" %}
+    </div>
+
+    <!-- Travel Orders -->
+    <div id="travelOrderTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Travel Order Form</h2>
+        <p>Issue and track vehicle travel orders for drivers and passengers.</p>
+      </div>
+      {% include "includes/travel_order_encode.html" %}
+    </div>
+
+    <!-- Idle Days -->
+    <div id="idleDaysTab" class="tab-panel">
+      <div class="panel no-print">
+        <h2>Idle Days Report</h2>
+        <p>Days assignees had no work on a job order (e.g. waiting for materials). Estimates only — payroll is not changed.</p>
+        {% include "includes/idle_days_report.html" %}
       </div>
     </div>
 

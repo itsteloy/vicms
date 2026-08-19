@@ -1,0 +1,68 @@
+<div class="panel">
+  <h2>Reports</h2>
+  <p class="sub">Generate operational reports and export CSV / print.</p>
+  <div class="filters no-print">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:end; width:100%;" id="reportFilterForm">
+      <input type="hidden" name="tab" value="reportsTab">
+      <div class="field" style="min-width:220px;">
+        <label>Report type</label>
+        <select name="report">
+          <option value="billing" {% if report_type == 'billing' %}selected{% endif %}>Monthly Billing</option>
+          <option value="collection" {% if report_type == 'collection' %}selected{% endif %}>Collection</option>
+          <option value="outstanding" {% if report_type == 'outstanding' %}selected{% endif %}>Outstanding Balance</option>
+          <option value="consumption" {% if report_type == 'consumption' %}selected{% endif %}>Consumption</option>
+          <option value="customers" {% if report_type == 'customers' %}selected{% endif %}>Customer</option>
+          <option value="revenue" {% if report_type == 'revenue' %}selected{% endif %}>Revenue</option>
+          <option value="disconnection" {% if report_type == 'disconnection' %}selected{% endif %}>Disconnection</option>
+          <option value="reconnection" {% if report_type == 'reconnection' %}selected{% endif %}>Reconnection</option>
+          <option value="readings" {% if report_type == 'readings' %}selected{% endif %}>Meter Reading</option>
+          <option value="daily_collection" {% if report_type == 'daily_collection' %}selected{% endif %}>Daily Collection</option>
+        </select>
+      </div>
+      <button type="submit" class="action primary">Show</button>
+      <a class="action" href="{% url 'water_billing_export_csv' %}?report={{ report_type }}">Export CSV</a>
+      <button type="button" class="action" onclick="window.print()">Print</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      {% if report_type == 'customers' %}
+      <thead><tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th>Address</th></tr></thead>
+      <tbody>
+        {% for c in report_rows %}
+        <tr><td>{{ c.account_number }}</td><td>{{ c.display_name }}</td><td>{{ c.get_customer_type_display }}</td><td>{{ c.meter_number }}</td><td>{{ c.get_connection_status_display }}</td><td>{{ c.service_address }}</td></tr>
+        {% empty %}<tr><td colspan="6" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% elif report_type == 'consumption' or report_type == 'readings' %}
+      <thead><tr><th>Account</th><th>Name</th><th>Period</th><th>Previous</th><th>Current</th><th>Consumption</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for r in report_rows %}
+        <tr><td>{{ r.customer.account_number }}</td><td>{{ r.customer.display_name }}</td><td>{{ r.billing_period }}</td><td>{{ r.previous_reading }}</td><td>{{ r.current_reading }}</td><td>{{ r.consumption }}</td><td>{{ r.reading_date }}</td></tr>
+        {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% elif report_type == 'collection' or report_type == 'daily_collection' or report_type == 'revenue' %}
+      <thead><tr><th>Receipt</th><th>Date</th><th>Account</th><th>Name</th><th>Bill</th><th>Amount</th><th>Method</th></tr></thead>
+      <tbody>
+        {% for p in report_rows %}
+        <tr><td>{{ p.receipt_number }}</td><td>{{ p.payment_date }}</td><td>{{ p.customer.account_number }}</td><td>{{ p.customer.display_name }}</td><td>{{ p.bill.bill_number }}</td><td>₱{{ p.amount|floatformat:2 }}</td><td>{{ p.get_payment_method_display }}</td></tr>
+        {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% elif report_type == 'disconnection' or report_type == 'reconnection' %}
+      <thead><tr><th>Type</th><th>Account</th><th>Name</th><th>Date</th><th>Status</th><th>Reason</th><th>Fee</th></tr></thead>
+      <tbody>
+        {% for a in report_rows %}
+        <tr><td>{{ a.get_action_type_display }}</td><td>{{ a.customer.account_number }}</td><td>{{ a.customer.display_name }}</td><td>{{ a.action_date }}</td><td>{{ a.status }}</td><td>{{ a.reason }}</td><td>₱{{ a.reconnection_fee|floatformat:2 }}</td></tr>
+        {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% else %}
+      <thead><tr><th>Bill #</th><th>Account</th><th>Name</th><th>Period</th><th>Consumption</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for b in report_rows %}
+        <tr><td>{{ b.bill_number }}</td><td>{{ b.customer.account_number }}</td><td>{{ b.customer.display_name }}</td><td>{{ b.billing_period }}</td><td>{{ b.consumption }}</td><td>₱{{ b.total_amount|floatformat:2 }}</td><td>₱{{ b.balance_due|floatformat:2 }}</td><td>{{ b.status }}</td></tr>
+        {% empty %}<tr><td colspan="8" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% endif %}
+    </table>
+  </div>
+  {% include "includes/water_pagination.html" %}
+</div>

@@ -1,0 +1,139 @@
+<div class="stack-section">
+  {% include "includes/water_revenue_breakdown.html" %}
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Payment history</h2>
+        <p class="sub">Recent collections and official receipts.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Receipt</th>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Amount Paid</th>
+            <th>Method</th>
+            <th>Balance Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td><strong>{{ p.receipt_number }}</strong></td>
+            <td>{{ p.payment_date }}</td>
+            <td>{{ p.customer.display_name }}</td>
+            <td class="money">₱{{ p.amount|floatformat:2 }}</td>
+            <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
+            <td>
+              {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
+              <span class="badge paid">Paid</span>
+              {% else %}
+              <span class="badge unpaid">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_payment">
+                <input type="hidden" name="payment_id" value="{{ p.id }}">
+                <button type="submit" class="action danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="empty">No payments recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "includes/water_pagination.html" %}
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Record payment</h2>
+        <p class="sub">Apply cash or GCash payments to open bills. Receipt numbers are automatic.</p>
+      </div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_payment">
+      <div class="form-card-grid">
+        <div class="field">
+          <label>Receipt No.</label>
+          <input name="receipt_number" value="{{ next_receipt_number }}" readonly>
+        </div>
+        <div class="field">
+          <label>Payment Date *</label>
+          <input type="date" name="payment_date" id="paymentDate" required>
+        </div>
+        <div class="field">
+          <label>Method</label>
+          <select name="payment_method">
+            {% for value, label in payment_methods %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field full">
+          <label for="paymentBillSearch">Bill *</label>
+          <div class="bill-combobox" id="paymentBillCombo">
+            <input type="hidden" name="bill_id" id="paymentBill">
+            <input type="text" id="paymentBillSearch" placeholder="Select unpaid / partial bill…" autocomplete="off" required>
+            <ul class="bill-combobox-list" id="paymentBillList">
+              {% for b in open_bills_for_payment %}
+              <li
+                class="bill-combobox-item"
+                data-id="{{ b.id }}"
+                data-balance="{{ b.balance_due }}"
+                data-name="{{ b.customer.display_name }}"
+                data-label="{{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (bal ₱{{ b.balance_due|floatformat:2 }})">
+                {{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (bal ₱{{ b.balance_due|floatformat:2 }})
+              </li>
+              {% empty %}
+              <li class="bill-combobox-empty" data-static="1">No unpaid bills.</li>
+              {% endfor %}
+              <li class="bill-combobox-empty" id="paymentBillNoMatch" hidden>No matching customer names.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="field">
+          <label>Amount *</label>
+          <input name="amount" id="paymentAmount" required>
+        </div>
+        <div class="field">
+          <label>Reference No.</label>
+          <input name="reference_number" placeholder="GCash ref (optional)">
+        </div>
+        <div class="field">
+          <label>Received By</label>
+          <input name="received_by" value="Aiza Poquita">
+        </div>
+        <div class="field full">
+          <label>Remarks</label>
+          <input name="remarks">
+        </div>
+      </div>
+      <div class="pay-summary" aria-hidden="true">
+        <div>
+          <div class="label">Bill balance</div>
+          <div class="value" id="payBalanceDisplay">₱0.00</div>
+        </div>
+        <div>
+          <div class="label">Amount to pay</div>
+          <div class="value" id="payAmountDisplay">₱0.00</div>
+        </div>
+        <div>
+          <div class="label">Remaining after pay</div>
+          <div class="value" id="payRemainingDisplay">₱0.00</div>
+        </div>
+      </div>
+      <div class="form-actions"><button type="submit" class="primary">Save payment</button></div>
+    </form>
+  </div>
+</div>

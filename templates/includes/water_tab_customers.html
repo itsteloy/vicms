@@ -1,0 +1,140 @@
+<div class="stack-section">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Register customer</h2>
+        <p class="sub">Create a new account. Installation fee balance is calculated automatically.</p>
+      </div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_customer">
+      <div class="form-card-grid">
+        <div class="field">
+          <label>Account No.</label>
+          <input name="account_number" value="{{ next_account_number }}" readonly>
+        </div>
+        <div class="field">
+          <label>Registration Date</label>
+          <input type="date" name="registration_date" id="custRegDate">
+        </div>
+        <div class="field">
+          <label>Customer Type</label>
+          <select name="customer_type">
+            {% for value, label in customer_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Zone</label>
+          <select name="zone_id" id="zoneSelect">
+            <option value="">Select zone</option>
+            {% for zone in water_zones %}
+            <option value="{{ zone.id }}">{{ zone.name }}</option>
+            {% endfor %}
+            <option value="__new__">+ Add new zone…</option>
+          </select>
+        </div>
+        <div class="field" id="zoneNewField" hidden>
+          <label for="zoneNewInput">New Zone Name</label>
+          <input name="zone_name" id="zoneNewInput" style="text-transform:uppercase;" placeholder="e.g. ZONE 1" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Connection Status</label>
+          <select name="connection_status">
+            {% for value, label in connection_statuses %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Last Name *</label>
+          <input name="last_name" id="customerLastName" required style="text-transform:uppercase;" autocomplete="family-name">
+        </div>
+        <div class="field">
+          <label>First Name *</label>
+          <input name="first_name" id="customerFirstName" required style="text-transform:uppercase;" autocomplete="given-name">
+        </div>
+        <div class="field full">
+          <label>Service Address</label>
+          <textarea name="service_address" id="customerServiceAddress" style="text-transform:uppercase;"></textarea>
+        </div>
+        <div class="field">
+          <label>Contact Number</label>
+          <input name="contact_number">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email">
+        </div>
+        <div class="field">
+          <label>Meter Number *</label>
+          <input name="meter_number" id="customerMeterNumber" required style="text-transform:uppercase;" autocomplete="off">
+        </div>
+        <div class="section-label">Installation fee</div>
+        <div class="field">
+          <label>Installation Fee</label>
+          <input type="number" step="0.01" id="installationFee" value="5900.00" readonly>
+        </div>
+        <div class="field">
+          <label>Payment *</label>
+          <select name="installation_payment" id="installationPayment" required>
+            <option value="full">Full – ₱5,900.00</option>
+            <option value="partial">Partial – ₱3,000.00</option>
+            <option value="custom">Custom amount…</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Amount Paid</label>
+          <input type="number" step="0.01" min="0" max="5900" id="installationPaid" name="installation_paid" value="5900.00" readonly>
+        </div>
+        <div class="field">
+          <label>Balance</label>
+          <input type="number" step="0.01" min="0" name="installment_balance" id="installationBalance" value="0.00" readonly>
+        </div>
+        <div class="field span-2">
+          <label>Notes</label>
+          <textarea name="notes"></textarea>
+        </div>
+      </div>
+      <div class="form-actions"><button type="submit" class="primary">Save customer</button></div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Customer list</h2>
+        <p class="sub">Search accounts and review balances at a glance.</p>
+      </div>
+    </div>
+    <form method="get" class="list-toolbar" id="customerFilterForm">
+      <input type="hidden" name="tab" value="customersTab">
+      <div class="field grow">
+        <label for="customerSearch">Search</label>
+        <input id="customerSearch" name="customer_q" value="{{ customer_q }}" placeholder="Name, account, or meter…" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Zone</label>
+        <select name="customer_zone" id="customerZoneFilter">
+          <option value="">All zones</option>
+          {% for zone in water_zones %}
+          <option value="{{ zone.id }}" {% if customer_zone == zone.id|stringformat:"s" %}selected{% endif %}>{{ zone.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select name="customer_status" id="customerStatusFilter">
+          <option value="">All statuses</option>
+          {% for value, label in connection_statuses %}
+          <option value="{{ value }}" {% if customer_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="action primary">Filter</button>
+    </form>
+    {% include "includes/water_customer_list.html" %}
+  </div>
+</div>

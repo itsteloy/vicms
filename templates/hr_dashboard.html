@@ -81,7 +81,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>HR Dashboard</h2>
-        <p>Manage employee records, attendance, payroll, documents, job orders, official business, and travel orders.</p>
+        <p>Manage employee records, attendance, payroll, documents, and service document status.</p>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -667,161 +667,13 @@
     <!-- Job Orders -->
     <div id="jobOrderTab" class="tab-panel">
       <div class="panel">
-        <h2>Job Order</h2>
-        <p>Assign and track field or workshop service work.</p>
-
-        <div class="jo-grid" style="margin-top:18px;">
-          <section class="form-section jo-form" style="margin-bottom:0;">
-            <form method="post" action="{% url 'create_job_order' %}" id="jobOrderForm">
-              {% csrf_token %}
-              <div class="form-grid">
-                <div class="form-field">
-                  <label for="job_order_number">Job Order No.</label>
-                  <input id="job_order_number" name="job_order_number" value="{{ next_job_order_number }}" class="field-input field-readonly" readonly title="Assigned automatically">
-                  <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
-                </div>
-                <div class="form-field">
-                  <label for="date_filed">Date Filed *</label>
-                  <input id="date_filed" name="date_filed" type="date" class="field-input" required>
-                </div>
-
-                <div class="form-field full">
-                  <label for="assignee_ids">Assignees (employees)</label>
-                  <select id="assignee_ids" name="assignee_ids" class="field-input" multiple size="6">
-                    {% for emp in active_employees_for_jo %}
-                    <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
-                    {% empty %}
-                    <option value="" disabled>No active employees — add employees first</option>
-                    {% endfor %}
-                  </select>
-                  <small style="color:var(--muted);font-size:0.75rem;">Hold Ctrl/Cmd to select multiple. Selected employees are used for idle-day reports.</small>
-                </div>
-
-                <div class="form-field full">
-                  <label>Name/s (optional free text)</label>
-                  <div class="repeatable-list" id="jobNamesList">
-                    <div class="repeatable-row">
-                      <input type="text" name="assignee_names" class="field-input" placeholder="Full name (if not selecting employees above)">
-                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove name">✕</button>
-                    </div>
-                  </div>
-                  <button type="button" class="action repeatable-add" id="jobAddName">+ Add name</button>
-                </div>
-
-                <div class="form-field">
-                  <label for="coverage_start">Coverage start</label>
-                  <input id="coverage_start" name="coverage_start" type="date" class="field-input">
-                </div>
-                <div class="form-field">
-                  <label for="coverage_end">Coverage end</label>
-                  <input id="coverage_end" name="coverage_end" type="date" class="field-input">
-                </div>
-
-                <div class="form-field full">
-                  <label>Extra date/s covered (optional)</label>
-                  <div class="repeatable-list" id="jobDatesList">
-                    <div class="repeatable-row">
-                      <input type="date" name="dates_covered" class="field-input">
-                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove date">✕</button>
-                    </div>
-                  </div>
-                  <button type="button" class="action repeatable-add" id="jobAddDate">+ Add date</button>
-                </div>
-
-                <div class="form-field full">
-                  <label for="area_assignment">Area Assignment</label>
-                  <textarea id="area_assignment" name="area_assignment" class="field-input" placeholder="Site, plant, or service area"></textarea>
-                </div>
-
-                <div class="form-field full">
-                  <label for="job_description">Job Description *</label>
-                  <textarea id="job_description" name="job_description" class="field-input" required placeholder="Describe the work to be performed"></textarea>
-                </div>
-
-                <div class="section-heading">Authorization</div>
-                <div class="signature-grid">
-                  <div class="form-field">
-                    <label for="prepared_by">Prepared by</label>
-                    <input id="prepared_by" name="prepared_by" class="field-input" placeholder="Name">
-                  </div>
-                  <div class="form-field">
-                    <label for="noted_by">Noted by</label>
-                    <input id="noted_by" name="noted_by" class="field-input" placeholder="Name">
-                  </div>
-                  <div class="form-field">
-                    <label for="approved_by">Approved by</label>
-                    <input id="approved_by" name="approved_by" class="field-input" placeholder="Name">
-                  </div>
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="reset" class="action">Clear</button>
-                <button type="submit" class="action btn-primary">Save job order</button>
-              </div>
-            </form>
-          </section>
-
-          <article class="jo-document job-order-document">
-            <header class="doc-header">
-              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-            </header>
-            <div class="doc-body">
-              <h3 class="doc-title">JOB ORDER</h3>
-              <div class="job-order-fields-grid">
-                <div class="doc-section">
-                  <strong>Job Order No.</strong>
-                  <div class="preview-text" data-preview="job_order_number">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Name/s</strong>
-                  <div class="preview-text" data-preview="assignee_names">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Date Filed</strong>
-                  <div class="preview-text" data-preview="date_filed">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Date/s Covered</strong>
-                  <div class="preview-text" data-preview="dates_covered">—</div>
-                </div>
-                <div class="doc-section job-order-area">
-                  <strong>Area Assignment</strong>
-                  <div class="preview-text" data-preview="area_assignment">—</div>
-                </div>
-              </div>
-              <div class="doc-section doc-section-full">
-                <strong>Job Description</strong>
-                <div class="preview-text" data-preview="job_description">—</div>
-              </div>
-              <div class="doc-section doc-section-full">
-                <strong>Authorization</strong>
-                <div class="job-order-signatures">
-                  <div class="signature-block">
-                    <span class="signature-label">Prepared by</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name" data-preview="prepared_by">—</span>
-                  </div>
-                  <div class="signature-block">
-                    <span class="signature-label">Noted by</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name" data-preview="noted_by">—</span>
-                  </div>
-                  <div class="signature-block">
-                    <span class="signature-label">Approved by</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name" data-preview="approved_by">—</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <footer class="doc-footer">
-              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-            </footer>
-          </article>
-        </div>
-
-        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Job Orders</h2>
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved job orders.</p>
+        <h2>Job Orders</h2>
+        <p>File and manage job orders in Services. Idle periods are recorded from each job order detail page.</p>
+        {% if can_access_services %}
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">
+          <a href="{% url 'services_dashboard' %}?tab=jobOrderTab">Open Job Orders in Services</a>
+        </p>
+        {% endif %}
         <div class="table-wrap">
           <table>
             <thead>
@@ -844,12 +696,7 @@
                 <td><span class="status-chip status-active">{{ order.get_status_display }}</span></td>
                 <td>
                   <div class="record-actions">
-                    <a class="action" href="{% url 'view_job_order' order.id %}">View</a>
-                    <a class="action" href="{% url 'edit_job_order' order.id %}">Edit</a>
-                    <form method="post" action="{% url 'delete_job_order' order.id %}" onsubmit="return confirm('Delete Job Order {{ order.job_order_number }}? This cannot be undone.');">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Delete</button>
-                    </form>
+                    <a class="action" href="{% url 'view_job_order' order.id %}?from=hr">View</a>
                   </div>
                 </td>
               </tr>
@@ -869,212 +716,20 @@
       <div class="panel">
         <h2>Idle Days Report</h2>
         <p>Days assignees had no work on a job order (e.g. waiting for materials). Estimates only — payroll is not changed.</p>
-
-        <form method="get" class="filter-bar" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:16px 0;">
-          <input type="hidden" name="tab" value="idleDaysTab">
-          <div class="form-field">
-            <label for="idle_from">From</label>
-            <input id="idle_from" type="date" name="idle_from" value="{{ idle_from }}" class="field-input">
-          </div>
-          <div class="form-field">
-            <label for="idle_to">To</label>
-            <input id="idle_to" type="date" name="idle_to" value="{{ idle_to }}" class="field-input">
-          </div>
-          <div class="form-field">
-            <label for="idle_job_order">Job order</label>
-            <select id="idle_job_order" name="idle_job_order" class="field-input">
-              <option value="">All</option>
-              {% for jo in idle_filter_job_orders %}
-              <option value="{{ jo.id }}" {% if idle_job_order_id == jo.id|stringformat:"s" %}selected{% endif %}>{{ jo.job_order_number }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="idle_employee">Employee</label>
-            <select id="idle_employee" name="idle_employee" class="field-input">
-              <option value="">All</option>
-              {% for emp in idle_filter_employees %}
-              <option value="{{ emp.id }}" {% if idle_employee_id == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.full_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button type="submit" class="action btn-primary">Filter</button>
-          <a href="?tab=idleDaysTab" class="action">Reset</a>
-        </form>
-
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Uses each employee’s daily rate (default ₱525). Sundays are excluded from day counts.</p>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Job Order</th>
-                <th>Employee</th>
-                <th>Idle range(s)</th>
-                <th>Idle days</th>
-                <th>Est. daily rate</th>
-                <th>Est. wasted pay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in idle_report_rows %}
-              <tr>
-                <td><a href="{% url 'view_job_order' row.job_order.id %}">{{ row.job_order.job_order_number }}</a></td>
-                <td>{% if row.employee %}{{ row.employee.full_name }}{% else %}<em style="color:#667085;">No assignees linked</em>{% endif %}</td>
-                <td>{{ row.ranges }}</td>
-                <td>{{ row.idle_day_count }}</td>
-                <td>₱{{ row.daily_rate }}</td>
-                <td>₱{{ row.estimated_waste }}</td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No idle periods match this filter. Open a job order and add a wait range when materials delay work.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+        {% include "includes/idle_days_report.html" with idle_days_read_only=True can_access_services=can_access_services %}
       </div>
     </div>
 
     <!-- Official Business -->
     <div id="officialBusinessTab" class="tab-panel">
       <div class="panel">
-        <h2>Official Business Form</h2>
-        <p>File and track employee official business (OB) travel authorizations.</p>
-
-        <div class="jo-grid" style="margin-top:18px;">
-          <section class="form-section jo-form" style="margin-bottom:0;">
-            <form method="post" action="{% url 'create_official_business_form' %}" id="obForm">
-              {% csrf_token %}
-              <div class="form-grid">
-                <div class="form-field">
-                  <label for="ob_name">Employee *</label>
-                  <select id="ob_name" name="name" class="field-input" required>
-                    <option value="">Select employee</option>
-                    {% for employee in employees %}
-                    <option value="{{ employee.full_name }}" data-designation="{{ employee.position.title }}">{{ employee.full_name }} ({{ employee.employee_id }})</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="form-field">
-                  <label for="ob_designation">Designation</label>
-                  <input id="ob_designation" name="designation" class="field-input field-readonly" placeholder="Auto-filled from employee position" readonly>
-                </div>
-                <div class="form-field">
-                  <label for="ob_application_date">Application Date *</label>
-                  <input id="ob_application_date" name="application_date" type="date" class="field-input" required>
-                </div>
-                <div class="form-field full">
-                  <label>OB Date/s</label>
-                  <div class="repeatable-list" id="obDatesList">
-                    <div class="repeatable-row">
-                      <input type="date" name="ob_dates" class="field-input">
-                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove date">✕</button>
-                    </div>
-                  </div>
-                  <button type="button" class="action repeatable-add" id="obAddDate">+ Add date</button>
-                </div>
-
-                <div class="form-field full">
-                  <label for="ob_destination">OB Address / Destination</label>
-                  <textarea id="ob_destination" name="destination" class="field-input" placeholder="Site, client, or destination address"></textarea>
-                </div>
-
-                <div class="form-field">
-                  <label for="ob_time_departure">Time of Departure</label>
-                  <input id="ob_time_departure" name="time_departure" type="time" class="field-input">
-                </div>
-                <div class="form-field">
-                  <label for="ob_time_return">Return</label>
-                  <input id="ob_time_return" name="time_return" type="time" class="field-input">
-                </div>
-
-                <div class="form-field full">
-                  <label for="ob_purpose">Purpose/s</label>
-                  <textarea id="ob_purpose" name="purpose" class="field-input" placeholder="Reason for the official business"></textarea>
-                </div>
-
-                <div class="section-heading">Signatures</div>
-                <div class="signature-grid">
-                  <div class="form-field">
-                    <label for="ob_prepared_by">Prepared by (Employee's Name &amp; Signature)</label>
-                    <input id="ob_prepared_by" name="prepared_by" class="field-input" placeholder="Name">
-                  </div>
-                  <div class="form-field">
-                    <label>Approved by</label>
-                    <input class="field-input field-readonly" value="ENGR. ARTURO I. DAVIS, PME — PRESIDENT/GEN. MANAGER" readonly disabled>
-                  </div>
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="reset" class="action">Clear</button>
-                <button type="submit" class="action btn-primary">Save OB form</button>
-              </div>
-            </form>
-          </section>
-
-          <article class="jo-document ob-document">
-            <header class="doc-header">
-              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-            </header>
-            <div class="doc-body">
-              <h3 class="doc-title">OFFICIAL BUSINESS FORM</h3>
-              <div class="doc-meta">
-                <span>Application Date: <b data-preview="application_date">—</b></span>
-                <span>OB Date/s: <b data-preview="ob_dates">—</b></span>
-              </div>
-              <div class="ob-fields-grid">
-                <div class="doc-section">
-                  <strong>Name</strong>
-                  <div class="preview-text" data-preview="name">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Designation</strong>
-                  <div class="preview-text" data-preview="designation">—</div>
-                </div>
-                <div class="doc-section doc-section-full">
-                  <strong>OB Address / Destination</strong>
-                  <div class="preview-text" data-preview="destination">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Time of Departure</strong>
-                  <div class="preview-text" data-preview="time_departure">—</div>
-                </div>
-                <div class="doc-section">
-                  <strong>Return</strong>
-                  <div class="preview-text" data-preview="time_return">—</div>
-                </div>
-                <div class="doc-section doc-section-full">
-                  <strong>Purpose/s</strong>
-                  <div class="preview-text" data-preview="purpose">—</div>
-                </div>
-              </div>
-              <div class="doc-section doc-section-full">
-                <div class="ob-signatures">
-                  <div class="signature-block">
-                    <span class="signature-label">Prepared by</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name" data-preview="prepared_by">—</span>
-                    <span class="signature-sub">(Employee's Name &amp; Signature)</span>
-                  </div>
-                  <div class="signature-block">
-                    <span class="signature-label">Approved by</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name">ENGR. ARTURO I. DAVIS, PME</span>
-                    <span class="signature-sub">President/Gen. Manager</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <footer class="doc-footer">
-              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-            </footer>
-          </article>
-        </div>
-
-        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Official Business Forms</h2>
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed official business (OB) forms.</p>
+        <h2>Official Business</h2>
+        <p>File and approve official business (OB) forms in Services. Attendance Sheets use <strong>Approved</strong> forms only.</p>
+        {% if can_access_services %}
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">
+          <a href="{% url 'services_dashboard' %}?tab=officialBusinessTab">Open Official Business in Services</a>
+        </p>
+        {% endif %}
         <div class="table-wrap">
           <table>
             <thead>
@@ -1101,22 +756,7 @@
                 </td>
                 <td>
                   <div class="record-actions">
-                    <a class="action" href="{% url 'view_official_business_form' ob.id %}">View</a>
-                    <a class="action" href="{% url 'edit_official_business_form' ob.id %}">Edit</a>
-                    {% if ob.status == 'pending' %}
-                    <form method="post" action="{% url 'approve_official_business_form' ob.id %}">
-                      {% csrf_token %}
-                      <button class="action" type="submit" style="background:#ecfdf3;color:#027a48;border-color:#abefc6;">Approve</button>
-                    </form>
-                    <form method="post" action="{% url 'reject_official_business_form' ob.id %}">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Reject</button>
-                    </form>
-                    {% endif %}
-                    <form method="post" action="{% url 'delete_official_business_form' ob.id %}" onsubmit="return confirm('Delete Official Business Form for {{ ob.name }}? This cannot be undone.');">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Delete</button>
-                    </form>
+                    <a class="action" href="{% url 'view_official_business_form' ob.id %}?from=hr">View</a>
                   </div>
                 </td>
               </tr>
@@ -1134,135 +774,13 @@
     <!-- Travel Order -->
     <div id="travelOrderTab" class="tab-panel">
       <div class="panel">
-        <h2>Travel Order Form</h2>
-        <p>Issue and track vehicle travel orders for drivers and passengers.</p>
-
-        <div class="jo-grid" style="margin-top:18px;">
-          <section class="form-section jo-form" style="margin-bottom:0;">
-            <form method="post" action="{% url 'create_travel_order_form' %}" id="travelOrderForm">
-              {% csrf_token %}
-              <div class="form-grid">
-                <div class="form-field">
-                  <label for="to_travel_date">Date *</label>
-                  <input id="to_travel_date" name="travel_date" type="date" class="field-input" required>
-    </div>
-                <div class="form-field">
-                  <label for="to_driver_name">Driver's Name *</label>
-                  <input id="to_driver_name" name="driver_name" class="field-input" required placeholder="e.g. J. Ramirez">
-</div>
-
-                <div class="form-field full">
-                  <label>Travel with</label>
-                  <div class="repeatable-list" id="travelWithList">
-                    <div class="repeatable-row">
-                      <input type="text" name="travel_with" class="field-input" placeholder="Passenger name">
-                      <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove passenger">✕</button>
-                    </div>
-                  </div>
-                  <button type="button" class="action repeatable-add" id="travelAddPassenger">+ Add passenger</button>
-                </div>
-
-                <div class="form-field full">
-                  <label for="to_destination">Venue / Destination</label>
-                  <input id="to_destination" name="destination" class="field-input" placeholder="e.g. Carmen">
-                </div>
-                <div class="form-field full">
-                  <label for="to_purpose">Purpose of Travel</label>
-                  <textarea id="to_purpose" name="purpose" class="field-input" placeholder="e.g. Pump test"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="to_departure_time">Departure Time</label>
-                  <input id="to_departure_time" name="departure_time" type="time" class="field-input">
-                </div>
-                <div class="form-field">
-                  <label for="to_vehicle_plate">Vehicle / Plate No.</label>
-                  <input id="to_vehicle_plate" name="vehicle_plate" class="field-input" placeholder="e.g. MAO 7401 BOOM">
-                </div>
-                <div class="form-field full">
-                  <label for="to_fuel_allowance">Fuel Allowance (PO# Amount/Liters)</label>
-                  <input id="to_fuel_allowance" name="fuel_allowance" class="field-input" placeholder="PO# / Amount / Liters">
-                </div>
-
-                <div class="section-heading">Authorization</div>
-                <div class="signature-grid">
-                  <div class="form-field">
-                    <label>Issued by</label>
-                    <input class="field-input field-readonly" value="AIZA MAE POQUITA" readonly disabled>
-                  </div>
-                  <div class="form-field">
-                    <label for="to_approved_by">Approved by</label>
-                    <input id="to_approved_by" name="approved_by" class="field-input" placeholder="Name">
-                  </div>
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="reset" class="action">Clear</button>
-                <button type="submit" class="action btn-primary">Save travel order</button>
-              </div>
-            </form>
-          </section>
-
-          <article class="jo-document travel-document">
-            <header class="doc-header">
-              <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-            </header>
-            <div class="doc-body">
-              <h3 class="doc-title">TRAVEL ORDER FORM</h3>
-              <table class="travel-form-table">
-                <tr>
-                  <th>Date</th>
-                  <td data-preview="travel_date">—</td>
-                </tr>
-                <tr>
-                  <th>Driver's Name</th>
-                  <td data-preview="driver_name">—</td>
-                </tr>
-                <tr>
-                  <th>Travel with</th>
-                  <td class="travel-with-cell" data-preview="travel_with">—</td>
-                </tr>
-                <tr>
-                  <th>Venue/Destination</th>
-                  <td data-preview="destination">—</td>
-                </tr>
-                <tr>
-                  <th>Purpose of Travel</th>
-                  <td data-preview="purpose">—</td>
-                </tr>
-                <tr>
-                  <th>Departure Time</th>
-                  <td data-preview="departure_time">—</td>
-                </tr>
-                <tr>
-                  <th>Vehicle/ Plate No.</th>
-                  <td data-preview="vehicle_plate">—</td>
-                </tr>
-                <tr>
-                  <th>Fuel Allowance (PO# Amount/Liters)</th>
-                  <td data-preview="fuel_allowance">—</td>
-                </tr>
-              </table>
-              <div class="travel-signatures">
-                  <div class="signature-block">
-                    <span class="signature-label">Issued by:</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name">AIZA MAE POQUITA</span>
-                  </div>
-                  <div class="signature-block">
-                    <span class="signature-label">Approved by:</span>
-                    <div class="signature-line"></div>
-                    <span class="signature-name" data-preview="approved_by">—</span>
-                  </div>
-                </div>
-            </div>
-            <footer class="doc-footer">
-              <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-            </footer>
-          </article>
-        </div>
-
-        <h2 style="margin:8px 0 8px;font-size:1rem;">Recent Travel Orders</h2>
-        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed travel order forms.</p>
+        <h2>Travel Orders</h2>
+        <p>File and manage travel orders in Services.</p>
+        {% if can_access_services %}
+        <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">
+          <a href="{% url 'services_dashboard' %}?tab=travelOrderTab">Open Travel Orders in Services</a>
+        </p>
+        {% endif %}
         <div class="table-wrap">
           <table>
             <thead>
@@ -1285,12 +803,7 @@
                 <td>{% if order.departure_time %}{{ order.departure_time|time:'g:i A' }}{% else %}—{% endif %}</td>
                 <td>
                   <div class="record-actions">
-                    <a class="action" href="{% url 'view_travel_order_form' order.id %}">View</a>
-                    <a class="action" href="{% url 'edit_travel_order_form' order.id %}">Edit</a>
-                    <form method="post" action="{% url 'delete_travel_order_form' order.id %}" onsubmit="return confirm('Delete Travel Order for {{ order.driver_name }}? This cannot be undone.');">
-                      {% csrf_token %}
-                      <button class="action danger" type="submit">Delete</button>
-                    </form>
+                    <a class="action" href="{% url 'view_travel_order_form' order.id %}?from=hr">View</a>
                   </div>
                 </td>
               </tr>

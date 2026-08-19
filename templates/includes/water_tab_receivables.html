@@ -1,0 +1,48 @@
+<div class="panel">
+  <h2>Accounts receivable</h2>
+  <p class="sub">Outstanding balances and aging buckets. Select up to 6 bills to print on one long bond page.</p>
+  <div class="aging-grid">
+    <div class="aging-card"><span class="label">Current</span><strong>₱{{ aging_buckets.current|floatformat:2 }}</strong></div>
+    <div class="aging-card"><span class="label">1–30 days</span><strong>₱{{ aging_buckets.d1_30|floatformat:2 }}</strong></div>
+    <div class="aging-card"><span class="label">31–60 days</span><strong>₱{{ aging_buckets.d31_60|floatformat:2 }}</strong></div>
+    <div class="aging-card"><span class="label">61–90 days</span><strong>₱{{ aging_buckets.d61_90|floatformat:2 }}</strong></div>
+    <div class="aging-card"><span class="label">90+ days</span><strong>₱{{ aging_buckets.d90_plus|floatformat:2 }}</strong></div>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th style="width:2.2rem;"></th><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for b in unpaid_bills %}
+        <tr>
+          <td>
+            <input class="batch-check batch-bill-check" type="checkbox" value="{{ b.id }}" aria-label="Select bill {{ b.bill_number }}">
+          </td>
+          <td>{{ b.bill_number }}</td>
+          <td>{{ b.customer.account_number }}</td>
+          <td>{{ b.customer.display_name }}</td>
+          <td>{{ b.due_date }}</td>
+          <td>₱{{ b.total_amount|floatformat:2 }}</td>
+          <td><strong>₱{{ b.balance_due|floatformat:2 }}</strong></td>
+          <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No outstanding balances.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "includes/water_pagination.html" %}
+  <div class="batch-print-bar" id="batchPrintBarAr" data-batch-bar>
+    <div>
+      <span class="count"><span data-batch-count>0</span> selected</span>
+      <span class="hint">Max 6 per long bond page</span>
+      <div class="batch-print-note" data-batch-note>Maximum 6 receipts per page.</div>
+    </div>
+    <div class="actions">
+      <button type="button" class="clear-btn" data-batch-clear>Clear</button>
+      <button type="button" class="print-btn" data-batch-print disabled>Print selected (max 6)</button>
+    </div>
+  </div>
+</div>

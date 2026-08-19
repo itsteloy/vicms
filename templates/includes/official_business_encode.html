@@ -1,0 +1,188 @@
+{% load static %}
+<div class="jo-grid" style="margin-top:18px;">
+  <section class="form-section jo-form no-print" style="margin-bottom:0;">
+    <form method="post" action="{% url 'create_official_business_form' %}" id="obForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="ob_name">Employee *</label>
+          <select id="ob_name" name="name" class="field-input" required>
+            <option value="">Select employee</option>
+            {% for employee in employees %}
+            <option value="{{ employee.full_name }}" data-designation="{{ employee.position.title }}">{{ employee.full_name }} ({{ employee.employee_id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="ob_designation">Designation</label>
+          <input id="ob_designation" name="designation" class="field-input field-readonly" placeholder="Auto-filled from employee position" readonly>
+        </div>
+        <div class="form-field">
+          <label for="ob_application_date">Application Date *</label>
+          <input id="ob_application_date" name="application_date" type="date" class="field-input" required>
+        </div>
+        <div class="form-field full">
+          <label>OB Date/s</label>
+          <div class="repeatable-list" id="obDatesList">
+            <div class="repeatable-row">
+              <input type="date" name="ob_dates" class="field-input">
+              <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove date">✕</button>
+            </div>
+          </div>
+          <button type="button" class="action repeatable-add" id="obAddDate">+ Add date</button>
+        </div>
+
+        <div class="form-field full">
+          <label for="ob_destination">OB Address / Destination</label>
+          <textarea id="ob_destination" name="destination" class="field-input" placeholder="Site, client, or destination address"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="ob_time_departure">Time of Departure</label>
+          <input id="ob_time_departure" name="time_departure" type="time" class="field-input">
+        </div>
+        <div class="form-field">
+          <label for="ob_time_return">Return</label>
+          <input id="ob_time_return" name="time_return" type="time" class="field-input">
+        </div>
+
+        <div class="form-field full">
+          <label for="ob_purpose">Purpose/s</label>
+          <textarea id="ob_purpose" name="purpose" class="field-input" placeholder="Reason for the official business"></textarea>
+        </div>
+
+        <div class="section-heading">Signatures</div>
+        <div class="signature-grid">
+          <div class="form-field">
+            <label for="ob_prepared_by">Prepared by (Employee's Name &amp; Signature)</label>
+            <input id="ob_prepared_by" name="prepared_by" class="field-input" placeholder="Name">
+          </div>
+          <div class="form-field">
+            <label>Approved by</label>
+            <input class="field-input field-readonly" value="ENGR. ARTURO I. DAVIS, PME — PRESIDENT/GEN. MANAGER" readonly disabled>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="reset" class="action">Clear</button>
+        <button type="submit" class="action primary">Save OB form</button>
+      </div>
+    </form>
+  </section>
+
+  <article class="jo-document ob-document service-document">
+    <header class="doc-header">
+      <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+    </header>
+    <div class="doc-body">
+      <h3 class="doc-title">OFFICIAL BUSINESS FORM</h3>
+      <div class="doc-meta">
+        <span>Application Date: <b data-preview="application_date">—</b></span>
+        <span>OB Date/s: <b data-preview="ob_dates">—</b></span>
+      </div>
+      <div class="ob-fields-grid">
+        <div class="doc-section">
+          <strong>Name</strong>
+          <div class="preview-text" data-preview="name">—</div>
+        </div>
+        <div class="doc-section">
+          <strong>Designation</strong>
+          <div class="preview-text" data-preview="designation">—</div>
+        </div>
+        <div class="doc-section doc-section-full">
+          <strong>OB Address / Destination</strong>
+          <div class="preview-text" data-preview="destination">—</div>
+        </div>
+        <div class="doc-section">
+          <strong>Time of Departure</strong>
+          <div class="preview-text" data-preview="time_departure">—</div>
+        </div>
+        <div class="doc-section">
+          <strong>Return</strong>
+          <div class="preview-text" data-preview="time_return">—</div>
+        </div>
+        <div class="doc-section doc-section-full">
+          <strong>Purpose/s</strong>
+          <div class="preview-text" data-preview="purpose">—</div>
+        </div>
+      </div>
+      <div class="doc-section doc-section-full">
+        <div class="ob-signatures">
+          <div class="signature-block">
+            <span class="signature-label">Prepared by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name" data-preview="prepared_by">—</span>
+            <span class="signature-sub">(Employee's Name &amp; Signature)</span>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Approved by</span>
+            <div class="signature-line"></div>
+            <span class="signature-name">ENGR. ARTURO I. DAVIS, PME</span>
+            <span class="signature-sub">President/Gen. Manager</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="doc-footer">
+      <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
+    </footer>
+  </article>
+</div>
+
+<div class="panel no-print" style="margin-top:8px;">
+<h2 style="margin:8px 0 8px;font-size:1rem;">Recent Official Business Forms</h2>
+<p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest filed official business (OB) forms. Approve a form so Attendance Sheets show OB instead of Absent.</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Application Date</th>
+        <th>OB Date/s</th>
+        <th>Destination</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ob in official_business_forms %}
+      <tr>
+        <td>{{ ob.name }}</td>
+        <td>{{ ob.application_date|date:'M d, Y' }}</td>
+        <td>{{ ob.ob_dates_display|truncatechars:30 }}</td>
+        <td>{{ ob.destination|default:'—'|truncatechars:30 }}</td>
+        <td>
+          <span class="status-chip {% if ob.status == 'approved' %}status-approved{% elif ob.status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
+            {{ ob.get_status_display }}
+          </span>
+        </td>
+        <td>
+          <div class="record-actions">
+            <a class="action" href="{% url 'view_official_business_form' ob.id %}?from=services">View</a>
+            <a class="action" href="{% url 'edit_official_business_form' ob.id %}">Edit</a>
+            {% if ob.status == 'pending' %}
+            <form method="post" action="{% url 'approve_official_business_form' ob.id %}">
+              {% csrf_token %}
+              <button class="action" type="submit" style="background:#ecfdf3;color:#027a48;border-color:#abefc6;">Approve</button>
+            </form>
+            <form method="post" action="{% url 'reject_official_business_form' ob.id %}">
+              {% csrf_token %}
+              <button class="action danger" type="submit">Reject</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'delete_official_business_form' ob.id %}" onsubmit="return confirm('Delete Official Business Form for {{ ob.name }}? This cannot be undone.');">
+              {% csrf_token %}
+              <button class="action danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No official business forms saved yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>

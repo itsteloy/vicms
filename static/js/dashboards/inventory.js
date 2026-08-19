@@ -75,6 +75,7 @@
       grossWeight: document.getElementById('grossWeight'),
       price: document.getElementById('price'),
       description: document.getElementById('description'),
+      notes: document.getElementById('notes'),
     };
 
     function isMobileCatMenu() {
@@ -357,7 +358,7 @@
       return items.filter(item => {
         const matchesCategory = !category || String(item.categoryId || '') === category
           || String(item.name || '').toLowerCase() === category.toLowerCase();
-        const matchesSearch = !query || [item.productCode, item.name, item.categoryPath, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description]
+        const matchesSearch = !query || [item.productCode, item.name, item.categoryPath, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description, item.notes]
           .join(' ').toLowerCase().includes(query);
         return matchesCategory && matchesSearch;
       });
@@ -409,7 +410,8 @@
       fields.netWeight.value = item.netWeight;
       fields.grossWeight.value = item.grossWeight;
       fields.price.value = item.price;
-      fields.description.value = item.description;
+      fields.description.value = item.description || '';
+      if (fields.notes) fields.notes.value = item.notes || '';
       editingId = item.id;
       formTitle.textContent = 'Edit Inventory Item';
       activateTab('managePanel');

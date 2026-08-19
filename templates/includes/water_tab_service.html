@@ -1,0 +1,128 @@
+<div class="split">
+  <div class="panel">
+    <h2>Schedule disconnection / reconnection</h2>
+    <p class="sub">Statuses: For disconnection or Disconnected. Policy: disconnect after 3 months unpaid.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_service_action">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="serviceCustomerSearch">Customer *</label>
+          <div class="bill-combobox" id="serviceCustomerCombo">
+            <input type="hidden" name="customer_id" id="serviceCustomer">
+            <input type="text" id="serviceCustomerSearch" placeholder="Select account…" autocomplete="off" required>
+            <ul class="bill-combobox-list" id="serviceCustomerList">
+              {% for c in all_customers %}
+              <li
+                class="bill-combobox-item"
+                data-id="{{ c.id }}"
+                data-name="{{ c.display_name }}"
+                data-label="{{ c.account_number }} – {{ c.display_name }} ({{ c.get_connection_status_display }}){% if c.computed_months_unpaid >= 3 %} · {{ c.computed_months_unpaid }} mo unpaid{% endif %}">
+                {{ c.account_number }} – {{ c.display_name }} ({{ c.get_connection_status_display }}){% if c.computed_months_unpaid >= 3 %} · {{ c.computed_months_unpaid }} mo unpaid{% endif %}
+              </li>
+              {% empty %}
+              <li class="bill-combobox-empty" data-static="1">No customers.</li>
+              {% endfor %}
+              <li class="bill-combobox-empty" id="serviceCustomerNoMatch" hidden>No matching customer names.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="field">
+          <label>Action *</label>
+          <select name="action_type" required>
+            {% for value, label in service_action_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Date *</label>
+          <input type="date" name="action_date" id="actionDate" required>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="status">
+            {% for value, label in service_action_statuses %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Reconnection Fee</label>
+          <input name="reconnection_fee" value="{{ default_reconnect_fee }}">
+        </div>
+        <div class="field">
+          <label>Fee Paid?</label>
+          <select name="fee_paid">
+            <option value="">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Performed By</label>
+          <input name="performed_by">
+        </div>
+        <div class="field full">
+          <label>Reason</label>
+          <textarea name="reason"></textarea>
+        </div>
+        <div class="field full">
+          <label>Notes</label>
+          <input name="notes">
+        </div>
+      </div>
+      <div class="form-actions"><button type="submit" class="primary">Save action</button></div>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>For disconnection (3+ months unpaid)</h2>
+    <p class="sub">Accounts that meet the disconnection policy.</p>
+    <div class="table-wrap" style="margin-bottom:18px;">
+      <table class="data">
+        <thead><tr><th>Account</th><th>Name</th><th>Months unpaid</th><th>Outstanding</th><th>Monitor</th></tr></thead>
+        <tbody>
+          {% for c in disconnect_candidates %}
+          <tr>
+            <td>{{ c.account_number }}</td>
+            <td>{{ c.display_name }}</td>
+            <td>{{ c.computed_months_unpaid }}</td>
+            <td>₱{{ c.annotated_outstanding|floatformat:2 }}</td>
+            <td><span class="badge for_disconnection">{{ c.computed_monitor }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="empty">No accounts with 3+ months unpaid.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <h2>Service actions</h2>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Type</th><th>Account</th><th>Date</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for a in service_actions %}
+          <tr>
+            <td>{{ a.get_action_type_display }}</td>
+            <td>{{ a.customer.account_number }}</td>
+            <td>{{ a.action_date }}</td>
+            <td><span class="badge {{ a.status }}">{{ a.get_status_display }}</span></td>
+            <td>
+              {% if a.status == 'for_disconnection' %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="complete_service_action">
+                <input type="hidden" name="action_id" value="{{ a.id }}">
+                <button type="submit" class="action primary">{% if a.action_type == 'reconnection' %}Mark reconnected{% else %}Mark disconnected{% endif %}</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="empty">No service actions yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "includes/water_pagination.html" %}
+  </div>
+</div>

@@ -1,0 +1,30 @@
+<div class="revenue-breakdown" data-revenue-period="{{ revenue_period }}">
+  <div class="revenue-breakdown-head">
+    <div>
+      <h2>Collections</h2>
+      <p class="sub">Cash, GCash, and total for {{ revenue_period_label|lower }}.</p>
+    </div>
+    <div class="revenue-period-toggle" role="group" aria-label="Revenue period">
+      <button type="button" class="revenue-period{% if revenue_period == 'week' %} is-active{% endif %}" data-period="week">Week</button>
+      <button type="button" class="revenue-period{% if revenue_period == 'month' %} is-active{% endif %}" data-period="month">Month</button>
+      <button type="button" class="revenue-period{% if revenue_period == 'year' %} is-active{% endif %}" data-period="year">Year</button>
+    </div>
+  </div>
+  <div class="kpi-grid revenue-breakdown-grid">
+    <div class="kpi-card">
+      <div class="label">Cash</div>
+      <div class="value">₱{{ revenue_cash|floatformat:2 }}</div>
+      <div class="hint">{{ revenue_period_label }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">GCash</div>
+      <div class="value">₱{{ revenue_gcash|floatformat:2 }}</div>
+      <div class="hint">{{ revenue_period_label }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Total</div>
+      <div class="value">₱{{ revenue_collected|floatformat:2 }}</div>
+      <div class="hint">Cash + GCash</div>
+    </div>
+  </div>
+</div>

@@ -12,7 +12,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
@@ -27,7 +27,8 @@ from .po_pdf import build_purchase_order_pdf
 from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.db.models import Sum, Count, Q, OuterRef, Subquery
+from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper
+from django.db.models.functions import Coalesce, Greatest
 import traceback
 import json
 import csv
@@ -35,7 +36,7 @@ import csv
 MANAGEMENT_MODULES = [
     {
         'name': 'HR',
-        'summary': 'Employee records, attendance, payroll, staff requests, job orders, and official business.',
+        'summary': 'Employee records, attendance, payroll, staff requests, and document status.',
         'status': 'Active',
         'url_name': 'hr_dashboard',
         'workspace_key': 'hr',
@@ -63,7 +64,7 @@ MANAGEMENT_MODULES = [
     },
     {
         'name': 'Services',
-        'summary': 'Repair reports, borrow slips, delivery receipts, and travel orders.',
+        'summary': 'Repair reports, borrow slips, job orders, travel orders, and official business forms.',
         'status': 'Active',
         'url_name': 'services_dashboard',
         'workspace_key': 'services',
@@ -249,6 +250,81 @@ def _module_by_url_name(url_name):
         if module['url_name'] == url_name:
             return module
     return None
+
+
+DOCUMENT_HR_TABS = {
+    'job': 'jobOrderTab',
+    'ob': 'officialBusinessTab',
+    'travel': 'travelOrderTab',
+}
+
+DOCUMENT_SERVICES_TABS = {
+    **DOCUMENT_HR_TABS,
+    'repair': 'repairTab',
+    'borrow': 'borrowMaterialTab',
+}
+
+
+def _document_back_link(request, document_type):
+    from_source = request.GET.get('from', '').strip()
+    if from_source == 'hr' and document_type in DOCUMENT_HR_TABS:
+        return (
+            f"{reverse('hr_dashboard')}?tab={DOCUMENT_HR_TABS[document_type]}",
+            'HR Dashboard',
+        )
+    if from_source == 'services' and document_type in DOCUMENT_SERVICES_TABS:
+        return (
+            f"{reverse('services_dashboard')}?tab={DOCUMENT_SERVICES_TABS[document_type]}",
+            'Services Dashboard',
+        )
+    if from_source == 'sales' and document_type == 'delivery_receipt':
+        return (
+            f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
+            'Sales Dashboard',
+        )
+
+    workspace = get_user_workspace(request.user)
+    if workspace:
+        if workspace.dashboard_url_name == 'hr_dashboard' and document_type in DOCUMENT_HR_TABS:
+            return (
+                f"{reverse('hr_dashboard')}?tab={DOCUMENT_HR_TABS[document_type]}",
+                'HR Dashboard',
+            )
+        if workspace.dashboard_url_name == 'services_dashboard' and document_type in DOCUMENT_SERVICES_TABS:
+            return (
+                f"{reverse('services_dashboard')}?tab={DOCUMENT_SERVICES_TABS[document_type]}",
+                'Services Dashboard',
+            )
+        if workspace.dashboard_url_name == 'sales_dashboard' and document_type == 'delivery_receipt':
+            return (
+                f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
+                'Sales Dashboard',
+            )
+
+    if user_has_dashboard_access(request.user, 'services_dashboard') and document_type in DOCUMENT_SERVICES_TABS:
+        return (
+            f"{reverse('services_dashboard')}?tab={DOCUMENT_SERVICES_TABS[document_type]}",
+            'Services Dashboard',
+        )
+    if user_has_dashboard_access(request.user, 'hr_dashboard') and document_type in DOCUMENT_HR_TABS:
+        return (
+            f"{reverse('hr_dashboard')}?tab={DOCUMENT_HR_TABS[document_type]}",
+            'HR Dashboard',
+        )
+    if document_type == 'delivery_receipt' and user_has_dashboard_access(request.user, 'sales_dashboard'):
+        return (
+            f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
+            'Sales Dashboard',
+        )
+    return reverse('dashboard'), 'Dashboard'
+
+
+def _enrich_document_context(request, context, document_type):
+    back_url, back_label = _document_back_link(request, document_type)
+    context['back_url'] = back_url
+    context['back_label'] = back_label
+    context['can_manage_services'] = user_has_dashboard_access(request.user, 'services_dashboard')
+    return context
 
 
 def landing(request):
@@ -753,11 +829,11 @@ def hr_dashboard(request):
             'pending_leave_count': pending_leave_count,
             'job_orders': JobOrder.objects.prefetch_related('assignees', 'idle_periods').all()[:8],
             'job_order_count': JobOrder.objects.count(),
-            'next_job_order_number': JobOrder.generate_job_order_number(),
             'official_business_forms': OfficialBusinessForm.objects.all()[:8],
             'official_business_count': OfficialBusinessForm.objects.count(),
             'travel_order_forms': TravelOrderForm.objects.all()[:8],
             'travel_order_count': TravelOrderForm.objects.count(),
+            'can_access_services': user_has_dashboard_access(request.user, 'services_dashboard'),
             **_build_idle_days_report(request),
             **_payroll_dashboard_context(),
         },
@@ -1546,6 +1622,7 @@ def inventory_dashboard(request):
             item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
             item.price = Decimal(request.POST.get('price', '0') or '0')
             item.description = request.POST.get('description', '').strip()
+            item.notes = request.POST.get('notes', '').strip()
             item.save()
             messages.success(request, 'Inventory item saved.')
 
@@ -1573,6 +1650,7 @@ def inventory_dashboard(request):
             'grossWeight': float(item.gross_weight),
             'price': float(item.price),
             'description': item.description,
+            'notes': item.notes,
         }
         for item in inventory_items
     ]
@@ -2787,8 +2865,22 @@ def services_dashboard(request):
             'inventory_items': InventoryItem.objects.order_by('name'),
             'repair_report_count': ServiceRepairReport.objects.count(),
             'material_borrow_count': MaterialBorrow.objects.count(),
+            'official_business_forms': OfficialBusinessForm.objects.all()[:8],
+            'official_business_count': OfficialBusinessForm.objects.count(),
+            'job_orders': JobOrder.objects.prefetch_related('assignees', 'idle_periods').all()[:8],
+            'job_order_count': JobOrder.objects.count(),
+            'next_job_order_number': JobOrder.generate_job_order_number(),
+            'travel_order_forms': TravelOrderForm.objects.all()[:8],
+            'travel_order_count': TravelOrderForm.objects.count(),
+            'active_employees_for_jo': Employee.objects.filter(termination_date__isnull=True).order_by(
+                'last_name', 'first_name',
+            ),
+            'employees': Employee.objects.filter(termination_date__isnull=True).select_related('position').order_by(
+                'last_name', 'first_name',
+            ),
             'next_report_number': ServiceRepairReport.generate_report_number(),
             'next_borrow_number': MaterialBorrow.generate_borrow_number(),
+            **_build_idle_days_report(request),
         }
     )
 
@@ -2818,13 +2910,13 @@ def create_service_repair_report(request):
     return redirect('services_dashboard')
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def create_job_order(request):
     required = ('date_filed', 'job_description')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Job Order fields.')
-        return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+        return _job_order_redirect()
 
     assignee_ids = [aid for aid in request.POST.getlist('assignee_ids') if aid.strip()]
     free_text_names = [
@@ -2836,7 +2928,7 @@ def create_job_order(request):
     coverage_end = parse_date(request.POST.get('coverage_end', '').strip() or '')
     if coverage_start and coverage_end and coverage_end < coverage_start:
         messages.error(request, 'Coverage end must be on or after coverage start.')
-        return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+        return _job_order_redirect()
 
     dates_covered_lines = [
         date_value.strip()
@@ -2875,7 +2967,7 @@ def create_job_order(request):
         messages.success(request, 'Job Order saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save job order: {exc}')
-    return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+    return _job_order_redirect()
 
 
 @login_required
@@ -2944,13 +3036,13 @@ def create_material_borrow(request):
     return redirect(f"{reverse('services_dashboard')}?tab=borrowMaterialTab")
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def create_travel_order_form(request):
     required = ('travel_date', 'driver_name')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Travel Order Form fields.')
-        return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
+        return _travel_order_redirect()
 
     travel_with = '\n'.join(
         name.strip()
@@ -2973,16 +3065,28 @@ def create_travel_order_form(request):
         messages.success(request, 'Travel Order Form saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Travel Order Form: {exc}')
-    return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
+    return _travel_order_redirect()
 
 
-@login_required
+def _official_business_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=officialBusinessTab")
+
+
+def _job_order_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=jobOrderTab")
+
+
+def _travel_order_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
+
+
+@require_dashboard('services_dashboard')
 @require_POST
 def create_official_business_form(request):
     required = ('name', 'application_date')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Official Business Form fields.')
-        return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
+        return _official_business_redirect()
 
     ob_dates = '\n'.join(
         date_value.strip()
@@ -3015,10 +3119,10 @@ def create_official_business_form(request):
         messages.success(request, 'Official Business Form saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Official Business Form: {exc}')
-    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
+    return _official_business_redirect()
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def approve_official_business_form(request, ob_id):
     ob_form = get_object_or_404(OfficialBusinessForm, pk=ob_id)
@@ -3026,10 +3130,10 @@ def approve_official_business_form(request, ob_id):
     ob_form.approved_at = timezone.now()
     ob_form.save(update_fields=['status', 'approved_at'])
     messages.success(request, f'Official Business Form for {ob_form.name} approved.')
-    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
+    return _official_business_redirect()
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def reject_official_business_form(request, ob_id):
     ob_form = get_object_or_404(OfficialBusinessForm, pk=ob_id)
@@ -3037,7 +3141,7 @@ def reject_official_business_form(request, ob_id):
     ob_form.approved_at = timezone.now()
     ob_form.save(update_fields=['status', 'approved_at'])
     messages.success(request, f'Official Business Form for {ob_form.name} rejected.')
-    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
+    return _official_business_redirect()
 
 
 @login_required
@@ -3324,8 +3428,14 @@ def _delivery_receipt_record_context(record):
 
 @login_required
 def view_service_repair_report(request, report_id):
-    return render(request, 'service_document_detail.html', _service_record_context(
-        get_object_or_404(ServiceRepairReport, pk=report_id), 'repair'))
+    context = _service_record_context(
+        get_object_or_404(ServiceRepairReport, pk=report_id), 'repair'
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'repair'),
+    )
 
 
 @login_required
@@ -3357,10 +3467,14 @@ def view_job_order(request, order_id):
     context['idle_periods'] = order.idle_periods.all()
     context['idle_period_form'] = JobOrderIdlePeriodForm(job_order=order)
     context['idle_reason_choices'] = JobOrderIdlePeriod.REASON_CHOICES
-    return render(request, 'service_document_detail.html', context)
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'job'),
+    )
 
 
-@login_required
+@require_dashboard('services_dashboard')
 def edit_job_order(request, order_id):
     order = get_object_or_404(JobOrder, pk=order_id)
     form = JobOrderForm(request.POST or None, instance=order)
@@ -3371,15 +3485,15 @@ def edit_job_order(request, order_id):
     return render(request, 'service_document_form.html', {'form': form, 'record': order, 'document_type': 'job'})
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def delete_job_order(request, order_id):
     get_object_or_404(JobOrder, pk=order_id).delete()
     messages.success(request, 'Job Order deleted.')
-    return redirect(f"{reverse('hr_dashboard')}?tab=jobOrderTab")
+    return _job_order_redirect()
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def add_job_order_idle_period(request, order_id):
     order = get_object_or_404(JobOrder, pk=order_id)
@@ -3401,7 +3515,7 @@ def add_job_order_idle_period(request, order_id):
     return redirect('view_job_order', order_id=order.id)
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def delete_job_order_idle_period(request, order_id, period_id):
     order = get_object_or_404(JobOrder, pk=order_id)
@@ -3413,11 +3527,17 @@ def delete_job_order_idle_period(request, order_id, period_id):
 
 @login_required
 def view_official_business_form(request, ob_id):
-    return render(request, 'service_document_detail.html', _service_record_context(
-        get_object_or_404(OfficialBusinessForm, pk=ob_id), 'ob'))
+    context = _service_record_context(
+        get_object_or_404(OfficialBusinessForm, pk=ob_id), 'ob'
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'ob'),
+    )
 
 
-@login_required
+@require_dashboard('services_dashboard')
 def edit_official_business_form(request, ob_id):
     ob_form = get_object_or_404(OfficialBusinessForm, pk=ob_id)
     form = OfficialBusinessFormForm(request.POST or None, instance=ob_form)
@@ -3428,21 +3548,27 @@ def edit_official_business_form(request, ob_id):
     return render(request, 'service_document_form.html', {'form': form, 'record': ob_form, 'document_type': 'ob'})
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def delete_official_business_form(request, ob_id):
     get_object_or_404(OfficialBusinessForm, pk=ob_id).delete()
     messages.success(request, 'Official Business Form deleted.')
-    return redirect(f"{reverse('hr_dashboard')}?tab=officialBusinessTab")
+    return _official_business_redirect()
 
 
 @login_required
 def view_travel_order_form(request, order_id):
-    return render(request, 'service_document_detail.html', _service_record_context(
-        get_object_or_404(TravelOrderForm, pk=order_id), 'travel'))
+    context = _service_record_context(
+        get_object_or_404(TravelOrderForm, pk=order_id), 'travel'
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'travel'),
+    )
 
 
-@login_required
+@require_dashboard('services_dashboard')
 def edit_travel_order_form(request, order_id):
     travel_order = get_object_or_404(TravelOrderForm, pk=order_id)
     form = TravelOrderFormForm(request.POST or None, instance=travel_order)
@@ -3457,18 +3583,24 @@ def edit_travel_order_form(request, order_id):
     })
 
 
-@login_required
+@require_dashboard('services_dashboard')
 @require_POST
 def delete_travel_order_form(request, order_id):
     get_object_or_404(TravelOrderForm, pk=order_id).delete()
     messages.success(request, 'Travel Order Form deleted.')
-    return redirect(f"{reverse('hr_dashboard')}?tab=travelOrderTab")
+    return _travel_order_redirect()
 
 
 @login_required
 def view_delivery_receipt(request, receipt_id):
-    return render(request, 'service_document_detail.html', _delivery_receipt_record_context(
-        get_object_or_404(DeliveryReceipt.objects.prefetch_related('lines'), pk=receipt_id)))
+    context = _delivery_receipt_record_context(
+        get_object_or_404(DeliveryReceipt.objects.prefetch_related('lines'), pk=receipt_id)
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'delivery_receipt'),
+    )
 
 
 @login_required
@@ -3496,8 +3628,14 @@ def delete_delivery_receipt(request, receipt_id):
 
 @login_required
 def view_material_borrow(request, borrow_id):
-    return render(request, 'service_document_detail.html', _borrow_record_context(
-        get_object_or_404(MaterialBorrow.objects.prefetch_related('lines'), pk=borrow_id)))
+    context = _borrow_record_context(
+        get_object_or_404(MaterialBorrow.objects.prefetch_related('lines'), pk=borrow_id)
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'borrow'),
+    )
 
 
 @login_required
@@ -3578,32 +3716,98 @@ def _water_parse_date(value, required=False):
     return None
 
 
+def _water_open_bills():
+    return (
+        WaterBill.objects.select_related('customer')
+        .exclude(status__in=['paid', 'cancelled'])
+        .filter(total_amount__gt=F('amount_paid'))
+    )
+
+
+def _water_annotate_outstanding(qs):
+    money = DecimalField(max_digits=14, decimal_places=2)
+    outstanding_sq = (
+        WaterBill.objects.filter(customer_id=OuterRef('pk'))
+        .exclude(status='cancelled')
+        .values('customer_id')
+        .annotate(
+            total=Sum(
+                ExpressionWrapper(
+                    F('total_amount') - F('amount_paid'),
+                    output_field=money,
+                )
+            )
+        )
+        .values('total')[:1]
+    )
+    return qs.annotate(
+        annotated_outstanding=Greatest(
+            Coalesce(Subquery(outstanding_sq, output_field=money), Value(Decimal('0.00')), output_field=money),
+            Value(Decimal('0.00')),
+            output_field=money,
+        )
+    )
+
+
+def _water_months_unpaid_from_date(oldest):
+    if not oldest:
+        return 0
+    today = date.today()
+    months = (today.year - oldest.year) * 12 + (today.month - oldest.month)
+    if today.day < oldest.day:
+        months -= 1
+    return max(months, 0)
+
+
+def _water_paginate(qs, request, per_page=50):
+    paginator = Paginator(qs, per_page)
+    try:
+        return paginator.page(request.GET.get('page') or 1)
+    except (PageNotAnInteger, EmptyPage):
+        return paginator.page(1)
+
+
+def _water_normalize_tab(tab):
+    if tab in ('readingsTab', 'billingTab'):
+        return 'readingsBillingTab'
+    allowed = {
+        'overviewTab', 'customersTab', 'readingsBillingTab', 'paymentsTab',
+        'arTab', 'disconnectTab', 'reportsTab', 'auditTab', 'helpTab',
+    }
+    return tab if tab in allowed else 'overviewTab'
+
+
+def _water_pager_qs(request, drop=('tab', 'page', 'fragment', 'list_only')):
+    params = request.GET.copy()
+    for key in drop:
+        params.pop(key, None)
+    encoded = params.urlencode()
+    return f'&{encoded}' if encoded else ''
+
+
 def _water_overview_stats():
     today = date.today()
     month_start = today.replace(day=1)
-    customers = WaterCustomer.objects.all()
-    active_customers = customers.filter(connection_status='active').count()
-    disconnected = customers.filter(connection_status='disconnected').count()
-    new_customers = customers.filter(registration_date__gte=month_start).count()
+    money = DecimalField(max_digits=14, decimal_places=2)
+    active_customers = WaterCustomer.objects.filter(connection_status='active').count()
+    disconnected = WaterCustomer.objects.filter(connection_status='disconnected').count()
+    new_customers = WaterCustomer.objects.filter(registration_date__gte=month_start).count()
+    total_customers = WaterCustomer.objects.count()
 
     month_consumption = (
         WaterMeterReading.objects.filter(reading_date__gte=month_start).aggregate(total=Sum('consumption'))['total']
         or 0
     )
-    bills_month = WaterBill.objects.filter(bill_date__gte=month_start).exclude(status='cancelled')
-    bills_generated = bills_month.count()
-    revenue_collected = (
-        WaterPayment.objects.filter(payment_date__gte=month_start).aggregate(total=Sum('amount'))['total']
-        or Decimal('0.00')
+    bills_generated = WaterBill.objects.filter(bill_date__gte=month_start).exclude(status='cancelled').count()
+    totals = WaterBill.objects.exclude(status='cancelled').aggregate(
+        billed=Coalesce(Sum('total_amount'), Value(0), output_field=money),
+        paid=Coalesce(Sum('amount_paid'), Value(0), output_field=money),
     )
-    outstanding = Decimal('0.00')
-    billed_total = Decimal('0.00')
-    for bill in WaterBill.objects.exclude(status='cancelled'):
-        outstanding += bill.balance_due
-        billed_total += bill.total_amount
+    billed_total = totals['billed'] or Decimal('0.00')
+    paid_total = totals['paid'] or Decimal('0.00')
+    outstanding = max(billed_total - paid_total, Decimal('0.00'))
     collection_rate = Decimal('0.00')
     if billed_total > 0:
-        paid_total = billed_total - outstanding
         collection_rate = ((paid_total / billed_total) * Decimal('100')).quantize(Decimal('0.01'))
 
     reconnected = WaterServiceAction.objects.filter(
@@ -3611,18 +3815,281 @@ def _water_overview_stats():
     ).count()
 
     return {
-        'total_customers': customers.count(),
+        'total_customers': total_customers,
         'active_customers': active_customers,
         'active_connections': active_customers,
         'month_consumption': month_consumption,
         'bills_generated': bills_generated,
-        'revenue_collected': revenue_collected,
         'outstanding_balance': outstanding,
         'collection_rate': collection_rate,
         'new_customers': new_customers,
         'disconnected_accounts': disconnected,
         'reconnected_accounts': reconnected,
     }
+
+
+WATER_REVENUE_PERIODS = {
+    'week': 'This week',
+    'month': 'This month',
+    'year': 'This year',
+}
+
+
+def _water_revenue_period(request):
+    period = (request.GET.get('revenue_period') or 'month').strip()
+    if period not in WATER_REVENUE_PERIODS:
+        period = 'month'
+    return period
+
+
+def _water_revenue_period_start(period):
+    today = date.today()
+    if period == 'week':
+        return today - timedelta(days=today.weekday())
+    if period == 'year':
+        return today.replace(month=1, day=1)
+    return today.replace(day=1)
+
+
+def _water_revenue_by_method(period='month'):
+    if period not in WATER_REVENUE_PERIODS:
+        period = 'month'
+    money = DecimalField(max_digits=14, decimal_places=2)
+    start = _water_revenue_period_start(period)
+    totals = WaterPayment.objects.filter(payment_date__gte=start).aggregate(
+        cash=Coalesce(Sum('amount', filter=Q(payment_method='cash')), Value(0), output_field=money),
+        gcash=Coalesce(Sum('amount', filter=Q(payment_method='gcash')), Value(0), output_field=money),
+    )
+    cash = totals['cash'] or Decimal('0.00')
+    gcash = totals['gcash'] or Decimal('0.00')
+    return {
+        'revenue_period': period,
+        'revenue_period_label': WATER_REVENUE_PERIODS[period],
+        'revenue_cash': cash,
+        'revenue_gcash': gcash,
+        'revenue_collected': cash + gcash,
+    }
+
+
+def _water_revenue_from_request(request):
+    return _water_revenue_by_method(_water_revenue_period(request))
+
+
+def _water_filtered_customers(request):
+    customer_q = request.GET.get('customer_q', '').strip()
+    customer_zone = request.GET.get('customer_zone', '').strip()
+    customer_status = request.GET.get('customer_status', '').strip()
+    customers_qs = _water_annotate_outstanding(WaterCustomer.objects.select_related('zone'))
+    if customer_q:
+        customers_qs = customers_qs.filter(
+            Q(account_number__icontains=customer_q)
+            | Q(first_name__icontains=customer_q)
+            | Q(last_name__icontains=customer_q)
+            | Q(meter_number__icontains=customer_q)
+            | Q(service_address__icontains=customer_q)
+            | Q(contact_number__icontains=customer_q)
+        )
+    if customer_zone.isdigit():
+        customers_qs = customers_qs.filter(zone_id=customer_zone)
+    if customer_status:
+        customers_qs = customers_qs.filter(connection_status=customer_status)
+    return customers_qs, customer_q, customer_zone, customer_status
+
+
+def _water_filtered_readings(request):
+    reading_zone = request.GET.get('reading_zone', '').strip()
+    readings_qs = WaterMeterReading.objects.select_related('customer', 'customer__zone', 'bill')
+    if reading_zone.isdigit():
+        readings_qs = readings_qs.filter(customer__zone_id=reading_zone)
+    return readings_qs, reading_zone
+
+
+def _water_all_customers_qs():
+    return _water_annotate_outstanding(
+        WaterCustomer.objects.annotate(
+            last_current_reading=Subquery(
+                WaterMeterReading.objects.filter(customer_id=OuterRef('pk'))
+                .order_by('-reading_date', '-created_at')
+                .values('current_reading')[:1]
+            ),
+            oldest_unpaid=Min(
+                'bills__due_date',
+                filter=~Q(bills__status__in=['paid', 'cancelled']),
+            ),
+        )
+    ).order_by('account_number')
+
+
+def _water_aging_buckets(unpaid_bills):
+    aging_buckets = {
+        'current': Decimal('0'), 'd1_30': Decimal('0'), 'd31_60': Decimal('0'),
+        'd61_90': Decimal('0'), 'd90_plus': Decimal('0'),
+    }
+    today = date.today()
+    for bill in unpaid_bills:
+        days = (today - bill.due_date).days if bill.due_date else 0
+        bal = bill.balance_due
+        if days <= 0:
+            aging_buckets['current'] += bal
+        elif days <= 30:
+            aging_buckets['d1_30'] += bal
+        elif days <= 60:
+            aging_buckets['d31_60'] += bal
+        elif days <= 90:
+            aging_buckets['d61_90'] += bal
+        else:
+            aging_buckets['d90_plus'] += bal
+    return aging_buckets
+
+
+def _water_disconnect_candidates():
+    qs = _water_annotate_outstanding(
+        WaterCustomer.objects.filter(
+            connection_status__in=['active', 'for_disconnection', 'inactive'],
+        ).annotate(
+            oldest_unpaid=Min(
+                'bills__due_date',
+                filter=~Q(bills__status__in=['paid', 'cancelled']) & Q(bills__total_amount__gt=F('bills__amount_paid')),
+            ),
+        )
+    ).order_by('account_number')
+    candidates = []
+    for customer in qs:
+        months = _water_months_unpaid_from_date(getattr(customer, 'oldest_unpaid', None))
+        if months < 3:
+            continue
+        customer.computed_months_unpaid = months
+        customer.computed_monitor = _water_monitor_label(customer, months)
+        candidates.append(customer)
+        if len(candidates) >= 50:
+            break
+    return candidates
+
+
+def _water_monitor_label(customer, months):
+    status = customer.connection_status
+    if status == 'disconnected':
+        return 'Disconnected'
+    if status == 'for_disconnection':
+        return 'For disconnection'
+    if months >= 3:
+        return f'For disconnection ({months} months unpaid)'
+    if months >= 1:
+        suffix = 's' if months != 1 else ''
+        return f'At risk ({months} month{suffix} unpaid)'
+    outstanding = getattr(customer, 'annotated_outstanding', None) or Decimal('0.00')
+    if outstanding > 0:
+        return 'Current (unpaid under 1 month)'
+    return 'Current – no unpaid balance'
+
+
+def _water_tab_context(request, tab):
+    ctx = {
+        'active_tab': tab,
+        'customer_types': WATER_CUSTOMER_TYPES,
+        'connection_statuses': WATER_CONNECTION_STATUS,
+        'payment_methods': WATER_PAYMENT_METHODS,
+        'bill_statuses': WATER_BILL_STATUS,
+        'service_action_types': WATER_SERVICE_ACTION_TYPES,
+        'service_action_statuses': WATER_SERVICE_ACTION_STATUS,
+        'default_rate': WATER_DEFAULT_RATE,
+        'default_fixed': WATER_DEFAULT_FIXED,
+        'default_env': WATER_DEFAULT_ENV,
+        'default_maint': WATER_DEFAULT_MAINT,
+        'default_reconnect_fee': WATER_DEFAULT_RECONNECT_FEE,
+        'pager_tab': tab,
+        'pager_qs': _water_pager_qs(request),
+    }
+    if tab == 'overviewTab':
+        ctx['stats'] = _water_overview_stats()
+        ctx.update(_water_revenue_from_request(request))
+    elif tab == 'customersTab':
+        customers_qs, customer_q, customer_zone, customer_status = _water_filtered_customers(request)
+        page_obj = _water_paginate(customers_qs, request)
+        ctx.update({
+            'customers': page_obj,
+            'page_obj': page_obj,
+            'customer_q': customer_q,
+            'customer_zone': customer_zone,
+            'customer_status': customer_status,
+            'water_zones': WaterZone.objects.order_by('name'),
+            'next_account_number': WaterCustomer.generate_account_number(),
+        })
+    elif tab == 'readingsBillingTab':
+        readings_qs, reading_zone = _water_filtered_readings(request)
+        page_obj = _water_paginate(readings_qs, request)
+        ctx.update({
+            'all_customers': _water_all_customers_qs(),
+            'readings': page_obj,
+            'page_obj': page_obj,
+            'reading_zone': reading_zone,
+            'water_zones': WaterZone.objects.order_by('name'),
+            'next_bill_number': WaterBill.generate_bill_number(),
+        })
+    elif tab == 'paymentsTab':
+        page_obj = _water_paginate(
+            WaterPayment.objects.select_related('customer', 'bill').all(),
+            request,
+        )
+        ctx.update({
+            'payments': page_obj,
+            'page_obj': page_obj,
+            'open_bills_for_payment': _water_open_bills(),
+            'next_receipt_number': WaterPayment.generate_receipt_number(),
+        })
+        ctx.update(_water_revenue_from_request(request))
+    elif tab == 'arTab':
+        open_bills = list(_water_open_bills())
+        page_obj = _water_paginate(open_bills, request)
+        ctx.update({
+            'unpaid_bills': page_obj,
+            'page_obj': page_obj,
+            'aging_buckets': _water_aging_buckets(open_bills),
+        })
+    elif tab == 'disconnectTab':
+        page_obj = _water_paginate(
+            WaterServiceAction.objects.select_related('customer').all(),
+            request,
+        )
+        all_customers = list(_water_all_customers_qs())
+        for customer in all_customers:
+            customer.computed_months_unpaid = _water_months_unpaid_from_date(
+                getattr(customer, 'oldest_unpaid', None)
+            )
+        ctx.update({
+            'all_customers': all_customers,
+            'disconnect_candidates': _water_disconnect_candidates(),
+            'service_actions': page_obj,
+            'page_obj': page_obj,
+        })
+    elif tab == 'reportsTab':
+        report_type = request.GET.get('report', 'billing')
+        page_obj = _water_paginate(_water_report_rows(report_type), request)
+        ctx.update({
+            'report_type': report_type,
+            'report_rows': page_obj,
+            'page_obj': page_obj,
+        })
+    elif tab == 'auditTab':
+        page_obj = _water_paginate(WaterAuditLog.objects.all(), request)
+        ctx.update({
+            'audit_logs': page_obj,
+            'page_obj': page_obj,
+        })
+    return ctx
+
+
+WATER_TAB_TEMPLATES = {
+    'overviewTab': 'includes/water_tab_overview.html',
+    'customersTab': 'includes/water_tab_customers.html',
+    'readingsBillingTab': 'includes/water_tab_readings.html',
+    'paymentsTab': 'includes/water_tab_payments.html',
+    'arTab': 'includes/water_tab_receivables.html',
+    'disconnectTab': 'includes/water_tab_service.html',
+    'reportsTab': 'includes/water_tab_reports.html',
+    'auditTab': 'includes/water_tab_audit.html',
+    'helpTab': 'includes/water_tab_help.html',
+}
 
 
 @require_dashboard('water_billing_dashboard')
@@ -3634,6 +4101,7 @@ def water_billing_dashboard(request):
             'create_reading': _water_create_reading,
             'create_bill': _water_create_bill,
             'generate_bill': _water_generate_bill_from_reading,
+            'generate_all_bills': _water_generate_all_bills,
             'create_payment': _water_create_payment,
             'create_service_action': _water_create_service_action,
             'complete_service_action': _water_complete_service_action,
@@ -3648,96 +4116,25 @@ def water_billing_dashboard(request):
         messages.error(request, 'Unknown water billing action.')
         return _water_redirect()
 
-    customer_q = request.GET.get('customer_q', '').strip()
-    customer_type = request.GET.get('customer_type', '').strip()
-    customer_status = request.GET.get('customer_status', '').strip()
-    customers_qs = WaterCustomer.objects.select_related('zone').all()
-    if customer_q:
-        customers_qs = customers_qs.filter(
-            Q(account_number__icontains=customer_q)
-            | Q(first_name__icontains=customer_q)
-            | Q(last_name__icontains=customer_q)
-            | Q(meter_number__icontains=customer_q)
-            | Q(service_address__icontains=customer_q)
-            | Q(contact_number__icontains=customer_q)
-        )
-    if customer_type:
-        customers_qs = customers_qs.filter(customer_type=customer_type)
-    if customer_status:
-        customers_qs = customers_qs.filter(connection_status=customer_status)
-
-    unpaid_bills = [
-        bill for bill in WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled'])
-        if bill.balance_due > 0
-    ]
-    aging_buckets = {'current': Decimal('0'), 'd1_30': Decimal('0'), 'd31_60': Decimal('0'), 'd61_90': Decimal('0'), 'd90_plus': Decimal('0')}
-    today = date.today()
-    for bill in unpaid_bills:
-        days = (today - bill.due_date).days
-        bal = bill.balance_due
-        if days <= 0:
-            aging_buckets['current'] += bal
-        elif days <= 30:
-            aging_buckets['d1_30'] += bal
-        elif days <= 60:
-            aging_buckets['d31_60'] += bal
-        elif days <= 90:
-            aging_buckets['d61_90'] += bal
-        else:
-            aging_buckets['d90_plus'] += bal
-
-    disconnect_candidates = [
-        customer
-        for customer in WaterCustomer.objects.filter(
-            connection_status__in=['active', 'for_disconnection', 'inactive'],
-        ).order_by('account_number')
-        if customer.months_unpaid >= 3
-    ][:50]
-
-    report_type = request.GET.get('report', 'billing')
-    report_rows = _water_report_rows(report_type)
+    tab = _water_normalize_tab(request.GET.get('tab', '').strip())
+    if request.GET.get('fragment') == '1':
+        context = _water_tab_context(request, tab)
+        template = WATER_TAB_TEMPLATES[tab]
+        if tab == 'customersTab' and request.GET.get('list_only') == '1':
+            template = 'includes/water_customer_list.html'
+        elif tab == 'readingsBillingTab' and request.GET.get('list_only') == '1':
+            template = 'includes/water_reading_list.html'
+        return render(request, template, context)
 
     context = {
         'modules': MANAGEMENT_MODULES,
-        'stats': _water_overview_stats(),
-        'customers': customers_qs,
-        'customer_q': customer_q,
-        'customer_type': customer_type,
-        'customer_status': customer_status,
-        'customer_types': WATER_CUSTOMER_TYPES,
-        'connection_statuses': WATER_CONNECTION_STATUS,
-        'payment_methods': WATER_PAYMENT_METHODS,
-        'bill_statuses': WATER_BILL_STATUS,
-        'service_action_types': WATER_SERVICE_ACTION_TYPES,
-        'service_action_statuses': WATER_SERVICE_ACTION_STATUS,
-        'all_customers': WaterCustomer.objects.annotate(
-            last_current_reading=Subquery(
-                WaterMeterReading.objects.filter(customer_id=OuterRef('pk'))
-                .order_by('-reading_date', '-created_at')
-                .values('current_reading')[:1]
-            )
-        ).order_by('account_number'),
-        'readings': WaterMeterReading.objects.select_related('customer', 'bill').all(),
-        'bills': WaterBill.objects.select_related('customer').all(),
-        'payments': WaterPayment.objects.select_related('customer', 'bill').all(),
-        'unpaid_bills': unpaid_bills,
-        'aging_buckets': aging_buckets,
-        'service_actions': WaterServiceAction.objects.select_related('customer').all()[:50],
-        'disconnect_candidates': disconnect_candidates[:50],
-        'audit_logs': WaterAuditLog.objects.all()[:80],
-        'next_account_number': WaterCustomer.generate_account_number(),
-        'next_bill_number': WaterBill.generate_bill_number(),
-        'next_receipt_number': WaterPayment.generate_receipt_number(),
-        'water_zones': WaterZone.objects.order_by('name'),
-        'default_rate': WATER_DEFAULT_RATE,
-        'default_fixed': WATER_DEFAULT_FIXED,
-        'default_env': WATER_DEFAULT_ENV,
-        'default_maint': WATER_DEFAULT_MAINT,
-        'default_reconnect_fee': WATER_DEFAULT_RECONNECT_FEE,
-        'report_type': report_type,
-        'report_rows': report_rows[:100],
-        'open_bills_for_payment': WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled']),
+        'active_tab': tab,
+        'loaded_tabs': {tab, 'overviewTab'},
     }
+    if tab != 'overviewTab':
+        context['stats'] = _water_overview_stats()
+    context.update(_water_revenue_from_request(request))
+    context.update(_water_tab_context(request, tab))
     return render(request, 'water_billing_dashboard.html', context)
 
 
@@ -3745,28 +4142,24 @@ def _water_report_rows(report_type):
     today = date.today()
     month_start = today.replace(day=1)
     if report_type == 'collection':
-        return list(WaterPayment.objects.select_related('customer', 'bill').filter(payment_date__gte=month_start)[:200])
+        return WaterPayment.objects.select_related('customer', 'bill').filter(payment_date__gte=month_start)
     if report_type == 'outstanding':
-        return [
-            bill for bill in WaterBill.objects.select_related('customer').exclude(status__in=['paid', 'cancelled'])
-            if bill.balance_due > 0
-        ][:200]
+        return _water_open_bills()
     if report_type == 'consumption':
-        return list(WaterMeterReading.objects.select_related('customer').filter(reading_date__gte=month_start)[:200])
+        return WaterMeterReading.objects.select_related('customer').filter(reading_date__gte=month_start)
     if report_type == 'customers':
-        return list(WaterCustomer.objects.all()[:200])
+        return WaterCustomer.objects.all()
     if report_type == 'disconnection':
-        return list(WaterServiceAction.objects.select_related('customer').filter(action_type='disconnection')[:200])
+        return WaterServiceAction.objects.select_related('customer').filter(action_type='disconnection')
     if report_type == 'reconnection':
-        return list(WaterServiceAction.objects.select_related('customer').filter(action_type='reconnection')[:200])
+        return WaterServiceAction.objects.select_related('customer').filter(action_type='reconnection')
     if report_type == 'readings':
-        return list(WaterMeterReading.objects.select_related('customer').all()[:200])
+        return WaterMeterReading.objects.select_related('customer').all()
     if report_type == 'daily_collection':
-        return list(WaterPayment.objects.select_related('customer', 'bill').filter(payment_date=today)[:200])
+        return WaterPayment.objects.select_related('customer', 'bill').filter(payment_date=today)
     if report_type == 'revenue':
-        return list(WaterPayment.objects.select_related('customer', 'bill').all()[:200])
-    # default monthly billing
-    return list(WaterBill.objects.select_related('customer').filter(bill_date__gte=month_start)[:200])
+        return WaterPayment.objects.select_related('customer', 'bill').all()
+    return WaterBill.objects.select_related('customer').filter(bill_date__gte=month_start)
 
 
 def _water_resolve_zone(request):
@@ -3963,6 +4356,25 @@ def _water_generate_bill_from_reading(request):
     except Exception as exc:
         messages.error(request, f'Could not generate bill: {exc}')
         return _water_redirect('readingsBillingTab')
+
+
+def _water_generate_all_bills(request):
+    readings = WaterMeterReading.objects.select_related('customer').filter(bill__isnull=True)
+    created = 0
+    try:
+        with transaction.atomic():
+            for reading in readings:
+                _bill, was_created = _water_bill_from_reading(reading)
+                if was_created:
+                    created += 1
+        if created:
+            _water_audit(request, 'Generated all bills', 'WaterBill', '', f'{created} bill(s)')
+            messages.success(request, f'Generated {created} bill{"s" if created != 1 else ""}.')
+        else:
+            messages.info(request, 'No readings left to bill. All readings already have bills.')
+    except Exception as exc:
+        messages.error(request, f'Could not generate bills: {exc}')
+    return _water_redirect('readingsBillingTab')
 
 
 def _water_create_bill(request):

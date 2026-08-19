@@ -3,6 +3,10 @@
     const panels = {
       repairTab: document.getElementById('repairTab'),
       borrowMaterialTab: document.getElementById('borrowMaterialTab'),
+      jobOrderTab: document.getElementById('jobOrderTab'),
+      travelOrderTab: document.getElementById('travelOrderTab'),
+      officialBusinessTab: document.getElementById('officialBusinessTab'),
+      idleDaysTab: document.getElementById('idleDaysTab'),
     };
     const defaultTab = 'repairTab';
 
@@ -22,7 +26,15 @@
     const tabParam = urlParams.get('tab');
     const hashTab = location.hash === '#repair'
         ? 'repairTab'
-        : (location.hash === '#borrow' ? 'borrowMaterialTab' : null);
+        : (location.hash === '#borrow'
+            ? 'borrowMaterialTab'
+            : (location.hash === '#job'
+                ? 'jobOrderTab'
+                : (location.hash === '#travel'
+                    ? 'travelOrderTab'
+                    : (location.hash === '#ob'
+                        ? 'officialBusinessTab'
+                        : (location.hash === '#idle' ? 'idleDaysTab' : null)))));
     const initialTab = (tabParam && panels[tabParam]) ? tabParam : (hashTab || defaultTab);
     activateTab(initialTab);
 
@@ -59,17 +71,51 @@
         updateJobRepeatablePreview(panel, 'assignee_names', 'input[name="assignee_names"]');
         return;
       }
-      if (field.name === 'dates_covered') {
-        updateJobRepeatablePreview(panel, 'dates_covered', 'input[name="dates_covered"]', true);
+      if (field.name === 'assignee_ids') {
+        const selected = [...field.selectedOptions].map((opt) => opt.textContent.trim()).filter(Boolean);
+        const freeText = [...panel.querySelectorAll('input[name="assignee_names"]')]
+          .map((input) => input.value.trim())
+          .filter(Boolean);
+        const values = [...selected, ...freeText];
+        panel.querySelectorAll('[data-preview="assignee_names"]').forEach((target) => {
+          target.textContent = values.length ? values.join(', ') : '—';
+        });
+        return;
+      }
+      if (field.name === 'dates_covered' || field.name === 'coverage_start' || field.name === 'coverage_end') {
+        const start = panel.querySelector('#coverage_start')?.value;
+        const end = panel.querySelector('#coverage_end')?.value;
+        let coverageLabel = '—';
+        if (start && end) {
+          coverageLabel = `${formatPreviewDate(start)} – ${formatPreviewDate(end)}`;
+        } else if (start) {
+          coverageLabel = formatPreviewDate(start);
+        } else if (end) {
+          coverageLabel = formatPreviewDate(end);
+        } else {
+          const values = [...panel.querySelectorAll('input[name="dates_covered"]')]
+            .map((input) => input.value.trim())
+            .filter(Boolean)
+            .map((value) => formatPreviewDate(value));
+          coverageLabel = values.length ? values.join(', ') : '—';
+        }
+        panel.querySelectorAll('[data-preview="dates_covered"]').forEach((target) => {
+          target.textContent = coverageLabel;
+        });
         return;
       }
       if (field.name === 'ob_dates') {
         updateJobRepeatablePreview(panel, 'ob_dates', 'input[name="ob_dates"]', true);
         return;
       }
+      if (field.name === 'travel_with') {
+        updateJobRepeatablePreview(panel, 'travel_with', 'input[name="travel_with"]', false, '\n');
+        return;
+      }
       panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach(target => {
         if (field.tagName === 'SELECT') {
-          target.textContent = field.options[field.selectedIndex].text;
+          const optionText = field.options[field.selectedIndex] ? field.options[field.selectedIndex].text : '';
+          target.textContent = (field.name === 'name' ? field.value : optionText) || '—';
           return;
         }
         let displayValue = field.value || '—';
@@ -122,20 +168,24 @@
       if (panel) syncFieldPreview(panel, input);
     }
 
-    function updateJobRepeatablePreview(panel, previewKey, selector, isDate) {
+    function formatPreviewDate(value) {
+      if (!value) return '—';
+      const parsed = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function updateJobRepeatablePreview(panel, previewKey, selector, isDate, joiner) {
       const values = [...panel.querySelectorAll(selector)]
         .map((input) => input.value.trim())
         .filter(Boolean)
         .map((value) => {
           if (!isDate) return value;
-          const parsed = new Date(value + 'T00:00:00');
-          return Number.isNaN(parsed.getTime())
-            ? value
-            : parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+          return formatPreviewDate(value);
         });
-      const joiner = ', ';
+      const separator = joiner || (previewKey === 'travel_with' ? '\n' : ', ');
       panel.querySelectorAll(`[data-preview="${previewKey}"]`).forEach((target) => {
-        target.textContent = values.length ? values.join(joiner) : '—';
+        target.textContent = values.length ? values.join(separator) : '—';
       });
     }
 
@@ -200,7 +250,7 @@
         const row = document.createElement('div');
         row.className = 'repeatable-row';
         row.innerHTML = `
-          <input type="${inputType}" name="${inputName}" placeholder="${placeholder || ''}">
+          <input type="${inputType}" name="${inputName}" class="field-input" placeholder="${placeholder || ''}">
           <button type="button" class="action row-remove" data-remove-row aria-label="Remove row">✕</button>
         `;
         list.appendChild(row);
@@ -325,11 +375,70 @@
       updateBorrowLinesPreview();
     }
 
+    function setupDocPanel(panel, defaultDateId, formId) {
+      if (!panel) return;
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        if (field.disabled) return;
+        const update = () => syncFieldPreview(panel, field);
+        field.addEventListener('input', update);
+        field.addEventListener('change', update);
+        syncFieldPreview(panel, field);
+      });
+
+      const defaultDate = defaultDateId ? document.getElementById(defaultDateId) : null;
+      if (defaultDate && !defaultDate.value) {
+        setDefaultDate(defaultDate, localTodayISO());
+      }
+
+      const form = formId ? document.getElementById(formId) : null;
+      if (form) {
+        form.addEventListener('reset', () => {
+          requestAnimationFrame(() => {
+            if (defaultDate) defaultDate.value = localTodayISO();
+            const jobNumber = form.querySelector('#job_order_number');
+            if (jobNumber && jobNumber.hasAttribute('data-auto-number')) {
+              jobNumber.value = jobNumber.getAttribute('data-auto-number') || '';
+            }
+            syncPanelPreviews(panel);
+          });
+        });
+      }
+    }
+
     setupBorrowLines();
+    setupRepeatableList('obDatesList', 'obAddDate', 'date', 'ob_dates', '');
+    setupRepeatableList('jobNamesList', 'jobAddName', 'text', 'assignee_names', 'Full name (if not selecting employees above)');
+    setupRepeatableList('jobDatesList', 'jobAddDate', 'date', 'dates_covered', '');
+    setupRepeatableList('travelWithList', 'travelAddPassenger', 'text', 'travel_with', 'Passenger name');
+    setupDocPanel(document.getElementById('jobOrderTab'), 'date_filed', 'jobOrderForm');
+    setupDocPanel(document.getElementById('travelOrderTab'), 'to_travel_date', 'travelOrderForm');
+
+    const obName = document.getElementById('ob_name');
+    const obDesignation = document.getElementById('ob_designation');
+    if (obName && obDesignation) {
+      const syncObDesignation = () => {
+        const option = obName.options[obName.selectedIndex];
+        obDesignation.value = option ? (option.dataset.designation || '') : '';
+        const panel = obName.closest('.tab-panel');
+        if (panel) syncFieldPreview(panel, obDesignation);
+      };
+      obName.addEventListener('change', syncObDesignation);
+      syncObDesignation();
+    }
 
     const today = localTodayISO();
     setDefaultDate(document.getElementById('report_date'), today);
     setDefaultDate(document.getElementById('date_borrowed'), today);
+    setDefaultDate(document.getElementById('ob_application_date'), today);
+    setDefaultDate(document.getElementById('date_filed'), today);
+    setDefaultDate(document.getElementById('to_travel_date'), today);
+
+    const jobOrderNumber = document.getElementById('job_order_number');
+    if (jobOrderNumber && jobOrderNumber.value) {
+      jobOrderNumber.setAttribute('data-auto-number', jobOrderNumber.value);
+      const panel = jobOrderNumber.closest('.tab-panel');
+      if (panel) syncFieldPreview(panel, jobOrderNumber);
+    }
 
     // After Clear/reset, restore today's date, auto numbers, and refresh the preview.
     document.querySelectorAll('.tab-panel form').forEach((form) => {

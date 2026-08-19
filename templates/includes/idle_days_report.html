@@ -1,0 +1,71 @@
+{% if idle_days_read_only and can_access_services %}
+<p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">
+  Job orders and idle periods are managed in Services.
+  <a href="{% url 'services_dashboard' %}?tab=idleDaysTab">Open Idle Days in Services</a>
+</p>
+{% endif %}
+
+<form method="get" class="filter-bar idle-filter-bar" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:16px 0;">
+  <input type="hidden" name="tab" value="idleDaysTab">
+  <div class="form-field">
+    <label for="idle_from">From</label>
+    <input id="idle_from" type="date" name="idle_from" value="{{ idle_from }}" class="field-input">
+  </div>
+  <div class="form-field">
+    <label for="idle_to">To</label>
+    <input id="idle_to" type="date" name="idle_to" value="{{ idle_to }}" class="field-input">
+  </div>
+  <div class="form-field">
+    <label for="idle_job_order">Job order</label>
+    <select id="idle_job_order" name="idle_job_order" class="field-input">
+      <option value="">All</option>
+      {% for jo in idle_filter_job_orders %}
+      <option value="{{ jo.id }}" {% if idle_job_order_id == jo.id|stringformat:"s" %}selected{% endif %}>{{ jo.job_order_number }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="idle_employee">Employee</label>
+    <select id="idle_employee" name="idle_employee" class="field-input">
+      <option value="">All</option>
+      {% for emp in idle_filter_employees %}
+      <option value="{{ emp.id }}" {% if idle_employee_id == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.full_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="action primary">Filter</button>
+  <a href="?tab=idleDaysTab" class="action">Reset</a>
+</form>
+
+<p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Uses each employee's daily rate (default ₱525). Sundays are excluded from day counts.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Job Order</th>
+        <th>Employee</th>
+        <th>Idle range(s)</th>
+        <th>Idle days</th>
+        <th>Est. daily rate</th>
+        <th>Est. wasted pay</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in idle_report_rows %}
+      <tr>
+        <td><a href="{% url 'view_job_order' row.job_order.id %}{% if idle_days_read_only %}?from=hr{% else %}?from=services{% endif %}">{{ row.job_order.job_order_number }}</a></td>
+        <td>{% if row.employee %}{{ row.employee.full_name }}{% else %}<em style="color:#667085;">No assignees linked</em>{% endif %}</td>
+        <td>{{ row.ranges }}</td>
+        <td>{{ row.idle_day_count }}</td>
+        <td>₱{{ row.daily_rate }}</td>
+        <td>₱{{ row.estimated_waste }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No idle periods match this filter. Open a job order and add a wait range when materials delay work.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,45 @@
+<div id="customerListWrap">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Name</th>
+          <th>Zone</th>
+          <th>Meter</th>
+          <th>Installment Balance</th>
+          <th>Outstanding Balance</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="customerListBody">
+        {% for c in customers %}
+        <tr class="customer-row" data-name="{{ c.display_name }}" data-search="{{ c.account_number }} {{ c.display_name }} {{ c.meter_number }}">
+          <td><strong>{{ c.account_number }}</strong></td>
+          <td>{{ c.display_name }}</td>
+          <td>{{ c.zone.name|default:"—" }}</td>
+          <td>{{ c.meter_number }}</td>
+          <td class="money">₱{{ c.installment_balance|floatformat:2 }}</td>
+          <td class="money">₱{{ c.annotated_outstanding|floatformat:2 }}</td>
+          <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
+          <td>
+            <div class="action-group">
+              <a class="action" href="{% url 'view_water_customer' c.id %}">View / Edit</a>
+              <form method="post" onsubmit="return confirm('Delete customer {{ c.account_number }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_customer">
+                <input type="hidden" name="customer_id" value="{{ c.id }}">
+                <button type="submit" class="action danger">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr id="customerListEmpty" class="empty-row"><td colspan="8" class="empty">No customers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "includes/water_pagination.html" %}
+</div>

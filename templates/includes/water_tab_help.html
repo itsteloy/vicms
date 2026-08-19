@@ -1,0 +1,129 @@
+<div class="panel water-help no-print" style="margin-bottom:12px;">
+  <div class="panel-head" style="margin-bottom:0; align-items:center;">
+    <div>
+      <h2>User guide</h2>
+      <p class="sub">For first-time staff. Follow the monthly cycle, then use the click-by-click steps below.</p>
+    </div>
+    <button type="button" class="action primary" onclick="window.print()">Print this guide</button>
+  </div>
+</div>
+
+<div class="panel water-help">
+  <h2 class="help-print-title">Water Billing — beginner user manual</h2>
+  <p class="sub">VERSATEC Water Billing Dashboard</p>
+
+  <h3 class="help-h">1. What this dashboard is for</h3>
+  <p>Each month you do four jobs, in this order: register the household (if they are new), record the meter, generate the bill, then collect payment. Do not skip a step. You cannot record a payment until a bill exists.</p>
+
+  <ol class="help-cycle" aria-label="Monthly billing cycle">
+    <li>
+      <strong>Open Water Billing</strong>
+      <span>Use the left menu. Start on Overview.</span>
+    </li>
+    <li>
+      <strong>Customers</strong>
+      <span>Save the account if it is new.</span>
+    </li>
+    <li>
+      <strong>Readings &amp; Billing</strong>
+      <span>Save the meter, then click Generate Bill.</span>
+    </li>
+    <li>
+      <strong>Payments</strong>
+      <span>Record cash or GCash against that bill.</span>
+    </li>
+  </ol>
+
+  <h3 class="help-h">2. How to move around</h3>
+  <ol class="help-steps">
+    <li>The green menu on the left opens each section. Click once. Wait for “Loading…” if you see it.</li>
+    <li>A green bar at the top means the save worked. A red bar means something is missing or wrong. Read it before you try again.</li>
+    <li>Long lists show 50 rows at a time. Use <strong>Prev</strong> / <strong>Next</strong> under the table.</li>
+    <li>Overview numbers (customers, outstanding, bills) are a snapshot. Collections on Overview and Payments can be viewed by <strong>week</strong>, <strong>month</strong>, or <strong>year</strong>, split into Cash, GCash, and total. You do not type on Overview.</li>
+    <li>Use <strong>Logout</strong> at the top right when you are done.</li>
+  </ol>
+
+  <h3 class="help-h">3. Transaction: register a customer</h3>
+  <p>Open <strong>Customers</strong>. Fill <strong>Register customer</strong> at the top, then click <strong>Save customer</strong>.</p>
+  <ol class="help-steps">
+    <li><strong>Last name</strong>, <strong>First name</strong>, and <strong>Meter number</strong> are required. Address, contact number, email, and zone are optional.</li>
+    <li>Names, service address, meter, and a new zone name save in CAPITAL LETTERS. You can type in small letters; the system converts them.</li>
+    <li>Account No. is filled in for you (for example <strong>WA-2026-001</strong>). Do not invent a number.</li>
+    <li>Registration Date defaults to today. Customer Type is usually Residential. Connection Status is usually Active.</li>
+    <li>To add a zone, choose <strong>+ Add new zone…</strong> and type the name (for example ZONE 1).</li>
+    <li>Installation fee is <strong>₱5,900</strong>. Payment: <strong>Full – ₱5,900.00</strong>, <strong>Partial – ₱3,000.00</strong>, or <strong>Custom amount…</strong>. Balance is calculated. Then click <strong>Save customer</strong>.</li>
+    <li>Each real meter number can be used only once. If there is no meter yet, enter the placeholder <strong>—</strong> (em dash). Several accounts may use —.</li>
+  </ol>
+  <p>To find someone later, type in <strong>Search</strong> (name, account, or meter). Wait a moment; the list updates from the whole database, not only the page on screen. Use Zone or Status if needed, then <strong>Filter</strong>. Click <strong>View / Edit</strong> to open the profile. The account number cannot be changed there.</p>
+  <p class="help-stop"><strong>Stop and ask a supervisor</strong> before you click <strong>Delete</strong> on a customer. A confirm box will appear. Deleting removes the account.</p>
+
+  <h3 class="help-h">4. Transaction: record a reading and make a bill</h3>
+  <p>Open <strong>Readings &amp; Billing</strong>.</p>
+  <ol class="help-steps">
+    <li>Under <strong>New meter reading</strong>, choose the customer. Previous reading, unpaid balance, and installment fill in. You may correct Previous. <strong>Present</strong> is required.</li>
+    <li>Consumption = Present − Previous. Current bill = consumption × <strong>₱20</strong>. Total = current + previous unpaid + installment. Check the totals strip before you save.</li>
+    <li>Reading Date defaults to the <strong>28th</strong> of this month. Billing Period is the year-month of that date (for example 2026-08). Each customer may have only one reading per period.</li>
+    <li>If the account is disconnected, a warning appears. Confirm before you save.</li>
+    <li>Click <strong>Save reading</strong>. This does <em>not</em> print a bill yet.</li>
+    <li>In <strong>History</strong>, find that row and click <strong>Generate Bill</strong>. The statement opens. Or click <strong>Generate all bills</strong> to create a bill for every reading that still has none.</li>
+    <li>The due date is <strong>15 days after</strong> the reading date.</li>
+    <li>To print several statements: tick up to <strong>6</strong> bills, then <strong>Print selected (max 6)</strong>. For one statement, click <strong>View</strong>.</li>
+  </ol>
+  <p class="help-stop"><strong>Stop and ask a supervisor</strong> before you click <strong>Delete</strong> on a reading. Deleting a reading can also remove its bill.</p>
+
+  <h3 class="help-h">5. Transaction: record a payment</h3>
+  <p>Open <strong>Payments</strong>. The Cash / GCash / Total strip at the top uses the same week, month, or year filter as Overview. Use <strong>Record payment</strong> (not the history table) to encode.</p>
+  <ol class="help-steps">
+    <li>Click the <strong>Bill</strong> box and type the <strong>customer name</strong>. Pick the matching unpaid or partial bill from the list. Amount fills with the balance. You may type a smaller amount for a partial payment.</li>
+    <li>Method is <strong>Cash</strong> or <strong>GCash</strong> only. For GCash, fill <strong>Reference No.</strong></li>
+    <li>Receipt No. is filled in for you (for example <strong>WP-2026-001</strong>). Payment Date defaults to today. Received By can stay as shown.</li>
+    <li>Click <strong>Save payment</strong>.</li>
+    <li>In Payment history, <strong>Paid</strong> means that bill has no remaining balance. <strong>Unpaid</strong> means a balance is still due.</li>
+  </ol>
+  <p>If the Bill list says “No unpaid bills,” generate the bill on Readings &amp; Billing first. You cannot pay before a bill exists.</p>
+  <p class="help-stop"><strong>Stop and ask a supervisor</strong> before you click <strong>Delete</strong> on a payment.</p>
+
+  <h3 class="help-h">6. Check who still owes (Receivables)</h3>
+  <p>Open <strong>Receivables</strong> to review, not to encode. Aging cards (Current, 1–30 days, and so on) show how old unpaid balances are. The table lists outstanding bills. You may tick up to 6 bills and print, same as on Readings. Use <strong>Payments</strong> if you need to record a collection.</p>
+
+  <h3 class="help-h">7. Transaction: disconnect or reconnect</h3>
+  <p>Open <strong>Service Status</strong>.</p>
+  <ol class="help-steps">
+    <li>Policy: an account with <strong>3 months unpaid</strong> appears under <strong>For disconnection (3+ months unpaid)</strong>.</li>
+    <li>To schedule: pick the customer, choose <strong>Disconnection</strong> or <strong>Reconnection</strong>, set the date, then click <strong>Save action</strong>.</li>
+    <li>The action stays <strong>For disconnection</strong> until someone clicks <strong>Mark disconnected</strong> or <strong>Mark reconnected</strong> in Service actions.</li>
+    <li>Reconnection fee defaults to <strong>₱500</strong>. A finalized reconnection sets the account back to Active.</li>
+  </ol>
+
+  <h3 class="help-h">8. Reports and Audit</h3>
+  <p>Open <strong>Reports</strong>. Choose a report type, then click <strong>Show</strong>. Use <strong>Export CSV</strong> for a spreadsheet file, or <strong>Print</strong> for paper. Open <strong>Audit</strong> to see a read-only trail of who saved a customer, reading, bill, or payment. You do not encode on Audit.</p>
+
+  <h3 class="help-h">9. Everyday rules and mistakes</h3>
+  <ul class="help-rules">
+    <li>Do the steps in order: customer → reading → Generate Bill → payment.</li>
+    <li>Do not record a payment before a bill exists.</li>
+    <li>Do not delete a customer, reading, or payment unless a supervisor says so.</li>
+    <li>If a tab says “Could not load this section,” click <strong>Retry</strong> or refresh the page.</li>
+    <li>One reading per customer per billing period. If save fails, that period may already have a reading.</li>
+  </ul>
+
+  <h3 class="help-h">Cheat sheet</h3>
+  <table class="data help-cheat">
+    <thead>
+      <tr><th>Item</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Installation fee</td><td>₱5,900 (Full ₱5,900 / Partial ₱3,000 / Custom)</td></tr>
+      <tr><td>Water rate</td><td>₱20 per cu.m</td></tr>
+      <tr><td>Bill total</td><td>Current bill + previous unpaid + installment</td></tr>
+      <tr><td>Due date</td><td>15 days after the reading date</td></tr>
+      <tr><td>Default reading day</td><td>28th of the month</td></tr>
+      <tr><td>Payment methods</td><td>Cash or GCash only</td></tr>
+      <tr><td>Disconnection policy</td><td>3 months unpaid</td></tr>
+      <tr><td>Reconnection fee</td><td>₱500 (default)</td></tr>
+      <tr><td>Batch print</td><td>Maximum 6 bills per long bond page</td></tr>
+      <tr><td>List pages</td><td>50 rows per page</td></tr>
+      <tr><td>Account / bill / receipt numbers</td><td>Filled in for you (WA- / WB- / WP-)</td></tr>
+    </tbody>
+  </table>
+</div>

@@ -7,19 +7,19 @@
 {% block content %}
 <main class="page">
   <div class="actions">
-    <a class="back" href="{% if document_type == 'job' or document_type == 'ob' %}{% url 'hr_dashboard' %}?tab={% if document_type == 'job' %}jobOrderTab{% else %}officialBusinessTab{% endif %}{% elif document_type == 'delivery_receipt' %}{% url 'sales_dashboard' %}?tab=delivery-receipt-tab{% elif document_type == 'travel' %}{% url 'hr_dashboard' %}?tab=travelOrderTab{% else %}{% url 'services_dashboard' %}?tab=borrowMaterialTab{% endif %}">{% if document_type == 'job' or document_type == 'ob' or document_type == 'travel' %}← HR Dashboard{% elif document_type == 'delivery_receipt' %}← Sales Dashboard{% else %}← Services Dashboard{% endif %}</a>
+    <a class="back" href="{{ back_url }}">← {{ back_label }}</a>
     <div class="actions-group">
       {% if document_type == 'repair' %}
       <a href="{% url 'edit_service_repair_report' record.id %}">Edit</a>
-      {% elif document_type == 'job' %}
+      {% elif document_type == 'job' and can_manage_services %}
       <a href="{% url 'edit_job_order' record.id %}">Edit</a>
-      {% elif document_type == 'ob' %}
+      {% elif document_type == 'ob' and can_manage_services %}
       <a href="{% url 'edit_official_business_form' record.id %}">Edit</a>
       {% elif document_type == 'delivery_receipt' %}
       <a href="{% url 'edit_delivery_receipt' record.id %}">Edit</a>
-      {% elif document_type == 'travel' %}
+      {% elif document_type == 'travel' and can_manage_services %}
       <a href="{% url 'edit_travel_order_form' record.id %}">Edit</a>
-      {% else %}
+      {% elif document_type == 'borrow' %}
       <a href="{% url 'edit_material_borrow' record.id %}">Edit</a>
       {% endif %}
       <button type="button" onclick="window.print()">Print</button>
@@ -272,7 +272,7 @@
           <th>Reason</th>
           <th>Days</th>
           <th>Notes</th>
-          <th></th>
+          {% if can_manage_services %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -283,21 +283,24 @@
           <td>{{ period.get_reason_display }}</td>
           <td>{{ period.idle_day_count }}</td>
           <td>{{ period.notes|default:"—" }}</td>
+          {% if can_manage_services %}
           <td>
             <form method="post" action="{% url 'delete_job_order_idle_period' record.id period.id %}" onsubmit="return confirm('Remove this idle period?');">
               {% csrf_token %}
               <button type="submit" class="danger">Remove</button>
             </form>
           </td>
+          {% endif %}
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" style="text-align:center;color:#667085;padding:18px;">No idle periods recorded for this job order.</td>
+          <td colspan="{% if can_manage_services %}6{% else %}5{% endif %}" style="text-align:center;color:#667085;padding:18px;">No idle periods recorded for this job order.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
 
+    {% if can_manage_services %}
     <form method="post" action="{% url 'add_job_order_idle_period' record.id %}" class="idle-form">
       {% csrf_token %}
       <div>
@@ -324,6 +327,7 @@
         <button type="submit">Add idle period</button>
       </div>
     </form>
+    {% endif %}
   </section>
   {% endif %}
 </main>

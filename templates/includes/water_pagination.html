@@ -1,0 +1,15 @@
+{% if page_obj %}
+<nav class="water-pager" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+  <a class="action" href="?tab={{ pager_tab }}&amp;page={{ page_obj.previous_page_number }}{{ pager_qs }}" data-pager-link>Prev</a>
+  {% else %}
+  <span class="action is-disabled">Prev</span>
+  {% endif %}
+  <span class="pager-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+  <a class="action" href="?tab={{ pager_tab }}&amp;page={{ page_obj.next_page_number }}{{ pager_qs }}" data-pager-link>Next</a>
+  {% else %}
+  <span class="action is-disabled">Next</span>
+  {% endif %}
+</nav>
+{% endif %}

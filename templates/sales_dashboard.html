@@ -126,8 +126,7 @@
                     {% endif %}
 
                     <div class="perf-metrics">
-                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2
-                                }}</strong></span>
+                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2 }}</strong></span>
                         <span>Sold <strong class="metric-quantity">{{ category.variants.0.quantity }}</strong></span>
                         <span>Orders <strong class="metric-orders">{{ category.variants.0.orders }}</strong></span>
                     </div>
@@ -141,8 +140,7 @@
                 <a class="action" href="?page={{ page_obj.previous_page_number }}"
                     style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">‹</a>
                 {% endif %}
-                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{
-                    paginator.num_pages }}</span>
+                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
                 {% if page_obj.has_next %}
                 <a class="action" href="?page={{ page_obj.next_page_number }}"
                     style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">›</a>
@@ -2048,7 +2046,7 @@
                                 <td>₱{{ receipt.total_amount|floatformat:2 }}</td>
                                 <td>
                                     <div class="record-actions">
-                                        <a class="action" href="{% url 'view_delivery_receipt' receipt.id %}">View</a>
+                                        <a class="action" href="{% url 'view_delivery_receipt' receipt.id %}?from=sales">View</a>
                                         <a class="action" href="{% url 'edit_delivery_receipt' receipt.id %}">Edit</a>
                                         <form method="post" action="{% url 'delete_delivery_receipt' receipt.id %}" onsubmit="return confirm('Delete Delivery Receipt {{ receipt.receipt_number }}? This cannot be undone.');">
                                             {% csrf_token %}

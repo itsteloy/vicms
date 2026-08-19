@@ -2,7 +2,7 @@
     <div id="allItemsPanel" class="tab-panel">
       <div class="panel">
         <h2>All Items</h2>
-        <p>View every inventory item and filter by category, code, size, or notes.</p>
+        <p>View every inventory item and filter by category, code, size, description, or notes.</p>
         <div class="toolbar">
           <div class="toolbar-field">
             <label for="categoryFilter">Category</label>
@@ -50,6 +50,9 @@
                 <td>
                   <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
                   <strong>{{ item.name }}</strong>
+                  {% if item.description %}
+                  <span style="display:block;color:#667085;font-size:.82rem;font-weight:500;margin-top:2px;">{{ item.description|truncatechars:80 }}</span>
+                  {% endif %}
                 </td>
                 <td>
                   {% if item.picture %}

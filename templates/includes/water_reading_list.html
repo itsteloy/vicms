@@ -1,0 +1,87 @@
+<div id="readingListWrap">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width:2.2rem;"></th>
+          <th>Customer</th>
+          <th>Period</th>
+          <th>Reading</th>
+          <th>Charges</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in readings %}
+        <tr>
+          <td>
+            {% if r.bill %}
+            <input class="batch-check batch-bill-check" type="checkbox" value="{{ r.bill.id }}" aria-label="Select bill {{ r.bill.bill_number }}">
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ r.customer.display_name }}</strong>
+            <div class="cell-muted">{{ r.customer.account_number }}</div>
+            <div class="cell-muted">{{ r.customer.service_address|truncatechars:48 }}</div>
+          </td>
+          <td>{{ r.billing_period }}<div class="cell-muted">{{ r.reading_date }}</div></td>
+          <td>
+            {{ r.previous_reading }} → {{ r.current_reading }}
+            <div class="cell-muted"><strong>{{ r.consumption }}</strong> cu.m</div>
+          </td>
+          <td>
+            <div class="cell-muted">Current ₱{{ r.current_bill|floatformat:2 }}</div>
+            <div class="cell-muted">Unpaid ₱{{ r.previous_bill_unpaid|floatformat:2 }}</div>
+            <div class="cell-muted">Installment ₱{{ r.installment_balance|floatformat:2 }}</div>
+          </td>
+          <td><strong>₱{% if r.bill %}{{ r.bill.total_amount|floatformat:2 }}{% else %}{{ r.total_bill|floatformat:2 }}{% endif %}</strong></td>
+          <td>
+            {% if r.bill %}
+            <span class="badge {{ r.bill.status }}">{{ r.bill.get_status_display }}</span>
+            {% else %}
+            <span class="badge scheduled">Reading only</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="action-group">
+              {% if r.bill %}
+              <a class="action" href="{% url 'view_water_bill' r.bill.id %}">View</a>
+              {% else %}
+              <a class="action" href="{% url 'view_water_reading_preview' r.id %}">View</a>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="generate_bill">
+                <input type="hidden" name="reading_id" value="{{ r.id }}">
+                <button type="submit" class="action primary">Generate Bill</button>
+              </form>
+              {% endif %}
+              <form method="post" onsubmit="return confirm('Delete this reading{% if r.bill %} and its bill{% endif %}?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_reading">
+                <input type="hidden" name="reading_id" value="{{ r.id }}">
+                <button type="submit" class="action danger">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No readings found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "includes/water_pagination.html" %}
+  <div class="batch-print-bar" id="batchPrintBarReadings" data-batch-bar>
+    <div>
+      <span class="count"><span data-batch-count>0</span> selected</span>
+      <span class="hint">Max 6 per long bond page</span>
+      <div class="batch-print-note" data-batch-note>Maximum 6 receipts per page.</div>
+    </div>
+    <div class="actions">
+      <button type="button" class="clear-btn" data-batch-clear>Clear</button>
+      <button type="button" class="print-btn" data-batch-print disabled>Print selected (max 6)</button>
+    </div>
+  </div>
+</div>

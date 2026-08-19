@@ -1,0 +1,69 @@
+<div class="overview-layout">
+  <div class="overview-kpis">
+    {% include "includes/water_revenue_breakdown.html" %}
+    <div class="kpi-grid kpi-grid-overview">
+      <div class="kpi-card">
+        <div class="label">Active connections</div>
+        <div class="value">{{ stats.active_connections }}</div>
+        <div class="hint">{{ stats.total_customers }} total customers</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">New customers</div>
+        <div class="value">{{ stats.new_customers }}</div>
+        <div class="hint">Registered this month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Bills generated</div>
+        <div class="value">{{ stats.bills_generated }}</div>
+        <div class="hint">This month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Outstanding</div>
+        <div class="value">₱{{ stats.outstanding_balance|floatformat:0 }}</div>
+        <div class="hint">{{ stats.collection_rate }}% collection rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Consumption</div>
+        <div class="value">{{ stats.month_consumption }}</div>
+        <div class="hint">cu.m this month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Disconnected</div>
+        <div class="value">{{ stats.disconnected_accounts }}</div>
+        <div class="hint">{{ stats.reconnected_accounts }} reconnected</div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel overview-start">
+    <div class="panel-head">
+      <div>
+        <h2>Start here</h2>
+        <p class="sub">Work through billing in order: register, read, then collect.</p>
+      </div>
+    </div>
+    <div class="overview-steps">
+      <button type="button" class="overview-step primary" data-jump="customersTab">
+        <span class="step-num">1</span>
+        <span class="step-copy">
+          <strong>Add customer</strong>
+          <span>Open an account and set the installation fee.</span>
+        </span>
+      </button>
+      <button type="button" class="overview-step" data-jump="readingsBillingTab">
+        <span class="step-num">2</span>
+        <span class="step-copy">
+          <strong>Record reading</strong>
+          <span>Enter the present meter reading and generate the bill.</span>
+        </span>
+      </button>
+      <button type="button" class="overview-step" data-jump="paymentsTab">
+        <span class="step-num">3</span>
+        <span class="step-copy">
+          <strong>Record payment</strong>
+          <span>Apply cash or GCash to an unpaid bill.</span>
+        </span>
+      </button>
+    </div>
+  </aside>
+</div>

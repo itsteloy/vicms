@@ -5,7 +5,7 @@ from .models import InventoryItem, SalesOrder, WorkspaceAccount
 @admin.register(InventoryItem)
 class InventoryItemAdmin(admin.ModelAdmin):
     list_display = ('name', 'product_code', 'stock_available', 'pcs_per_ctn', 'price', 'created_at')
-    search_fields = ('name', 'product_code', 'description')
+    search_fields = ('name', 'product_code', 'description', 'notes')
 
 
 @admin.register(SalesOrder)
