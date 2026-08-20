@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Water Service Contract – {{ contract.applicant_display_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards/water_service_contract.css' %}?v=servicecontract17">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="toolbar no-print">
+    <a href="{{ back_url }}">← Back to Service Status</a>
+    <button type="button" onclick="window.print()">Print</button>
+  </div>
+
+  <article class="contract-document">
+
+    {# ========== PAGE 1: Application + Acknowledgement Receipt ========== #}
+    <div class="contract-sheet">
+      <header class="contract-doc-header">
+        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      </header>
+
+      <section class="contract-page-body contract-page-application">
+        <div class="contract-application-main">
+          <h1 class="contract-title">SERVICE CONNECTION APPLICATION</h1>
+
+          <table class="contract-app-table">
+            <colgroup>
+              <col class="contract-app-label-col">
+              <col class="contract-app-field-col">
+              <col class="contract-app-field-col">
+              <col class="contract-app-field-col">
+            </colgroup>
+            <tr>
+              <th class="contract-app-label">NAME</th>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.last_name %}{{ contract.last_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Last Name</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.first_name %}{{ contract.first_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">First Name</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.middle_name %}{{ contract.middle_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Middle Name</div>
+              </td>
+            </tr>
+            <tr>
+              <th class="contract-app-label">ADDRESS</th>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.zone_purok %}{{ contract.zone_purok }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Zone/Purok</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.barangay %}{{ contract.barangay }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Barangay</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.municipality_city %}{{ contract.municipality_city }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Municipality/City</div>
+              </td>
+            </tr>
+            <tr>
+              <th class="contract-app-label">CONTACT NO</th>
+              <td class="contract-app-field" colspan="3">
+                <div class="contract-field-line contract-field-line-contact">{% if contract.contact_number %}{{ contract.contact_number }}{% else %}&nbsp;{% endif %}</div>
+              </td>
+            </tr>
+            <tr>
+              <th class="contract-app-label contract-app-label-spouse">NAME OF SPOUSE (If married)</th>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.spouse_last_name %}{{ contract.spouse_last_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Last Name</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.spouse_first_name %}{{ contract.spouse_first_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">First Name</div>
+              </td>
+              <td class="contract-app-field">
+                <div class="contract-field-line">{% if contract.spouse_middle_name %}{{ contract.spouse_middle_name }}{% else %}&nbsp;{% endif %}</div>
+                <div class="field-hint">Middle Name</div>
+              </td>
+            </tr>
+            <tr>
+              <th class="contract-app-label">HOME OWNERSHIP</th>
+              <td class="contract-app-ownership" colspan="3">
+                <span class="contract-check">{% if contract.home_ownership == 'owner' %}☑{% else %}☐{% endif %} Owner</span>
+                <span class="contract-check">{% if contract.home_ownership == 'rented' %}☑{% else %}☐{% endif %} Rented</span>
+                <span class="contract-check">{% if contract.home_ownership == 'contractor' %}☑{% else %}☐{% endif %} Contractor</span>
+              </td>
+            </tr>
+          </table>
+
+          <table class="contract-options-table">
+            <tr>
+              <td class="contract-options-col">
+                <div class="contract-panel-title">CUSTOMER CLASSIFICATION</div>
+                <div class="contract-check-line">{% if contract.customer_classification == 'residential' %}☑{% else %}☐{% endif %} Residential</div>
+                <div class="contract-check-line">{% if contract.customer_classification == 'government' %}☑{% else %}☐{% endif %} Government/Institutional</div>
+                <div class="contract-check-line">{% if contract.customer_classification == 'commercial' %}☑{% else %}☐{% endif %} Full Commercial, Com’l A, B, C</div>
+                <div class="contract-check-line">☐</div>
+              </td>
+              <td class="contract-options-col">
+                <div class="contract-panel-title">APPLICATION STATUS</div>
+                <div class="contract-check-line">{% if contract.application_status == 'new' %}☑{% else %}☐{% endif %} New</div>
+                <div class="contract-check-line">{% if contract.application_status == 'reconnection' %}☑{% else %}☐{% endif %} Reconnection</div>
+                <div class="contract-check-line">{% if contract.application_status == 'transfer' %}☑{% else %}☐{% endif %} Transfer/Change Name</div>
+                <div class="contract-original-name-row">
+                  Original Registered Name:
+                  <span class="contract-inline-underline contract-inline-medium">{% if contract.application_status == 'transfer' and contract.original_registered_name %}{{ contract.original_registered_name }}{% else %}&nbsp;{% endif %}</span>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <p class="contract-paragraph contract-application-request">
+            I hereby apply for a water service connection with meter size
+            <span class="contract-inline-underline contract-inline-micro">{% if contract.meter_size %}{{ contract.meter_size }}{% else %}&nbsp;{% endif %}</span>
+            located at
+            <span class="contract-inline-underline contract-inline-location">{% if contract.connection_location %}{{ contract.connection_location }}{% else %}&nbsp;{% endif %}</span>
+            (Near/Beside
+            <span class="contract-inline-underline contract-inline-near">{% if contract.near_beside %}{{ contract.near_beside }}{% else %}&nbsp;{% endif %}</span>
+            Residence).
+          </p>
+          <p class="contract-paragraph">
+            I understand that the connection will not be made until it is approved and all changes are paid, I assumed the responsibilities for the water meter and through the connection. I will conform to the rules and regulations VERSATEC INDUSTRIAL CORP.
+          </p>
+
+          <table class="contract-signature-table">
+            <tr>
+              <td>
+                <div class="contract-field-line contract-signature-line">&nbsp;</div>
+                <div class="contract-sig-caption">Signature of Applicant</div>
+              </td>
+              <td>
+                <div class="contract-field-line contract-signature-line">&nbsp;</div>
+                <div class="contract-sig-caption">Signature of Applicant’s Spouse</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="contract-application-receipt">
+          <div class="contract-divider"></div>
+          <h2 class="contract-subtitle">ACKNOWLEDGEMENT RECEIPT</h2>
+          <p class="contract-paragraph"><strong>TO:</strong> <span class="contract-inline-underline contract-inline-wide">{% if contract.ack_payee_name %}{{ contract.ack_payee_name }}{% else %}&nbsp;{% endif %}</span></p>
+          <p class="contract-paragraph">
+            VERSATEC INDUSTRIAL CORP. hereby acknowledge the amount of P
+            <span class="contract-inline-underline contract-inline-short">{% if ack_amount_display %}{{ ack_amount_display }}{% else %}&nbsp;{% endif %}</span>
+            as payment for water connection.
+          </p>
+          <table class="contract-receipt-table">
+            <tr>
+              <td>
+                <div><strong>Received by:</strong></div>
+                <div class="contract-field-line contract-receipt-line">{% if contract.ack_received_by %}{{ contract.ack_received_by }}{% else %}&nbsp;{% endif %}</div>
+              </td>
+              <td>
+                <div><strong>Date:</strong></div>
+                <div class="contract-field-line contract-receipt-line-date">{{ ack_date_display }}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </section>
+      <div class="contract-page-footer">1 | P a g e</div>
+    </div>
+
+    {# ========== PAGE 2: Contract start through A. INSTALLATION ========== #}
+    <div class="contract-sheet">
+      <header class="contract-doc-header">
+        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      </header>
+
+      <section class="contract-page-body">
+        <h1 class="contract-title">WATER SERVICE CONTRACT</h1>
+        <div class="contract-body-with-signature-margin">
+          {% include "includes/water_service_contract_signature_margin.html" %}
+          <div class="contract-body-main">
+            <p class="contract-paragraph">
+              THIS WATER SERVICE CONTRACT is made and entered by and between
+              <strong>VERSATEC INDUSTRIAL CORP.</strong> represented by Engr. Arturo I. Davis, herein referred as the <strong>“Water Supplier”</strong>
+            </p>
+            <p class="contract-paragraph contract-and-center">-and-</p>
+            <p class="contract-paragraph">
+              <span class="contract-inline-underline contract-inline-name">{% if contract.applicant_display_name %}{{ contract.applicant_display_name }}{% else %}&nbsp;{% endif %}</span>,
+              of legal age, Filipino, {{ civil_text }}, with residence and postal address at
+              <span class="contract-inline-underline contract-inline-address">{% if contract.contract_address %}{{ contract.contract_address }}{% else %}&nbsp;{% endif %}</span>
+              herein referred as the <strong>“Concessionaire”</strong>.
+            </p>
+            <p class="contract-witnesseth">WITNESSETH</p>
+            <p class="contract-paragraph">
+              That the <strong>“Water Supplier”</strong> and the <strong>“Concessionaire”</strong>, in consideration of the Mutual Covenants and Agreements made hereby these presents, enter into Contract of Water Service effective
+              <span class="contract-inline-underline contract-inline-date">{{ contract_date_display }}</span> (date) with the following conditions:
+            </p>
+
+            <h2 class="contract-section-title">A. INSTALLATION</h2>
+            <ol class="contract-num-list">
+              <li>The Water Supplier shall install a water service connection to the property of the concessionaire as described in the accomplished application for installation form. Installation will be made only upon approval of the submitted application form by the General Manager and upon payment of the required service application fee and other charges relative thereto.</li>
+              <li>
+                The water meter should be installed only at the designated water service pads/tapping points by the water supplier authorized plumbers. All materials after the water meter will be provided by the concessionaire; labor expenses relative thereto will be at the concessionaire’s expense.
+                <ol class="contract-letter-list" type="a">
+                  <li>Distribution lines after the water meter shall be maintained by the concessionaire and any wastage or damage or leakage not caused by the District shall be shouldered by the concessionaire.</li>
+                  <li>For concessionaire’s whose service line passes through private property/ies, it is the concessionaire’s responsibility to secure written permission from the rightful owner of said property/ies. This written permission shall be part of the requirements for application.</li>
+                </ol>
+              </li>
+              <li>The water district shall have a regular inspection for maintenance or repairs of the water meter main lines, lateral lines, and service lines. If the concessionaire wishes to have house extensions for veranda, facades, garage, fences and other structure that will obstruct or interfere the district’s operation and maintenance to its water lines and facilities, the water supplier shall not be held liable for any damage on the extension done by the concessionaire which is beyond his/her lot or property.</li>
+            </ol>
+
+          </div>
+        </div>
+      </section>
+      <div class="contract-page-footer">2 | P a g e</div>
+    </div>
+
+    {# ========== PAGE 3: B. DISCONNECTION through D. RATES AND FEES ========== #}
+    <div class="contract-sheet">
+      <header class="contract-doc-header">
+        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      </header>
+
+      <section class="contract-page-body">
+        <div class="contract-body-with-signature-margin">
+          {% include "includes/water_service_contract_signature_margin.html" %}
+          <div class="contract-body-main">
+            <h2 class="contract-section-title">B. DISCONNECTION</h2>
+            <p class="contract-paragraph">The water district shall discontinue its water services to a concessionaire in any of the following grounds:</p>
+            <ol class="contract-num-list">
+              <li>Failure to pay 3 consecutive months. Disconnection notice will be given to concessionaires after due dates. Disconnection of service connection due to delinquency will be implemented seventy-two (72) hours after receipt of disconnection notice.</li>
+              <li>Any violation of RA 8041 otherwise, known as the Water Crisis Act of 1995 as provided in Rule 5, Section 3 and 5.2 or any fraudulent practice in relation to the use of the water and water system.</li>
+              <li>Non-compliance to the other water supplier policies ad Board of Resolutions pertaining to water services.</li>
+            </ol>
+
+            <h2 class="contract-section-title">C. RE-CONNECTION</h2>
+            <ol class="contract-num-list">
+              <li>Disconnected installation due to delinquency and other legal ground for disconnection can be reconnected upon full payment of arrears, re-connection fees of P500.00 and penalty charges. However, reconnection maybe held pending in cases of water shortage or similar situation that will affect majority of the consumers.</li>
+              <li>Request reconnection for disconnected pipelines by another person to replace the name of the original registered concessionaire may not be granted except upon application for change of name of the disconnected service connection will properly approved and upon settlement of all previous accounts and all other charges of the said registered concessionaire.</li>
+              <li>Concessionaires who request voluntary disconnection of their service lines are required to pay the prevailing reconnection fee before reconnection is implemented.</li>
+              <li>After payment of the service connection fee, the water meter is a property of the concessionaire, hence the concessionaire should protect it from damages and will be required to replace and buy it to the water supplier the equivalent amount in case of its loss or damage while in possession.</li>
+            </ol>
+
+            <h2 class="contract-section-title">D. RATES AND FEES</h2>
+            <table class="contract-rates-table">
+              <thead>
+                <tr>
+                  <th>CLASSIFICATION</th>
+                  <th>INSTALLATION FEE AND OTHER CHARGES FOR NEW CONNECTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Residential</td>
+                  <td>P{{ installation_fee_residential }} Connection Fee; P20.00/cu M.</td>
+                </tr>
+                <tr>
+                  <td>Commercial/ Industrial</td>
+                  <td>P{{ installation_fee_commercial }} Connection Fee; P35.00/cu M.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="contract-note">Note: Rates and fees shall be based on the current approved schedules and is subject to change with prior notice and upon approval of the McKarlen Water Technologies Inc/ Versatec Industrial Corp.</p>
+          </div>
+        </div>
+      </section>
+      <div class="contract-page-footer">3 | P a g e</div>
+    </div>
+
+    {# ========== PAGE 4: E. GENERAL POLICIES + signatures ========== #}
+    <div class="contract-sheet">
+      <header class="contract-doc-header">
+        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      </header>
+
+      <section class="contract-page-body">
+        <h2 class="contract-section-title">E. GENERAL POLICIES</h2>
+        <ol class="contract-num-list">
+          <li>Payment of bills shall be made only to the water supplier designated teller’s cashiers.</li>
+          <li>All unpaid bills after due shall be considered as arrears and shall be subjected to 10% penalty charge.</li>
+          <li>The water supplier shall supply a water meter to the concessionaire and in turn the concessionaire should protect it from any damage and shall be required to pay the equivalent amount in case of its loss or damage while in possession.</li>
+          <li>Should an issued water meter be destroyed or becomes unserviceable for any reason or another, concessionaire should immediately report it to the water supplier for appropriate action. In case of uncertainty of consumption, the average of the highest three (3) months previous consumption shall be the basis of subsequent bill consumption.</li>
+          <li>The water meter shall have a warranty against factory defect of 12 months from the date of installation.</li>
+          <li>Authorized representative of the water supplier shall be given by the concessionaire full access to his premises or property for the purpose of inspection, repairs and disconnection and that no one is allowed to remove or tamper any installation therein unless authorized by the District.</li>
+          <li>All other policies, rules and regulations that may hereinafter be formulated by the water supplier management shall form part of this policy upon proper public notification.</li>
+          <li>Should this concessionaire fail to comply with any agreement and policy, the District may terminate this contract with prior notification. Termination of contract will mean discontinuance of water service to concerned concessionaire.</li>
+        </ol>
+
+        <p class="contract-paragraph contract-witness-line">
+          In witness hereof, the parties have set their hands this
+          <span class="contract-inline-underline contract-inline-day">{% if signed_day != '______' %}{{ signed_day }}{% else %}&nbsp;{% endif %}</span>
+          day of
+          <span class="contract-inline-underline contract-inline-month">{% if signed_month != '________________' %}{{ signed_month }}{% else %}&nbsp;{% endif %}</span>,
+          20<span class="contract-inline-underline contract-inline-year">{% if signed_year != '____' %}{{ signed_year }}{% else %}&nbsp;{% endif %}</span>
+          at Nanyo, Panabo City.
+        </p>
+
+        <table class="contract-execution-table">
+          <tr>
+            <td class="contract-execution-left">
+              <div class="contract-field-line contract-execution-sig-line">
+                {% if contract.applicant_display_name %}{{ contract.applicant_display_name }}{% else %}&nbsp;{% endif %}
+              </div>
+              <div class="contract-sig-caption contract-concessionaire-caption">Concessionaire</div>
+            </td>
+            <td class="contract-execution-right">
+              <div class="contract-party-name"><strong>VERSATEC INDUSTRIAL CORP.</strong></div>
+              <div class="contract-by-row">
+                <span class="contract-by-label">By:</span>
+                <span class="contract-inline-line">&nbsp;</span>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </section>
+      <div class="contract-page-footer">4 | P a g e</div>
+    </div>
+
+    {# ========== PAGE 5: Acknowledgement ========== #}
+    <div class="contract-sheet">
+      <header class="contract-doc-header">
+        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      </header>
+
+      <section class="contract-page-body">
+        <div class="contract-notary-rule"></div>
+
+        <h1 class="contract-title contract-ack-title">ACKNOWLEDGEMENT</h1>
+        <p class="contract-paragraph contract-ack-center"><strong>REPUBLIC OF THE PHILIPPINES</strong></p>
+        <p class="contract-paragraph">
+          PROVINCE OF
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_province %}{{ contract.notary_province }}{% else %}&nbsp;{% endif %}</span>
+        </p>
+        <p class="contract-paragraph">
+          CITY OF
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_city %}{{ contract.notary_city }}{% else %}&nbsp;{% endif %}</span>
+          &nbsp; S,S,
+        </p>
+        <p class="contract-paragraph">
+          Before me this
+          <span class="contract-inline-underline contract-inline-day">{% if contract.notary_day %}{{ contract.notary_day }}{% else %}&nbsp;{% endif %}</span>
+          day of
+          <span class="contract-inline-underline contract-inline-month">{% if contract.notary_month %}{{ contract.notary_month }}{% else %}&nbsp;{% endif %}</span>,
+          20<span class="contract-inline-underline contract-inline-year">{% if contract.notary_year %}{{ contract.notary_year }}{% else %}&nbsp;{% endif %}</span>
+          in
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_location %}{{ contract.notary_location }}{% else %}&nbsp;{% endif %}</span>,
+          Philippines, personally appeared,
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness1_name %}{{ contract.notary_witness1_name }}{% else %}&nbsp;{% endif %}</span>,
+          with the identification No.
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness1_id %}{{ contract.notary_witness1_id }}{% else %}&nbsp;{% endif %}</span>
+          issued on
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness1_id_issued %}{{ contract.notary_witness1_id_issued }}{% else %}&nbsp;{% endif %}</span>
+          at
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness1_id_at %}{{ contract.notary_witness1_id_at }}{% else %}&nbsp;{% endif %}</span>
+          and
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness2_name %}{{ contract.notary_witness2_name }}{% else %}&nbsp;{% endif %}</span>
+          with
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness2_id_issued %}{{ contract.notary_witness2_id_issued }}{% else %}&nbsp;{% endif %}</span>
+          ID No.
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness2_id %}{{ contract.notary_witness2_id }}{% else %}&nbsp;{% endif %}</span>
+          issued on
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness2_id_issued %}{{ contract.notary_witness2_id_issued }}{% else %}&nbsp;{% endif %}</span>
+          at
+          <span class="contract-inline-underline contract-inline-medium">{% if contract.notary_witness2_id_at %}{{ contract.notary_witness2_id_at }}{% else %}&nbsp;{% endif %}</span>
+          known to me to be the same person who executed the foregoing instrument and acknowledge to me that the same is their free and voluntary act and deed.
+        </p>
+        <p class="contract-paragraph">Witness my hand and official seal.</p>
+        <div class="contract-notary-docs">
+          <div>Doc No &nbsp;: {% if contract.notary_doc_no %}{{ contract.notary_doc_no }}{% endif %}</div>
+          <div>Page No &nbsp;: {% if contract.notary_page_no %}{{ contract.notary_page_no }}{% endif %}</div>
+          <div>Book No &nbsp;: {% if contract.notary_book_no %}{{ contract.notary_book_no }}{% endif %}</div>
+          <div>Series of 20{% if contract.notary_series_year %}{{ contract.notary_series_year }}{% else %}__{% endif %} :</div>
+        </div>
+      </section>
+      <div class="contract-page-footer">5 | P a g e</div>
+    </div>
+
+  </article>
+</div>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% load static %}
+<div class="panel water-contract-panel" style="margin-top:18px;">
+  <div class="panel-head" style="align-items:flex-start; gap:12px;">
+    <div>
+      <h2>Water service contract</h2>
+      <p class="sub">Save the contract first, then print. New applications start with a blank form; choose a customer when reconnecting or transferring to prefill once.</p>
+    </div>
+    {% if edit_contract %}
+    <a class="action" href="?tab=disconnectTab">New contract</a>
+    {% endif %}
+  </div>
+
+  <form method="post" id="waterContractForm" class="water-contract-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{% if edit_contract %}update_service_contract{% else %}create_service_contract{% endif %}">
+    {% if edit_contract %}<input type="hidden" name="contract_id" value="{{ edit_contract.id }}">{% endif %}
+
+    <details class="water-contract-section" open>
+      <summary>1. Service connection application</summary>
+      <div class="form-grid">
+        <div class="section-label">Application status and prefill</div>
+        <div class="field">
+          <label for="contractApplicationStatus">Application status *</label>
+          <select name="application_status" id="contractApplicationStatus" required>
+            {% for value, label in contract_application_statuses %}
+            <option value="{{ value }}"{% if edit_contract.application_status == value or not edit_contract and value == 'new' %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field full" id="contractCustomerField">
+          <label for="contractCustomerSearch">Customer (reconnection / transfer prefill)</label>
+          <div class="bill-combobox" id="contractCustomerCombo">
+            <input type="hidden" name="contract_customer_id" id="contractCustomerId" value="{% if edit_contract.customer_id %}{{ edit_contract.customer_id }}{% endif %}">
+            <input type="text" id="contractCustomerSearch" placeholder="Optional — search by name…" autocomplete="off"{% if edit_contract.customer %} value="{{ edit_contract.customer.account_number }} – {{ edit_contract.customer.display_name }}"{% endif %}>
+            <ul class="bill-combobox-list" id="contractCustomerList">
+              {% for c in all_customers %}
+              <li
+                class="bill-combobox-item"
+                data-id="{{ c.id }}"
+                data-name="{{ c.display_name }}"
+                data-label="{{ c.account_number }} – {{ c.display_name }}"
+                data-last-name="{{ c.last_name }}"
+                data-first-name="{{ c.first_name }}"
+                data-zone="{% if c.zone %}{{ c.zone.name }}{% endif %}"
+                data-address="{{ c.service_address }}"
+                data-contact="{{ c.contact_number }}"
+                data-meter="{{ c.meter_number }}"
+                data-display-name="{{ c.display_name }}"
+                data-classification="{% if c.customer_type == 'government' %}government{% elif c.customer_type == 'commercial' or c.customer_type == 'industrial' %}commercial{% else %}residential{% endif %}">
+                {{ c.account_number }} – {{ c.display_name }}
+              </li>
+              {% empty %}
+              <li class="bill-combobox-empty" data-static="1">No customers.</li>
+              {% endfor %}
+              <li class="bill-combobox-empty" id="contractCustomerNoMatch" hidden>No matching customer names.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="section-label">Applicant information</div>
+        <div class="field"><label>Last name *</label><input name="last_name" id="contractLastName" required value="{{ edit_contract.last_name|default:'' }}"></div>
+        <div class="field"><label>First name *</label><input name="first_name" id="contractFirstName" required value="{{ edit_contract.first_name|default:'' }}"></div>
+        <div class="field"><label>Middle name</label><input name="middle_name" id="contractMiddleName" value="{{ edit_contract.middle_name|default:'' }}"></div>
+        <div class="field"><label>Zone / Purok</label><input name="zone_purok" id="contractZonePurok" value="{{ edit_contract.zone_purok|default:'' }}"></div>
+        <div class="field"><label>Barangay</label><input name="barangay" id="contractBarangay" value="{{ edit_contract.barangay|default:'' }}"></div>
+        <div class="field"><label>Municipality / City</label><input name="municipality_city" id="contractMunicipalityCity" value="{{ edit_contract.municipality_city|default:'' }}"></div>
+        <div class="field"><label>Contact no.</label><input name="contact_number" id="contractContactNumber" value="{{ edit_contract.contact_number|default:'' }}"></div>
+        <div class="field"><label>Spouse last name</label><input name="spouse_last_name" value="{{ edit_contract.spouse_last_name|default:'' }}"></div>
+        <div class="field"><label>Spouse first name</label><input name="spouse_first_name" value="{{ edit_contract.spouse_first_name|default:'' }}"></div>
+        <div class="field"><label>Spouse middle name</label><input name="spouse_middle_name" value="{{ edit_contract.spouse_middle_name|default:'' }}"></div>
+        <div class="section-label">Classification and connection request</div>
+        <div class="field">
+          <label>Home ownership</label>
+          <select name="home_ownership">
+            <option value="">—</option>
+            {% for value, label in contract_home_ownerships %}
+            <option value="{{ value }}"{% if edit_contract.home_ownership == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Customer classification</label>
+          <select name="customer_classification" id="contractClassification">
+            <option value="">—</option>
+            {% for value, label in contract_classifications %}
+            <option value="{{ value }}"{% if edit_contract.customer_classification == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field full" id="contractTransferField"{% if edit_contract.application_status != 'transfer' %} hidden{% endif %}>
+          <label>Original registered name (transfer only)</label>
+          <input name="original_registered_name" id="contractOriginalName" value="{{ edit_contract.original_registered_name|default:'' }}">
+        </div>
+        <div class="field"><label>Meter size</label><input name="meter_size" id="contractMeterSize" value="{{ edit_contract.meter_size|default:'' }}"></div>
+        <div class="field full"><label>Connection location</label><input name="connection_location" id="contractConnectionLocation" value="{{ edit_contract.connection_location|default:'' }}"></div>
+        <div class="field full"><label>Near / beside</label><input name="near_beside" id="contractNearBeside" value="{{ edit_contract.near_beside|default:'' }}"></div>
+        <div class="field full">
+          <div class="contract-form-signature-preview">
+            <div class="contract-form-signature-box">
+              <div class="contract-form-signature-line"></div>
+              <div class="contract-form-signature-label">Signature of Applicant</div>
+            </div>
+            <div class="contract-form-signature-box">
+              <div class="contract-form-signature-line"></div>
+              <div class="contract-form-signature-label">Signature of Applicant's Spouse</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="water-contract-section">
+      <summary>2. Acknowledgement receipt</summary>
+      <div class="form-grid">
+        <div class="field full"><label>Payee name</label><input name="ack_payee_name" id="contractAckPayee" value="{{ edit_contract.ack_payee_name|default:'' }}"></div>
+        <div class="field"><label>Amount (P)</label><input name="ack_amount" type="number" step="0.01" min="0" value="{% if edit_contract %}{{ edit_contract.ack_amount }}{% else %}0{% endif %}"></div>
+        <div class="field"><label>Received by</label><input name="ack_received_by" value="{{ edit_contract.ack_received_by|default:'' }}"></div>
+        <div class="field"><label>Date</label><input type="date" name="ack_date" value="{% if edit_contract.ack_date %}{{ edit_contract.ack_date|date:'Y-m-d' }}{% endif %}"></div>
+      </div>
+    </details>
+
+    <details class="water-contract-section">
+      <summary>3. Water service contract</summary>
+      <div class="form-grid">
+        <div class="section-label">Parties and effectivity</div>
+        <div class="field"><label>Contract effective date</label><input type="date" name="contract_date" value="{% if edit_contract.contract_date %}{{ edit_contract.contract_date|date:'Y-m-d' }}{% endif %}"></div>
+        <div class="field">
+          <label>Civil status</label>
+          <select name="civil_status">
+            <option value="">—</option>
+            {% for value, label in contract_civil_statuses %}
+            <option value="{{ value }}"{% if edit_contract.civil_status == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Spouse name (if married)</label><input name="contract_spouse_name" value="{{ edit_contract.contract_spouse_name|default:'' }}"></div>
+        <div class="field full"><label>Contract address</label><input name="contract_address" id="contractAddress" value="{{ edit_contract.contract_address|default:'' }}"></div>
+        <div class="section-label">Contract signing block</div>
+        <div class="field"><label>Signed — day</label><input name="signed_day" type="number" min="1" max="31" value="{% if edit_contract.signed_day %}{{ edit_contract.signed_day }}{% endif %}"></div>
+        <div class="field"><label>Signed — month</label><input name="signed_month" value="{{ edit_contract.signed_month|default:'' }}"></div>
+        <div class="field"><label>Signed — year (2 digits)</label><input name="signed_year" type="number" min="0" max="99" value="{% if edit_contract.signed_year %}{{ edit_contract.signed_year }}{% endif %}"></div>
+        <div class="field full">
+          <div class="contract-form-execution-preview">
+            <div class="contract-form-execution-box">
+              <div class="contract-form-execution-title">VERSATEC INDUSTRIAL CORP.</div>
+              <div class="contract-form-by-row">
+                <span>By:</span>
+                <div class="contract-form-inline-line"></div>
+              </div>
+            </div>
+            <div class="contract-form-execution-box">
+              <div class="contract-form-signature-line"></div>
+              <div class="contract-form-signature-label">Concessionaire</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="water-contract-section">
+      <summary>4. Notarial acknowledgement</summary>
+      <div class="form-grid">
+        <div class="field"><label>Province</label><input name="notary_province" value="{{ edit_contract.notary_province|default:'' }}"></div>
+        <div class="field"><label>City</label><input name="notary_city" value="{{ edit_contract.notary_city|default:'' }}"></div>
+        <div class="field"><label>Day</label><input name="notary_day" type="number" min="1" max="31" value="{% if edit_contract.notary_day %}{{ edit_contract.notary_day }}{% endif %}"></div>
+        <div class="field"><label>Month</label><input name="notary_month" value="{{ edit_contract.notary_month|default:'' }}"></div>
+        <div class="field"><label>Year (2 digits)</label><input name="notary_year" type="number" min="0" max="99" value="{% if edit_contract.notary_year %}{{ edit_contract.notary_year }}{% endif %}"></div>
+        <div class="field full"><label>Location</label><input name="notary_location" value="{{ edit_contract.notary_location|default:'' }}"></div>
+        <div class="field"><label>Witness 1 name</label><input name="notary_witness1_name" value="{{ edit_contract.notary_witness1_name|default:'' }}"></div>
+        <div class="field"><label>Witness 1 ID</label><input name="notary_witness1_id" value="{{ edit_contract.notary_witness1_id|default:'' }}"></div>
+        <div class="field"><label>Witness 1 ID issued</label><input name="notary_witness1_id_issued" value="{{ edit_contract.notary_witness1_id_issued|default:'' }}"></div>
+        <div class="field"><label>Witness 1 ID at</label><input name="notary_witness1_id_at" value="{{ edit_contract.notary_witness1_id_at|default:'' }}"></div>
+        <div class="field"><label>Witness 2 name</label><input name="notary_witness2_name" value="{{ edit_contract.notary_witness2_name|default:'' }}"></div>
+        <div class="field"><label>Witness 2 ID</label><input name="notary_witness2_id" value="{{ edit_contract.notary_witness2_id|default:'' }}"></div>
+        <div class="field"><label>Witness 2 ID issued</label><input name="notary_witness2_id_issued" value="{{ edit_contract.notary_witness2_id_issued|default:'' }}"></div>
+        <div class="field"><label>Witness 2 ID at</label><input name="notary_witness2_id_at" value="{{ edit_contract.notary_witness2_id_at|default:'' }}"></div>
+        <div class="field"><label>Doc no.</label><input name="notary_doc_no" value="{{ edit_contract.notary_doc_no|default:'' }}"></div>
+        <div class="field"><label>Page no.</label><input name="notary_page_no" value="{{ edit_contract.notary_page_no|default:'' }}"></div>
+        <div class="field"><label>Book no.</label><input name="notary_book_no" value="{{ edit_contract.notary_book_no|default:'' }}"></div>
+        <div class="field"><label>Series year (2 digits)</label><input name="notary_series_year" value="{{ edit_contract.notary_series_year|default:'' }}"></div>
+      </div>
+    </details>
+
+    <div class="form-actions">
+      <button type="submit" class="primary">{% if edit_contract %}Update contract{% else %}Save contract{% endif %}</button>
+      {% if edit_contract %}
+      <a class="action primary" href="{% url 'view_water_service_contract' edit_contract.id %}" target="_blank" rel="noopener">Print</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <h3 style="margin-top:24px;">Saved contracts</h3>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Date</th><th>Applicant</th><th>Status</th><th>Account</th><th></th></tr></thead>
+      <tbody>
+        {% for c in service_contracts %}
+        <tr>
+          <td>{{ c.created_at|date:"Y-m-d" }}</td>
+          <td>{{ c.applicant_display_name }}</td>
+          <td>{{ c.get_application_status_display }}</td>
+          <td>{% if c.customer %}{{ c.customer.account_number }}{% else %}—{% endif %}</td>
+          <td>
+            <a class="action" href="?tab=disconnectTab&amp;contract_id={{ c.id }}">Edit</a>
+            <a class="action primary" href="{% url 'view_water_service_contract' c.id %}" target="_blank" rel="noopener">Print</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">No saved contracts yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if service_contracts.has_other_pages %}
+  <nav class="water-pager" aria-label="Contracts pagination">
+    {% if service_contracts.has_previous %}
+    <a class="action" href="?tab=disconnectTab&amp;cpage={{ service_contracts.previous_page_number }}{% if request.GET.contract_id %}&amp;contract_id={{ request.GET.contract_id }}{% endif %}" data-pager-link>Prev</a>
+    {% else %}
+    <span class="action is-disabled">Prev</span>
+    {% endif %}
+    <span class="pager-info">Page {{ service_contracts.number }} of {{ service_contracts.paginator.num_pages }}</span>
+    {% if service_contracts.has_next %}
+    <a class="action" href="?tab=disconnectTab&amp;cpage={{ service_contracts.next_page_number }}{% if request.GET.contract_id %}&amp;contract_id={{ request.GET.contract_id }}{% endif %}" data-pager-link>Next</a>
+    {% else %}
+    <span class="action is-disabled">Next</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+</div>

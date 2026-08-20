@@ -1,0 +1,663 @@
+body {
+  display: block;
+  padding: 24px;
+  background: #f1f5f9;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.28;
+  color: #000;
+}
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+  font-family: system-ui, sans-serif;
+}
+
+.toolbar a,
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 9px 13px;
+  border-radius: 7px;
+  border: 0;
+  background: #0f766e;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.contract-document {
+  background: #fff;
+  box-shadow: 0 8px 24px #1720331a;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.28;
+}
+
+.contract-sheet {
+  display: flex;
+  flex-direction: column;
+  padding: 0 2mm;
+  page-break-after: always;
+}
+
+.contract-sheet:last-child {
+  page-break-after: auto;
+}
+
+.contract-doc-header {
+  flex: 0 0 auto;
+  margin-bottom: 2mm;
+}
+
+.contract-doc-header img {
+  width: 100%;
+  display: block;
+}
+
+.contract-page-body {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.contract-page-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid #999;
+  margin-top: auto;
+  padding: 2mm 0 1mm;
+  text-align: right;
+  font-size: 10pt;
+  letter-spacing: 0.04em;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ---- Titles ---- */
+.contract-title {
+  text-align: center;
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 2mm 0 5mm;
+  text-transform: uppercase;
+}
+
+.contract-subtitle {
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 3mm 0 3mm;
+  text-transform: uppercase;
+}
+
+.contract-ack-title {
+  margin-top: 4mm;
+  margin-bottom: 3mm;
+}
+
+.contract-section-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 3.5mm 0 1.5mm;
+  font-size: 11pt;
+}
+
+.contract-witnesseth {
+  text-align: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 4mm 0 3mm;
+  font-size: 11pt;
+}
+
+.contract-and-center {
+  text-align: center;
+  margin: 2mm 0;
+}
+
+/* ---- Page 1 application ---- */
+.contract-page-application {
+  display: flex;
+  flex-direction: column;
+}
+
+.contract-application-main {
+  flex: 0 1 auto;
+}
+
+.contract-application-receipt {
+  flex: 0 0 auto;
+  margin-top: 6mm;
+}
+
+.contract-app-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 0 0 1mm;
+}
+
+.contract-app-label-col {
+  width: 18%;
+}
+
+.contract-app-field-col {
+  width: 27.333%;
+}
+
+.contract-app-table th,
+.contract-app-table td {
+  vertical-align: bottom;
+  padding: 0 5px 0 0;
+  font-size: 11pt;
+}
+
+.contract-app-table tr + tr th,
+.contract-app-table tr + tr td {
+  padding-top: 3mm;
+}
+
+.contract-app-label {
+  font-weight: 700;
+  text-align: left;
+  vertical-align: bottom;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.contract-app-label::after {
+  content: " :";
+}
+
+.contract-app-label-spouse {
+  white-space: normal;
+  line-height: 1.15;
+  font-size: 10.5pt;
+}
+
+.contract-app-field {
+  vertical-align: top;
+}
+
+.contract-app-ownership {
+  vertical-align: middle;
+}
+
+.contract-app-ownership .contract-check {
+  margin-right: 28px;
+}
+
+.contract-field-line {
+  border-bottom: 1px solid #000;
+  min-height: 1.05em;
+  line-height: 1.1;
+  padding: 0 1px 1px;
+}
+
+.contract-field-line-contact {
+  width: 42%;
+}
+
+.contract-app-table .field-hint {
+  font-size: 8pt;
+  font-style: italic;
+  color: #000;
+  text-align: center;
+  margin-top: 0.4mm;
+  line-height: 1;
+}
+
+.contract-options-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 5mm 0 3.5mm;
+}
+
+.contract-options-col {
+  width: 50%;
+  vertical-align: top;
+  padding: 0 14px 0 0;
+  font-size: 11pt;
+}
+
+.contract-options-col:last-child {
+  padding-right: 0;
+  padding-left: 8px;
+}
+
+.contract-panel-title {
+  font-weight: 700;
+  margin-bottom: 1mm;
+}
+
+.contract-check-line {
+  margin: 0;
+  line-height: 1.2;
+  padding: 0.3mm 0;
+}
+
+.contract-original-name-row {
+  margin-top: 0.8mm;
+  line-height: 1.2;
+}
+
+.contract-check {
+  white-space: nowrap;
+}
+
+.contract-paragraph {
+  margin: 2.2mm 0;
+  text-align: justify;
+  line-height: 1.32;
+  font-size: 11pt;
+}
+
+.contract-application-request {
+  margin-top: 3mm;
+}
+
+.contract-page-application .contract-application-receipt .contract-paragraph {
+  margin: 2mm 0;
+}
+
+.contract-ack-center {
+  text-align: center;
+}
+
+.contract-inline-underline {
+  display: inline-block;
+  border-bottom: 1px solid #000;
+  min-height: 1.05em;
+  vertical-align: bottom;
+  padding: 0 2px;
+}
+
+.contract-inline-short { min-width: 110px; }
+.contract-inline-micro { min-width: 50px; }
+.contract-inline-medium { min-width: 160px; }
+.contract-inline-wide { min-width: 70%; }
+.contract-inline-location { min-width: 200px; }
+.contract-inline-near { min-width: 120px; }
+.contract-inline-name { min-width: 220px; }
+.contract-inline-address { min-width: 260px; }
+.contract-inline-date { min-width: 160px; }
+.contract-inline-day { min-width: 36px; }
+.contract-inline-month { min-width: 90px; }
+.contract-inline-year { min-width: 28px; }
+
+.contract-signature-table,
+.contract-receipt-table,
+.contract-execution-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.contract-signature-table {
+  margin-top: 6mm;
+}
+
+.contract-signature-table td {
+  width: 50%;
+  vertical-align: top;
+  text-align: center;
+  padding: 0 10mm;
+}
+
+.contract-signature-line {
+  margin-top: 0;
+}
+
+.contract-sig-caption {
+  margin-top: 1mm;
+  font-size: 9.5pt;
+  font-style: italic;
+}
+
+.contract-divider {
+  border-top: 2px solid #000;
+  margin: 0 0 3mm;
+}
+
+.contract-receipt-table {
+  margin-top: 5mm;
+}
+
+.contract-receipt-table td {
+  width: 55%;
+  vertical-align: top;
+  text-align: left;
+  padding: 0;
+}
+
+.contract-receipt-table td:last-child {
+  width: 45%;
+  text-align: right;
+}
+
+.contract-receipt-table td:last-child .contract-field-line {
+  margin-left: auto;
+}
+
+.contract-receipt-line {
+  width: 70%;
+  margin-top: 2mm;
+}
+
+.contract-receipt-line-date {
+  width: 55%;
+  margin-top: 2mm;
+  margin-left: auto;
+}
+
+/* ---- Contract body (pages 2–3) ---- */
+.contract-body-with-signature-margin {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex: 1 1 auto;
+}
+
+.contract-signature-margin {
+  flex: 0 0 10mm;
+  position: relative;
+  margin-right: 6mm;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+/* Line on the left; label immediately to its right (reads bottom → top). */
+.contract-signature-margin-group {
+  position: relative;
+  width: 8mm;
+  height: 52mm;
+  overflow: visible;
+}
+
+.contract-signature-margin-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid #000;
+}
+
+.contract-signature-margin-label {
+  position: absolute;
+  left: 1.5mm;
+  top: 50%;
+  /* Anchor on the left edge so the long string does not rotate around its center into the body text. */
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left center;
+  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8pt;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.contract-body-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.contract-num-list {
+  margin: 0 0 2mm 0;
+  padding: 0 0 0 1.35em;
+  list-style: decimal;
+}
+
+.contract-num-list > li {
+  margin-bottom: 2mm;
+  text-align: justify;
+  line-height: 1.32;
+  padding-left: 0.25em;
+}
+
+.contract-letter-list {
+  margin: 1.5mm 0 0;
+  padding: 0 0 0 1.4em;
+  list-style: lower-alpha;
+}
+
+.contract-letter-list > li {
+  margin-bottom: 1.5mm;
+  text-align: justify;
+}
+
+.contract-rates-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2mm 0 2mm;
+  font-size: 10.5pt;
+}
+
+.contract-rates-table th,
+.contract-rates-table td {
+  border: 1px solid #000;
+  padding: 3px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.contract-rates-table th {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 9.5pt;
+}
+
+.contract-note {
+  font-size: 10pt;
+  font-style: italic;
+  margin: 2mm 0 3mm;
+  text-align: justify;
+  line-height: 1.28;
+}
+
+.contract-witness-line {
+  margin-top: 5mm;
+}
+
+.contract-execution-table {
+  margin-top: 10mm;
+  margin-bottom: 6mm;
+}
+
+.contract-execution-left,
+.contract-execution-right {
+  width: 50%;
+  vertical-align: top;
+  padding: 0 8mm;
+}
+
+.contract-execution-left {
+  text-align: center;
+}
+
+.contract-execution-right {
+  text-align: center;
+}
+
+.contract-execution-sig-line {
+  margin-top: 8mm;
+}
+
+.contract-concessionaire-caption {
+  font-style: italic;
+}
+
+.contract-party-name {
+  margin-bottom: 8mm;
+  text-align: center;
+}
+
+.contract-by-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  justify-content: center;
+  max-width: 85%;
+  margin: 0 auto;
+}
+
+.contract-by-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.contract-inline-line {
+  flex: 1 1 auto;
+  display: inline-block;
+  border-bottom: 1px solid #000;
+  min-height: 1.25em;
+  min-width: 120px;
+}
+
+.contract-notary-rule {
+  border-top: 1.5px dashed #000;
+  margin: 2mm 0 4mm;
+}
+
+.contract-notary-docs {
+  margin-top: 4mm;
+  font-size: 11pt;
+  line-height: 1.7;
+}
+
+@page {
+  size: A4;
+  margin: 12mm 14mm 10mm;
+}
+
+@media print {
+  body {
+    padding: 0;
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .page {
+    max-width: none;
+    margin: 0;
+  }
+
+  .contract-document {
+    box-shadow: none;
+  }
+
+  /*
+    Flex footer (not absolute). Absolute + full-page height was spilling
+    the page number onto the next sheet (clipped at the top edge).
+    Sheet height sits under the printable area with a small safety buffer.
+  */
+  .contract-sheet {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    position: relative;
+    height: 260mm;
+    max-height: 260mm;
+    padding: 0;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .contract-doc-header {
+    flex: 0 0 auto;
+  }
+
+  .contract-page-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .contract-page-footer {
+    position: static;
+    flex: 0 0 auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-top: auto;
+    margin-bottom: 0;
+    padding: 2mm 0 0;
+    border-top: 1px solid #999;
+    text-align: right;
+    font-size: 11pt;
+    line-height: 1.2;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  .contract-sheet:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .contract-app-table,
+  .contract-options-table,
+  .contract-signature-table,
+  .contract-receipt-table,
+  .contract-execution-table,
+  .contract-rates-table {
+    display: table !important;
+  }
+
+  .contract-app-table tr,
+  .contract-options-table tr,
+  .contract-signature-table tr,
+  .contract-receipt-table tr,
+  .contract-execution-table tr,
+  .contract-rates-table tr {
+    display: table-row !important;
+  }
+
+  .contract-app-table th,
+  .contract-app-table td,
+  .contract-options-table td,
+  .contract-signature-table td,
+  .contract-receipt-table td,
+  .contract-execution-table td,
+  .contract-rates-table th,
+  .contract-rates-table td {
+    display: table-cell !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 16px;
+  }
+}

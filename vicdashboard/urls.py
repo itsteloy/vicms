@@ -37,6 +37,7 @@ urlpatterns = [
     path('dashboard/water-billing/bills/<int:bill_id>/', views.view_water_bill, name='view_water_bill'),
     path('dashboard/water-billing/customers/<int:customer_id>/', views.view_water_customer, name='view_water_customer'),
     path('dashboard/water-billing/readings/<int:reading_id>/preview/', views.view_water_reading_preview, name='view_water_reading_preview'),
+    path('dashboard/water-billing/service-contracts/<int:contract_id>/', views.view_water_service_contract, name='view_water_service_contract'),
     path('dashboard/services/repair-reports/create/', views.create_service_repair_report, name='create_service_repair_report'),
     path('dashboard/services/job-orders/create/', views.create_job_order, name='create_job_order'),
     path('dashboard/services/borrow-material/create/', views.create_material_borrow, name='create_material_borrow'),

@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -3767,6 +3767,14 @@ def _water_paginate(qs, request, per_page=50):
         return paginator.page(1)
 
 
+def _water_paginate_param(qs, request, param='cpage', per_page=25):
+    paginator = Paginator(qs, per_page)
+    try:
+        return paginator.page(request.GET.get(param) or 1)
+    except (PageNotAnInteger, EmptyPage):
+        return paginator.page(1)
+
+
 def _water_normalize_tab(tab):
     if tab in ('readingsTab', 'billingTab'):
         return 'readingsBillingTab'
@@ -4061,6 +4069,16 @@ def _water_tab_context(request, tab):
             'disconnect_candidates': _water_disconnect_candidates(),
             'service_actions': page_obj,
             'page_obj': page_obj,
+            'service_contracts': _water_paginate_param(
+                WaterServiceContract.objects.select_related('customer').all(),
+                request,
+                param='cpage',
+            ),
+            'contract_application_statuses': WATER_CONTRACT_APPLICATION_STATUS,
+            'contract_home_ownerships': WATER_CONTRACT_HOME_OWNERSHIP,
+            'contract_classifications': WATER_CONTRACT_CLASSIFICATION,
+            'contract_civil_statuses': WATER_CONTRACT_CIVIL_STATUS,
+            'edit_contract': _water_get_edit_contract(request),
         })
     elif tab == 'reportsTab':
         report_type = request.GET.get('report', 'billing')
@@ -4105,6 +4123,8 @@ def water_billing_dashboard(request):
             'create_payment': _water_create_payment,
             'create_service_action': _water_create_service_action,
             'complete_service_action': _water_complete_service_action,
+            'create_service_contract': _water_create_service_contract,
+            'update_service_contract': _water_update_service_contract,
             'delete_customer': _water_delete_customer,
             'delete_reading': _water_delete_reading,
             'delete_bill': _water_delete_bill,
@@ -4613,6 +4633,196 @@ def _water_create_payment(request):
     except Exception as exc:
         messages.error(request, f'Could not record payment: {exc}')
     return _water_redirect('paymentsTab')
+
+
+def _water_get_edit_contract(request):
+    contract_id = request.GET.get('contract_id', '').strip()
+    if not contract_id.isdigit():
+        return None
+    return WaterServiceContract.objects.filter(pk=contract_id).select_related('customer').first()
+
+
+def _water_contract_classification_from_customer(customer):
+    mapping = {
+        'residential': 'residential',
+        'government': 'government',
+        'commercial': 'commercial',
+        'industrial': 'commercial',
+    }
+    return mapping.get(customer.customer_type, 'residential')
+
+
+def _water_contract_defaults(customer, application_status):
+    if not customer or application_status == 'new':
+        return {}
+    zone = customer.zone.name if customer.zone_id else ''
+    address = customer.service_address or ''
+    contract_address = address
+    if zone and zone not in address:
+        contract_address = f'{zone}, {address}'.strip(', ')
+    return {
+        'last_name': customer.last_name,
+        'first_name': customer.first_name,
+        'zone_purok': zone,
+        'connection_location': address,
+        'contract_address': contract_address,
+        'contact_number': customer.contact_number,
+        'meter_size': customer.meter_number,
+        'customer_classification': _water_contract_classification_from_customer(customer),
+        'ack_payee_name': customer.display_name,
+    }
+
+
+def _water_contract_from_post(request):
+    application_status = request.POST.get('application_status', 'new').strip() or 'new'
+    if application_status not in dict(WATER_CONTRACT_APPLICATION_STATUS):
+        application_status = 'new'
+    customer = None
+    customer_id = request.POST.get('contract_customer_id', '').strip()
+    if customer_id.isdigit():
+        customer = WaterCustomer.objects.filter(pk=customer_id).first()
+
+    home_ownership = request.POST.get('home_ownership', '').strip()
+    if home_ownership not in dict(WATER_CONTRACT_HOME_OWNERSHIP):
+        home_ownership = ''
+    customer_classification = request.POST.get('customer_classification', '').strip()
+    if customer_classification not in dict(WATER_CONTRACT_CLASSIFICATION):
+        customer_classification = ''
+    civil_status = request.POST.get('civil_status', '').strip()
+    if civil_status not in dict(WATER_CONTRACT_CIVIL_STATUS):
+        civil_status = ''
+
+    def _int_field(name):
+        raw = request.POST.get(name, '').strip()
+        if not raw.isdigit():
+            return None
+        return int(raw)
+
+    return {
+        'customer': customer,
+        'application_status': application_status,
+        'last_name': request.POST.get('last_name', '').strip(),
+        'first_name': request.POST.get('first_name', '').strip(),
+        'middle_name': request.POST.get('middle_name', '').strip(),
+        'zone_purok': request.POST.get('zone_purok', '').strip(),
+        'barangay': request.POST.get('barangay', '').strip(),
+        'municipality_city': request.POST.get('municipality_city', '').strip(),
+        'contact_number': request.POST.get('contact_number', '').strip(),
+        'spouse_last_name': request.POST.get('spouse_last_name', '').strip(),
+        'spouse_first_name': request.POST.get('spouse_first_name', '').strip(),
+        'spouse_middle_name': request.POST.get('spouse_middle_name', '').strip(),
+        'home_ownership': home_ownership,
+        'customer_classification': customer_classification,
+        'original_registered_name': request.POST.get('original_registered_name', '').strip(),
+        'meter_size': request.POST.get('meter_size', '').strip(),
+        'connection_location': request.POST.get('connection_location', '').strip(),
+        'near_beside': request.POST.get('near_beside', '').strip(),
+        'ack_payee_name': request.POST.get('ack_payee_name', '').strip(),
+        'ack_amount': _dec(request.POST.get('ack_amount'), '0'),
+        'ack_received_by': request.POST.get('ack_received_by', '').strip(),
+        'ack_date': _water_parse_date(request.POST.get('ack_date')),
+        'contract_date': _water_parse_date(request.POST.get('contract_date')),
+        'civil_status': civil_status,
+        'contract_spouse_name': request.POST.get('contract_spouse_name', '').strip(),
+        'contract_address': request.POST.get('contract_address', '').strip(),
+        'signed_day': _int_field('signed_day'),
+        'signed_month': request.POST.get('signed_month', '').strip(),
+        'signed_year': _int_field('signed_year'),
+        'notary_province': request.POST.get('notary_province', '').strip(),
+        'notary_city': request.POST.get('notary_city', '').strip(),
+        'notary_day': _int_field('notary_day'),
+        'notary_month': request.POST.get('notary_month', '').strip(),
+        'notary_year': _int_field('notary_year'),
+        'notary_location': request.POST.get('notary_location', '').strip(),
+        'notary_witness1_name': request.POST.get('notary_witness1_name', '').strip(),
+        'notary_witness1_id': request.POST.get('notary_witness1_id', '').strip(),
+        'notary_witness1_id_issued': request.POST.get('notary_witness1_id_issued', '').strip(),
+        'notary_witness1_id_at': request.POST.get('notary_witness1_id_at', '').strip(),
+        'notary_witness2_name': request.POST.get('notary_witness2_name', '').strip(),
+        'notary_witness2_id': request.POST.get('notary_witness2_id', '').strip(),
+        'notary_witness2_id_issued': request.POST.get('notary_witness2_id_issued', '').strip(),
+        'notary_witness2_id_at': request.POST.get('notary_witness2_id_at', '').strip(),
+        'notary_doc_no': request.POST.get('notary_doc_no', '').strip(),
+        'notary_page_no': request.POST.get('notary_page_no', '').strip(),
+        'notary_book_no': request.POST.get('notary_book_no', '').strip(),
+        'notary_series_year': request.POST.get('notary_series_year', '').strip(),
+    }
+
+
+def _water_apply_contract_fields(contract, data):
+    for key, value in data.items():
+        setattr(contract, key, value)
+
+
+def _water_create_service_contract(request):
+    data = _water_contract_from_post(request)
+    if not (data['last_name'] and data['first_name']):
+        messages.error(request, 'Applicant last name and first name are required.')
+        return _water_redirect('disconnectTab')
+    contract = WaterServiceContract()
+    _water_apply_contract_fields(contract, data)
+    contract.save()
+    _water_audit(request, 'Saved service contract', 'WaterServiceContract', contract.pk, contract.applicant_display_name)
+    messages.success(request, f'Service contract saved for {contract.applicant_display_name}.')
+    return redirect(f"{reverse('water_billing_dashboard')}?tab=disconnectTab&contract_id={contract.pk}")
+
+
+def _water_update_service_contract(request):
+    contract_id = request.POST.get('contract_id', '').strip()
+    contract = get_object_or_404(WaterServiceContract, pk=contract_id)
+    data = _water_contract_from_post(request)
+    if not (data['last_name'] and data['first_name']):
+        messages.error(request, 'Applicant last name and first name are required.')
+        return redirect(f"{reverse('water_billing_dashboard')}?tab=disconnectTab&contract_id={contract.pk}")
+    _water_apply_contract_fields(contract, data)
+    contract.save()
+    _water_audit(request, 'Updated service contract', 'WaterServiceContract', contract.pk, contract.applicant_display_name)
+    messages.success(request, f'Service contract updated for {contract.applicant_display_name}.')
+    return redirect(f"{reverse('water_billing_dashboard')}?tab=disconnectTab&contract_id={contract.pk}")
+
+
+def _water_service_contract_context(contract):
+    def fmt_date(value):
+        return value.strftime('%B %d, %Y') if value else ''
+
+    def fmt_peso(value):
+        return f'{Decimal(value or 0):,.2f}'
+
+    def blank(value):
+        text = str(value or '').strip()
+        return text if text else '________________'
+
+    civil = contract.civil_status or ''
+    if civil == 'married' and contract.contract_spouse_name:
+        civil_text = f'married to {contract.contract_spouse_name}'
+    elif civil == 'single':
+        civil_text = 'single'
+    else:
+        civil_text = 'single/married to ________________'
+
+    return {
+        'contract': contract,
+        'blank': blank,
+        'fmt_date': fmt_date,
+        'fmt_peso': fmt_peso,
+        'installation_fee_residential': fmt_peso(WATER_INSTALLATION_FEE),
+        'installation_fee_commercial': fmt_peso(WATER_INSTALLATION_FEE),
+        'contract_date_display': fmt_date(contract.contract_date) or '________________',
+        'ack_date_display': fmt_date(contract.ack_date) or '________________',
+        'ack_amount_display': fmt_peso(contract.ack_amount) if contract.ack_amount else '',
+        'civil_text': civil_text,
+        'signed_day': contract.signed_day or '______',
+        'signed_month': contract.signed_month or '________________',
+        'signed_year': contract.signed_year or '____',
+    }
+
+
+@require_dashboard('water_billing_dashboard')
+def view_water_service_contract(request, contract_id):
+    contract = get_object_or_404(WaterServiceContract.objects.select_related('customer'), pk=contract_id)
+    ctx = _water_service_contract_context(contract)
+    ctx['back_url'] = f"{reverse('water_billing_dashboard')}?tab=disconnectTab&contract_id={contract.pk}"
+    return render(request, 'water_service_contract_print.html', ctx)
 
 
 def _water_create_service_action(request):

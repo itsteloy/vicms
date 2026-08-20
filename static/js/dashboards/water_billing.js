@@ -2,6 +2,7 @@
   let paymentChromeBound = false;
   let readingChromeBound = false;
   let serviceChromeBound = false;
+  let contractChromeBound = false;
   const BATCH_PRINT_MAX = 6;
   const INSTALLATION_FEE = 5900;
   const INSTALLATION_PARTIAL = 3000;
@@ -194,14 +195,14 @@
 
   function initCustomersTab() {
     setDateIfEmpty('custRegDate', localTodayISO());
-    forceUppercase(document.getElementById('customerFirstName'));
-    forceUppercase(document.getElementById('customerLastName'));
-    forceUppercase(document.getElementById('customerServiceAddress'));
-    forceUppercase(document.getElementById('customerMeterNumber'));
+  forceUppercase(document.getElementById('customerFirstName'));
+  forceUppercase(document.getElementById('customerLastName'));
+  forceUppercase(document.getElementById('customerServiceAddress'));
+  forceUppercase(document.getElementById('customerMeterNumber'));
 
-    const installationPayment = document.getElementById('installationPayment');
-    const installationPaid = document.getElementById('installationPaid');
-    const installationBalance = document.getElementById('installationBalance');
+  const installationPayment = document.getElementById('installationPayment');
+  const installationPaid = document.getElementById('installationPaid');
+  const installationBalance = document.getElementById('installationBalance');
     function syncInstallationBalance() {
       if (!installationPaid || !installationBalance) return;
       const paid = Math.min(Math.max(Number(installationPaid.value || 0), 0), INSTALLATION_FEE);
@@ -213,8 +214,8 @@
       installationPaid.value = paid.toFixed(2);
       syncInstallationBalance();
     }
-    function syncInstallationFee() {
-      if (!installationPayment || !installationPaid || !installationBalance) return;
+  function syncInstallationFee() {
+    if (!installationPayment || !installationPaid || !installationBalance) return;
       const choice = installationPayment.value;
       const isCustom = choice === 'custom';
       installationPaid.readOnly = !isCustom;
@@ -225,11 +226,11 @@
       }
       syncInstallationBalance();
       if (isCustom) installationPaid.focus();
-    }
-    if (installationPayment) {
-      installationPayment.addEventListener('change', syncInstallationFee);
-      syncInstallationFee();
-    }
+  }
+  if (installationPayment) {
+    installationPayment.addEventListener('change', syncInstallationFee);
+    syncInstallationFee();
+  }
     if (installationPaid) {
       installationPaid.addEventListener('input', syncInstallationBalance);
       installationPaid.addEventListener('change', normalizeInstallationPaid);
@@ -313,13 +314,13 @@
   }
 
   function initReadingsTab() {
-    const readingDate = document.getElementById('readingDate');
-    if (readingDate && !readingDate.value) readingDate.value = readingDateISO();
-    if (readingDate) {
-      readingDate.addEventListener('change', syncBillingPeriod);
-      readingDate.addEventListener('input', syncBillingPeriod);
-    }
-    syncBillingPeriod();
+  const readingDate = document.getElementById('readingDate');
+  if (readingDate && !readingDate.value) readingDate.value = readingDateISO();
+  if (readingDate) {
+    readingDate.addEventListener('change', syncBillingPeriod);
+    readingDate.addEventListener('input', syncBillingPeriod);
+  }
+  syncBillingPeriod();
 
     const orphanCustomerList = document.getElementById('readingCustomerList');
     const readingsTab = document.getElementById('readingsBillingTab');
@@ -327,41 +328,41 @@
       orphanCustomerList.remove();
     }
 
-    const readingCustomer = document.getElementById('readingCustomer');
+  const readingCustomer = document.getElementById('readingCustomer');
     const readingCustomerSearch = document.getElementById('readingCustomerSearch');
     const readingCustomerList = document.getElementById('readingCustomerList');
     const readingCustomerCombo = document.getElementById('readingCustomerCombo');
-    const previousReading = document.getElementById('previousReading');
-    const currentReading = document.getElementById('currentReading');
-    const readingConsumption = document.getElementById('readingConsumption');
-    const readingCurrentBill = document.getElementById('readingCurrentBill');
-    const previousBillUnpaid = document.getElementById('previousBillUnpaid');
-    const installmentBalance = document.getElementById('installmentBalance');
-    const readingTotalBill = document.getElementById('readingTotalBill');
+  const previousReading = document.getElementById('previousReading');
+  const currentReading = document.getElementById('currentReading');
+  const readingConsumption = document.getElementById('readingConsumption');
+  const readingCurrentBill = document.getElementById('readingCurrentBill');
+  const previousBillUnpaid = document.getElementById('previousBillUnpaid');
+  const installmentBalance = document.getElementById('installmentBalance');
+  const readingTotalBill = document.getElementById('readingTotalBill');
     const readingCustomerWarning = document.getElementById('readingCustomerWarning');
 
-    function updateReadingTotals() {
-      const prev = Number(previousReading?.value || 0);
-      const curr = Number(currentReading?.value || 0);
+  function updateReadingTotals() {
+    const prev = Number(previousReading?.value || 0);
+    const curr = Number(currentReading?.value || 0);
       const consumption = curr - prev;
-      const currentBill = consumption * RATE_PER_CUM;
-      const unpaid = Number(previousBillUnpaid?.value || 0);
-      const installment = Number(installmentBalance?.value || 0);
-      const total = currentBill + unpaid + installment;
-      if (readingConsumption) readingConsumption.value = String(consumption);
-      if (readingCurrentBill) readingCurrentBill.value = currentBill.toFixed(2);
-      if (readingTotalBill) readingTotalBill.value = total.toFixed(2);
-      const stripConsumption = document.getElementById('stripConsumption');
-      const stripCurrent = document.getElementById('stripCurrent');
+    const currentBill = consumption * RATE_PER_CUM;
+    const unpaid = Number(previousBillUnpaid?.value || 0);
+    const installment = Number(installmentBalance?.value || 0);
+    const total = currentBill + unpaid + installment;
+    if (readingConsumption) readingConsumption.value = String(consumption);
+    if (readingCurrentBill) readingCurrentBill.value = currentBill.toFixed(2);
+    if (readingTotalBill) readingTotalBill.value = total.toFixed(2);
+    const stripConsumption = document.getElementById('stripConsumption');
+    const stripCurrent = document.getElementById('stripCurrent');
       const stripUnpaid = document.getElementById('stripUnpaid');
       const stripInstallment = document.getElementById('stripInstallment');
-      const stripTotal = document.getElementById('stripTotal');
-      if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
-      if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
+    const stripTotal = document.getElementById('stripTotal');
+    if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
+    if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
       if (stripUnpaid) stripUnpaid.textContent = `₱${unpaid.toFixed(2)}`;
       if (stripInstallment) stripInstallment.textContent = `₱${installment.toFixed(2)}`;
-      if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
-    }
+    if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
+  }
 
     function applyReadingCustomer(item) {
       const status = item?.dataset?.status || readingCustomer?.dataset?.status || '';
@@ -487,11 +488,11 @@
         if (event.key === 'Escape') closeReadingCustomerList();
       });
       applyReadingCustomer(null);
-    }
-    [previousReading, currentReading, installmentBalance].forEach((el) => {
-      if (el) el.addEventListener('input', updateReadingTotals);
-    });
-    updateReadingTotals();
+  }
+  [previousReading, currentReading, installmentBalance].forEach((el) => {
+    if (el) el.addEventListener('input', updateReadingTotals);
+  });
+  updateReadingTotals();
 
     const readingZoneFilter = document.getElementById('readingZoneFilter');
     const readingFilterForm = document.getElementById('readingFilterForm');
@@ -790,6 +791,169 @@
         if (event.key === 'Escape') closeServiceCustomerList();
       });
     }
+
+    const orphanContractList = document.getElementById('contractCustomerList');
+    if (orphanContractList && serviceTab && !serviceTab.contains(orphanContractList) && !orphanContractList.classList.contains('is-open')) {
+      orphanContractList.remove();
+    }
+
+    const contractForm = document.getElementById('waterContractForm');
+    if (!contractForm) return;
+
+    const contractCustomerId = document.getElementById('contractCustomerId');
+    const contractCustomerSearch = document.getElementById('contractCustomerSearch');
+    const contractCustomerList = document.getElementById('contractCustomerList');
+    const contractCustomerCombo = document.getElementById('contractCustomerCombo');
+    const contractApplicationStatus = document.getElementById('contractApplicationStatus');
+    const contractTransferField = document.getElementById('contractTransferField');
+
+    function contractAddressFrom(zone, address) {
+      const z = (zone || '').trim();
+      const a = (address || '').trim();
+      if (!a) return z;
+      if (z && !a.toLowerCase().includes(z.toLowerCase())) return `${z}, ${a}`.replace(/^,\s*/, '');
+      return a;
+    }
+
+    function setContractField(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value || '';
+    }
+
+    function shouldPrefillContract() {
+      if (!contractApplicationStatus) return false;
+      const status = contractApplicationStatus.value;
+      return status === 'reconnection' || status === 'transfer';
+    }
+
+    function prefillContractFromCustomer(item) {
+      if (!item || !shouldPrefillContract()) return;
+      setContractField('contractLastName', item.dataset.lastName);
+      setContractField('contractFirstName', item.dataset.firstName);
+      setContractField('contractZonePurok', item.dataset.zone);
+      setContractField('contractConnectionLocation', item.dataset.address);
+      setContractField('contractAddress', contractAddressFrom(item.dataset.zone, item.dataset.address));
+      setContractField('contractContactNumber', item.dataset.contact);
+      setContractField('contractMeterSize', item.dataset.meter);
+      setContractField('contractAckPayee', item.dataset.displayName);
+      const classification = document.getElementById('contractClassification');
+      if (classification && item.dataset.classification) {
+        classification.value = item.dataset.classification;
+      }
+    }
+
+    function syncContractTransferField() {
+      if (!contractApplicationStatus || !contractTransferField) return;
+      contractTransferField.hidden = contractApplicationStatus.value !== 'transfer';
+    }
+
+    function setContractCustomer(item) {
+      if (!contractCustomerId || !contractCustomerSearch) return;
+      if (!item) {
+        contractCustomerId.value = '';
+        return;
+      }
+      contractCustomerId.value = item.dataset.id || '';
+      contractCustomerSearch.value = item.dataset.label || item.textContent.trim();
+      prefillContractFromCustomer(item);
+    }
+
+    function filterContractCustomers() {
+      if (!contractCustomerList || !contractCustomerSearch) return;
+      const query = contractCustomerSearch.value.trim().toLowerCase();
+      let visible = 0;
+      contractCustomerList.querySelectorAll('.bill-combobox-item').forEach((item) => {
+        const name = (item.dataset.name || '').toLowerCase();
+        const match = !query || name.includes(query);
+        item.hidden = !match;
+        if (match) visible += 1;
+      });
+      const noMatch = document.getElementById('contractCustomerNoMatch');
+      if (noMatch) noMatch.hidden = visible > 0;
+    }
+
+    function positionContractCustomerList() {
+      if (!contractCustomerList || !contractCustomerSearch) return;
+      const rect = contractCustomerSearch.getBoundingClientRect();
+      contractCustomerList.style.left = `${rect.left}px`;
+      contractCustomerList.style.top = `${rect.bottom + 4}px`;
+      contractCustomerList.style.width = `${Math.max(rect.width, 280)}px`;
+    }
+
+    function openContractCustomerList() {
+      filterContractCustomers();
+      positionContractCustomerList();
+      if (contractCustomerList.parentElement !== document.body) {
+        document.body.appendChild(contractCustomerList);
+      }
+      contractCustomerList.classList.add('is-open');
+    }
+
+    function closeContractCustomerList() {
+      contractCustomerList?.classList.remove('is-open');
+      if (contractCustomerCombo && contractCustomerList && contractCustomerList.parentElement !== contractCustomerCombo) {
+        contractCustomerCombo.appendChild(contractCustomerList);
+      }
+    }
+
+    syncContractTransferField();
+    contractApplicationStatus?.addEventListener('change', () => {
+      syncContractTransferField();
+      if (shouldPrefillContract() && contractCustomerId?.value) {
+        const selected = contractCustomerList?.querySelector(`.bill-combobox-item[data-id="${contractCustomerId.value}"]`);
+        if (selected) prefillContractFromCustomer(selected);
+      }
+    });
+
+    if (contractCustomerSearch && contractCustomerList && contractCustomerId) {
+      contractCustomerSearch.addEventListener('focus', openContractCustomerList);
+      contractCustomerSearch.addEventListener('input', () => {
+        setContractCustomer(null);
+        openContractCustomerList();
+      });
+      contractCustomerList.addEventListener('mousedown', (event) => {
+        const item = event.target.closest('.bill-combobox-item');
+        if (!item || item.hidden) return;
+        event.preventDefault();
+        setContractCustomer(item);
+        closeContractCustomerList();
+      });
+      contractCustomerSearch.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeContractCustomerList();
+      });
+      if (!contractChromeBound) {
+        contractChromeBound = true;
+        document.addEventListener('click', (event) => {
+          const list = document.getElementById('contractCustomerList');
+          const combo = document.getElementById('contractCustomerCombo');
+          if (!list || !list.classList.contains('is-open')) return;
+          const inCombo = combo?.contains(event.target);
+          const inList = list.contains(event.target);
+          if (!inCombo && !inList) {
+            list.classList.remove('is-open');
+            if (combo && list.parentElement !== combo) combo.appendChild(list);
+          }
+        });
+        window.addEventListener('resize', () => {
+          const list = document.getElementById('contractCustomerList');
+          const search = document.getElementById('contractCustomerSearch');
+          if (!list || !search || !list.classList.contains('is-open')) return;
+          const rect = search.getBoundingClientRect();
+          list.style.left = `${rect.left}px`;
+          list.style.top = `${rect.bottom + 4}px`;
+          list.style.width = `${Math.max(rect.width, 280)}px`;
+        });
+        window.addEventListener('scroll', () => {
+          const list = document.getElementById('contractCustomerList');
+          const search = document.getElementById('contractCustomerSearch');
+          if (!list || !search || !list.classList.contains('is-open')) return;
+          const rect = search.getBoundingClientRect();
+          list.style.left = `${rect.left}px`;
+          list.style.top = `${rect.bottom + 4}px`;
+          list.style.width = `${Math.max(rect.width, 280)}px`;
+        }, true);
+      }
+    }
   }
 
   function selectedBatchIds() {
@@ -929,13 +1093,13 @@
   document.addEventListener('change', (event) => {
     const cb = event.target.closest('.batch-bill-check');
     if (!cb) return;
-    let showLimitNote = false;
+      let showLimitNote = false;
     if (cb.checked && selectedBatchIds().length > BATCH_PRINT_MAX) {
-      cb.checked = false;
-      showLimitNote = true;
-    }
-    syncBatchCheckmates(cb);
-    refreshBatchPrintBars(showLimitNote);
+        cb.checked = false;
+        showLimitNote = true;
+      }
+      syncBatchCheckmates(cb);
+      refreshBatchPrintBars(showLimitNote);
   });
 
   document.addEventListener('click', (event) => {
@@ -943,15 +1107,15 @@
     if (!bar) return;
     if (event.target.closest('[data-batch-clear]')) {
       document.querySelectorAll('.batch-bill-check').forEach((cb) => { cb.checked = false; });
-      refreshBatchPrintBars(false);
+        refreshBatchPrintBars(false);
       return;
     }
     if (event.target.closest('[data-batch-print]')) {
-      const ids = selectedBatchIds().slice(0, BATCH_PRINT_MAX);
-      if (!ids.length) return;
-      const params = new URLSearchParams();
-      ids.forEach((id) => params.append('bill_ids', id));
-      window.location.href = `${batchPrintUrl}?${params.toString()}`;
+        const ids = selectedBatchIds().slice(0, BATCH_PRINT_MAX);
+        if (!ids.length) return;
+        const params = new URLSearchParams();
+        ids.forEach((id) => params.append('bill_ids', id));
+        window.location.href = `${batchPrintUrl}?${params.toString()}`;
     }
   });
 

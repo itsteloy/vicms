@@ -1726,6 +1726,29 @@ WATER_SERVICE_ACTION_STATUS = [
     ('disconnected', 'Disconnected'),
 ]
 
+WATER_CONTRACT_APPLICATION_STATUS = [
+    ('new', 'New'),
+    ('reconnection', 'Reconnection'),
+    ('transfer', 'Transfer / Change name'),
+]
+
+WATER_CONTRACT_HOME_OWNERSHIP = [
+    ('owner', 'Owner'),
+    ('rented', 'Rented'),
+    ('contractor', 'Contractor'),
+]
+
+WATER_CONTRACT_CLASSIFICATION = [
+    ('residential', 'Residential'),
+    ('government', 'Government / Institutional'),
+    ('commercial', 'Commercial / Industrial'),
+]
+
+WATER_CONTRACT_CIVIL_STATUS = [
+    ('single', 'Single'),
+    ('married', 'Married'),
+]
+
 
 class WaterZone(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -2034,6 +2057,120 @@ class WaterServiceAction(models.Model):
 
     def __str__(self):
         return f'{self.get_action_type_display()} – {self.customer.account_number}'
+
+
+class WaterServiceContract(models.Model):
+    customer = models.ForeignKey(
+        WaterCustomer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='service_contracts',
+    )
+    application_status = models.CharField(
+        max_length=20,
+        choices=WATER_CONTRACT_APPLICATION_STATUS,
+        default='new',
+    )
+    last_name = models.CharField(max_length=100, blank=True, default='')
+    first_name = models.CharField(max_length=100, blank=True, default='')
+    middle_name = models.CharField(max_length=100, blank=True, default='')
+    zone_purok = models.CharField(max_length=200, blank=True, default='')
+    barangay = models.CharField(max_length=200, blank=True, default='')
+    municipality_city = models.CharField(max_length=200, blank=True, default='')
+    contact_number = models.CharField(max_length=50, blank=True, default='')
+    spouse_last_name = models.CharField(max_length=100, blank=True, default='')
+    spouse_first_name = models.CharField(max_length=100, blank=True, default='')
+    spouse_middle_name = models.CharField(max_length=100, blank=True, default='')
+    home_ownership = models.CharField(
+        max_length=20,
+        choices=WATER_CONTRACT_HOME_OWNERSHIP,
+        blank=True,
+        default='',
+    )
+    customer_classification = models.CharField(
+        max_length=20,
+        choices=WATER_CONTRACT_CLASSIFICATION,
+        blank=True,
+        default='',
+    )
+    original_registered_name = models.CharField(max_length=200, blank=True, default='')
+    meter_size = models.CharField(max_length=50, blank=True, default='')
+    connection_location = models.TextField(blank=True, default='')
+    near_beside = models.CharField(max_length=200, blank=True, default='')
+    ack_payee_name = models.CharField(max_length=200, blank=True, default='')
+    ack_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    ack_received_by = models.CharField(max_length=200, blank=True, default='')
+    ack_date = models.DateField(null=True, blank=True)
+    contract_date = models.DateField(null=True, blank=True)
+    civil_status = models.CharField(
+        max_length=20,
+        choices=WATER_CONTRACT_CIVIL_STATUS,
+        blank=True,
+        default='',
+    )
+    contract_spouse_name = models.CharField(max_length=200, blank=True, default='')
+    contract_address = models.TextField(blank=True, default='')
+    signed_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    signed_month = models.CharField(max_length=20, blank=True, default='')
+    signed_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    notary_province = models.CharField(max_length=100, blank=True, default='')
+    notary_city = models.CharField(max_length=100, blank=True, default='')
+    notary_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    notary_month = models.CharField(max_length=20, blank=True, default='')
+    notary_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    notary_location = models.CharField(max_length=200, blank=True, default='')
+    notary_witness1_name = models.CharField(max_length=200, blank=True, default='')
+    notary_witness1_id = models.CharField(max_length=100, blank=True, default='')
+    notary_witness1_id_issued = models.CharField(max_length=100, blank=True, default='')
+    notary_witness1_id_at = models.CharField(max_length=200, blank=True, default='')
+    notary_witness2_name = models.CharField(max_length=200, blank=True, default='')
+    notary_witness2_id = models.CharField(max_length=100, blank=True, default='')
+    notary_witness2_id_issued = models.CharField(max_length=100, blank=True, default='')
+    notary_witness2_id_at = models.CharField(max_length=200, blank=True, default='')
+    notary_doc_no = models.CharField(max_length=50, blank=True, default='')
+    notary_page_no = models.CharField(max_length=50, blank=True, default='')
+    notary_book_no = models.CharField(max_length=50, blank=True, default='')
+    notary_series_year = models.CharField(max_length=10, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        name = self.applicant_display_name or 'Applicant'
+        return f'Contract – {name}'
+
+    @property
+    def applicant_display_name(self):
+        last = (self.last_name or '').strip()
+        first = (self.first_name or '').strip()
+        if last and first:
+            return f'{last}, {first}'
+        return last or first or ''
+
+    @property
+    def full_address_line(self):
+        parts = [
+            (self.zone_purok or '').strip(),
+            (self.barangay or '').strip(),
+            (self.municipality_city or '').strip(),
+        ]
+        return ', '.join(p for p in parts if p)
+
+    def save(self, *args, **kwargs):
+        for field in (
+            'last_name', 'first_name', 'middle_name', 'zone_purok', 'barangay',
+            'municipality_city', 'spouse_last_name', 'spouse_first_name', 'spouse_middle_name',
+            'original_registered_name', 'connection_location', 'near_beside', 'ack_payee_name',
+            'contract_spouse_name', 'contract_address', 'notary_location',
+            'notary_witness1_name', 'notary_witness2_name',
+        ):
+            val = getattr(self, field, None)
+            if val and isinstance(val, str):
+                setattr(self, field, val.strip().upper())
+        super().save(*args, **kwargs)
 
 
 class WaterAuditLog(models.Model):
