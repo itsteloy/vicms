@@ -153,11 +153,11 @@ body {
 }
 
 .contract-app-label-col {
-  width: 18%;
+  width: 22%;
 }
 
 .contract-app-field-col {
-  width: 27.333%;
+  width: 26%;
 }
 
 .contract-app-table th,
@@ -176,8 +176,8 @@ body {
   font-weight: 700;
   text-align: left;
   vertical-align: bottom;
-  white-space: nowrap;
-  padding-right: 4px;
+  white-space: normal;
+  padding-right: 8px;
 }
 
 .contract-app-label::after {
@@ -196,17 +196,36 @@ body {
 
 .contract-app-ownership {
   vertical-align: middle;
+  padding-left: 2px;
 }
 
 .contract-app-ownership .contract-check {
-  margin-right: 28px;
+  display: inline-block;
+  margin-right: 22px;
+}
+
+.contract-ownership-row {
+  padding-top: 3.2mm;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.contract-ownership-label {
+  font-weight: 700;
+  margin-right: 14px;
+}
+
+.contract-ownership-row .contract-check {
+  display: inline-block;
+  margin-right: 22px;
 }
 
 .contract-field-line {
   border-bottom: 1px solid #000;
-  min-height: 1.05em;
-  line-height: 1.1;
-  padding: 0 1px 1px;
+  min-height: 1.3em;
+  line-height: 1.3;
+  padding: 0 4px 3px;
+  text-align: center;
 }
 
 .contract-field-line-contact {
@@ -218,8 +237,8 @@ body {
   font-style: italic;
   color: #000;
   text-align: center;
-  margin-top: 0.4mm;
-  line-height: 1;
+  margin-top: 1.4mm;
+  line-height: 1.15;
 }
 
 .contract-options-table {
@@ -377,20 +396,20 @@ body {
 }
 
 .contract-signature-margin {
-  flex: 0 0 10mm;
+  flex: 0 0 12mm;
   position: relative;
-  margin-right: 6mm;
+  margin-right: 4mm;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   overflow: visible;
 }
 
-/* Line on the left; label immediately to its right (reads bottom → top). */
+/* Line on the left; label in a narrow column to its right (reads bottom → top). */
 .contract-signature-margin-group {
   position: relative;
-  width: 8mm;
-  height: 52mm;
+  width: 10mm;
+  height: 55mm;
   overflow: visible;
 }
 
@@ -405,16 +424,16 @@ body {
 
 .contract-signature-margin-label {
   position: absolute;
-  left: 1.5mm;
+  left: 2.5mm;
   top: 50%;
-  /* Anchor on the left edge so the long string does not rotate around its center into the body text. */
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: left center;
+  transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
   white-space: nowrap;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 8pt;
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 1;
 }

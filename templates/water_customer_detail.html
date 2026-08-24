@@ -19,14 +19,6 @@
     </div>
   </div>
 
-  {% if messages %}
-  <div class="messages">
-    {% for message in messages %}
-    <div class="message {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   <section class="hero">
     <h1>
       {{ customer.display_name }}
@@ -234,6 +226,7 @@
         <thead>
           <tr>
             <th>Receipt</th>
+            <th>AR No.</th>
             <th>Date</th>
             <th>Bill</th>
             <th>Amount</th>
@@ -246,6 +239,7 @@
           {% for p in payments %}
           <tr>
             <td>{{ p.receipt_number }}</td>
+            <td>{{ p.ar_number|default:"—" }}</td>
             <td>{{ p.payment_date }}</td>
             <td>{{ p.bill.bill_number }}</td>
             <td><strong>₱{{ p.amount|floatformat:2 }}</strong></td>
@@ -254,7 +248,7 @@
             <td>{{ p.received_by|default:"—" }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="7" class="empty">No payments yet.</td></tr>
+          <tr><td colspan="8" class="empty">No payments yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>

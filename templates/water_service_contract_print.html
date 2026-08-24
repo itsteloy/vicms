@@ -3,7 +3,7 @@
 {% block title %}Water Service Contract – {{ contract.applicant_display_name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboards/water_service_contract.css' %}?v=servicecontract17">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_service_contract.css' %}?v=servicecontract20">
 {% endblock %}
 
 {% block content %}
@@ -84,8 +84,8 @@
               </td>
             </tr>
             <tr>
-              <th class="contract-app-label">HOME OWNERSHIP</th>
-              <td class="contract-app-ownership" colspan="3">
+              <td class="contract-ownership-row" colspan="4">
+                <strong class="contract-ownership-label">HOME OWNERSHIP :</strong>
                 <span class="contract-check">{% if contract.home_ownership == 'owner' %}☑{% else %}☐{% endif %} Owner</span>
                 <span class="contract-check">{% if contract.home_ownership == 'rented' %}☑{% else %}☐{% endif %} Rented</span>
                 <span class="contract-check">{% if contract.home_ownership == 'contractor' %}☑{% else %}☐{% endif %} Contractor</span>
@@ -100,7 +100,6 @@
                 <div class="contract-check-line">{% if contract.customer_classification == 'residential' %}☑{% else %}☐{% endif %} Residential</div>
                 <div class="contract-check-line">{% if contract.customer_classification == 'government' %}☑{% else %}☐{% endif %} Government/Institutional</div>
                 <div class="contract-check-line">{% if contract.customer_classification == 'commercial' %}☑{% else %}☐{% endif %} Full Commercial, Com’l A, B, C</div>
-                <div class="contract-check-line">☐</div>
               </td>
               <td class="contract-options-col">
                 <div class="contract-panel-title">APPLICATION STATUS</div>

@@ -7,6 +7,8 @@
   const INSTALLATION_FEE = 5900;
   const INSTALLATION_PARTIAL = 3000;
   const RATE_PER_CUM = 20;
+  const MIN_CHARGE = 100;
+  const MIN_CHARGE_MAX_CUM = 5;
   const batchPrintUrl = (window.__WATER_CONFIG__ && window.__WATER_CONFIG__.batchPrintUrl) || '';
   const pageRoot = document.querySelector('.water-billing-page');
   const fragmentBase = (pageRoot && pageRoot.dataset.fragmentUrl) || window.location.pathname;
@@ -305,10 +307,11 @@
     });
   }
 
-  function syncBillingPeriod() {
+  function syncBillingPeriod(force) {
     const readingDate = document.getElementById('readingDate');
     const period = document.getElementById('billingPeriod');
     if (!readingDate || !period) return;
+    if (!force && period.dataset.userSet === '1') return;
     const nextPeriod = periodFromDate(readingDate.value);
     if (nextPeriod) period.value = nextPeriod;
   }
@@ -317,10 +320,16 @@
   const readingDate = document.getElementById('readingDate');
   if (readingDate && !readingDate.value) readingDate.value = readingDateISO();
   if (readingDate) {
-    readingDate.addEventListener('change', syncBillingPeriod);
-    readingDate.addEventListener('input', syncBillingPeriod);
+    readingDate.addEventListener('change', () => syncBillingPeriod(false));
+    readingDate.addEventListener('input', () => syncBillingPeriod(false));
   }
-  syncBillingPeriod();
+  const billingPeriod = document.getElementById('billingPeriod');
+  if (billingPeriod) {
+    billingPeriod.addEventListener('change', () => {
+      billingPeriod.dataset.userSet = billingPeriod.value ? '1' : '';
+    });
+  }
+  syncBillingPeriod(true);
 
     const orphanCustomerList = document.getElementById('readingCustomerList');
     const readingsTab = document.getElementById('readingsBillingTab');
@@ -345,7 +354,9 @@
     const prev = Number(previousReading?.value || 0);
     const curr = Number(currentReading?.value || 0);
       const consumption = curr - prev;
-    const currentBill = consumption * RATE_PER_CUM;
+    const currentBill = (consumption >= 1 && consumption <= MIN_CHARGE_MAX_CUM)
+      ? MIN_CHARGE
+      : consumption * RATE_PER_CUM;
     const unpaid = Number(previousBillUnpaid?.value || 0);
     const installment = Number(installmentBalance?.value || 0);
     const total = currentBill + unpaid + installment;

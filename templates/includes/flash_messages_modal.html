@@ -1,0 +1,35 @@
+{% if messages %}
+<dialog class="flash-modal" id="flashMessageModal" aria-labelledby="flashMessageTitle">
+  <div class="flash-modal-card">
+    {% for message in messages %}
+    {% if forloop.first %}
+    {% with tags=message.tags|default:"success" %}
+    <div class="flash-modal-icon {{ tags }}" aria-hidden="true">{% if "error" in tags or "danger" in tags %}✕{% elif "warning" in tags %}!{% elif "info" in tags %}i{% else %}✓{% endif %}</div>
+    <h2 id="flashMessageTitle" class="flash-modal-title {{ tags }}">{% if "error" in tags or "danger" in tags %}Error{% elif "warning" in tags %}Warning{% elif "info" in tags %}Notice{% else %}Success{% endif %}</h2>
+    {% endwith %}
+    <div class="flash-modal-body">
+    {% endif %}
+      <p class="flash-modal-text">{{ message }}</p>
+    {% if forloop.last %}
+    </div>
+    <form method="dialog">
+      <button type="submit" class="flash-modal-ok">OK</button>
+    </form>
+    {% endif %}
+    {% endfor %}
+  </div>
+</dialog>
+<script>
+(function () {
+  var modal = document.getElementById("flashMessageModal");
+  if (!modal || typeof modal.showModal !== "function") return;
+  document.body.appendChild(modal);
+  try { modal.showModal(); } catch (err) { modal.setAttribute("open", ""); }
+  modal.addEventListener("click", function (event) {
+    var box = modal.getBoundingClientRect();
+    var outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+    if (outside) modal.close();
+  });
+})();
+</script>
+{% endif %}

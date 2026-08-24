@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=servicecontract">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=arno2">
 {% endblock %}
 
 {% block content %}
@@ -51,14 +51,6 @@
         <a href="{% url 'logout' %}">🚪 Logout</a>
       </div>
     </header>
-
-    {% if messages %}
-    <div class="messages">
-      {% for message in messages %}
-      <div class="message {{ message.tags|default:'success' }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-    {% endif %}
 
     <section id="overviewTab" class="tab-panel{% if active_tab == 'overviewTab' %} is-active{% endif %}" role="tabpanel">
       {% include "includes/water_tab_overview.html" %}
@@ -105,5 +97,5 @@
     batchPrintUrl: "{% url 'print_water_bills_batch' %}"
   };
 </script>
-<script src="{% static 'js/dashboards/water_billing.js' %}?v=servicecontract"></script>
+<script src="{% static 'js/dashboards/water_billing.js' %}?v=mincharge1"></script>
 {% endblock %}

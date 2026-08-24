@@ -1,14 +1,6 @@
 <!-- Manage Item -->
 <div id="managePanel" class="tab-panel is-active">
       <div class="panel">
-        {% if messages %}
-        <ul class="flash-messages">
-          {% for message in messages %}
-          <li class="{{ message.tags }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-
         <details class="category-manager"{% if messages %} open{% endif %}>
           <summary>Manage categories &amp; subcategories</summary>
           <div class="category-manager-body">

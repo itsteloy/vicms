@@ -9,10 +9,12 @@
   {% block extra_meta %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/flash_messages.css' %}?v=2">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
   {% block content %}{% endblock %}
+  {% include "includes/flash_messages_modal.html" %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -3,61 +3,8 @@
   <div class="panel">
     <div class="panel-head">
       <div>
-        <h2>Payment history</h2>
-        <p class="sub">Recent collections and official receipts.</p>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table class="data">
-        <thead>
-          <tr>
-            <th>Receipt</th>
-            <th>Date</th>
-            <th>Name</th>
-            <th>Amount Paid</th>
-            <th>Method</th>
-            <th>Balance Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in payments %}
-          <tr>
-            <td><strong>{{ p.receipt_number }}</strong></td>
-            <td>{{ p.payment_date }}</td>
-            <td>{{ p.customer.display_name }}</td>
-            <td class="money">₱{{ p.amount|floatformat:2 }}</td>
-            <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
-            <td>
-              {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
-              <span class="badge paid">Paid</span>
-              {% else %}
-              <span class="badge unpaid">Unpaid</span>
-              {% endif %}
-            </td>
-            <td>
-              <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete_payment">
-                <input type="hidden" name="payment_id" value="{{ p.id }}">
-                <button type="submit" class="action danger">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="8" class="empty">No payments recorded yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% include "includes/water_pagination.html" %}
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
         <h2>Record payment</h2>
-        <p class="sub">Apply cash or GCash payments to open bills. Receipt numbers are automatic.</p>
+        <p class="sub">Apply cash or GCash payments to open bills. Receipt numbers are automatic. Enter AR No. for each payment.</p>
       </div>
     </div>
     <form method="post">
@@ -67,6 +14,10 @@
         <div class="field">
           <label>Receipt No.</label>
           <input name="receipt_number" value="{{ next_receipt_number }}" readonly>
+        </div>
+        <div class="field">
+          <label for="paymentArNumber">AR No. *</label>
+          <input id="paymentArNumber" name="ar_number" required maxlength="50" placeholder="Required">
         </div>
         <div class="field">
           <label>Payment Date *</label>
@@ -135,5 +86,60 @@
       </div>
       <div class="form-actions"><button type="submit" class="primary">Save payment</button></div>
     </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Payment history</h2>
+        <p class="sub">Recent collections and official receipts.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Receipt</th>
+            <th>AR No.</th>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Amount Paid</th>
+            <th>Method</th>
+            <th>Balance Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td><strong>{{ p.receipt_number }}</strong></td>
+            <td>{{ p.ar_number|default:"—" }}</td>
+            <td>{{ p.payment_date }}</td>
+            <td>{{ p.customer.display_name }}</td>
+            <td class="money">₱{{ p.amount|floatformat:2 }}</td>
+            <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
+            <td>
+              {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
+              <span class="badge paid">Paid</span>
+              {% else %}
+              <span class="badge unpaid">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_payment">
+                <input type="hidden" name="payment_id" value="{{ p.id }}">
+                <button type="submit" class="action danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="empty">No payments recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "includes/water_pagination.html" %}
   </div>
 </div>

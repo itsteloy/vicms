@@ -1,0 +1,112 @@
+dialog.flash-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: calc(100vw - 32px);
+  width: min(28rem, 100%);
+  color: inherit;
+}
+
+dialog.flash-modal::backdrop {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.flash-modal-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  text-align: center;
+}
+
+.flash-modal-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.flash-modal-icon.success { background: #ecfdf3; color: #027a48; }
+.flash-modal-icon.error,
+.flash-modal-icon.danger { background: #fef3f2; color: #b42318; }
+.flash-modal-icon.warning { background: #fffaeb; color: #b54708; }
+.flash-modal-icon.info,
+.flash-modal-icon.debug { background: #eff6ff; color: #1d4ed8; }
+
+.flash-modal-title {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: Manrope, "IBM Plex Sans", sans-serif;
+}
+
+.flash-modal-title.success { color: #027a48; }
+.flash-modal-title.error,
+.flash-modal-title.danger { color: #b42318; }
+.flash-modal-title.warning { color: #b54708; }
+.flash-modal-title.info,
+.flash-modal-title.debug { color: #1d4ed8; }
+
+.flash-modal-body {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.flash-modal-text {
+  margin: 0;
+  color: #344054;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+dialog.flash-modal form {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+
+dialog.flash-modal .flash-modal-ok {
+  min-width: 7rem;
+  display: inline-flex;
+  justify-content: center;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #027a48;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+dialog.flash-modal .flash-modal-title.error ~ form .flash-modal-ok,
+dialog.flash-modal .flash-modal-title.danger ~ form .flash-modal-ok { background: #b42318; }
+dialog.flash-modal .flash-modal-title.warning ~ form .flash-modal-ok { background: #b54708; }
+dialog.flash-modal .flash-modal-title.info ~ form .flash-modal-ok,
+dialog.flash-modal .flash-modal-title.debug ~ form .flash-modal-ok { background: #1d4ed8; }
+
+dialog.flash-modal .flash-modal-ok:hover {
+  filter: brightness(0.95);
+  color: #fff;
+  background: #02603a;
+  border: none;
+}
+
+@media print {
+  dialog.flash-modal,
+  dialog.flash-modal::backdrop {
+    display: none !important;
+  }
+}

@@ -1885,6 +1885,20 @@ class WaterCustomer(models.Model):
         return 'Disconnected after 3 months unpaid'
 
 
+WATER_RATE_PER_CUM = Decimal('20.00')
+WATER_MIN_CHARGE = Decimal('100.00')
+WATER_MIN_CHARGE_MAX_CUM = 5
+
+
+def water_consumption_charge(consumption, rate_per_cum=None):
+    """Current bill: ₱100 for 1–5 cu.m.; otherwise consumption × rate (₱20)."""
+    consumption = int(consumption or 0)
+    rate = Decimal(rate_per_cum if rate_per_cum is not None else WATER_RATE_PER_CUM)
+    if 1 <= consumption <= WATER_MIN_CHARGE_MAX_CUM:
+        return WATER_MIN_CHARGE.quantize(Decimal('0.01'))
+    return (Decimal(consumption) * rate).quantize(Decimal('0.01'))
+
+
 class WaterMeterReading(models.Model):
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='readings')
     reading_date = models.DateField()
@@ -1908,7 +1922,7 @@ class WaterMeterReading(models.Model):
 
     @property
     def current_bill(self):
-        return (Decimal(self.consumption or 0) * Decimal('20.00')).quantize(Decimal('0.01'))
+        return water_consumption_charge(self.consumption)
 
     @property
     def total_bill(self):
@@ -1931,6 +1945,7 @@ class WaterMeterReading(models.Model):
 
 class WaterBill(models.Model):
     bill_number = models.CharField(max_length=50, unique=True)
+    ar_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='bills')
     meter_reading = models.OneToOneField(
         WaterMeterReading, on_delete=models.SET_NULL, null=True, blank=True, related_name='bill',
@@ -1974,7 +1989,7 @@ class WaterBill(models.Model):
         return max(self.total_amount - self.amount_paid, Decimal('0.00'))
 
     def recompute_totals(self):
-        self.consumption_charge = (Decimal(self.consumption or 0) * self.rate_per_cum).quantize(Decimal('0.01'))
+        self.consumption_charge = water_consumption_charge(self.consumption, self.rate_per_cum)
         # Statement of Account format:
         # TOTAL BILL = CURRENT BILL + PREVIOUS BILL (UNPAID) + WATER INSTALLMENT BAL
         self.total_amount = (
@@ -2012,6 +2027,7 @@ class WaterBill(models.Model):
 
 class WaterPayment(models.Model):
     receipt_number = models.CharField(max_length=50, unique=True)
+    ar_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     bill = models.ForeignKey(WaterBill, on_delete=models.CASCADE, related_name='payments')
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='payments')
     payment_date = models.DateField()
@@ -2035,6 +2051,7 @@ class WaterPayment(models.Model):
     def save(self, *args, **kwargs):
         if not self.receipt_number:
             self.receipt_number = self.generate_receipt_number()
+        self.ar_number = (self.ar_number or '').strip() or None
         if self.customer_id is None and self.bill_id:
             self.customer = self.bill.customer
         super().save(*args, **kwargs)

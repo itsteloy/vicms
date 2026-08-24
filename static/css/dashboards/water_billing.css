@@ -678,9 +678,24 @@ button.primary:hover,
   background: #fff;
 }
 .action.danger:hover { background: #fef3f2; }
-.action-group { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.action-group { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .action-group .action,
 .action-group button { padding: 7px 10px; font-size: 0.78rem; }
+.generate-bill-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.generate-bill-form input[name="ar_number"] {
+  width: 8.5rem;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.78rem;
+}
 
 .table-wrap {
   overflow-x: auto;

@@ -50,7 +50,7 @@
               <a class="action" href="{% url 'view_water_bill' r.bill.id %}">View</a>
               {% else %}
               <a class="action" href="{% url 'view_water_reading_preview' r.id %}">View</a>
-              <form method="post">
+              <form method="post" class="generate-bill-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="generate_bill">
                 <input type="hidden" name="reading_id" value="{{ r.id }}">

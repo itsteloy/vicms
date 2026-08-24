@@ -1720,7 +1720,7 @@ def _process_payroll_post(request):
                     )
                     messages.success(
                         request,
-                        f'Pay period {period.start_date} â€“ {period.end_date} created. You can now create a pay run.',
+                        f'Pay period {period.start_date} – {period.end_date} created. You can now create a pay run.',
                     )
             except ValueError:
                 messages.error(request, 'Invalid date format.')
@@ -2433,7 +2433,7 @@ def accounting_dashboard(request):
                     code=code, name=name, account_type=account_type,
                     category=category or 'other', description=description,
                 )
-                messages.success(request, f'Account "{code} â€“ {name}" created.')
+                messages.success(request, f'Account "{code} – {name}" created.')
             return redirect(f"{reverse('accounting_dashboard')}?tab=journalTab")
 
         # ---------- CUSTOMERS ----------
@@ -2500,7 +2500,7 @@ def accounting_dashboard(request):
                         bank_account=bank_account, reference=request.POST.get('reference', '').strip(),
                     )
                     accounting_engine.post_invoice_payment(payment, user=request.user)
-                    messages.success(request, f'Payment of â‚±{amount:.2f} recorded against {invoice.invoice_number}.')
+                    messages.success(request, f'Payment of PHP {amount:.2f} recorded against {invoice.invoice_number}.')
             except (Invoice.DoesNotExist, BankAccount.DoesNotExist):
                 messages.error(request, 'Invalid invoice or bank account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -2572,7 +2572,7 @@ def accounting_dashboard(request):
                         bank_account=bank_account, reference=request.POST.get('reference', '').strip(),
                     )
                     accounting_engine.post_bill_payment(payment, user=request.user)
-                    messages.success(request, f'Payment of â‚±{amount:.2f} recorded against {bill.bill_number}.')
+                    messages.success(request, f'Payment of PHP {amount:.2f} recorded against {bill.bill_number}.')
             except (Bill.DoesNotExist, BankAccount.DoesNotExist):
                 messages.error(request, 'Invalid bill or bank account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -2627,7 +2627,7 @@ def accounting_dashboard(request):
                         description=request.POST.get('description', '').strip(),
                     )
                     accounting_engine.post_bank_transaction(txn, user=request.user)
-                    messages.success(request, f'{txn.get_transaction_type_display()} of â‚±{amount:.2f} recorded.')
+                    messages.success(request, f'{txn.get_transaction_type_display()} of PHP {amount:.2f} recorded.')
             except (BankAccount.DoesNotExist, Account.DoesNotExist):
                 messages.error(request, 'Invalid bank account or contra account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -2652,7 +2652,7 @@ def accounting_dashboard(request):
                         expense_account=Account.objects.get(pk=expense_account_id),
                     )
                     accounting_engine.post_payroll_expense(entry_row, user=request.user)
-                    messages.success(request, f'Payroll expense of â‚±{amount:.2f} recorded.')
+                    messages.success(request, f'Payroll expense of PHP {amount:.2f} recorded.')
             except (BankAccount.DoesNotExist, Account.DoesNotExist):
                 messages.error(request, 'Invalid bank account or expense account.')
             except accounting_engine.UnbalancedEntryError as exc:
@@ -3409,7 +3409,7 @@ def _service_record_context(record, document_type):
             value = value.strftime('%B %d, %Y')
         elif isinstance(value, time):
             value = value.strftime('%I:%M %p').lstrip('0')
-        fields.append((label, value or 'â€”'))
+        fields.append((label, value or '—'))
     return {'record': record, 'fields': fields, 'document_type': document_type}
 
 
@@ -4233,12 +4233,12 @@ def _water_create_customer(request):
             'Created customer',
             'WaterCustomer',
             customer.account_number,
-            f'{customer.display_name} | install fee â‚±{WATER_INSTALLATION_FEE} paid â‚±{installation_paid} bal â‚±{installment_balance}',
+            f'{customer.display_name} | install fee PHP {WATER_INSTALLATION_FEE} paid PHP {installation_paid} bal PHP {installment_balance}',
         )
         messages.success(
             request,
             f'Customer {customer.account_number} registered. '
-            f'Installation paid â‚±{installation_paid:.2f}; balance â‚±{installment_balance:.2f}.',
+            f'Installation paid PHP {installation_paid:.2f}; balance PHP {installment_balance:.2f}.',
         )
     except Exception as exc:
         messages.error(request, f'Could not save customer: {exc}')
@@ -4322,7 +4322,7 @@ def _water_create_reading(request):
         messages.success(
             request,
             f'Reading saved for {customer.account_number} '
-            f'({reading.consumption} cu.m Â· current â‚±{reading.current_bill} Â· total â‚±{reading.total_bill}). '
+            f'({reading.consumption} cu.m · current PHP {reading.current_bill} · total PHP {reading.total_bill}). '
             f'Use Generate Bill to create the statement.',
         )
     except Exception as exc:
@@ -4370,7 +4370,7 @@ def _water_generate_bill_from_reading(request):
         messages.success(
             request,
             f'Bill {bill.bill_number} generated for {reading.customer.display_name} '
-            f'(total â‚±{bill.total_amount}).',
+            f'(total PHP {bill.total_amount}).',
         )
         return redirect('view_water_bill', bill_id=bill.id)
     except Exception as exc:
@@ -4379,21 +4379,16 @@ def _water_generate_bill_from_reading(request):
 
 
 def _water_generate_all_bills(request):
-    readings = WaterMeterReading.objects.select_related('customer').filter(bill__isnull=True)
     created = 0
-    try:
-        with transaction.atomic():
-            for reading in readings:
-                _bill, was_created = _water_bill_from_reading(reading)
-                if was_created:
-                    created += 1
-        if created:
-            _water_audit(request, 'Generated all bills', 'WaterBill', '', f'{created} bill(s)')
-            messages.success(request, f'Generated {created} bill{"s" if created != 1 else ""}.')
-        else:
-            messages.info(request, 'No readings left to bill. All readings already have bills.')
-    except Exception as exc:
-        messages.error(request, f'Could not generate bills: {exc}')
+    readings = WaterMeterReading.objects.filter(bill__isnull=True).select_related('customer')
+    for reading in readings:
+        _bill, was_created = _water_bill_from_reading(reading)
+        if was_created:
+            created += 1
+    if created:
+        messages.success(request, f'Generated {created} bill{"s" if created != 1 else ""}.')
+    else:
+        messages.info(request, 'Every reading already has a bill.')
     return _water_redirect('readingsBillingTab')
 
 
@@ -4595,6 +4590,13 @@ def _water_create_payment(request):
     if not (bill_id and payment_date and amount > 0):
         messages.error(request, 'Please complete required payment fields.')
         return _water_redirect('paymentsTab')
+    ar_number = request.POST.get('ar_number', '').strip()
+    if not ar_number:
+        messages.error(request, 'Enter AR No. before recording the payment.')
+        return _water_redirect('paymentsTab')
+    if WaterPayment.objects.filter(ar_number=ar_number).exists():
+        messages.error(request, f'AR No. {ar_number} is already in use.')
+        return _water_redirect('paymentsTab')
     try:
         parsed_payment_date = _water_parse_date(payment_date, required=True)
     except ValueError:
@@ -4613,6 +4615,7 @@ def _water_create_payment(request):
         with transaction.atomic():
             payment = WaterPayment.objects.create(
                 receipt_number=request.POST.get('receipt_number', '').strip() or WaterPayment.generate_receipt_number(),
+                ar_number=ar_number,
                 bill=bill,
                 customer=bill.customer,
                 payment_date=parsed_payment_date,

@@ -69,14 +69,6 @@
       </div>
     </header>
 
-    {% if messages %}
-    <div class="messages">
-      {% for message in messages %}
-      <div class="message {{ message.tags|default:'success' }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- ==================== OVERVIEW TAB ==================== -->
     <div id="overviewTab" class="tab-panel is-active">
       <div class="hero-stats">

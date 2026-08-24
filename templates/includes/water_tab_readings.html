@@ -3,7 +3,7 @@
     <div class="panel-head">
       <div>
         <h2>New meter reading</h2>
-        <p class="sub">Current bill = consumption × ₱20. Total = current + previous unpaid + installment.</p>
+        <p class="sub">Current bill = ₱100 for 1–5 cu.m., otherwise consumption × ₱20. Total = current + previous unpaid + installment.</p>
       </div>
     </div>
     <form method="post">
@@ -42,8 +42,8 @@
           <input type="date" name="reading_date" id="readingDate" required>
         </div>
         <div class="field">
-          <label>Billing Period</label>
-          <input name="billing_period" id="billingPeriod" placeholder="2026-07" required readonly>
+          <label for="billingPeriod">Billing Period *</label>
+          <input type="month" name="billing_period" id="billingPeriod" required>
         </div>
         <div class="field">
           <label>Reader Name</label>
