@@ -67,13 +67,8 @@
       itemName: document.getElementById('categoryId'),
       categoryId: document.getElementById('categoryId'),
       picture: document.getElementById('picture'),
-      size: document.getElementById('size'),
+      reusePicture: document.getElementById('reusePicture'),
       stockAvailable: document.getElementById('stockAvailable'),
-      pcsPerCtn: document.getElementById('pcsPerCtn'),
-      cartonSize: document.getElementById('cartonSize'),
-      netWeight: document.getElementById('netWeight'),
-      grossWeight: document.getElementById('grossWeight'),
-      price: document.getElementById('price'),
       description: document.getElementById('description'),
       notes: document.getElementById('notes'),
     };
@@ -358,7 +353,7 @@
       return items.filter(item => {
         const matchesCategory = !category || String(item.categoryId || '') === category
           || String(item.name || '').toLowerCase() === category.toLowerCase();
-        const matchesSearch = !query || [item.productCode, item.name, item.categoryPath, item.size, item.stockAvailable, item.pcsPerCtn, item.cartonSize, item.netWeight, item.grossWeight, item.price, item.description, item.notes]
+        const matchesSearch = !query || [item.productCode, item.name, item.categoryPath, item.stockAvailable, item.description, item.notes]
           .join(' ').toLowerCase().includes(query);
         return matchesCategory && matchesSearch;
       });
@@ -381,13 +376,11 @@
       fields.itemId.value = '';
       editingId = null;
       currentPictureData = '';
+      if (fields.reusePicture) fields.reusePicture.value = '';
+      highlightReuseImage('');
       renderPicturePreview('');
       formTitle.textContent = 'Add Inventory Item';
       fields.stockAvailable.value = 0;
-      fields.pcsPerCtn.value = 0;
-      fields.netWeight.value = '0.00';
-      fields.grossWeight.value = '0.00';
-      fields.price.value = '0.00';
       savedCategoryId = '';
       savedProductCode = '';
       setCatPickerValue(fields.categoryId, '', fields.categoryId?.closest('[data-cat-picker]')?.querySelector('.cat-picker-value')?.dataset.placeholder);
@@ -401,15 +394,11 @@
       setCatPickerValue(fields.categoryId, item.categoryId ? String(item.categoryId) : '', item.categoryPath || item.name || '');
       updateProductCodePreview();
       fields.picture.value = '';
+      if (fields.reusePicture) fields.reusePicture.value = item.pictureName || '';
+      highlightReuseImage(item.pictureName || '');
       currentPictureData = item.picture || '';
       renderPicturePreview(currentPictureData);
-      fields.size.value = item.size;
       fields.stockAvailable.value = item.stockAvailable;
-      fields.pcsPerCtn.value = item.pcsPerCtn;
-      fields.cartonSize.value = item.cartonSize;
-      fields.netWeight.value = item.netWeight;
-      fields.grossWeight.value = item.grossWeight;
-      fields.price.value = item.price;
       fields.description.value = item.description || '';
       if (fields.notes) fields.notes.value = item.notes || '';
       editingId = item.id;
@@ -417,13 +406,32 @@
       activateTab('managePanel');
     }
 
+    function highlightReuseImage(name) {
+      document.querySelectorAll('.reuse-image-btn').forEach((btn) => {
+        btn.classList.toggle('is-selected', Boolean(name) && btn.dataset.name === name);
+      });
+    }
+
     function handlePictureChange() {
       const file = fields.picture.files?.[0];
+      if (file && fields.reusePicture) fields.reusePicture.value = '';
+      highlightReuseImage('');
       if (!file) { if (!currentPictureData) renderPicturePreview(''); return; }
       const reader = new FileReader();
       reader.onload = () => { currentPictureData = reader.result; renderPicturePreview(currentPictureData); };
       reader.readAsDataURL(file);
     }
+
+    const reuseImageGrid = document.getElementById('reuseImageGrid');
+    reuseImageGrid?.addEventListener('click', (event) => {
+      const btn = event.target.closest('.reuse-image-btn');
+      if (!btn) return;
+      if (fields.picture) fields.picture.value = '';
+      if (fields.reusePicture) fields.reusePicture.value = btn.dataset.name || '';
+      currentPictureData = btn.dataset.url || '';
+      highlightReuseImage(btn.dataset.name || '');
+      renderPicturePreview(currentPictureData);
+    });
 
     let pendingDeleteId = null;
 
@@ -443,6 +451,29 @@
       pendingDeleteId = null;
     }
 
+    function showItemViewModal(item) {
+      const modal = document.getElementById('itemViewModal');
+      if (!modal) return;
+      const pictureEl = document.getElementById('itemViewPicture');
+      const notesWrap = document.getElementById('itemViewNotesWrap');
+      const notes = (item.notes || '').trim();
+      document.getElementById('itemViewCode').textContent = item.productCode || '-';
+      document.getElementById('itemViewTitle').textContent = item.name || 'Inventory item';
+      document.getElementById('itemViewCategory').textContent = item.categoryPath || '-';
+      document.getElementById('itemViewStock').textContent = item.stockAvailable ?? '0';
+      document.getElementById('itemViewDescription').textContent = (item.description || '').trim() || '-';
+      document.getElementById('itemViewNotes').textContent = notes;
+      notesWrap.style.display = notes ? '' : 'none';
+      pictureEl.innerHTML = isRenderablePicture(item.picture)
+        ? `<img src="${item.picture}" alt="">`
+        : 'No image';
+      modal.classList.add('is-open');
+    }
+
+    function hideItemViewModal() {
+      document.getElementById('itemViewModal')?.classList.remove('is-open');
+    }
+
     async function performDelete(itemId, password) {
       const formData = new FormData();
       formData.append('action', 'delete');
@@ -450,7 +481,7 @@
       formData.append('password', password);
       formData.append('csrfmiddlewaretoken', csrfToken);
 
-      const response = await fetch(window.location.href, {
+      const response = await fetch(window.location.pathname, {
         method: 'POST',
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -464,22 +495,33 @@
     }
 
     async function handleTableClick(e) {
-      const button = e.target.closest('button');
+      const button = e.target.closest('[data-action]');
       if (!button) return;
+      e.preventDefault();
+      e.stopPropagation();
       const row = button.closest('tr');
       const itemId = row?.dataset?.id;
       if (!itemId) return;
       const action = button.dataset.action;
       const item = inventory.find(entry => String(entry.id) === String(itemId));
-      if (!item) return;
-
-      if (action === 'edit') { fillForm(item); }
+      if (action === 'view') {
+        if (!item) return;
+        showItemViewModal(item);
+        return;
+      }
+      if (action === 'edit') {
+        if (!item) return;
+        fillForm(item);
+        return;
+      }
       if (action === 'delete') {
         showDeleteModal(itemId);
       }
     }
 
     document.getElementById('deleteConfirmBtn').addEventListener('click', async function () {
+      const modal = document.getElementById('deleteModal');
+      if (!modal || modal.style.display !== 'flex') return;
       const passwordInput = document.getElementById('deletePassword');
       const errorDiv = document.getElementById('deleteError');
       const password = passwordInput.value.trim();
@@ -513,6 +555,15 @@
       }
     });
 
+    const itemViewModal = document.getElementById('itemViewModal');
+    document.getElementById('itemViewCloseBtn')?.addEventListener('click', hideItemViewModal);
+    itemViewModal?.addEventListener('click', function (e) {
+      if (e.target === this) hideItemViewModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hideItemViewModal();
+    });
+
     document.getElementById('deletePassword').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         document.getElementById('deleteConfirmBtn').click();
@@ -525,7 +576,11 @@
     togglePassword.addEventListener('click', function () {
       const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
       passwordInput.setAttribute('type', type);
-      this.textContent = type === 'password' ? '👁️' : '🙈';
+      const icon = this.querySelector('img');
+      if (icon) {
+        icon.src = type === 'password' ? (this.dataset.hideSrc || icon.src) : (this.dataset.showSrc || icon.src);
+      }
+      this.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
     });
 
     function clearSearch() {

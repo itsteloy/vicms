@@ -33,6 +33,7 @@ urlpatterns = [
     path('dashboard/services_dashboard/', views.services_dashboard, name='services_dashboard'),
     path('dashboard/water_billing_dashboard/', views.water_billing_dashboard, name='water_billing_dashboard'),
     path('dashboard/water-billing/export/', views.water_billing_export_csv, name='water_billing_export_csv'),
+    path('dashboard/water-billing/weekly-report/print/', views.print_water_weekly_report, name='print_water_weekly_report'),
     path('dashboard/water-billing/bills/print-batch/', views.print_water_bills_batch, name='print_water_bills_batch'),
     path('dashboard/water-billing/bills/<int:bill_id>/', views.view_water_bill, name='view_water_bill'),
     path('dashboard/water-billing/customers/<int:customer_id>/', views.view_water_customer, name='view_water_customer'),

@@ -66,14 +66,22 @@
     if (tabId !== 'overviewTab' && tabId !== 'paymentsTab') {
       url.searchParams.delete('revenue_period');
     }
+    if (tabId !== 'paymentsTab') {
+      url.searchParams.delete('payment_q');
+    }
     if (tabId !== 'readingsBillingTab') {
       url.searchParams.delete('reading_zone');
+      url.searchParams.delete('reading_q');
     }
-    if (tabId !== 'reportsTab') url.searchParams.delete('report');
+    if (tabId !== 'reportsTab') {
+      url.searchParams.delete('report');
+      url.searchParams.delete('week_start');
+      url.searchParams.delete('week_end');
+    }
     if (extra && extra.page != null) url.searchParams.set('page', String(extra.page));
     else if (!extra || extra.keepPage !== true) url.searchParams.delete('page');
     if (extra) {
-      ['customer_q', 'customer_zone', 'customer_status', 'report', 'revenue_period', 'reading_zone'].forEach((key) => {
+      ['customer_q', 'customer_zone', 'customer_status', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'payment_q', 'week_start', 'week_end'].forEach((key) => {
         if (extra[key] == null) return;
         if (extra[key] === '') url.searchParams.delete(key);
         else url.searchParams.set(key, extra[key]);
@@ -116,8 +124,24 @@
         const loc = new URL(window.location.href);
         const period = loc.searchParams.get('revenue_period');
         if (period) url.searchParams.set('revenue_period', period);
-        const readingZone = loc.searchParams.get('reading_zone');
-        if (readingZone && tabId === 'readingsBillingTab') url.searchParams.set('reading_zone', readingZone);
+        if (tabId === 'reportsTab') {
+          const report = loc.searchParams.get('report');
+          const weekStart = loc.searchParams.get('week_start');
+          const weekEnd = loc.searchParams.get('week_end');
+          if (report) url.searchParams.set('report', report);
+          if (weekStart) url.searchParams.set('week_start', weekStart);
+          if (weekEnd) url.searchParams.set('week_end', weekEnd);
+        }
+        if (tabId === 'readingsBillingTab') {
+          const readingZone = loc.searchParams.get('reading_zone');
+          const readingQ = loc.searchParams.get('reading_q');
+          if (readingZone) url.searchParams.set('reading_zone', readingZone);
+          if (readingQ) url.searchParams.set('reading_q', readingQ);
+        }
+        if (tabId === 'paymentsTab') {
+          const paymentQ = loc.searchParams.get('payment_q');
+          if (paymentQ) url.searchParams.set('payment_q', paymentQ);
+        }
       } else {
         url.searchParams.set('fragment', '1');
       }
@@ -506,17 +530,26 @@
   updateReadingTotals();
 
     const readingZoneFilter = document.getElementById('readingZoneFilter');
+    const readingSearch = document.getElementById('readingSearch');
     const readingFilterForm = document.getElementById('readingFilterForm');
+    let readingSearchTimer = null;
+    function currentReadingParams() {
+      return {
+        reading_q: readingSearch?.value.trim() || '',
+        reading_zone: readingZoneFilter?.value || '',
+      };
+    }
     function fetchReadingList(page) {
       const wrap = document.getElementById('readingListWrap');
       if (!wrap) return;
-      const reading_zone = readingZoneFilter?.value || '';
+      const params = currentReadingParams();
       const url = new URL(fragmentBase, window.location.origin);
       url.searchParams.set('tab', 'readingsBillingTab');
       url.searchParams.set('fragment', '1');
       url.searchParams.set('list_only', '1');
       url.searchParams.set('page', String(page || 1));
-      if (reading_zone) url.searchParams.set('reading_zone', reading_zone);
+      if (params.reading_q) url.searchParams.set('reading_q', params.reading_q);
+      if (params.reading_zone) url.searchParams.set('reading_zone', params.reading_zone);
       wrap.setAttribute('aria-busy', 'true');
       fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then((res) => {
@@ -525,13 +558,19 @@
         })
         .then((html) => {
           wrap.outerHTML = html;
-          updateTabUrl('readingsBillingTab', { reading_zone, page: page || 1 });
+          updateTabUrl('readingsBillingTab', { ...params, page: page || 1 });
           refreshBatchPrintBars(false);
         })
         .catch(() => {
           const next = document.getElementById('readingListWrap');
           if (next) next.setAttribute('aria-busy', 'false');
         });
+    }
+    if (readingSearch) {
+      readingSearch.addEventListener('input', () => {
+        clearTimeout(readingSearchTimer);
+        readingSearchTimer = setTimeout(() => fetchReadingList(1), 300);
+      });
     }
     readingZoneFilter?.addEventListener('change', () => fetchReadingList(1));
     readingFilterForm?.addEventListener('submit', (event) => {
@@ -686,6 +725,43 @@
       paymentAmount.addEventListener('input', syncPaymentSummary);
       syncPaymentSummary();
     }
+
+    const paymentSearch = document.getElementById('paymentSearch');
+    const paymentFilterForm = document.getElementById('paymentFilterForm');
+    let paymentSearchTimer = null;
+    function fetchPaymentList(page) {
+      const wrap = document.getElementById('paymentListWrap');
+      if (!wrap) return;
+      const paymentQ = paymentSearch?.value.trim() || '';
+      const url = new URL(fragmentBase, window.location.origin);
+      url.searchParams.set('tab', 'paymentsTab');
+      url.searchParams.set('fragment', '1');
+      url.searchParams.set('list_only', '1');
+      url.searchParams.set('page', String(page || 1));
+      if (paymentQ) url.searchParams.set('payment_q', paymentQ);
+      wrap.setAttribute('aria-busy', 'true');
+      fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then((res) => {
+          if (!res.ok) throw new Error('bad status');
+          return res.text();
+        })
+        .then((html) => {
+          wrap.outerHTML = html;
+          updateTabUrl('paymentsTab', { payment_q: paymentQ, page: page || 1 });
+        })
+        .catch(() => {
+          const next = document.getElementById('paymentListWrap');
+          if (next) next.setAttribute('aria-busy', 'false');
+        });
+    }
+    paymentSearch?.addEventListener('input', () => {
+      clearTimeout(paymentSearchTimer);
+      paymentSearchTimer = setTimeout(() => fetchPaymentList(1), 300);
+    });
+    paymentFilterForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      fetchPaymentList(1);
+    });
   }
 
   function initServiceTab() {
@@ -1001,6 +1077,18 @@
 
   function initReportsTab() {
     const form = document.getElementById('reportFilterForm');
+    const reportSelect = document.getElementById('reportTypeSelect');
+    const weekStart = document.getElementById('weekStart');
+    const weekEnd = document.getElementById('weekEnd');
+    const rangeStart = document.getElementById('weeklyRangeFields');
+    const rangeEnd = document.getElementById('weeklyRangeEndFields');
+    function syncWeeklyFields() {
+      const isWeekly = reportSelect?.value === 'weekly';
+      if (rangeStart) rangeStart.hidden = !isWeekly;
+      if (rangeEnd) rangeEnd.hidden = !isWeekly;
+    }
+    reportSelect?.addEventListener('change', syncWeeklyFields);
+    syncWeeklyFields();
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
       const panel = panels.reportsTab;
@@ -1008,11 +1096,78 @@
       const url = new URL(fragmentBase, window.location.origin);
       url.searchParams.set('tab', 'reportsTab');
       url.searchParams.set('fragment', '1');
-      const report = form.querySelector('[name="report"]')?.value || 'billing';
+      const report = reportSelect?.value || 'billing';
       url.searchParams.set('report', report);
       url.searchParams.set('page', '1');
+      const extra = { report, page: 1 };
+      if (report === 'weekly') {
+        extra.week_start = weekStart?.value || '';
+        extra.week_end = weekEnd?.value || '';
+        if (extra.week_start) url.searchParams.set('week_start', extra.week_start);
+        if (extra.week_end) url.searchParams.set('week_end', extra.week_end);
+      }
       loadTabFragment('reportsTab', panel, url);
-      updateTabUrl('reportsTab', { report, page: 1 });
+      updateTabUrl('reportsTab', extra);
+    });
+    initWeeklyRefillForm();
+  }
+
+  function initWeeklyRefillForm() {
+    const body = document.getElementById('weeklyRefillBody');
+    const countInput = document.getElementById('weeklyRefillCount');
+    const addBtn = document.getElementById('addWeeklyRefillRow');
+    if (!body) return;
+    function reindex() {
+      const rows = [...body.querySelectorAll('.weekly-refill-row')];
+      rows.forEach((row, index) => {
+        row.querySelectorAll('input[name^="weekly_refill-"]').forEach((input) => {
+          input.name = input.name.replace(/weekly_refill-\d+-/, `weekly_refill-${index}-`);
+        });
+        const lineNo = row.querySelector('.weekly-line-no');
+        if (lineNo) lineNo.value = String(index + 1);
+      });
+      if (countInput) countInput.value = String(rows.length);
+      sumRefill();
+    }
+    function sumRefill() {
+      let cash = 0;
+      let amount = 0;
+      body.querySelectorAll('.weekly-refill-row').forEach((row) => {
+        const cashEl = row.querySelector('[name$="-cash_in_bank"]');
+        const amtEl = row.querySelector('.weekly-refill-amount');
+        cash += Number(cashEl?.value || 0);
+        amount += Number(amtEl?.value || 0);
+      });
+      const cashTotal = document.getElementById('weeklyRefillCashTotal');
+      const amtTotal = document.getElementById('weeklyRefillAmountTotal');
+      if (cashTotal) cashTotal.textContent = `₱${cash.toFixed(2)}`;
+      if (amtTotal) amtTotal.textContent = `₱${amount.toFixed(2)}`;
+    }
+    addBtn?.addEventListener('click', () => {
+      const index = body.querySelectorAll('.weekly-refill-row').length;
+      const tr = document.createElement('tr');
+      tr.className = 'weekly-refill-row';
+      tr.innerHTML = `
+        <td><input name="weekly_refill-${index}-line_no" value="${index + 1}" class="weekly-line-no"></td>
+        <td><input name="weekly_refill-${index}-line_date" placeholder="Date"></td>
+        <td><input name="weekly_refill-${index}-name" placeholder="Name"></td>
+        <td><input name="weekly_refill-${index}-explanation" placeholder="Explanation"></td>
+        <td><input name="weekly_refill-${index}-ref_number" placeholder="Ref #"></td>
+        <td><input name="weekly_refill-${index}-cash_in_bank" class="weekly-money" inputmode="decimal"></td>
+        <td><input name="weekly_refill-${index}-amount" class="weekly-money weekly-refill-amount" inputmode="decimal"></td>
+        <td class="no-print"><button type="button" class="action danger" data-remove-refill>Remove</button></td>`;
+      body.appendChild(tr);
+      reindex();
+    });
+    body.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-remove-refill]');
+      if (!btn) return;
+      btn.closest('.weekly-refill-row')?.remove();
+      if (!body.querySelector('.weekly-refill-row')) addBtn?.click();
+      reindex();
+    });
+    body.addEventListener('input', (event) => {
+      if (event.target.classList.contains('weekly-money')) sumRefill();
     });
   }
 
@@ -1045,6 +1200,7 @@
     url.searchParams.set('fragment', '1');
     const customerWrap = pager.closest('#customerListWrap');
     const readingWrap = pager.closest('#readingListWrap');
+    const paymentWrap = pager.closest('#paymentListWrap');
     const tabId = panel.id;
     if (customerWrap && tabId === 'customersTab') {
       url.searchParams.set('list_only', '1');
@@ -1082,6 +1238,7 @@
           readingWrap.outerHTML = html;
           const page = url.searchParams.get('page') || '1';
           updateTabUrl('readingsBillingTab', {
+            reading_q: url.searchParams.get('reading_q') || '',
             reading_zone: url.searchParams.get('reading_zone') || '',
             page,
           });
@@ -1093,11 +1250,34 @@
         });
       return;
     }
+    if (paymentWrap && tabId === 'paymentsTab') {
+      url.searchParams.set('list_only', '1');
+      paymentWrap.setAttribute('aria-busy', 'true');
+      fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then((res) => {
+          if (!res.ok) throw new Error('bad status');
+          return res.text();
+        })
+        .then((html) => {
+          paymentWrap.outerHTML = html;
+          updateTabUrl('paymentsTab', {
+            payment_q: url.searchParams.get('payment_q') || '',
+            page: url.searchParams.get('page') || '1',
+          });
+        })
+        .catch(() => {
+          const next = document.getElementById('paymentListWrap');
+          if (next) next.setAttribute('aria-busy', 'false');
+        });
+      return;
+    }
     loadTabFragment(tabId, panel, url);
     updateTabUrl(tabId, {
       page: url.searchParams.get('page') || '1',
       keepPage: true,
       report: url.searchParams.get('report') || undefined,
+      week_start: url.searchParams.get('week_start') || undefined,
+      week_end: url.searchParams.get('week_end') || undefined,
     });
   });
 

@@ -2190,6 +2190,42 @@ class WaterServiceContract(models.Model):
         super().save(*args, **kwargs)
 
 
+class WaterWeeklyReport(models.Model):
+    week_start = models.DateField()
+    week_end = models.DateField()
+    prepared_by = models.CharField(max_length=200, blank=True, default='')
+    audited_by = models.CharField(max_length=200, blank=True, default='')
+    approved_by = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-week_start']
+        constraints = [
+            models.UniqueConstraint(fields=['week_start', 'week_end'], name='uniq_water_weekly_report_range'),
+        ]
+
+    def __str__(self):
+        return f'Weekly report {self.week_start} – {self.week_end}'
+
+
+class WaterWeeklyRefillLine(models.Model):
+    report = models.ForeignKey(WaterWeeklyReport, on_delete=models.CASCADE, related_name='refill_lines')
+    line_no = models.PositiveIntegerField(default=1)
+    line_date = models.CharField(max_length=80, blank=True, default='')
+    name = models.CharField(max_length=200, blank=True, default='')
+    explanation = models.CharField(max_length=255, blank=True, default='')
+    ref_number = models.CharField(max_length=100, blank=True, default='')
+    cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ['line_no', 'id']
+
+    def __str__(self):
+        return f'Refill line {self.line_no}'
+
+
 class WaterAuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     username = models.CharField(max_length=150, blank=True, default='')

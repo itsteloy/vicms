@@ -6,7 +6,7 @@
       <input type="hidden" name="tab" value="reportsTab">
       <div class="field" style="min-width:220px;">
         <label>Report type</label>
-        <select name="report">
+        <select name="report" id="reportTypeSelect">
           <option value="billing" {% if report_type == 'billing' %}selected{% endif %}>Monthly Billing</option>
           <option value="collection" {% if report_type == 'collection' %}selected{% endif %}>Collection</option>
           <option value="outstanding" {% if report_type == 'outstanding' %}selected{% endif %}>Outstanding Balance</option>
@@ -17,13 +17,41 @@
           <option value="reconnection" {% if report_type == 'reconnection' %}selected{% endif %}>Reconnection</option>
           <option value="readings" {% if report_type == 'readings' %}selected{% endif %}>Meter Reading</option>
           <option value="daily_collection" {% if report_type == 'daily_collection' %}selected{% endif %}>Daily Collection</option>
+          <option value="weekly" {% if report_type == 'weekly' %}selected{% endif %}>Weekly Report</option>
         </select>
       </div>
+      <div class="field" id="weeklyRangeFields" {% if report_type != 'weekly' %}hidden{% endif %}>
+        <label for="weekStart">Weekly report start</label>
+        <input type="date" name="week_start" id="weekStart" value="{{ week_start|date:'Y-m-d' }}">
+      </div>
+      <div class="field" id="weeklyRangeEndFields" {% if report_type != 'weekly' %}hidden{% endif %}>
+        <label for="weekEnd">Weekly report end</label>
+        <input type="date" name="week_end" id="weekEnd" value="{{ week_end|date:'Y-m-d' }}">
+      </div>
       <button type="submit" class="action primary">Show</button>
+      {% if report_type == 'weekly' %}
+      <a class="action" href="{% url 'water_billing_export_csv' %}?report=weekly&week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Export CSV</a>
+      <a class="action" href="{% url 'print_water_weekly_report' %}?week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Print</a>
+      {% else %}
       <a class="action" href="{% url 'water_billing_export_csv' %}?report={{ report_type }}">Export CSV</a>
       <button type="button" class="action" onclick="window.print()">Print</button>
+      {% endif %}
     </form>
   </div>
+
+  {% if report_type == 'weekly' %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_weekly_report">
+    <input type="hidden" name="week_start" value="{{ week_start|date:'Y-m-d' }}">
+    <input type="hidden" name="week_end" value="{{ week_end|date:'Y-m-d' }}">
+    <input type="hidden" name="weekly_refill_count" id="weeklyRefillCount" value="{{ weekly_refill_lines|length }}">
+    {% include "includes/water_weekly_report_sheet.html" %}
+    <div class="form-actions no-print">
+      <button type="submit" class="primary">Save refill lines and signatures</button>
+    </div>
+  </form>
+  {% else %}
   <div class="table-wrap">
     <table class="data">
       {% if report_type == 'customers' %}
@@ -65,4 +93,5 @@
     </table>
   </div>
   {% include "includes/water_pagination.html" %}
+  {% endif %}
 </div>

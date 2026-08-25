@@ -1,0 +1,124 @@
+.weekly-report-sheet {
+  background: #fff;
+  color: #111;
+  font-family: Arial, "IBM Plex Sans", sans-serif;
+  font-size: 12px;
+}
+.weekly-report-head {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.weekly-report-co {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+}
+.weekly-report-city {
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+.weekly-report-head h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.weekly-report-range {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+.weekly-table-wrap { overflow-x: auto; }
+.weekly-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+.weekly-table th,
+.weekly-table td {
+  border: 1px solid #222;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+.weekly-table th {
+  background: #2e7d32;
+  color: #fff;
+  font-size: 0.72rem;
+  text-align: center;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.weekly-table.weekly-refill th {
+  background: #1565c0;
+}
+.weekly-table td.num,
+.weekly-table td.amt { text-align: right; white-space: nowrap; }
+.weekly-table td.name { min-width: 8rem; }
+.weekly-table tr.totals td {
+  font-weight: 700;
+  background: #f8fafc;
+}
+.weekly-table td.highlight { background: #dcfce7; }
+.weekly-grand {
+  text-align: right;
+  font-weight: 800;
+  color: #b42318;
+  margin: 0 0 16px;
+}
+.weekly-refill-title {
+  margin: 12px 0 6px;
+  font-size: 0.95rem;
+}
+.weekly-table input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d0d5dd;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+}
+.weekly-signoffs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+.weekly-signoffs label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.weekly-signoffs input,
+.weekly-signoffs .sign-line {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #222;
+  border-radius: 0;
+  padding: 4px 0;
+  min-height: 1.4rem;
+}
+.weekly-print-page .toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media print {
+  .no-print { display: none !important; }
+  .weekly-report-sheet { font-size: 11px; }
+  .weekly-table tfoot {
+    display: table-row-group;
+  }
+  .weekly-report-sheet,
+  .weekly-table th,
+  .weekly-table td.highlight,
+  .weekly-table tr.totals td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .weekly-table.weekly-main th {
+    background: #2e7d32 !important;
+    color: #fff !important;
+  }
+  .weekly-table.weekly-refill th {
+    background: #1565c0 !important;
+    color: #fff !important;
+  }
+}

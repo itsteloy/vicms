@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -12,6 +12,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
+from django.core.files.storage import default_storage
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
@@ -32,6 +33,7 @@ from django.db.models.functions import Coalesce, Greatest
 import traceback
 import json
 import csv
+import hashlib
 
 MANAGEMENT_MODULES = [
     {
@@ -200,6 +202,34 @@ def get_user_workspace(user):
     if not user.is_authenticated:
         return None
     return WorkspaceAccount.objects.filter(user=user, is_active=True).select_related('user').first()
+
+
+def _inventory_delete_password_ok(user, password):
+    if not password:
+        return False
+    if user.check_password(password):
+        return True
+    workspace = get_user_workspace(user)
+    if workspace and workspace.temporary_password and password == workspace.temporary_password:
+        return True
+    return False
+
+
+def _inventory_picture_digest(picture):
+    name = getattr(picture, 'name', '') or ''
+    if not name:
+        return ''
+    try:
+        with default_storage.open(name, 'rb') as fh:
+            hasher = hashlib.md5()
+            while True:
+                chunk = fh.read(65536)
+                if not chunk:
+                    break
+                hasher.update(chunk)
+            return hasher.hexdigest()
+    except Exception:
+        return name
 
 
 def user_has_dashboard_access(user, url_name):
@@ -1521,13 +1551,27 @@ def inventory_dashboard(request):
                 return redirect('inventory_dashboard')
             
             user = request.user
-            if not user.check_password(password):
+            if not _inventory_delete_password_ok(user, password):
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                     return JsonResponse({'error': 'Incorrect password.'}, status=400)
                 messages.error(request, "Incorrect password. Item not deleted.")
                 return redirect("inventory_dashboard")
-            
-            deleted_count, _ = InventoryItem.objects.filter(pk=item_id).delete()
+
+            item = InventoryItem.objects.filter(pk=item_id).first()
+            deleted_count = 0
+            if item:
+                pic_name = (item.picture.name or '').strip() if item.picture else ''
+                still_used = bool(
+                    pic_name
+                    and InventoryItem.objects.filter(picture=pic_name).exclude(pk=item.pk).exists()
+                )
+                InventoryItem.objects.filter(pk=item.pk).update(picture='')
+                deleted_count, _ = InventoryItem.objects.filter(pk=item.pk).delete()
+                if pic_name and not still_used:
+                    try:
+                        default_storage.delete(pic_name)
+                    except Exception:
+                        pass
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'deleted': bool(deleted_count)})
             messages.success(request, "Item deleted successfully.")
@@ -1614,13 +1658,11 @@ def inventory_dashboard(request):
                 )
             if request.FILES.get('picture'):
                 item.picture = request.FILES.get('picture')
-            item.size = request.POST.get('size', '').strip()
+            else:
+                reuse = request.POST.get('reuse_picture', '').strip()
+                if reuse and InventoryItem.objects.filter(picture=reuse).exists():
+                    item.picture.name = reuse
             item.stock_available = int(request.POST.get('stockAvailable', 0) or 0)
-            item.pcs_per_ctn = int(request.POST.get('pcsPerCtn', 0) or 0)
-            item.carton_size = request.POST.get('cartonSize', '').strip()
-            item.net_weight = Decimal(request.POST.get('netWeight', '0') or '0')
-            item.gross_weight = Decimal(request.POST.get('grossWeight', '0') or '0')
-            item.price = Decimal(request.POST.get('price', '0') or '0')
             item.description = request.POST.get('description', '').strip()
             item.notes = request.POST.get('notes', '').strip()
             item.save()
@@ -1641,7 +1683,8 @@ def inventory_dashboard(request):
             'name': item.name,
             'categoryId': item.category_id,
             'categoryPath': path_by_id.get(item.category_id, item.name),
-            'picture': item.picture.url if getattr(item, 'picture') else '',
+            'picture': item.picture.url if item.picture else '',
+            'pictureName': item.picture.name if item.picture else '',
             'size': item.size,
             'stockAvailable': item.stock_available,
             'pcsPerCtn': item.pcs_per_ctn,
@@ -1654,6 +1697,14 @@ def inventory_dashboard(request):
         }
         for item in inventory_items
     ]
+    seen_pictures = {}
+    for item in inventory_items:
+        if not item.picture:
+            continue
+        key = _inventory_picture_digest(item.picture)
+        if key and key not in seen_pictures:
+            seen_pictures[key] = {'name': item.picture.name, 'url': item.picture.url}
+    inventory_existing_images = list(seen_pictures.values())
 
     deliveries = Delivery.objects.prefetch_related('lines').order_by('-delivery_date')
 
@@ -1663,6 +1714,7 @@ def inventory_dashboard(request):
         {
             'inventory_items': inventory_items,
             'inventory_items_json': inventory_items_json,
+            'inventory_existing_images': inventory_existing_images,
             'inventory_item_options': INVENTORY_ITEM_OPTIONS,
             'inventory_categories': category_choices,
             'inventory_category_groups': category_groups,
@@ -3685,9 +3737,17 @@ WATER_DEFAULT_MAINT = Decimal('15.00')
 WATER_DEFAULT_RECONNECT_FEE = Decimal('500.00')
 
 
-def _water_redirect(tab=''):
+def _water_redirect(tab='', extra=None):
     url = reverse('water_billing_dashboard')
-    return redirect(f'{url}?tab={tab}' if tab else url)
+    params = {}
+    if tab:
+        params['tab'] = tab
+    if extra:
+        params.update({key: value for key, value in extra.items() if value not in (None, '')})
+    if params:
+        from urllib.parse import urlencode
+        return redirect(f'{url}?{urlencode(params)}')
+    return redirect(url)
 
 
 def _water_audit(request, action, entity_type, entity_id='', details=''):
@@ -3905,11 +3965,37 @@ def _water_filtered_customers(request):
 
 
 def _water_filtered_readings(request):
+    reading_q = request.GET.get('reading_q', '').strip()
     reading_zone = request.GET.get('reading_zone', '').strip()
     readings_qs = WaterMeterReading.objects.select_related('customer', 'customer__zone', 'bill')
+    if reading_q:
+        readings_qs = readings_qs.filter(
+            Q(customer__account_number__icontains=reading_q)
+            | Q(customer__first_name__icontains=reading_q)
+            | Q(customer__last_name__icontains=reading_q)
+            | Q(billing_period__icontains=reading_q)
+            | Q(bill__bill_number__icontains=reading_q)
+        ).distinct()
     if reading_zone.isdigit():
         readings_qs = readings_qs.filter(customer__zone_id=reading_zone)
-    return readings_qs, reading_zone
+    return readings_qs, reading_q, reading_zone
+
+
+def _water_filtered_payments(request):
+    payment_q = request.GET.get('payment_q', '').strip()
+    payments_qs = WaterPayment.objects.select_related('customer', 'bill')
+    if payment_q:
+        payments_qs = payments_qs.filter(
+            Q(receipt_number__icontains=payment_q)
+            | Q(ar_number__icontains=payment_q)
+            | Q(reference_number__icontains=payment_q)
+            | Q(remarks__icontains=payment_q)
+            | Q(customer__account_number__icontains=payment_q)
+            | Q(customer__first_name__icontains=payment_q)
+            | Q(customer__last_name__icontains=payment_q)
+            | Q(bill__bill_number__icontains=payment_q)
+        ).distinct()
+    return payments_qs, payment_q
 
 
 def _water_all_customers_qs():
@@ -4024,24 +4110,24 @@ def _water_tab_context(request, tab):
             'next_account_number': WaterCustomer.generate_account_number(),
         })
     elif tab == 'readingsBillingTab':
-        readings_qs, reading_zone = _water_filtered_readings(request)
+        readings_qs, reading_q, reading_zone = _water_filtered_readings(request)
         page_obj = _water_paginate(readings_qs, request)
         ctx.update({
             'all_customers': _water_all_customers_qs(),
             'readings': page_obj,
             'page_obj': page_obj,
+            'reading_q': reading_q,
             'reading_zone': reading_zone,
             'water_zones': WaterZone.objects.order_by('name'),
             'next_bill_number': WaterBill.generate_bill_number(),
         })
     elif tab == 'paymentsTab':
-        page_obj = _water_paginate(
-            WaterPayment.objects.select_related('customer', 'bill').all(),
-            request,
-        )
+        payments_qs, payment_q = _water_filtered_payments(request)
+        page_obj = _water_paginate(payments_qs, request)
         ctx.update({
             'payments': page_obj,
             'page_obj': page_obj,
+            'payment_q': payment_q,
             'open_bills_for_payment': _water_open_bills(),
             'next_receipt_number': WaterPayment.generate_receipt_number(),
         })
@@ -4082,12 +4168,21 @@ def _water_tab_context(request, tab):
         })
     elif tab == 'reportsTab':
         report_type = request.GET.get('report', 'billing')
-        page_obj = _water_paginate(_water_report_rows(report_type), request)
+        week_start, week_end, week_error = _water_parse_week_range(request)
         ctx.update({
             'report_type': report_type,
-            'report_rows': page_obj,
-            'page_obj': page_obj,
+            'week_start': week_start,
+            'week_end': week_end,
+            'week_error': week_error,
         })
+        if report_type == 'weekly':
+            ctx.update(_water_weekly_report_context(request))
+        else:
+            page_obj = _water_paginate(_water_report_rows(report_type), request)
+            ctx.update({
+                'report_rows': page_obj,
+                'page_obj': page_obj,
+            })
     elif tab == 'auditTab':
         page_obj = _water_paginate(WaterAuditLog.objects.all(), request)
         ctx.update({
@@ -4129,6 +4224,7 @@ def water_billing_dashboard(request):
             'delete_reading': _water_delete_reading,
             'delete_bill': _water_delete_bill,
             'delete_payment': _water_delete_payment,
+            'save_weekly_report': _water_save_weekly_report,
         }
         handler = handlers.get(action)
         if handler:
@@ -4144,6 +4240,8 @@ def water_billing_dashboard(request):
             template = 'includes/water_customer_list.html'
         elif tab == 'readingsBillingTab' and request.GET.get('list_only') == '1':
             template = 'includes/water_reading_list.html'
+        elif tab == 'paymentsTab' and request.GET.get('list_only') == '1':
+            template = 'includes/water_payment_list.html'
         return render(request, template, context)
 
     context = {
@@ -4180,6 +4278,206 @@ def _water_report_rows(report_type):
     if report_type == 'revenue':
         return WaterPayment.objects.select_related('customer', 'bill').all()
     return WaterBill.objects.select_related('customer').filter(bill_date__gte=month_start)
+
+
+def _water_default_week_range():
+    today = date.today()
+    start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=5)
+    if end > today:
+        end = today
+    return start, end
+
+
+def _water_parse_week_range(request, source=None):
+    data = source if source is not None else request.GET
+    default_start, default_end = _water_default_week_range()
+    start = _water_parse_date(data.get('week_start')) or default_start
+    end = _water_parse_date(data.get('week_end')) or default_end
+    error = ''
+    if end < start:
+        error = 'Weekly report end must be on or after the start date.'
+    return start, end, error
+
+
+def _water_weekly_collection_rows(week_start, week_end):
+    rows = []
+    payments = (
+        WaterPayment.objects.select_related('customer', 'bill')
+        .filter(payment_date__gte=week_start, payment_date__lte=week_end)
+        .order_by('payment_date', 'id')
+    )
+    for payment in payments:
+        remarks = (payment.remarks or '').strip()
+        if payment.reference_number:
+            remarks = f'{remarks} {payment.reference_number}'.strip() if remarks else payment.reference_number
+        amount = payment.amount or Decimal('0.00')
+        bill = payment.bill
+        install_due = (bill.installment_balance or Decimal('0.00')) if bill else Decimal('0.00')
+        water_due = Decimal('0.00')
+        if bill:
+            water_due = max((bill.total_amount or Decimal('0.00')) - install_due, Decimal('0.00'))
+        water_bill = min(amount, water_due) if bill else amount
+        installation_fee = min(amount - water_bill, install_due) if bill else Decimal('0.00')
+        rows.append({
+            'sort_date': payment.payment_date,
+            'sort_name': payment.customer.display_name if payment.customer_id else '',
+            'row_date': payment.payment_date,
+            'name': payment.customer.display_name if payment.customer_id else '',
+            'remarks': remarks,
+            'payment': None,
+            'ar_number': payment.ar_number or '',
+            'cash_in_bank': amount,
+            'water_bill': water_bill or None,
+            'installation_fee': installation_fee or None,
+            'reconnection_fee': None,
+        })
+    reconnects = (
+        WaterServiceAction.objects.select_related('customer')
+        .filter(
+            action_type='reconnection',
+            fee_paid=True,
+            action_date__gte=week_start,
+            action_date__lte=week_end,
+        )
+        .order_by('action_date', 'id')
+    )
+    for action in reconnects:
+        fee = action.reconnection_fee or Decimal('0.00')
+        rows.append({
+            'sort_date': action.action_date,
+            'sort_name': action.customer.display_name if action.customer_id else '',
+            'row_date': action.action_date,
+            'name': action.customer.display_name if action.customer_id else '',
+            'remarks': (action.notes or action.reason or 'Reconnection fee').strip(),
+            'payment': None,
+            'ar_number': '',
+            'cash_in_bank': fee,
+            'water_bill': None,
+            'installation_fee': None,
+            'reconnection_fee': fee,
+        })
+    new_customers = WaterCustomer.objects.filter(
+        registration_date__gte=week_start,
+        registration_date__lte=week_end,
+    ).order_by('registration_date', 'id')
+    for customer in new_customers:
+        paid = max(WATER_INSTALLATION_FEE - (customer.installment_balance or Decimal('0.00')), Decimal('0.00'))
+        if paid <= 0:
+            continue
+        rows.append({
+            'sort_date': customer.registration_date,
+            'sort_name': customer.display_name,
+            'row_date': customer.registration_date,
+            'name': customer.display_name,
+            'remarks': 'Installation fee',
+            'payment': None,
+            'ar_number': '',
+            'cash_in_bank': paid,
+            'water_bill': None,
+            'installation_fee': paid,
+            'reconnection_fee': None,
+        })
+    rows.sort(key=lambda row: (row['sort_date'] or date.min, row['sort_name'] or '', row.get('ar_number') or ''))
+    for index, row in enumerate(rows, start=1):
+        row['row_no'] = index
+    totals = {
+        'payment': sum((row['payment'] or Decimal('0.00') for row in rows), Decimal('0.00')),
+        'cash_in_bank': sum((row['cash_in_bank'] or Decimal('0.00') for row in rows), Decimal('0.00')),
+        'water_bill': sum((row['water_bill'] or Decimal('0.00') for row in rows), Decimal('0.00')),
+        'installation_fee': sum((row['installation_fee'] or Decimal('0.00') for row in rows), Decimal('0.00')),
+        'reconnection_fee': sum((row['reconnection_fee'] or Decimal('0.00') for row in rows), Decimal('0.00')),
+    }
+    return rows, totals
+
+
+def _water_weekly_report_context(request, source=None):
+    week_start, week_end, week_error = _water_parse_week_range(request, source)
+    weekly_rows, weekly_totals = ([], {
+        'payment': Decimal('0.00'),
+        'cash_in_bank': Decimal('0.00'),
+        'water_bill': Decimal('0.00'),
+        'installation_fee': Decimal('0.00'),
+        'reconnection_fee': Decimal('0.00'),
+    }) if week_error else _water_weekly_collection_rows(week_start, week_end)
+    weekly_report = WaterWeeklyReport.objects.filter(week_start=week_start, week_end=week_end).first()
+    refill_lines = list(weekly_report.refill_lines.all()) if weekly_report else []
+    if not refill_lines:
+        refill_lines = [WaterWeeklyRefillLine(line_no=1)]
+    refill_total = sum((line.amount or Decimal('0.00') for line in refill_lines), Decimal('0.00'))
+    refill_cash_total = sum((line.cash_in_bank or Decimal('0.00') for line in refill_lines), Decimal('0.00'))
+    return {
+        'week_start': week_start,
+        'week_end': week_end,
+        'week_error': week_error,
+        'weekly_rows': weekly_rows,
+        'weekly_totals': weekly_totals,
+        'weekly_report': weekly_report,
+        'weekly_refill_lines': refill_lines,
+        'weekly_refill_total': refill_total,
+        'weekly_refill_cash_total': refill_cash_total,
+    }
+
+
+def _water_save_weekly_report(request):
+    week_start, week_end, week_error = _water_parse_week_range(request, request.POST)
+    extra = {
+        'tab': 'reportsTab',
+        'report': 'weekly',
+        'week_start': week_start.isoformat() if week_start else '',
+        'week_end': week_end.isoformat() if week_end else '',
+    }
+    if week_error:
+        messages.error(request, week_error)
+        return _water_redirect('reportsTab', extra)
+    report, _created = WaterWeeklyReport.objects.get_or_create(
+        week_start=week_start,
+        week_end=week_end,
+    )
+    report.prepared_by = request.POST.get('prepared_by', '').strip()
+    report.audited_by = request.POST.get('audited_by', '').strip()
+    report.approved_by = request.POST.get('approved_by', '').strip()
+    report.save()
+    try:
+        count = int(request.POST.get('weekly_refill_count', '0') or 0)
+    except ValueError:
+        count = 0
+    report.refill_lines.all().delete()
+    saved = 0
+    for index in range(count):
+        prefix = f'weekly_refill-{index}-'
+        line_date = request.POST.get(prefix + 'line_date', '').strip()
+        name = request.POST.get(prefix + 'name', '').strip()
+        explanation = request.POST.get(prefix + 'explanation', '').strip()
+        ref_number = request.POST.get(prefix + 'ref_number', '').strip()
+        cash_raw = request.POST.get(prefix + 'cash_in_bank', '').strip()
+        amount_raw = request.POST.get(prefix + 'amount', '').strip()
+        if not any([line_date, name, explanation, ref_number, cash_raw, amount_raw]):
+            continue
+        saved += 1
+        WaterWeeklyRefillLine.objects.create(
+            report=report,
+            line_no=saved,
+            line_date=line_date,
+            name=name,
+            explanation=explanation,
+            ref_number=ref_number,
+            cash_in_bank=_dec(cash_raw) if cash_raw else None,
+            amount=_dec(amount_raw) if amount_raw else None,
+        )
+    _water_audit(
+        request, 'Saved weekly report', 'WaterWeeklyReport', report.pk,
+        f'{week_start} to {week_end} refill_lines={saved}',
+    )
+    messages.success(request, f'Weekly report {week_start} to {week_end} saved.')
+    return _water_redirect('reportsTab', extra)
+
+
+@require_dashboard('water_billing_dashboard')
+def print_water_weekly_report(request):
+    context = _water_weekly_report_context(request)
+    context['print_mode'] = True
+    return render(request, 'water_weekly_report_print.html', context)
 
 
 def _water_resolve_zone(request):
@@ -4951,6 +5249,28 @@ def _water_delete_payment(request):
 @require_dashboard('water_billing_dashboard')
 def water_billing_export_csv(request):
     report_type = request.GET.get('report', 'billing')
+    if report_type == 'weekly':
+        ctx = _water_weekly_report_context(request)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="water_weekly_report.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['NO.', 'DATE', 'NAME', 'REMARKS', 'PAYMENT', 'AR NO.', 'CASH IN BANK', 'WATER BILL', 'INSTALLATION FEE', 'RECONNECTION FEE'])
+        for row in ctx['weekly_rows']:
+            writer.writerow([
+                row['row_no'], row['row_date'], row['name'], row['remarks'],
+                row['payment'] or '', row['ar_number'], row['cash_in_bank'] or '',
+                row['water_bill'] or '', row.get('installation_fee') or '', row['reconnection_fee'] or '',
+            ])
+        writer.writerow([])
+        writer.writerow(['REFILLING COLLECTION'])
+        writer.writerow(['NO.', 'DATE', 'NAME', 'EXPLANATION', 'REF #', 'CASH IN BANK', 'AMOUNT'])
+        for line in ctx['weekly_refill_lines']:
+            writer.writerow([
+                line.line_no, line.line_date, line.name, line.explanation,
+                line.ref_number, line.cash_in_bank or '', line.amount or '',
+            ])
+        _water_audit(request, 'Exported report', 'Report', report_type, f'rows={len(ctx["weekly_rows"])}')
+        return response
     rows = _water_report_rows(report_type)
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="water_{report_type}_report.csv"'

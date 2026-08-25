@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Weekly Report – {{ week_start }} to {{ week_end }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=3">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  body { padding: 0; background: #fff; display: block; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="weekly-print-page">
+  <div class="toolbar no-print">
+    <a href="{% url 'water_billing_dashboard' %}?tab=reportsTab&report=weekly&week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">← Back</a>
+    <button type="button" onclick="window.print()">Print</button>
+  </div>
+  {% include "includes/water_weekly_report_sheet.html" %}
+</div>
+{% endblock %}

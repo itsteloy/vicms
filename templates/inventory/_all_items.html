@@ -2,7 +2,7 @@
     <div id="allItemsPanel" class="tab-panel">
       <div class="panel">
         <h2>All Items</h2>
-        <p>View every inventory item and filter by category, code, size, description, or notes.</p>
+        <p>View every inventory item and filter by category, code, description, or notes.</p>
         <div class="toolbar">
           <div class="toolbar-field">
             <label for="categoryFilter">Category</label>
@@ -34,27 +34,19 @@
               <tr>
                 <th>Item</th>
                 <th>Picture</th>
-                <th>Size</th>
+                <th>Description</th>
                 <th>Stocks</th>
-                <th>PCS/CTN</th>
-                <th>Carton size</th>
-                <th>N.W (kg)</th>
-                <th>G.W (kg)</th>
-                <th>Unit price</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="inventoryTableBody">
               {% for item in inventory_items %}
               <tr data-id="{{ item.id }}">
-                <td>
+                <td class="item-code">
                   <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
                   <strong>{{ item.name }}</strong>
-                  {% if item.description %}
-                  <span style="display:block;color:#667085;font-size:.82rem;font-weight:500;margin-top:2px;">{{ item.description|truncatechars:80 }}</span>
-                  {% endif %}
                 </td>
-                <td>
+                <td class="item-picture">
                   {% if item.picture %}
                   <img src="{{ item.picture.url }}" alt="{{ item.name }}"
                     style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
@@ -62,15 +54,11 @@
                   <span style="color:#667085;font-size:.88rem;">No image</span>
                   {% endif %}
                 </td>
-                <td>{{ item.size|default:"-" }}</td>
-                <td>{{ item.stock_available }}</td>
-                <td>{{ item.pcs_per_ctn }}</td>
-                <td>{{ item.carton_size|default:"-" }}</td>
-                <td>{{ item.net_weight }}</td>
-                <td>{{ item.gross_weight }}</td>
-                <td>₱{{ item.price }}</td>
-                <td>
-                  <div class="actions" style="justify-content:flex-start;">
+                <td class="item-desc"><span>{{ item.description|default:"-" }}</span></td>
+                <td class="item-stock">{{ item.stock_available }}</td>
+                <td class="item-actions">
+                  <div class="actions">
+                    <button class="copy" type="button" data-action="view">View</button>
                     <button class="copy" type="button" data-action="edit">Edit</button>
                     <button class="delete" type="button" data-action="delete">Delete</button>
                   </div>
@@ -78,7 +66,7 @@
               </tr>
               {% endfor %}
               <tr data-empty-state>
-                <td colspan="10" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
+                <td colspan="5" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
               </tr>
             </tbody>
           </table>

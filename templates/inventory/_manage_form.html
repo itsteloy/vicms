@@ -52,35 +52,24 @@
               <div class="field-control-slot">
                 <input id="picture" name="picture" type="file" accept="image/*" class="field-control">
               </div>
-              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
+              <p class="field-hint">Or pick an existing image below so the file is stored once.</p>
             </div>
-            <div class="field">
-              <label for="size">Size</label>
-              <input id="size" name="size" type="text" placeholder="45x30x20 cm">
+            <input type="hidden" id="reusePicture" name="reuse_picture" value="">
+            <div class="field full">
+              <label>Existing images</label>
+              <div class="reuse-image-grid" id="reuseImageGrid">
+                {% for img in inventory_existing_images %}
+                <button type="button" class="reuse-image-btn" data-name="{{ img.name }}" data-url="{{ img.url }}" title="{{ img.name }}">
+                  <img src="{{ img.url }}" alt="">
+                </button>
+                {% empty %}
+                <p class="field-hint" style="margin:0;">No images in the catalog yet. Upload one above.</p>
+                {% endfor %}
+              </div>
             </div>
             <div class="field">
               <label for="stockAvailable">Stocks available</label>
               <input id="stockAvailable" name="stockAvailable" type="number" min="0" value="0" required>
-            </div>
-            <div class="field">
-              <label for="pcsPerCtn">PCS/CTN</label>
-              <input id="pcsPerCtn" name="pcsPerCtn" type="number" min="0" value="0" required>
-            </div>
-            <div class="field">
-              <label for="cartonSize">Carton size (m)</label>
-              <input id="cartonSize" name="cartonSize" type="text" placeholder="0.45 x 0.30 x 0.20">
-            </div>
-            <div class="field">
-              <label for="netWeight">N.W (kg)</label>
-              <input id="netWeight" name="netWeight" type="number" min="0" step="0.01" value="0.00" required>
-            </div>
-            <div class="field">
-              <label for="grossWeight">G.W (kg)</label>
-              <input id="grossWeight" name="grossWeight" type="number" min="0" step="0.01" value="0.00" required>
-            </div>
-            <div class="field">
-              <label for="price">Unit price (PESO)</label>
-              <input id="price" name="price" type="number" min="0" step="0.01" value="0.00" required>
             </div>
             <div class="field full">
               <label for="description">Description</label>

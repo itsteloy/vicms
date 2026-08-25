@@ -256,7 +256,7 @@
                   <a class="action" href="{{ sheet.source_file.url }}" target="_blank" style="padding:4px 10px;">File</a>
                   {% endif %}
                   <form method="post" style="display:inline;" onsubmit="return confirm('Delete this punch sheet and all edited punch data?');">
-                    {% csrf_token %}
+            {% csrf_token %}
                     <input type="hidden" name="action" value="delete_punch_sheet">
                     <input type="hidden" name="sheet_id" value="{{ sheet.id }}">
                     <button type="submit" class="action" style="padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
@@ -267,10 +267,10 @@
               <tr>
                 <td colspan="5" style="text-align:center;color:#667085;padding:24px;">No punch sheets uploaded yet.</td>
               </tr>
-              {% endfor %}
+                  {% endfor %}
             </tbody>
           </table>
-        </div>
+              </div>
 
         {% if selected_punch_sheet %}
         <div class="punch-sheet-editor">
@@ -287,7 +287,7 @@
             <span><strong>Morning Out</strong> — lunch out (AM)</span>
             <span><strong>Afternoon In</strong> — clock in (PM)</span>
             <span><strong>Afternoon Out</strong> — clock out (PM)</span>
-          </div>
+              </div>
 
           <form method="post">
             {% csrf_token %}
@@ -301,7 +301,7 @@
               </div>
               <button type="submit" class="action btn-primary">Save Changes</button>
               <a class="action" href="?tab=attendanceSheetsTab">Close</a>
-            </div>
+              </div>
 
             {% for entry in selected_punch_sheet.entries.all %}
             <div class="punch-employee-block">
@@ -309,23 +309,23 @@
                 <div>
                   <label for="entry_{{ entry.id }}_device_id">Device ID</label>
                   <input type="text" id="entry_{{ entry.id }}_device_id" name="entry_{{ entry.id }}_device_id" class="field-input" value="{{ entry.device_employee_id }}">
-                </div>
+              </div>
                 <div>
                   <label>EMP ID</label>
                   <input type="text" class="field-input field-readonly" value="{% if entry.linked_employee %}{{ entry.linked_employee.employee_id }}{% else %}—{% endif %}" readonly title="Linked from Employee Records by name">
-                </div>
+              </div>
                 <div>
                   <label for="entry_{{ entry.id }}_name">Name</label>
                   <input type="text" id="entry_{{ entry.id }}_name" name="entry_{{ entry.id }}_name" class="field-input" value="{{ entry.employee_name }}">
-                </div>
+              </div>
                 <div>
                   <label for="entry_{{ entry.id }}_department">Dept</label>
                   <input type="text" id="entry_{{ entry.id }}_department" name="entry_{{ entry.id }}_department" class="field-input" value="{{ entry.department }}">
-                </div>
+              </div>
                 <div>
                   <label for="entry_{{ entry.id }}_shift">Shift</label>
                   <input type="text" id="entry_{{ entry.id }}_shift" name="entry_{{ entry.id }}_shift" class="field-input" value="{{ entry.shift }}">
-                </div>
+            </div>
                 <div class="punch-employee-metrics">
                   {% if entry.metrics.is_mapped %}
                   <span class="metric-pill">Company: <strong>{{ entry.metrics.company_name }}</strong></span>
@@ -341,13 +341,13 @@
                   <span class="metric-pill">Total deduction: <strong>{{ entry.metrics.total_deduction_display }}</strong></span>
                   {% else %}
                   <span class="metric-pill">Mapped employee required for schedule / undertime</span>
-                  {% endif %}
-                </div>
-              </div>
+          {% endif %}
+        </div>
+          </div>
               <div class="punch-grid-wrap">
                 <table class="punch-grid">
-                  <thead>
-                    <tr>
+            <thead>
+              <tr>
                       <th>Day</th>
                       <th>Date</th>
                       <th>Morning In</th>
@@ -360,9 +360,9 @@
                       <th>Exp PM Out</th>
                       <th>Undertime</th>
                       <th>Absent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              </tr>
+            </thead>
+            <tbody>
                     {% for punch in entry.punches.all %}
                     <tr{% if punch.metrics.is_absent %} class="is-absent-row"{% endif %}>
                       <td class="punch-day-col">{{ punch.day }}</td>
@@ -377,7 +377,7 @@
                           placeholder="—"
                           aria-label="Morning in for day {{ punch.day }}"
                         >
-                      </td>
+                </td>
                       <td>
                         <input
                           type="text"
@@ -416,12 +416,12 @@
                         {% else %}
                           —
                         {% endif %}
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
             </div>
             {% empty %}
             <p style="color:var(--muted);">This sheet has no employee rows.</p>
@@ -709,8 +709,8 @@
         <h2>Idle Days Report</h2>
         <p>Days assignees had no work on a job order (e.g. waiting for materials). Estimates only — payroll is not changed.</p>
         {% include "includes/idle_days_report.html" with idle_days_read_only=True can_access_services=can_access_services %}
-      </div>
-    </div>
+                </div>
+                </div>
 
     <!-- Official Business -->
     <div id="officialBusinessTab" class="tab-panel">

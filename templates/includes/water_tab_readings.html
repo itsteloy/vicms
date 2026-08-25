@@ -118,6 +118,10 @@
     </div>
     <form method="get" class="list-toolbar" id="readingFilterForm">
       <input type="hidden" name="tab" value="readingsBillingTab">
+      <div class="field grow">
+        <label for="readingSearch">Search</label>
+        <input id="readingSearch" name="reading_q" value="{{ reading_q }}" placeholder="Name, account, bill, or period…" autocomplete="off">
+      </div>
       <div class="field">
         <label for="readingZoneFilter">Zone</label>
         <select name="reading_zone" id="readingZoneFilter">

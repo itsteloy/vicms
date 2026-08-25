@@ -1,0 +1,48 @@
+<div id="paymentListWrap">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Receipt</th>
+          <th>AR No.</th>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Amount Paid</th>
+          <th>Method</th>
+          <th>Balance Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td><strong>{{ p.receipt_number }}</strong></td>
+          <td>{{ p.ar_number|default:"—" }}</td>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.customer.display_name }}</td>
+          <td class="money">₱{{ p.amount|floatformat:2 }}</td>
+          <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
+          <td>
+            {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
+            <span class="badge paid">Paid</span>
+            {% else %}
+            <span class="badge unpaid">Unpaid</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_payment">
+              <input type="hidden" name="payment_id" value="{{ p.id }}">
+              <button type="submit" class="action danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">{% if payment_q %}No matching payments.{% else %}No payments recorded yet.{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "includes/water_pagination.html" %}
+</div>
