@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Billing History – {{ customer.display_name }} ({{ history.year }}){% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_billing_history.css' %}?v=1">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  body { padding: 0; background: #fff; display: block; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="billing-history-print-page">
+  <div class="toolbar no-print">
+    <a href="{% url 'view_water_customer' customer.id %}">← Back</a>
+    <button type="button" onclick="window.print()">Print</button>
+  </div>
+
+  <div class="billing-history-sheet">
+    <header class="billing-history-head">
+      <div class="co">VERSATEC INDUSTRIAL CORPORATION</div>
+      <div class="sub">Water Billing History</div>
+      <h1>{{ customer.display_name }}</h1>
+      <p class="meta">
+        Account {{ customer.account_number }}
+        {% if customer.meter_number %} · Meter {{ customer.meter_number }}{% endif %}
+        · Year {{ history.year }}
+      </p>
+    </header>
+
+    <table class="billing-history-table">
+      <thead>
+        <tr>
+          <th class="col-label"></th>
+          <th class="col-bill">MONTHLY BILL</th>
+          <th class="col-pay">PAYMENT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-label">PREVIOUS BILL IN {{ history.previous_year }}</td>
+          <td class="col-bill amt">{% if history.previous_bill %}₱{{ history.previous_bill|floatformat:2 }}{% endif %}</td>
+          <td class="col-pay amt"></td>
+        </tr>
+        {% for row in history.month_rows %}
+        <tr>
+          <td class="col-label">{{ row.label }}</td>
+          <td class="col-bill amt">{% if row.bill_amount %}₱{{ row.bill_amount|floatformat:2 }}{% endif %}</td>
+          <td class="col-pay amt">{% if row.payment_amount %}₱{{ row.payment_amount|floatformat:2 }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="totals-row">
+          <td class="col-label">TOTAL BILL</td>
+          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2 }}</td>
+          <td class="col-pay amt"></td>
+        </tr>
+        <tr class="totals-row">
+          <td class="col-label">TOTAL PAYMENT</td>
+          <td class="col-bill amt"></td>
+          <td class="col-pay amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
+        </tr>
+        <tr class="due-calc">
+          <td class="col-label"></td>
+          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2 }}</td>
+          <td class="col-pay amt"></td>
+        </tr>
+        <tr class="due-calc">
+          <td class="col-label"></td>
+          <td class="col-bill amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
+          <td class="col-pay amt"></td>
+        </tr>
+        <tr class="due-final">
+          <td class="col-label"></td>
+          <td class="col-bill amt due-amt">₱{{ history.amount_due|floatformat:2 }}</td>
+          <td class="col-pay due-label">TOTAL AMOUNT TO PAY</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

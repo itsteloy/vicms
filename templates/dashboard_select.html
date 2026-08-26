@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/dashboard_select.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/dashboard_select.css' %}?v=pw1">
 {% endblock %}
 
 {% block content %}
@@ -141,7 +141,15 @@
         </div>
         <div class="login-field">
           <label for="modalPassword">Password</label>
-          <input id="modalPassword" name="password" type="password" autocomplete="current-password" required>
+          <div class="password-field">
+            <input id="modalPassword" name="password" type="password" autocomplete="current-password" required>
+            <button type="button" id="toggleModalPassword" class="password-toggle"
+              data-show-src="{% static 'show.png' %}"
+              data-hide-src="{% static 'hidden.png' %}"
+              aria-label="Show password">
+              <img src="{% static 'hidden.png' %}" alt="" class="password-toggle-icon" width="20" height="20">
+            </button>
+          </div>
         </div>
         <button class="login-submit" type="submit">Sign in and open workspace</button>
       </form>
@@ -159,5 +167,5 @@
     loginError: {% if login_error %}true{% else %}false{% endif %}
   };
 </script>
-<script src="{% static 'js/dashboards/dashboard_select.js' %}"></script>
+<script src="{% static 'js/dashboards/dashboard_select.js' %}?v=pw1"></script>
 {% endblock %}

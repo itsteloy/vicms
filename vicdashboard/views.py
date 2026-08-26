@@ -4714,6 +4714,72 @@ def _water_bill_month_name(billing_period):
     return month_name
 
 
+MONTH_LABELS = (
+    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+)
+
+
+def _water_customer_billing_history(customer, year):
+    """Year ledger: monthly consumption charges + payments by calendar month."""
+    year = int(year)
+    year_prefix = f'{year}-'
+    previous_cutoff = f'{year}-01'
+
+    bills = list(customer.bills.exclude(status='cancelled'))
+    payments = list(customer.payments.all())
+
+    previous_bill = Decimal('0.00')
+    for bill in bills:
+        period = (bill.billing_period or '')[:7]
+        if period and period < previous_cutoff:
+            previous_bill += bill.balance_due
+
+    bill_by_month = {m: Decimal('0.00') for m in range(1, 13)}
+    for bill in bills:
+        period = (bill.billing_period or '')[:7]
+        if not period.startswith(year_prefix) or len(period) < 7:
+            continue
+        try:
+            month = int(period[5:7])
+        except ValueError:
+            continue
+        if 1 <= month <= 12:
+            bill_by_month[month] += bill.consumption_charge or Decimal('0.00')
+
+    pay_by_month = {m: Decimal('0.00') for m in range(1, 13)}
+    for payment in payments:
+        if not payment.payment_date or payment.payment_date.year != year:
+            continue
+        pay_by_month[payment.payment_date.month] += payment.amount or Decimal('0.00')
+
+    month_rows = []
+    total_month_bills = Decimal('0.00')
+    total_payments = Decimal('0.00')
+    for month in range(1, 13):
+        bill_amt = bill_by_month[month]
+        pay_amt = pay_by_month[month]
+        total_month_bills += bill_amt
+        total_payments += pay_amt
+        month_rows.append({
+            'label': MONTH_LABELS[month - 1],
+            'bill_amount': bill_amt if bill_amt else None,
+            'payment_amount': pay_amt if pay_amt else None,
+        })
+
+    total_bill = previous_bill + total_month_bills
+    amount_due = total_bill - total_payments
+    return {
+        'year': year,
+        'previous_year': year - 1,
+        'previous_bill': previous_bill,
+        'month_rows': month_rows,
+        'total_bill': total_bill,
+        'total_payment': total_payments,
+        'amount_due': amount_due,
+    }
+
+
 def _water_bill_period_dates(billing_period, end_date):
     start_date = None
     computed_end_date = end_date
@@ -4818,6 +4884,17 @@ def view_water_customer(request, customer_id):
         billed_total += bill.total_amount
         paid_total += bill.amount_paid or Decimal('0.00')
 
+    current_year = date.today().year
+    year_candidates = {current_year, current_year - 1}
+    for bill in bills:
+        period = (bill.billing_period or '')[:4]
+        if period.isdigit():
+            year_candidates.add(int(period))
+    for payment in payments:
+        if payment.payment_date:
+            year_candidates.add(payment.payment_date.year)
+    history_years = sorted(year_candidates, reverse=True)
+
     return render(request, 'water_customer_detail.html', {
         'customer': customer,
         'readings': readings,
@@ -4833,6 +4910,25 @@ def view_water_customer(request, customer_id):
         'customer_types': WATER_CUSTOMER_TYPES,
         'connection_statuses': WATER_CONNECTION_STATUS,
         'water_zones': WaterZone.objects.order_by('name'),
+        'history_years': history_years,
+        'history_year': current_year,
+    })
+
+
+@require_dashboard('water_billing_dashboard')
+def print_water_customer_billing_history(request, customer_id):
+    customer = get_object_or_404(WaterCustomer.objects.select_related('zone'), pk=customer_id)
+    year_raw = (request.GET.get('year') or '').strip()
+    try:
+        year = int(year_raw) if year_raw else date.today().year
+    except ValueError:
+        year = date.today().year
+    if year < 2000 or year > 2100:
+        year = date.today().year
+    history = _water_customer_billing_history(customer, year)
+    return render(request, 'water_customer_billing_history_print.html', {
+        'customer': customer,
+        'history': history,
     })
 
 

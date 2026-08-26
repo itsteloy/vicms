@@ -21,6 +21,13 @@
       workspaceKeyInput.value = key;
       usernameInput.value = '';
       passwordInput.value = '';
+      passwordInput.setAttribute('type', 'password');
+      const toggle = document.getElementById('toggleModalPassword');
+      const icon = toggle?.querySelector('img');
+      if (toggle && icon) {
+        icon.src = toggle.dataset.hideSrc || icon.src;
+        toggle.setAttribute('aria-label', 'Show password');
+      }
 
       if (user && pass) {
         hintUser.textContent = user;
@@ -60,6 +67,18 @@
       if (event.key === 'Escape' && modal.classList.contains('is-open')) {
         closeModal();
       }
+    });
+
+    const togglePassword = document.getElementById('toggleModalPassword');
+    togglePassword?.addEventListener('click', function () {
+      if (!passwordInput) return;
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      const icon = this.querySelector('img');
+      if (icon) {
+        icon.src = type === 'password' ? (this.dataset.hideSrc || icon.src) : (this.dataset.showSrc || icon.src);
+      }
+      this.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
     });
 
     

@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_detail.css' %}?v=hist1">
 {% endblock %}
 
 {% block content %}
@@ -219,8 +219,21 @@
   </section>
 
   <section class="panel">
-    <h2>Payments</h2>
-    <p class="sub">{{ payment_count }} payment{{ payment_count|pluralize }} recorded.</p>
+    <div class="panel-head payments-head">
+      <div>
+        <h2>Payments</h2>
+        <p class="sub">{{ payment_count }} payment{{ payment_count|pluralize }} recorded.</p>
+      </div>
+      <form class="history-print-form" method="get" action="{% url 'print_water_customer_billing_history' customer.id %}" target="_blank">
+        <label for="historyYear">Year</label>
+        <select name="year" id="historyYear">
+          {% for y in history_years %}
+          <option value="{{ y }}" {% if y == history_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">Print billing history</button>
+      </form>
+    </div>
     <div class="table-wrap">
       <table class="data">
         <thead>

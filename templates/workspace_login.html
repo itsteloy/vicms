@@ -3,7 +3,7 @@
 {% block title %}Workspace Login{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboards/workspace_login.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/workspace_login.css' %}?v=pw1">
 {% endblock %}
 
 {% block content %}
@@ -63,7 +63,15 @@
 
         <div class="field">
           <label for="{{ form.password.id_for_label }}">Password</label>
-          {{ form.password }}
+          <div class="password-field">
+            {{ form.password }}
+            <button type="button" id="toggleLoginPassword" class="password-toggle"
+              data-show-src="{% static 'show.png' %}"
+              data-hide-src="{% static 'hidden.png' %}"
+              aria-label="Show password">
+              <img src="{% static 'hidden.png' %}" alt="" class="password-toggle-icon" width="20" height="20">
+            </button>
+          </div>
           {{ form.password.errors }}
         </div>
 
@@ -72,4 +80,23 @@
     </section>
   </div>
 </main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var toggle = document.getElementById('toggleLoginPassword');
+  var input = document.getElementById('{{ form.password.id_for_label }}');
+  if (!toggle || !input) return;
+  toggle.addEventListener('click', function () {
+    var type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+    input.setAttribute('type', type);
+    var icon = toggle.querySelector('img');
+    if (icon) {
+      icon.src = type === 'password' ? (toggle.dataset.hideSrc || icon.src) : (toggle.dataset.showSrc || icon.src);
+    }
+    toggle.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+  });
+})();
+</script>
 {% endblock %}

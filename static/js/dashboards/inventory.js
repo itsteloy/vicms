@@ -359,9 +359,21 @@
       });
     }
 
-    function renderInventory() {
+    const PAGE_SIZE = 20;
+    let inventoryPage = 1;
+    const inventoryPager = document.getElementById('inventoryPager');
+    const inventoryPagerInfo = document.getElementById('inventoryPagerInfo');
+    const inventoryPrevPage = document.getElementById('inventoryPrevPage');
+    const inventoryNextPage = document.getElementById('inventoryNextPage');
+
+    function renderInventory(resetPage) {
+      if (resetPage) inventoryPage = 1;
       const items = getFilteredInventory();
-      const visibleIds = new Set(items.map(i => String(i.id)));
+      const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+      if (inventoryPage > totalPages) inventoryPage = totalPages;
+      const start = (inventoryPage - 1) * PAGE_SIZE;
+      const pageItems = items.slice(start, start + PAGE_SIZE);
+      const visibleIds = new Set(pageItems.map(i => String(i.id)));
       const rows = Array.from(inventoryTableBody.querySelectorAll('tr[data-id]'));
       const noResultsRow = inventoryTableBody.querySelector('[data-empty-state]');
       rows.forEach(row => {
@@ -369,6 +381,16 @@
       });
       if (noResultsRow) noResultsRow.style.display = items.length ? 'none' : '';
       emptyNotice.style.display = inventory.length ? 'none' : 'block';
+      if (inventoryPager) {
+        inventoryPager.hidden = inventory.length === 0;
+        if (inventoryPagerInfo) {
+          inventoryPagerInfo.textContent = items.length
+            ? `Page ${inventoryPage} of ${totalPages} · ${items.length} item${items.length === 1 ? '' : 's'}`
+            : 'No matching items';
+        }
+        if (inventoryPrevPage) inventoryPrevPage.disabled = inventoryPage <= 1 || !items.length;
+        if (inventoryNextPage) inventoryNextPage.disabled = inventoryPage >= totalPages || !items.length;
+      }
     }
 
     function resetForm() {
@@ -586,7 +608,7 @@
     function clearSearch() {
       searchInput.value = '';
       setCatPickerValue(categoryFilter, '', categoryFilter?.closest('[data-cat-picker]')?.querySelector('.cat-picker-value')?.dataset.placeholder);
-      renderInventory();
+      renderInventory(true);
       searchInput.focus();
     }
 
@@ -596,10 +618,20 @@
     resetBtn.addEventListener('click', resetForm);
     fields.picture.addEventListener('change', handlePictureChange);
     inventoryTableBody.addEventListener('click', handleTableClick);
-    searchInput.addEventListener('input', renderInventory);
-    categoryFilter?.addEventListener('change', renderInventory);
+    searchInput.addEventListener('input', () => renderInventory(true));
+    categoryFilter?.addEventListener('change', () => renderInventory(true));
     fields.categoryId?.addEventListener('change', updateProductCodePreview);
     clearSearchBtn.addEventListener('click', clearSearch);
+    inventoryPrevPage?.addEventListener('click', () => {
+      if (inventoryPage > 1) {
+        inventoryPage -= 1;
+        renderInventory();
+      }
+    });
+    inventoryNextPage?.addEventListener('click', () => {
+      inventoryPage += 1;
+      renderInventory();
+    });
 
     initCatPickers();
     loadInventory();

@@ -1,0 +1,130 @@
+.billing-history-print-page {
+  background: #fff;
+  color: #111;
+  font-family: Arial, "IBM Plex Sans", sans-serif;
+  font-size: 13px;
+}
+
+.billing-history-print-page .toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.billing-history-sheet {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.billing-history-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.billing-history-head .co {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+}
+
+.billing-history-head .sub {
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.billing-history-head h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.billing-history-head .meta {
+  margin: 4px 0 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.billing-history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.billing-history-table th,
+.billing-history-table td {
+  border: 1px solid #222;
+  padding: 6px 10px;
+  vertical-align: middle;
+}
+
+.billing-history-table th {
+  text-align: center;
+  font-size: 0.8rem;
+  background: #f3f4f6;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.billing-history-table .col-label {
+  width: 42%;
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.billing-history-table .col-bill,
+.billing-history-table .col-pay {
+  width: 29%;
+}
+
+.billing-history-table .amt {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-history-table .total-red {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.billing-history-table .totals-row td {
+  font-weight: 700;
+  background: #fafafa;
+}
+
+.billing-history-table .due-calc td {
+  border-top: none;
+  border-bottom: none;
+}
+
+.billing-history-table .due-calc td.col-label {
+  border-left: 1px solid #222;
+  border-right: 1px solid #222;
+}
+
+.billing-history-table .due-final td {
+  border-top: 1px solid #222;
+}
+
+.billing-history-table .due-amt {
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.billing-history-table .due-label {
+  text-align: left;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .billing-history-print-page { font-size: 12px; }
+  .billing-history-table th,
+  .billing-history-table .totals-row td,
+  .billing-history-table .total-red {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
