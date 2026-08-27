@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/inventory.css' %}?v=items7">
+<link rel="stylesheet" href="{% static 'css/dashboards/inventory.css' %}?v=items9">
 {% endblock %}
 
 {% block content %}
@@ -27,6 +27,7 @@
 
   {% include "inventory/_delete_modal.html" %}
   {% include "inventory/_item_view_modal.html" %}
+  {% include "inventory/_view_all_modal.html" %}
 </div>
 
 {% endblock %}
@@ -39,5 +40,5 @@
     poPdfUrl: document.querySelector('.inventory-page')?.dataset.poPdfUrl || ''
   };
 </script>
-<script src="{% static 'js/dashboards/inventory.js' %}?v=items7"></script>
+<script src="{% static 'js/dashboards/inventory.js' %}?v=items8"></script>
 {% endblock %}

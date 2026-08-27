@@ -494,6 +494,103 @@
 
     function hideItemViewModal() {
       document.getElementById('itemViewModal')?.classList.remove('is-open');
+      if (!document.getElementById('viewAllModal')?.classList.contains('is-open')) {
+        document.body.style.overflow = '';
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function groupInventoryByCategory(items) {
+      const groups = new Map();
+      items.forEach((item) => {
+        const key = (item.categoryPath || '').trim() || 'Uncategorized';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      });
+      return Array.from(groups.entries())
+        .sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base' }))
+        .map(([label, groupItems]) => ({
+          label,
+          items: groupItems.slice().sort((a, b) =>
+            String(a.name || a.productCode || '').localeCompare(String(b.name || b.productCode || ''), undefined, { sensitivity: 'base' })
+          ),
+        }));
+    }
+
+    function renderViewAllCatalog() {
+      const catalog = document.getElementById('viewAllCatalog');
+      const subtitle = document.getElementById('viewAllSubtitle');
+      if (!catalog) return;
+      const items = getFilteredInventory();
+      if (subtitle) {
+        subtitle.textContent = items.length
+          ? `${items.length} item${items.length === 1 ? '' : 's'} · grouped by category`
+          : 'No matching products';
+      }
+      if (!items.length) {
+        catalog.innerHTML = `
+          <div class="view-all-empty">
+            <strong>No matching items.</strong>
+            <p>Try clearing filters or searching a different term.</p>
+          </div>`;
+        return;
+      }
+      const sections = groupInventoryByCategory(items);
+      catalog.innerHTML = sections.map((section) => {
+        const cards = section.items.map((item) => {
+          const stock = Number(item.stockAvailable ?? 0);
+          const low = stock > 0 && stock <= 5;
+          const media = isRenderablePicture(item.picture)
+            ? `<img src="${escapeHtml(item.picture)}" alt="">`
+            : 'No image';
+          const desc = (item.description || '').trim() || '—';
+          return `
+            <button type="button" class="view-all-card" data-view-all-id="${escapeHtml(item.id)}" aria-label="View ${escapeHtml(item.name || item.productCode || 'item')}">
+              <div class="view-all-card-media">${media}</div>
+              <div class="view-all-card-body">
+                <p class="view-all-card-code">${escapeHtml(item.productCode || '-')}</p>
+                <h3 class="view-all-card-name">${escapeHtml(item.name || 'Untitled')}</h3>
+                <p class="view-all-card-desc">${escapeHtml(desc)}</p>
+                <span class="view-all-card-stock${low ? ' is-low' : ''}">Stock: ${escapeHtml(item.stockAvailable ?? 0)}</span>
+              </div>
+            </button>`;
+        }).join('');
+        return `
+          <section class="view-all-section">
+            <h3 class="view-all-section-title">
+              ${escapeHtml(section.label)}
+              <span class="view-all-section-count">${section.items.length}</span>
+            </h3>
+            <div class="view-all-grid">${cards}</div>
+          </section>`;
+      }).join('');
+    }
+
+    function showViewAllModal() {
+      const modal = document.getElementById('viewAllModal');
+      if (!modal) return;
+      renderViewAllCatalog();
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('viewAllCloseBtn')?.focus();
+    }
+
+    function hideViewAllModal() {
+      const modal = document.getElementById('viewAllModal');
+      if (!modal) return;
+      hideItemViewModal();
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
     }
 
     async function performDelete(itemId, password) {
@@ -582,8 +679,27 @@
     itemViewModal?.addEventListener('click', function (e) {
       if (e.target === this) hideItemViewModal();
     });
+
+    const viewAllModal = document.getElementById('viewAllModal');
+    document.getElementById('viewAllItemsBtn')?.addEventListener('click', showViewAllModal);
+    document.getElementById('viewAllCloseBtn')?.addEventListener('click', hideViewAllModal);
+    viewAllModal?.addEventListener('click', function (e) {
+      if (e.target === this) hideViewAllModal();
+      const card = e.target.closest('[data-view-all-id]');
+      if (!card || !this.contains(card)) return;
+      const item = inventory.find(entry => String(entry.id) === String(card.dataset.viewAllId));
+      if (item) showItemViewModal(item);
+    });
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') hideItemViewModal();
+      if (e.key !== 'Escape') return;
+      if (itemViewModal?.classList.contains('is-open')) {
+        hideItemViewModal();
+        return;
+      }
+      if (viewAllModal?.classList.contains('is-open')) {
+        hideViewAllModal();
+      }
     });
 
     document.getElementById('deletePassword').addEventListener('keydown', function (e) {

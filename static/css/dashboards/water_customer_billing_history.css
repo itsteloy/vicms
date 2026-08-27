@@ -45,14 +45,28 @@
 
 .billing-history-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
 }
 
 .billing-history-table th,
 .billing-history-table td {
-  border: 1px solid #222;
+  border-top: none;
+  border-left: none;
+  border-right: 1px solid #222;
+  border-bottom: 1px solid #222;
   padding: 6px 10px;
   vertical-align: middle;
+}
+
+.billing-history-table thead th {
+  border-top: 1px solid #222;
+}
+
+.billing-history-table th:first-child,
+.billing-history-table td:first-child {
+  border-left: 1px solid #222;
 }
 
 .billing-history-table th {
@@ -96,13 +110,9 @@
   border-bottom: none;
 }
 
-.billing-history-table .due-calc td.col-label {
-  border-left: 1px solid #222;
-  border-right: 1px solid #222;
-}
-
 .billing-history-table .due-final td {
   border-top: 1px solid #222;
+  border-bottom: 1px solid #222;
 }
 
 .billing-history-table .due-amt {
@@ -121,6 +131,21 @@
 @media print {
   .no-print { display: none !important; }
   .billing-history-print-page { font-size: 12px; }
+  .billing-history-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+  .billing-history-table th,
+  .billing-history-table td {
+    border-right: 1px solid #222 !important;
+  }
+  .billing-history-table thead th {
+    border-top: 1px solid #222 !important;
+  }
+  .billing-history-table th:first-child,
+  .billing-history-table td:first-child {
+    border-left: 1px solid #222 !important;
+  }
   .billing-history-table th,
   .billing-history-table .totals-row td,
   .billing-history-table .total-red {

@@ -18,7 +18,8 @@
           </div>
           <div class="toolbar-field toolbar-field--action">
             <span class="toolbar-field-spacer">Search</span>
-            <div class="toolbar-control-slot">
+            <div class="toolbar-control-slot toolbar-control-slot--actions">
+              <button id="viewAllItemsBtn" type="button" class="toolbar-control toolbar-control--primary">View All</button>
               <button id="clearSearchBtn" type="button" class="toolbar-control">Clear</button>
             </div>
           </div>
@@ -35,6 +36,7 @@
                 <th>Item</th>
                 <th>Picture</th>
                 <th>Description</th>
+                <th>Notes</th>
                 <th>Stocks</th>
                 <th>Actions</th>
               </tr>
@@ -55,6 +57,7 @@
                   {% endif %}
                 </td>
                 <td class="item-desc"><span>{{ item.description|default:"-" }}</span></td>
+                <td class="item-notes"><span>{{ item.notes|default:"-" }}</span></td>
                 <td class="item-stock">{{ item.stock_available }}</td>
                 <td class="item-actions">
                   <div class="actions">
@@ -66,7 +69,7 @@
               </tr>
               {% endfor %}
               <tr data-empty-state>
-                <td colspan="5" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
+                <td colspan="6" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
               </tr>
             </tbody>
           </table>
