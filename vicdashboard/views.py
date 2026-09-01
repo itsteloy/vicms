@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -25,7 +25,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from .po_pdf import build_purchase_order_pdf
-from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, TravelOrderFormForm, ServiceRepairReportForm
+from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, WithdrawalSlipForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper
@@ -292,6 +292,8 @@ DOCUMENT_SERVICES_TABS = {
     **DOCUMENT_HR_TABS,
     'repair': 'repairTab',
     'borrow': 'borrowMaterialTab',
+    'delivery_receipt': 'deliveryReceiptTab',
+    'withdrawal_slip': 'withdrawalSlipTab',
 }
 
 
@@ -307,11 +309,6 @@ def _document_back_link(request, document_type):
             f"{reverse('services_dashboard')}?tab={DOCUMENT_SERVICES_TABS[document_type]}",
             'Services Dashboard',
         )
-    if from_source == 'sales' and document_type == 'delivery_receipt':
-        return (
-            f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
-            'Sales Dashboard',
-        )
 
     workspace = get_user_workspace(request.user)
     if workspace:
@@ -325,11 +322,6 @@ def _document_back_link(request, document_type):
                 f"{reverse('services_dashboard')}?tab={DOCUMENT_SERVICES_TABS[document_type]}",
                 'Services Dashboard',
             )
-        if workspace.dashboard_url_name == 'sales_dashboard' and document_type == 'delivery_receipt':
-            return (
-                f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
-                'Sales Dashboard',
-            )
 
     if user_has_dashboard_access(request.user, 'services_dashboard') and document_type in DOCUMENT_SERVICES_TABS:
         return (
@@ -340,11 +332,6 @@ def _document_back_link(request, document_type):
         return (
             f"{reverse('hr_dashboard')}?tab={DOCUMENT_HR_TABS[document_type]}",
             'HR Dashboard',
-        )
-    if document_type == 'delivery_receipt' and user_has_dashboard_access(request.user, 'sales_dashboard'):
-        return (
-            f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab",
-            'Sales Dashboard',
         )
     return reverse('dashboard'), 'Dashboard'
 
@@ -962,6 +949,12 @@ def sales_dashboard(request):
         return redirect('sales_dashboard')
 
     inventory_items = InventoryItem.objects.all().order_by('name', 'product_code')
+    inventory_availability_paginator = Paginator(inventory_items, 20)
+    try:
+        inventory_availability_page_number = int(request.GET.get('inv_page') or 1)
+    except (TypeError, ValueError):
+        inventory_availability_page_number = 1
+    inventory_availability_page = inventory_availability_paginator.get_page(inventory_availability_page_number)
     sales_orders = SalesOrder.objects.select_related('inventory_item').all()[:5]
     total_sales = sum(order.total_amount for order in sales_orders)
     total_quantity_sold = sum(order.quantity for order in sales_orders)
@@ -1117,7 +1110,7 @@ def sales_dashboard(request):
         'sales-tab', 'history-tab', 'refund-tab', 'analytics-tab',
         'product-quotation-tab', 'service-quotation-tab', 'collection-form-tab',
         'ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab',
-        'saved-documents-tab', 'delivery-receipt-tab',
+        'saved-documents-tab',
     }
     if tab_param in valid_sales_tabs:
         active_tab = tab_param
@@ -1143,6 +1136,7 @@ def sales_dashboard(request):
         'sales_dashboard.html',
         {
             'inventory_items': inventory_items,
+            'inventory_availability_page': inventory_availability_page,
             'recent_quotations': recent_quotations,
             'recent_service_quotations': recent_service_quotations,
             'next_product_quotation_number': Quotation.generate_quotation_number(),
@@ -1168,9 +1162,6 @@ def sales_dashboard(request):
             'saved_documents_page': saved_documents_page,
             'saved_document_types': SalesDocumentArchive.DOCUMENT_TYPES,
             'saved_doc_type_filter': doc_type_filter,
-            'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
-            'delivery_receipt_count': DeliveryReceipt.objects.count(),
-            'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
         },
     )
 
@@ -2932,6 +2923,12 @@ def services_dashboard(request):
             ),
             'next_report_number': ServiceRepairReport.generate_report_number(),
             'next_borrow_number': MaterialBorrow.generate_borrow_number(),
+            'delivery_receipts': DeliveryReceipt.objects.prefetch_related('lines').all()[:8],
+            'delivery_receipt_count': DeliveryReceipt.objects.count(),
+            'next_receipt_number': DeliveryReceipt.generate_receipt_number(),
+            'withdrawal_slips': WithdrawalSlip.objects.prefetch_related('lines').all()[:8],
+            'withdrawal_slip_count': WithdrawalSlip.objects.count(),
+            'next_slip_number': WithdrawalSlip.generate_slip_number(),
             **_build_idle_days_report(request),
         }
     )
@@ -3132,6 +3129,14 @@ def _travel_order_redirect():
     return redirect(f"{reverse('services_dashboard')}?tab=travelOrderTab")
 
 
+def _delivery_receipt_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=deliveryReceiptTab")
+
+
+def _withdrawal_slip_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=withdrawalSlipTab")
+
+
 @require_dashboard('services_dashboard')
 @require_POST
 def create_official_business_form(request):
@@ -3202,7 +3207,7 @@ def create_delivery_receipt(request):
     required = ('receipt_date', 'delivered_to')
     if not all(request.POST.get(field, '').strip() for field in required):
         messages.error(request, 'Please complete all required Delivery Receipt fields.')
-        return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
+        return _delivery_receipt_redirect()
 
     descriptions = request.POST.getlist('dr_item_description')
     quantities = request.POST.getlist('dr_item_quantity')
@@ -3238,7 +3243,7 @@ def create_delivery_receipt(request):
 
     if not lines:
         messages.error(request, 'Please add at least one article to the delivery receipt.')
-        return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
+        return _delivery_receipt_redirect()
 
     try:
         receipt = DeliveryReceipt.objects.create(
@@ -3260,7 +3265,68 @@ def create_delivery_receipt(request):
         messages.success(request, 'Delivery Receipt saved successfully.')
     except Exception as exc:
         messages.error(request, f'Could not save Delivery Receipt: {exc}')
-    return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
+    return _delivery_receipt_redirect()
+
+
+@login_required
+@require_POST
+def create_withdrawal_slip(request):
+    required = ('slip_date', 'requested_by')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Withdrawal Slip fields.')
+        return _withdrawal_slip_redirect()
+
+    descriptions = request.POST.getlist('ws_item_description')
+    quantities = request.POST.getlist('ws_item_quantity')
+    units = request.POST.getlist('ws_item_unit')
+    inventory_ids = request.POST.getlist('ws_item_inventory')
+
+    lines = []
+    for index, description in enumerate(descriptions):
+        description = description.strip()
+        if not description:
+            continue
+        try:
+            quantity = Decimal(quantities[index]) if index < len(quantities) and quantities[index].strip() else Decimal('1')
+        except (InvalidOperation, IndexError):
+            quantity = Decimal('1')
+        unit = units[index].strip() if index < len(units) else 'pcs'
+        inventory_id = inventory_ids[index].strip() if index < len(inventory_ids) else ''
+        inventory_item = None
+        if inventory_id.isdigit():
+            inventory_item = InventoryItem.objects.filter(pk=int(inventory_id)).first()
+        lines.append({
+            'inventory_item': inventory_item,
+            'description': description,
+            'quantity': quantity,
+            'unit': unit or 'pcs',
+        })
+
+    if not lines:
+        messages.error(request, 'Please add at least one item to the withdrawal slip.')
+        return _withdrawal_slip_redirect()
+
+    try:
+        slip = WithdrawalSlip.objects.create(
+            slip_number=request.POST.get('slip_number', '').strip() or WithdrawalSlip.generate_slip_number(),
+            slip_date=request.POST['slip_date'],
+            requested_by=request.POST['requested_by'].strip(),
+            project_area=request.POST.get('project_area', '').strip(),
+            client=request.POST.get('client', '').strip(),
+            ref_number=request.POST.get('ref_number', '').strip(),
+            status=request.POST.get('status', '').strip(),
+            prepared_by=request.POST.get('prepared_by', '').strip(),
+            attested_by=request.POST.get('attested_by', '').strip(),
+            received_by=request.POST.get('received_by', '').strip(),
+        )
+        WithdrawalSlipLine.objects.bulk_create([
+            WithdrawalSlipLine(withdrawal_slip=slip, **line)
+            for line in lines
+        ])
+        messages.success(request, 'Withdrawal Slip saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save Withdrawal Slip: {exc}')
+    return _withdrawal_slip_redirect()
 
 
 SERVICE_FIELD_LABELS = {
@@ -3318,6 +3384,18 @@ SERVICE_FIELD_LABELS = {
         ('Certified by', 'certified_by'),
         ('Delivered by', 'delivered_by'),
         ('Received by (Customer)', 'received_by'),
+    ],
+    'withdrawal_slip': [
+        ('No.', 'slip_number'),
+        ('Date', 'slip_date'),
+        ('Requested By', 'requested_by'),
+        ('Project Area', 'project_area'),
+        ('Client', 'client'),
+        ('Ref. No.', 'ref_number'),
+        ('Status', 'status'),
+        ('Prepared By', 'prepared_by'),
+        ('Attested By', 'attested_by'),
+        ('Received By', 'received_by'),
     ],
     'travel': [
         ('Date', 'travel_date'),
@@ -3475,6 +3553,12 @@ def _delivery_receipt_record_context(record):
     context = _service_record_context(record, 'delivery_receipt')
     context['delivery_receipt_lines'] = record.lines.all()
     context['delivery_receipt_total'] = record.total_amount
+    return context
+
+
+def _withdrawal_slip_record_context(record):
+    context = _service_record_context(record, 'withdrawal_slip')
+    context['withdrawal_slip_lines'] = record.lines.all()
     return context
 
 
@@ -3675,7 +3759,42 @@ def edit_delivery_receipt(request, receipt_id):
 def delete_delivery_receipt(request, receipt_id):
     get_object_or_404(DeliveryReceipt, pk=receipt_id).delete()
     messages.success(request, 'Delivery Receipt deleted.')
-    return redirect(f"{reverse('sales_dashboard')}?tab=delivery-receipt-tab")
+    return _delivery_receipt_redirect()
+
+
+@login_required
+def view_withdrawal_slip(request, slip_id):
+    context = _withdrawal_slip_record_context(
+        get_object_or_404(WithdrawalSlip.objects.prefetch_related('lines'), pk=slip_id)
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'withdrawal_slip'),
+    )
+
+
+@login_required
+def edit_withdrawal_slip(request, slip_id):
+    slip = get_object_or_404(WithdrawalSlip, pk=slip_id)
+    form = WithdrawalSlipForm(request.POST or None, instance=slip)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Withdrawal Slip updated successfully.')
+        return redirect('view_withdrawal_slip', slip_id=slip.id)
+    return render(request, 'service_document_form.html', {
+        'form': form,
+        'record': slip,
+        'document_type': 'withdrawal_slip',
+    })
+
+
+@login_required
+@require_POST
+def delete_withdrawal_slip(request, slip_id):
+    get_object_or_404(WithdrawalSlip, pk=slip_id).delete()
+    messages.success(request, 'Withdrawal Slip deleted.')
+    return _withdrawal_slip_redirect()
 
 
 @login_required

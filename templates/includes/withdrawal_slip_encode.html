@@ -1,0 +1,205 @@
+{% load static %}
+<div class="grid-2">
+  <section class="panel no-print">
+    <form method="post" action="{% url 'create_withdrawal_slip' %}" id="withdrawalSlipForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="field">
+          <label for="ws_slip_number">No.</label>
+          <input id="ws_slip_number" name="slip_number" value="{{ next_slip_number }}" data-auto-number="{{ next_slip_number }}" readonly class="field-readonly" title="Assigned automatically">
+          <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
+        </div>
+        <div class="field">
+          <label for="ws_slip_date">Date *</label>
+          <input id="ws_slip_date" name="slip_date" type="date" required>
+        </div>
+        <div class="field">
+          <label for="ws_requested_by">Requested By *</label>
+          <input id="ws_requested_by" name="requested_by" required>
+        </div>
+        <div class="field">
+          <label for="ws_project_area">Project Area</label>
+          <input id="ws_project_area" name="project_area">
+        </div>
+        <div class="field">
+          <label for="ws_client">Client</label>
+          <input id="ws_client" name="client">
+        </div>
+        <div class="field">
+          <label for="ws_ref_number">Ref. No.</label>
+          <input id="ws_ref_number" name="ref_number">
+        </div>
+        <div class="field">
+          <label for="ws_status">Status</label>
+          <input id="ws_status" name="status">
+        </div>
+
+        <div class="field full section-heading">Items</div>
+        <div class="field full">
+          <div class="ws-lines-head">
+            <span>Inventory</span>
+            <span>Quantity *</span>
+            <span>Unit</span>
+            <span>Description *</span>
+            <span></span>
+          </div>
+          <div class="repeatable-list" id="wsLinesList">
+            <div class="repeatable-row ws-line-row">
+              <select name="ws_item_inventory" data-ws-inventory aria-label="Inventory item">
+                <option value="">Manual entry</option>
+                {% for item in inventory_items %}
+                <option value="{{ item.id }}" data-name="{{ item.name|escape }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
+                {% endfor %}
+              </select>
+              <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
+              <input type="text" name="ws_item_unit" value="pcs" placeholder="Unit" data-ws-unit aria-label="Unit">
+              <input type="text" name="ws_item_description" placeholder="Item description" required data-ws-description>
+              <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
+            </div>
+          </div>
+          <button type="button" class="action repeatable-add" id="wsAddLine">+ Add item</button>
+        </div>
+
+        <div class="field full section-heading">Signatures</div>
+        <div class="signature-grid">
+          <div class="signature-field field">
+            <label for="ws_prepared_by">Prepared By</label>
+            <input id="ws_prepared_by" name="prepared_by" placeholder="Name">
+          </div>
+          <div class="signature-field field">
+            <label for="ws_attested_by">Attested By</label>
+            <input id="ws_attested_by" name="attested_by" placeholder="Name">
+          </div>
+          <div class="signature-field field">
+            <label for="ws_received_by">Received By</label>
+            <input id="ws_received_by" name="received_by" placeholder="Name">
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="reset" class="action">Clear</button>
+        <button type="submit" class="action primary">Save withdrawal slip</button>
+      </div>
+    </form>
+  </section>
+
+  <article class="document service-document ws-doc">
+    <header class="doc-header">
+      <img src="{% static 'METRO DAVAO HEADER.png' %}" alt="Metro Davao header">
+    </header>
+    <div class="doc-body">
+      <div class="ws-title-row">
+        <h3 class="ws-doc-title">WITHDRAWAL SLIP</h3>
+        <div class="ws-slip-no">No. <b data-preview="slip_number">—</b></div>
+      </div>
+      <div class="ws-meta-grid">
+        <div class="ws-meta-col">
+          <div class="ws-meta-row">
+            <span>Requested By</span>
+            <span>:</span>
+            <span data-preview="requested_by">—</span>
+          </div>
+          <div class="ws-meta-row">
+            <span>Project Area</span>
+            <span>:</span>
+            <span data-preview="project_area">—</span>
+          </div>
+          <div class="ws-meta-row">
+            <span>Client</span>
+            <span>:</span>
+            <span data-preview="client">—</span>
+          </div>
+        </div>
+        <div class="ws-meta-col">
+          <div class="ws-meta-row">
+            <span>Date</span>
+            <span>:</span>
+            <span data-preview="slip_date">—</span>
+          </div>
+          <div class="ws-meta-row">
+            <span>Ref. No.</span>
+            <span>:</span>
+            <span data-preview="ref_number">—</span>
+          </div>
+          <div class="ws-meta-row">
+            <span>Status</span>
+            <span>:</span>
+            <span data-preview="status">—</span>
+          </div>
+        </div>
+      </div>
+      <table class="ws-items-table">
+        <thead>
+          <tr>
+            <th>QTY</th>
+            <th>UNIT</th>
+            <th>DESCRIPTION</th>
+          </tr>
+        </thead>
+        <tbody data-preview="ws_lines">
+          <tr class="empty-row">
+            <td colspan="3">No items added yet.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ws-signatures">
+        <div class="signature-block">
+          <span class="signature-label">Prepared By</span>
+          <div class="signature-line"><span data-preview="prepared_by">—</span></div>
+        </div>
+        <div class="signature-block">
+          <span class="signature-label">Attested By</span>
+          <div class="signature-line"><span data-preview="attested_by">—</span></div>
+        </div>
+        <div class="signature-block">
+          <span class="signature-label">Received By</span>
+          <div class="signature-line"><span data-preview="received_by">—</span></div>
+        </div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div class="panel no-print">
+  <h2 style="margin:0 0 8px;font-size:1rem;">Recent Withdrawal Slips</h2>
+  <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved withdrawal slips.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Date</th>
+          <th>Requested By</th>
+          <th>Client</th>
+          <th>Items</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slip in withdrawal_slips %}
+        <tr>
+          <td>{{ slip.slip_number }}</td>
+          <td>{{ slip.slip_date|date:'M d, Y' }}</td>
+          <td>{{ slip.requested_by }}</td>
+          <td>{{ slip.client|default:'—' }}</td>
+          <td>{{ slip.lines.count }}</td>
+          <td>
+            <div class="record-actions">
+              <a class="action" href="{% url 'view_withdrawal_slip' slip.id %}?from=services">View</a>
+              <a class="action" href="{% url 'edit_withdrawal_slip' slip.id %}">Edit</a>
+              <form method="post" action="{% url 'delete_withdrawal_slip' slip.id %}" onsubmit="return confirm('Delete Withdrawal Slip {{ slip.slip_number }}? This cannot be undone.');">
+                {% csrf_token %}
+                <button class="action danger" type="submit">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No withdrawal slips saved yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

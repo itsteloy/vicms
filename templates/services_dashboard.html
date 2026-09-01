@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=ws1">
 {% endblock %}
 
 {% block content %}
@@ -47,9 +47,21 @@
         Official Business
         <span class="tab-badge">{{ official_business_count }}</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deliveryReceiptTab">
+        <span class="tab-icon">🚚</span>
+        Delivery Receipt
+        <span class="tab-badge">{{ delivery_receipt_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="withdrawalSlipTab">
+        <span class="tab-icon">📝</span>
+        Withdrawal Slip
+        <span class="tab-badge">{{ withdrawal_slip_count }}</span>
+      </button>
+      <div class="nav-label" style="margin-top:14px;">Reports</div>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
-        <span class="tab-icon">⏸️</span>
+        <span class="tab-icon">⏸</span>
         Idle Days
+        <span class="tab-badge">{{ idle_jobs_affected }}</span>
       </button>
     </nav>
 
@@ -59,6 +71,8 @@
       <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
       <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
+      <div class="stat-row"><span>Delivery receipts</span><strong>{{ delivery_receipt_count }}</strong></div>
+      <div class="stat-row"><span>Withdrawal slips</span><strong>{{ withdrawal_slip_count }}</strong></div>
     </div>
   </aside>
 
@@ -66,7 +80,7 @@
     <header class="topbar">
       <div class="greeting">
         <h2>Services Dashboard</h2>
-        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, and official business forms.</p>
+        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, official business forms, delivery receipts, and withdrawal slips.</p>
       </div>
       <div class="top-actions no-print">
         <button type="button" onclick="window.print()">🖨 Print preview</button>
@@ -94,7 +108,15 @@
       <div class="stat-card">
         <div class="stat-label">Official Business</div>
         <div class="stat-value">{{ official_business_count }}</div>
-    </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Delivery Receipts</div>
+        <div class="stat-value">{{ delivery_receipt_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Withdrawal Slips</div>
+        <div class="stat-value">{{ withdrawal_slip_count }}</div>
+      </div>
     </div>
 
     <!-- Service Repair Report -->
@@ -528,6 +550,24 @@
       {% include "includes/travel_order_encode.html" %}
               </div>
 
+    <!-- Delivery Receipt -->
+    <div id="deliveryReceiptTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Delivery Receipt</h2>
+        <p>Record and print delivery receipts for goods handed over to customers.</p>
+      </div>
+      {% include "includes/delivery_receipt_encode.html" %}
+    </div>
+
+    <!-- Withdrawal Slip -->
+    <div id="withdrawalSlipTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Withdrawal Slip</h2>
+        <p>Encode and print withdrawal slips for materials issued to a project or client.</p>
+      </div>
+      {% include "includes/withdrawal_slip_encode.html" %}
+    </div>
+
     <!-- Idle Days -->
     <div id="idleDaysTab" class="tab-panel">
       <div class="panel no-print">
@@ -545,5 +585,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/services.js' %}"></script>
+<script src="{% static 'js/dashboards/services.js' %}?v=ws1"></script>
 {% endblock %}

@@ -6,6 +6,10 @@ import re
 
 from .models import InventoryCategory, InventoryItem
 
+# Keep generated codes within InventoryItem.product_code max_length.
+PRODUCT_CODE_MAX_LENGTH = 100
+PRODUCT_CODE_SEQ_WIDTH = 3
+
 
 def category_product_prefix(category: InventoryCategory | None) -> str:
     """Build a stable code prefix from the selected category name."""
@@ -13,7 +17,12 @@ def category_product_prefix(category: InventoryCategory | None) -> str:
         return 'PRD'
     name = (category.name or '').upper().strip()
     slug = re.sub(r'[^A-Z0-9]+', '-', name).strip('-')
-    return slug or 'PRD'
+    prefix = slug or 'PRD'
+    # Reserve "-###" for the sequence suffix.
+    max_prefix = PRODUCT_CODE_MAX_LENGTH - (PRODUCT_CODE_SEQ_WIDTH + 1)
+    if len(prefix) > max_prefix:
+        prefix = prefix[:max_prefix].rstrip('-') or 'PRD'
+    return prefix
 
 
 def generate_inventory_product_code(
@@ -36,7 +45,7 @@ def generate_inventory_product_code(
         if match:
             max_num = max(max_num, int(match.group(1)))
 
-    return f'{prefix}-{max_num + 1:03d}'
+    return f'{prefix}-{max_num + 1:0{PRODUCT_CODE_SEQ_WIDTH}d}'
 
 
 def next_product_codes_by_category() -> dict[int, str]:

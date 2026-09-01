@@ -6,6 +6,8 @@
       jobOrderTab: document.getElementById('jobOrderTab'),
       travelOrderTab: document.getElementById('travelOrderTab'),
       officialBusinessTab: document.getElementById('officialBusinessTab'),
+      deliveryReceiptTab: document.getElementById('deliveryReceiptTab'),
+      withdrawalSlipTab: document.getElementById('withdrawalSlipTab'),
       idleDaysTab: document.getElementById('idleDaysTab'),
     };
     const defaultTab = 'repairTab';
@@ -24,17 +26,17 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    const hashTab = location.hash === '#repair'
-        ? 'repairTab'
-        : (location.hash === '#borrow'
-            ? 'borrowMaterialTab'
-            : (location.hash === '#job'
-                ? 'jobOrderTab'
-                : (location.hash === '#travel'
-                    ? 'travelOrderTab'
-                    : (location.hash === '#ob'
-                        ? 'officialBusinessTab'
-                        : (location.hash === '#idle' ? 'idleDaysTab' : null)))));
+    const hashTabMap = {
+      '#repair': 'repairTab',
+      '#borrow': 'borrowMaterialTab',
+      '#job': 'jobOrderTab',
+      '#travel': 'travelOrderTab',
+      '#ob': 'officialBusinessTab',
+      '#dr': 'deliveryReceiptTab',
+      '#ws': 'withdrawalSlipTab',
+      '#idle': 'idleDaysTab',
+    };
+    const hashTab = hashTabMap[location.hash] || null;
     const initialTab = (tabParam && panels[tabParam]) ? tabParam : (hashTab || defaultTab);
     activateTab(initialTab);
 
@@ -432,6 +434,8 @@
     setDefaultDate(document.getElementById('ob_application_date'), today);
     setDefaultDate(document.getElementById('date_filed'), today);
     setDefaultDate(document.getElementById('to_travel_date'), today);
+    setDefaultDate(document.getElementById('dr_receipt_date'), today);
+    setDefaultDate(document.getElementById('ws_slip_date'), today);
 
     const jobOrderNumber = document.getElementById('job_order_number');
     if (jobOrderNumber && jobOrderNumber.value) {
@@ -455,9 +459,349 @@
           if (panel?.id === 'borrowMaterialTab' && typeof updateBorrowLinesPreview === 'function') {
             updateBorrowLinesPreview();
           }
+          if (panel?.id === 'withdrawalSlipTab') {
+            const wsTbody = panel.querySelector('[data-preview="ws_lines"]');
+            if (wsTbody) {
+              wsTbody.innerHTML = '<tr class="empty-row"><td colspan="3">No items added yet.</td></tr>';
+            }
+          }
         });
       });
     });
 
     syncAllFormPreviews();
+
+    (function setupDeliveryReceiptTab() {
+      const panel = document.getElementById('deliveryReceiptTab');
+      if (!panel) return;
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function formatCurrency(value) {
+        return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      function syncDrFieldPreview(field) {
+        if (!field?.name) return;
+        panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach((target) => {
+          if (field.tagName === 'SELECT') {
+            target.textContent = field.options[field.selectedIndex].text;
+            return;
+          }
+          let displayValue = field.value || '—';
+          if (field.type === 'date' && field.value) {
+            const parsed = new Date(`${field.value}T00:00:00`);
+            if (!Number.isNaN(parsed.getTime())) {
+              displayValue = parsed.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              });
+            }
+          }
+          target.textContent = displayValue;
+        });
+      }
+
+      function syncDrPanelPreviews() {
+        panel.querySelectorAll('input, textarea, select').forEach(syncDrFieldPreview);
+      }
+
+      function updateDeliveryReceiptLinesPreview() {
+        const tbody = panel.querySelector('[data-preview="dr_lines"]');
+        const totalCell = panel.querySelector('[data-preview="dr_total"]');
+        if (!tbody) return;
+
+        const rows = [...panel.querySelectorAll('.dr-line-row')];
+        const lines = rows.map((row) => {
+          const description = row.querySelector('[data-dr-description]')?.value.trim() || '';
+          const quantity = parseFloat(row.querySelector('[data-dr-quantity]')?.value) || 0;
+          const unit = row.querySelector('[data-dr-unit]')?.value.trim() || 'pcs';
+          const unitPrice = parseFloat(row.querySelector('[data-dr-unit-price]')?.value) || 0;
+          const amount = quantity * unitPrice;
+          return { description, quantity, unit, unitPrice, amount };
+        }).filter((line) => line.description || line.quantity || line.unitPrice);
+
+        if (!lines.length) {
+          tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No articles added yet.</td></tr>';
+          if (totalCell) totalCell.textContent = formatCurrency(0);
+          return;
+        }
+
+        tbody.innerHTML = lines.map((line) => `
+          <tr>
+            <td>${escapeHtml(line.quantity)}</td>
+            <td>${escapeHtml(line.unit)}</td>
+            <td>${escapeHtml(line.description || '—')}</td>
+            <td>${formatCurrency(line.unitPrice)}</td>
+            <td>${formatCurrency(line.amount)}</td>
+          </tr>
+        `).join('');
+
+        const total = lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0);
+        if (totalCell) totalCell.textContent = formatCurrency(total);
+      }
+
+      const list = document.getElementById('drLinesList');
+      const addBtn = document.getElementById('drAddLine');
+      const inventoryTemplate = list?.querySelector('[data-dr-inventory]')?.innerHTML || '';
+
+      function refreshRemoveButtons() {
+        if (!list) return;
+        const rows = list.querySelectorAll('.dr-line-row');
+        rows.forEach((row) => {
+          const removeBtn = row.querySelector('[data-remove-row]');
+          if (removeBtn) removeBtn.hidden = rows.length === 1;
+          const description = row.querySelector('[data-dr-description]');
+          if (description) description.required = rows.length >= 1 && row === rows[0];
+        });
+      }
+
+      function bindInventorySelect(select) {
+        if (!select) return;
+        select.addEventListener('change', () => {
+          const option = select.options[select.selectedIndex];
+          const row = select.closest('.dr-line-row');
+          const description = row?.querySelector('[data-dr-description]');
+          const unitPrice = row?.querySelector('[data-dr-unit-price]');
+          if (description && option?.dataset.name) description.value = option.dataset.name;
+          if (unitPrice && option?.dataset.price) unitPrice.value = option.dataset.price;
+          updateDeliveryReceiptLinesPreview();
+        });
+      }
+
+      function bindRow(row) {
+        row.querySelectorAll('input, select').forEach((field) => {
+          field.addEventListener('input', () => {
+            syncDrFieldPreview(field);
+            updateDeliveryReceiptLinesPreview();
+          });
+          field.addEventListener('change', () => {
+            syncDrFieldPreview(field);
+            updateDeliveryReceiptLinesPreview();
+          });
+        });
+        bindInventorySelect(row.querySelector('[data-dr-inventory]'));
+        const removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            if (!list || list.querySelectorAll('.dr-line-row').length === 1) return;
+            row.remove();
+            refreshRemoveButtons();
+            updateDeliveryReceiptLinesPreview();
+          });
+        }
+      }
+
+      if (list && addBtn) {
+        addBtn.addEventListener('click', () => {
+          const row = document.createElement('div');
+          row.className = 'repeatable-row dr-line-row';
+          row.innerHTML = `
+            <select name="dr_item_inventory" data-dr-inventory aria-label="Inventory item">${inventoryTemplate}</select>
+            <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
+            <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
+            <input type="text" name="dr_item_description" placeholder="Item / article description" data-dr-description>
+            <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
+            <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
+          `;
+          list.appendChild(row);
+          bindRow(row);
+          refreshRemoveButtons();
+          row.querySelector('[data-dr-description]')?.focus();
+          updateDeliveryReceiptLinesPreview();
+        });
+        list.querySelectorAll('.dr-line-row').forEach(bindRow);
+        refreshRemoveButtons();
+      }
+
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        field.addEventListener('input', () => syncDrFieldPreview(field));
+        field.addEventListener('change', () => syncDrFieldPreview(field));
+      });
+
+      const form = document.getElementById('deliveryReceiptForm');
+      if (form) {
+        form.addEventListener('reset', () => {
+          requestAnimationFrame(() => {
+            form.querySelectorAll('input[type="date"]').forEach((input) => {
+              if (!input.value) input.value = localTodayISO();
+            });
+            form.querySelectorAll('input[data-auto-number]').forEach((input) => {
+              input.value = input.getAttribute('data-auto-number') || '';
+            });
+            syncDrPanelPreviews();
+            updateDeliveryReceiptLinesPreview();
+          });
+        });
+      }
+
+      syncDrPanelPreviews();
+      updateDeliveryReceiptLinesPreview();
+    })();
+
+    (function setupWithdrawalSlipTab() {
+      const panel = document.getElementById('withdrawalSlipTab');
+      if (!panel) return;
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function syncWsFieldPreview(field) {
+        if (!field?.name) return;
+        panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach((target) => {
+          if (field.tagName === 'SELECT') {
+            target.textContent = field.options[field.selectedIndex].text;
+            return;
+          }
+          let displayValue = field.value || '—';
+          if (field.type === 'date' && field.value) {
+            const parsed = new Date(`${field.value}T00:00:00`);
+            if (!Number.isNaN(parsed.getTime())) {
+              displayValue = parsed.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              });
+            }
+          }
+          target.textContent = displayValue;
+        });
+      }
+
+      function syncWsPanelPreviews() {
+        panel.querySelectorAll('input, textarea, select').forEach(syncWsFieldPreview);
+      }
+
+      function updateWithdrawalSlipLinesPreview() {
+        const tbody = panel.querySelector('[data-preview="ws_lines"]');
+        if (!tbody) return;
+
+        const rows = [...panel.querySelectorAll('.ws-line-row')];
+        const lines = rows.map((row) => {
+          const description = row.querySelector('[data-ws-description]')?.value.trim() || '';
+          const quantity = row.querySelector('[data-ws-quantity]')?.value.trim() || '';
+          const unit = row.querySelector('[data-ws-unit]')?.value.trim() || 'pcs';
+          return { description, quantity, unit };
+        }).filter((line) => line.description || line.quantity);
+
+        if (!lines.length) {
+          tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No items added yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = lines.map((line) => `
+          <tr>
+            <td>${escapeHtml(line.quantity || '—')}</td>
+            <td>${escapeHtml(line.unit)}</td>
+            <td>${escapeHtml(line.description || '—')}</td>
+          </tr>
+        `).join('');
+      }
+
+      const list = document.getElementById('wsLinesList');
+      const addBtn = document.getElementById('wsAddLine');
+      const inventoryTemplate = list?.querySelector('[data-ws-inventory]')?.innerHTML || '';
+
+      function refreshRemoveButtons() {
+        if (!list) return;
+        const rows = list.querySelectorAll('.ws-line-row');
+        rows.forEach((row) => {
+          const removeBtn = row.querySelector('[data-remove-row]');
+          if (removeBtn) removeBtn.hidden = rows.length === 1;
+          const description = row.querySelector('[data-ws-description]');
+          if (description) description.required = rows.length >= 1 && row === rows[0];
+        });
+      }
+
+      function bindInventorySelect(select) {
+        if (!select) return;
+        select.addEventListener('change', () => {
+          const option = select.options[select.selectedIndex];
+          const row = select.closest('.ws-line-row');
+          const description = row?.querySelector('[data-ws-description]');
+          if (description && option?.dataset.name) description.value = option.dataset.name;
+          updateWithdrawalSlipLinesPreview();
+        });
+      }
+
+      function bindRow(row) {
+        row.querySelectorAll('input, select').forEach((field) => {
+          field.addEventListener('input', () => {
+            syncWsFieldPreview(field);
+            updateWithdrawalSlipLinesPreview();
+          });
+          field.addEventListener('change', () => {
+            syncWsFieldPreview(field);
+            updateWithdrawalSlipLinesPreview();
+          });
+        });
+        bindInventorySelect(row.querySelector('[data-ws-inventory]'));
+        const removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            if (!list || list.querySelectorAll('.ws-line-row').length === 1) return;
+            row.remove();
+            refreshRemoveButtons();
+            updateWithdrawalSlipLinesPreview();
+          });
+        }
+      }
+
+      if (list && addBtn) {
+        addBtn.addEventListener('click', () => {
+          const row = document.createElement('div');
+          row.className = 'repeatable-row ws-line-row';
+          row.innerHTML = `
+            <select name="ws_item_inventory" data-ws-inventory aria-label="Inventory item">${inventoryTemplate}</select>
+            <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
+            <input type="text" name="ws_item_unit" value="pcs" placeholder="Unit" data-ws-unit aria-label="Unit">
+            <input type="text" name="ws_item_description" placeholder="Item description" data-ws-description>
+            <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
+          `;
+          list.appendChild(row);
+          bindRow(row);
+          refreshRemoveButtons();
+          row.querySelector('[data-ws-description]')?.focus();
+          updateWithdrawalSlipLinesPreview();
+        });
+        list.querySelectorAll('.ws-line-row').forEach(bindRow);
+        refreshRemoveButtons();
+      }
+
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        field.addEventListener('input', () => syncWsFieldPreview(field));
+        field.addEventListener('change', () => syncWsFieldPreview(field));
+      });
+
+      const form = document.getElementById('withdrawalSlipForm');
+      if (form) {
+        form.addEventListener('reset', () => {
+          requestAnimationFrame(() => {
+            form.querySelectorAll('input[type="date"]').forEach((input) => {
+              if (!input.value) input.value = localTodayISO();
+            });
+            form.querySelectorAll('input[data-auto-number]').forEach((input) => {
+              input.value = input.getAttribute('data-auto-number') || '';
+            });
+            syncWsPanelPreviews();
+            updateWithdrawalSlipLinesPreview();
+          });
+        });
+      }
+
+      syncWsPanelPreviews();
+      updateWithdrawalSlipLinesPreview();
+    })();
   })();

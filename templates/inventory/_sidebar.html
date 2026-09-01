@@ -20,11 +20,6 @@
         <span class="tab-icon">📋</span>
         All Items
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deliveriesPanel">
-        <span class="tab-icon">🚚</span>
-        Deliveries
-        <span class="tab-badge">{{ deliveries|length }}</span>
-      </button>
 
       <div class="nav-label" style="margin-top:14px;">Documents</div>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="purchaseOrderPanel">
@@ -45,10 +40,6 @@
       <div class="stat-row">
         <span>Low stock (< 10)</span>
             <strong>{{ low_stock_count|default:0 }}</strong>
-      </div>
-      <div class="stat-row">
-        <span>Deliveries</span>
-        <strong>{{ deliveries|length }}</strong>
       </div>
     </div>
   </aside>

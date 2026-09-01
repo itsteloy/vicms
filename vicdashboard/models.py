@@ -46,7 +46,7 @@ class InventoryCategory(models.Model):
 
 
 class InventoryItem(models.Model):
-    product_code = models.CharField(max_length=50, blank=True, default='')
+    product_code = models.CharField(max_length=100, blank=True, default='')
     name = models.CharField(max_length=200)
     category = models.ForeignKey(
         InventoryCategory,
@@ -1270,6 +1270,65 @@ class DeliveryReceiptLine(models.Model):
     @property
     def amount(self):
         return (self.quantity or Decimal('0')) * (self.unit_price or Decimal('0'))
+
+
+class WithdrawalSlip(models.Model):
+    slip_number = models.CharField(max_length=50, unique=True)
+    slip_date = models.DateField()
+    requested_by = models.CharField(max_length=200)
+    project_area = models.CharField(max_length=200, blank=True, default='')
+    client = models.CharField(max_length=200, blank=True, default='')
+    ref_number = models.CharField(max_length=100, blank=True, default='')
+    status = models.CharField(max_length=100, blank=True, default='')
+    prepared_by = models.CharField(max_length=200, blank=True, default='')
+    attested_by = models.CharField(max_length=200, blank=True, default='')
+    received_by = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-slip_date', '-created_at']
+
+    def __str__(self):
+        return self.slip_number
+
+    @classmethod
+    def generate_slip_number(cls):
+        max_num = 0
+        for value in cls.objects.values_list('slip_number', flat=True):
+            digits = ''.join(ch for ch in (value or '') if ch.isdigit())
+            if digits:
+                max_num = max(max_num, int(digits))
+        return f'{max_num + 1:05d}'
+
+    def save(self, *args, **kwargs):
+        if not self.slip_number:
+            self.slip_number = self.generate_slip_number()
+        super().save(*args, **kwargs)
+
+
+class WithdrawalSlipLine(models.Model):
+    withdrawal_slip = models.ForeignKey(
+        WithdrawalSlip,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    inventory_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='withdrawal_slip_lines',
+    )
+    description = models.CharField(max_length=300)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    unit = models.CharField(max_length=50, blank=True, default='pcs')
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.description} x{self.quantity}'
 
 
 class WorkspaceAccount(models.Model):

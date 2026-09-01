@@ -524,11 +524,6 @@ h1, h2, h3, h4,
       gap: 20px;
   }
 
-  #delivery-receipt-tab .grid-2 {
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.88fr);
-      align-items: start;
-  }
-
   .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -571,43 +566,6 @@ h1, h2, h3, h4,
   .repeatable-add {
       margin-top: 8px;
       width: fit-content;
-  }
-
-  .dr-lines-head {
-      display: grid;
-      grid-template-columns: 1.1fr 0.55fr 0.55fr 1.5fr 0.8fr auto;
-      gap: 8px;
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #667085;
-      padding: 0 2px;
-  }
-
-  .dr-line-row {
-      display: grid;
-      grid-template-columns: 1.1fr 0.55fr 0.55fr 1.5fr 0.8fr auto;
-      gap: 8px;
-      align-items: center;
-  }
-
-  .dr-line-row select,
-  .dr-line-row input {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #fff;
-      padding: 10px 12px;
-      font: inherit;
-      font-size: 0.86rem;
-      border-radius: 8px;
-      color: var(--ink);
-      min-width: 0;
-  }
-
-  .dr-line-row .row-remove {
-      min-width: 38px;
-      padding: 8px 10px;
   }
 
   .signature-grid {
@@ -781,24 +739,7 @@ h1, h2, h3, h4,
   }
 
   @media (max-width: 1100px) {
-      #delivery-receipt-tab .grid-2 {
-          grid-template-columns: 1fr;
-      }
-
-      .dr-lines-head {
-          display: none;
-      }
-
-      .dr-line-row {
-          grid-template-columns: 1fr;
-          padding: 12px;
-          border: 1px solid var(--line);
-          border-radius: 10px;
-          background: #fff;
-      }
-
-      .signature-grid,
-      .signature-row {
+      .grid-3 {
           grid-template-columns: 1fr;
       }
   }

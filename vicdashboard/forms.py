@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DeliveryReceipt, Company, Employee, JobOrder, JobOrderIdlePeriod, MaterialBorrow, OfficialBusinessForm, Position, ServiceRepairReport, TravelOrderForm
+from .models import DeliveryReceipt, Company, Employee, JobOrder, JobOrderIdlePeriod, MaterialBorrow, OfficialBusinessForm, Position, ServiceRepairReport, TravelOrderForm, WithdrawalSlip
 
 
 class ServiceRepairReportForm(forms.ModelForm):
@@ -157,6 +157,15 @@ class DeliveryReceiptForm(forms.ModelForm):
         widgets = {
             'receipt_date': forms.DateInput(attrs={'type': 'date'}),
             'address': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class WithdrawalSlipForm(forms.ModelForm):
+    class Meta:
+        model = WithdrawalSlip
+        exclude = ('created_at', 'updated_at')
+        widgets = {
+            'slip_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
 

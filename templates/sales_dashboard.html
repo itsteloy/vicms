@@ -64,12 +64,6 @@
                 <span class="tab-icon">📄</span> Collection Form
             </button>
             <button class="tab-button" type="button" role="tab"
-                aria-selected="{% if active_tab == 'delivery-receipt-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="delivery-receipt-tab">
-                <span class="tab-icon">🚚</span> Delivery Receipt
-                <span class="tab-badge">{{ delivery_receipt_count }}</span>
-            </button>
-            <button class="tab-button" type="button" role="tab"
                 aria-selected="{% if active_tab == 'ageing-accounts-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="ageing-accounts-tab">
                 <span class="tab-icon">📊</span> Ageing of Accounts
@@ -276,7 +270,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in inventory_items %}
+                                {% for item in inventory_availability_page %}
                                 <tr>
                                     <td>{{ item.name }}</td>
                                     <td>{{ item.product_code|default:"-" }}</td>
@@ -292,6 +286,19 @@
                             </tbody>
                         </table>
                     </div>
+                    {% if inventory_availability_page.paginator.count %}
+                    <div class="pagination" aria-label="Inventory availability pagination">
+                        {% if inventory_availability_page.has_previous %}
+                        <a class="action" href="?tab=sales-tab&inv_page=1">First</a>
+                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.previous_page_number }}">Previous</a>
+                        {% endif %}
+                        <span>Page {{ inventory_availability_page.number }} of {{ inventory_availability_page.paginator.num_pages }} · {{ inventory_availability_page.paginator.count }} items</span>
+                        {% if inventory_availability_page.has_next %}
+                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.next_page_number }}">Next</a>
+                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.paginator.num_pages }}">Last</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </section>
             </div>
         </div>
@@ -1847,216 +1854,6 @@
         </div>
 
 
-        <!-- ─── DELIVERY RECEIPT ─── -->
-        <div id="delivery-receipt-tab" class="tab-panel {% if active_tab == 'delivery-receipt-tab' %}is-active{% endif %}">
-            <div class="panel-header no-print">
-                <h2>Delivery Receipt</h2>
-                <p>Record and print delivery receipts for goods handed over to customers.</p>
-            </div>
-
-            <div class="grid-2">
-                <section class="panel no-print">
-                    <form method="post" action="{% url 'create_delivery_receipt' %}" id="deliveryReceiptForm">
-                        {% csrf_token %}
-                        <div class="form-grid">
-                            <div class="field">
-                                <label for="dr_receipt_number">Receipt No.</label>
-                                <input id="dr_receipt_number" name="receipt_number" value="{{ next_receipt_number }}" data-auto-number="{{ next_receipt_number }}" readonly class="field-readonly" title="Assigned automatically">
-                                <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
-                            </div>
-                            <div class="field">
-                                <label for="dr_receipt_date">Date *</label>
-                                <input id="dr_receipt_date" name="receipt_date" type="date" required>
-                            </div>
-                            <div class="field">
-                                <label for="dr_delivered_to">Delivered To *</label>
-                                <input id="dr_delivered_to" name="delivered_to" required placeholder="Customer / company name">
-                            </div>
-                            <div class="field">
-                                <label for="dr_tin">TIN</label>
-                                <input id="dr_tin" name="tin" placeholder="000-000-000-000">
-                            </div>
-                            <div class="field">
-                                <label for="dr_po_number">P.O. No.</label>
-                                <input id="dr_po_number" name="po_number">
-                            </div>
-                            <div class="field">
-                                <label for="dr_terms">Terms</label>
-                                <input id="dr_terms" name="terms" placeholder="e.g. COD, 30 days">
-                            </div>
-                            <div class="field full">
-                                <label for="dr_address">Address</label>
-                                <textarea id="dr_address" name="address"></textarea>
-                            </div>
-
-                            <div class="field full section-heading">Articles</div>
-                            <div class="field full">
-                                <div class="dr-lines-head">
-                                    <span>Inventory</span>
-                                    <span>Quantity *</span>
-                                    <span>Unit</span>
-                                    <span>Articles *</span>
-                                    <span>Unit Amount *</span>
-                                    <span></span>
-                                </div>
-                                <div class="repeatable-list" id="drLinesList">
-                                    <div class="repeatable-row dr-line-row">
-                                        <select name="dr_item_inventory" data-dr-inventory aria-label="Inventory item">
-                                            <option value="">Manual entry</option>
-                                            {% for item in inventory_items %}
-                                            <option value="{{ item.id }}" data-name="{{ item.name|escape }}" data-price="{{ item.price }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <input type="number" name="dr_item_quantity" value="1" min="0" step="0.01" data-dr-quantity aria-label="Quantity">
-                                        <input type="text" name="dr_item_unit" value="pcs" placeholder="Unit" data-dr-unit aria-label="Unit">
-                                        <input type="text" name="dr_item_description" placeholder="Item / article description" required data-dr-description>
-                                        <input type="number" name="dr_item_unit_price" value="0" min="0" step="0.01" data-dr-unit-price aria-label="Unit amount">
-                                        <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
-                                    </div>
-                                </div>
-                                <button type="button" class="action repeatable-add" id="drAddLine">+ Add article</button>
-                            </div>
-
-                            <div class="field full section-heading">Acknowledgement</div>
-                            <div class="signature-grid">
-                                <div class="signature-field field">
-                                    <label for="dr_certified_by">Certified by</label>
-                                    <input id="dr_certified_by" name="certified_by" placeholder="Name">
-                                </div>
-                                <div class="signature-field field">
-                                    <label for="dr_delivered_by">Delivered by</label>
-                                    <input id="dr_delivered_by" name="delivered_by" placeholder="Name">
-                                </div>
-                                <div class="signature-field field">
-                                    <label for="dr_received_by">Received by (Customer)</label>
-                                    <input id="dr_received_by" name="received_by" placeholder="Name">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="reset" class="action">Clear</button>
-                            <button type="submit" class="action primary">Save delivery receipt</button>
-                        </div>
-                    </form>
-                </section>
-
-                <article class="document service-document delivery-receipt-document">
-                    <header class="doc-header">
-                        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-                    </header>
-                    <div class="doc-body">
-                        <h3 class="doc-title">DELIVERY RECEIPT</h3>
-                        <div class="doc-meta">
-                            <span>Receipt No.: <b data-preview="receipt_number">—</b></span>
-                            <span>Date: <b data-preview="receipt_date">—</b></span>
-                        </div>
-                        <div class="doc-section">
-                            <strong>Delivered To</strong>
-                            <div class="preview-text" data-preview="delivered_to">—</div>
-                            <div class="preview-text">TIN: <span data-preview="tin">—</span></div>
-                            <div class="preview-text" data-preview="address"></div>
-                        </div>
-                        <div class="doc-section">
-                            <strong>Order Details</strong>
-                            <div class="preview-text">P.O. No.: <span data-preview="po_number">—</span></div>
-                            <div class="preview-text">Terms: <span data-preview="terms">—</span></div>
-                        </div>
-                        <div class="doc-section">
-                            <strong>Articles</strong>
-                            <table class="doc-items-table">
-                                <thead>
-                                    <tr>
-                                        <th>Quantity</th>
-                                        <th>Unit</th>
-                                        <th>Articles</th>
-                                        <th>Unit Amount</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody data-preview="dr_lines">
-                                    <tr class="empty-row">
-                                        <td colspan="5">No articles added yet.</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
-                                        <td style="font-weight:800;" data-preview="dr_total">₱0.00</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                        <div class="doc-section">
-                            <strong>Acknowledgement</strong>
-                            <p class="preview-text" style="margin-bottom:8px;">Received the above goods and services in good order and condition.</p>
-                            <div class="signature-row">
-                                <div class="signature-block">
-                                    <span class="signature-label">Certified by</span>
-                                    <div class="signature-line"><span data-preview="certified_by">—</span></div>
-                                </div>
-                                <div class="signature-block">
-                                    <span class="signature-label">Delivered by</span>
-                                    <div class="signature-line"><span data-preview="delivered_by">—</span></div>
-                                </div>
-                                <div class="signature-block">
-                                    <span class="signature-label">Received by (Customer)</span>
-                                    <div class="signature-line"><span data-preview="received_by">—</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <footer class="doc-footer">
-                        <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
-                    </footer>
-                </article>
-            </div>
-
-            <div class="panel no-print">
-                <h2 style="margin:0 0 8px;font-size:1rem;">Recent Delivery Receipts</h2>
-                <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved delivery receipts.</p>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Receipt No.</th>
-                                <th>Date</th>
-                                <th>Delivered To</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for receipt in delivery_receipts %}
-                            <tr>
-                                <td>{{ receipt.receipt_number }}</td>
-                                <td>{{ receipt.receipt_date|date:'M d, Y' }}</td>
-                                <td>{{ receipt.delivered_to }}</td>
-                                <td>{{ receipt.lines.count }}</td>
-                                <td>₱{{ receipt.total_amount|floatformat:2 }}</td>
-                                <td>
-                                    <div class="record-actions">
-                                        <a class="action" href="{% url 'view_delivery_receipt' receipt.id %}?from=sales">View</a>
-                                        <a class="action" href="{% url 'edit_delivery_receipt' receipt.id %}">Edit</a>
-                                        <form method="post" action="{% url 'delete_delivery_receipt' receipt.id %}" onsubmit="return confirm('Delete Delivery Receipt {{ receipt.receipt_number }}? This cannot be undone.');">
-                                            {% csrf_token %}
-                                            <button class="action danger" type="submit">Delete</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" style="text-align:center;color:#667085;padding:24px;">No delivery receipts saved yet.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-
         <!-- ─── SAVED DOCUMENTS ─── -->
         <div id="saved-documents-tab" class="tab-panel {% if active_tab == 'saved-documents-tab' %}is-active{% endif %}">
             <div class="panel-header">
@@ -2154,5 +1951,5 @@
     saveServiceQuotationUrl: "{% url 'save_service_quotation' %}"
   };
 </script>
-<script src="{% static 'js/dashboards/sales.js' %}"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=dr1"></script>
 {% endblock %}

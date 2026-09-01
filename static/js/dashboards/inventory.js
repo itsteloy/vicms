@@ -4,7 +4,6 @@
     const panels = {
       managePanel: document.getElementById('managePanel'),
       allItemsPanel: document.getElementById('allItemsPanel'),
-      deliveriesPanel: document.getElementById('deliveriesPanel'),
       purchaseOrderPanel: document.getElementById('purchaseOrderPanel'),
     };
 
@@ -752,78 +751,6 @@
     initCatPickers();
     loadInventory();
     renderInventory();
-
-    // ── Delivery form: add/remove item rows ──
-    const deliveryContainer = document.getElementById('deliveryItemsContainer');
-    const addItemBtn = document.getElementById('addItemRow');
-
-    function createItemRow() {
-      const template = deliveryContainer.querySelector('.delivery-item-row');
-      const clone = template.cloneNode(true);
-      // Clear input values
-      clone.querySelectorAll('input').forEach(input => input.value = '');
-      // Set defaults
-      const qtyInput = clone.querySelector('input[name="quantity_cartons[]"]');
-      if (qtyInput) qtyInput.value = 1;
-      const pcsInput = clone.querySelector('input[name="pcs_per_carton[]"]');
-      if (pcsInput) pcsInput.value = 1;
-      const costInput = clone.querySelector('input[name="cost_per_carton[]"]');
-      if (costInput) costInput.value = '0.00';
-      // Attach remove event
-      const removeBtn = clone.querySelector('.remove-item-row');
-      removeBtn.addEventListener('click', function () {
-        if (deliveryContainer.children.length > 1) {
-          clone.remove();
-        } else {
-          alert('You need at least one item row.');
-        }
-      });
-      return clone;
-    }
-
-    addItemBtn.addEventListener('click', function () {
-      const newRow = createItemRow();
-      deliveryContainer.appendChild(newRow);
-      // Focus first input
-      newRow.querySelector('input')?.focus();
-    });
-
-    // Attach remove events to existing rows (except the first)
-    document.querySelectorAll('.delivery-item-row').forEach((row, index) => {
-      if (index > 0) {
-        const removeBtn = row.querySelector('.remove-item-row');
-        removeBtn.addEventListener('click', function () {
-          if (deliveryContainer.children.length > 1) {
-            row.remove();
-          } else {
-            alert('You need at least one item row.');
-          }
-        });
-      }
-    });
-
-    // Reset button: clear rows to only one
-    document.querySelector('#deliveryForm .clear')?.addEventListener('click', function (e) {
-      // Prevent default reset which may not clear all
-      e.preventDefault();
-      // Keep only first row
-      const rows = deliveryContainer.querySelectorAll('.delivery-item-row');
-      rows.forEach((row, idx) => {
-        if (idx === 0) {
-          row.querySelectorAll('input').forEach(inp => inp.value = '');
-          row.querySelector('input[name="quantity_cartons[]"]').value = 1;
-          row.querySelector('input[name="pcs_per_carton[]"]').value = 1;
-          row.querySelector('input[name="cost_per_carton[]"]').value = '0.00';
-        } else {
-          row.remove();
-        }
-      });
-      // Also reset header fields (they are not in this form's reset)
-      document.querySelector('#deliveryForm input[name="delivery_date"]').value = '';
-      document.querySelector('#deliveryForm input[name="driver"]').value = '';
-      document.querySelector('#deliveryForm input[name="delivered_from"]').value = '';
-      document.querySelector('#deliveryForm input[name="delivered_to"]').value = '';
-    });
 
     // ── Purchase Order tab ──
     (function () {

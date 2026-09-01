@@ -21,7 +21,6 @@
     <!-- TAB PANELS -->
     {% include "inventory/_manage_form.html" %}
     {% include "inventory/_all_items.html" %}
-    {% include "inventory/_deliveries.html" %}
     {% include "inventory/_purchase_order.html" %}
   </main>
 
@@ -40,5 +39,5 @@
     poPdfUrl: document.querySelector('.inventory-page')?.dataset.poPdfUrl || ''
   };
 </script>
-<script src="{% static 'js/dashboards/inventory.js' %}?v=items8"></script>
+<script src="{% static 'js/dashboards/inventory.js' %}?v=items10"></script>
 {% endblock %}

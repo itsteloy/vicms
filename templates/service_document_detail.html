@@ -17,6 +17,8 @@
       <a href="{% url 'edit_official_business_form' record.id %}">Edit</a>
       {% elif document_type == 'delivery_receipt' %}
       <a href="{% url 'edit_delivery_receipt' record.id %}">Edit</a>
+      {% elif document_type == 'withdrawal_slip' %}
+      <a href="{% url 'edit_withdrawal_slip' record.id %}">Edit</a>
       {% elif document_type == 'travel' and can_manage_services %}
       <a href="{% url 'edit_travel_order_form' record.id %}">Edit</a>
       {% elif document_type == 'borrow' %}
@@ -26,9 +28,13 @@
     </div>
   </div>
 
-  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'travel' %} travel-document{% endif %}">
+  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'delivery_receipt' %} delivery-receipt-document{% elif document_type == 'withdrawal_slip' %} withdrawal-slip-document ws-doc{% elif document_type == 'travel' %} travel-document{% endif %}">
     <header class="doc-header">
+      {% if document_type == 'withdrawal_slip' %}
+      <img src="{% static 'METRO DAVAO HEADER.png' %}" alt="Metro Davao header">
+      {% else %}
       <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
+      {% endif %}
     </header>
 
     <div class="content">
@@ -37,6 +43,7 @@
         {% elif document_type == 'job' %}JOB ORDER
         {% elif document_type == 'ob' %}OFFICIAL BUSINESS FORM
         {% elif document_type == 'delivery_receipt' %}DELIVERY RECEIPT
+        {% elif document_type == 'withdrawal_slip' %}WITHDRAWAL SLIP
         {% elif document_type == 'travel' %}TRAVEL ORDER FORM
         {% else %}BORROW MATERIAL SLIP{% endif %}
       </h1>
@@ -135,6 +142,75 @@
           </div>
         </div>
       </div>
+      {% elif document_type == 'delivery_receipt' %}
+      <div class="doc-meta">
+        <span>Receipt No.: <b>{{ record.receipt_number }}</b></span>
+        <span>Date: <b>{{ record.receipt_date|date:"M j, Y" }}</b></span>
+      </div>
+      <div class="doc-section">
+        <strong>Delivered To</strong>
+        <div class="preview-text">{{ record.delivered_to|default:"—" }}</div>
+        <div class="preview-text">TIN: <span>{{ record.tin|default:"—" }}</span></div>
+        <div class="preview-text">{{ record.address|default:"" }}</div>
+      </div>
+      <div class="doc-section">
+        <strong>Order Details</strong>
+        <div class="preview-text">P.O. No.: <span>{{ record.po_number|default:"—" }}</span></div>
+        <div class="preview-text">Terms: <span>{{ record.terms|default:"—" }}</span></div>
+      </div>
+      <div class="doc-section">
+        <strong>Articles</strong>
+        <table class="doc-items-table">
+          <thead>
+            <tr>
+              <th>Quantity</th>
+              <th>Unit</th>
+              <th>Articles</th>
+              <th>Unit Amount</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in delivery_receipt_lines %}
+            <tr>
+              <td>{{ line.quantity|floatformat:'-2' }}</td>
+              <td>{{ line.unit|default:'pcs' }}</td>
+              <td>{{ line.description }}</td>
+              <td>₱{{ line.unit_price|floatformat:2 }}</td>
+              <td>₱{{ line.amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr class="empty-row">
+              <td colspan="5">No articles on this receipt.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
+              <td style="font-weight:800;">₱{{ delivery_receipt_total|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="doc-section">
+        <strong>Acknowledgement</strong>
+        <p class="preview-text ack-statement">Received the above goods and services in good order and condition.</p>
+        <div class="signature-row">
+          <div class="signature-block">
+            <span class="signature-label">Certified by</span>
+            <div class="signature-line"><span>{{ record.certified_by|default:"—" }}</span></div>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Delivered by</span>
+            <div class="signature-line"><span>{{ record.delivered_by|default:"—" }}</span></div>
+          </div>
+          <div class="signature-block">
+            <span class="signature-label">Received by (Customer)</span>
+            <div class="signature-line"><span>{{ record.received_by|default:"—" }}</span></div>
+          </div>
+        </div>
+      </div>
       {% elif document_type == 'travel' %}
       <table class="travel-form-table">
         <tr>
@@ -214,35 +290,6 @@
             <td>{{ line.remarks|default:'—' }}</td>
           </tr>
           {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-      {% if document_type == 'delivery_receipt' and delivery_receipt_lines %}
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Quantity</th>
-            <th>Unit</th>
-            <th>Articles</th>
-            <th>Unit Amount</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for line in delivery_receipt_lines %}
-          <tr>
-            <td>{{ line.quantity|floatformat:'-2' }}</td>
-            <td>{{ line.unit|default:'pcs' }}</td>
-            <td>{{ line.description }}</td>
-            <td>₱{{ line.unit_price|floatformat:2 }}</td>
-            <td>₱{{ line.amount|floatformat:2 }}</td>
-          </tr>
-          {% endfor %}
-          <tr>
-            <td colspan="4" style="text-align:right;font-weight:800;">Total</td>
-            <td style="font-weight:800;">₱{{ delivery_receipt_total|floatformat:2 }}</td>
-          </tr>
         </tbody>
       </table>
       {% endif %}
