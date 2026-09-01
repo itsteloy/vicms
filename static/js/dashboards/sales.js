@@ -450,7 +450,7 @@
                     });
                 });
 
-                return {
+                const payload = {
                     quotation_number: document.getElementById('pqNumber')?.value || '',
                     currency,
                     currency_other: currencyOther?.value || '',
@@ -488,6 +488,9 @@
                         date: document.getElementById('pqApprovedDate')?.value || '',
                     },
                 };
+                const recordId = document.getElementById('pqRecordId')?.value;
+                if (recordId) payload.id = recordId;
+                return payload;
             }
 
             function getCookie(name) {
@@ -515,7 +518,7 @@
                     if (response.status !== 200) {
                         throw new Error(body?.error || 'Unable to save product quotation.');
                     }
-                    if (body.next_quotation_number) {
+                    if (!body.updated && body.next_quotation_number) {
                         const pqNumber = document.getElementById('pqNumber');
                         pqNumber.value = body.next_quotation_number;
                         pqNumber.setAttribute('data-auto-number', body.next_quotation_number);
@@ -595,6 +598,12 @@
                             sourceId: body.id,
                             fileName: body.quotation_number || 'product_quotation',
                         });
+                        if (body.updated) {
+                            alert('Product quotation updated. Status now reflects the payment amount.');
+                            const dash = (window.__SALES_CONFIG__ && window.__SALES_CONFIG__.dashboardUrl) || window.location.pathname;
+                            window.location.href = `${dash}?tab=product-quotation-tab`;
+                            return;
+                        }
                         alert('Product quotation PDF saved to the database.');
                         goToSavedDocuments();
                     } catch (error) {
@@ -624,6 +633,92 @@
                         printBtn.disabled = false;
                     });
             });
+
+            function setPqEditMode(id, number) {
+                const recordId = document.getElementById('pqRecordId');
+                const banner = document.getElementById('pqEditBanner');
+                const title = document.getElementById('pqFormTitle');
+                if (recordId) recordId.value = id ? String(id) : '';
+                if (id) {
+                    if (banner) {
+                        banner.hidden = false;
+                        banner.textContent = `Editing ${number || 'saved quotation'}. Change Initial Payment to update status (Unpaid / Partial / Paid).`;
+                    }
+                    if (title) title.textContent = '📦 Edit Product Quotation';
+                } else {
+                    if (banner) banner.hidden = true;
+                    if (title) title.textContent = '📦 Create Product Quotation';
+                }
+            }
+
+            function fillPqForm(data) {
+                setPqEditMode(data.id, data.quotation_number);
+                const pqNumber = document.getElementById('pqNumber');
+                if (pqNumber) pqNumber.value = data.quotation_number || '';
+                document.getElementById('pqDate').value = data.quotation_date || todayISO();
+                document.getElementById('pqValidUntil').value = data.valid_until || '';
+                currencySelect.value = data.currency || 'PHP';
+                const isOther = currencySelect.value === 'OTHER';
+                currencyOther.hidden = !isOther;
+                currencyOther.value = data.currency_other || '';
+                document.getElementById('pqCustomerCompany').value = data.customer?.company || '';
+                document.getElementById('pqCustomerContact').value = data.customer?.contact || '';
+                document.getElementById('pqCustomerAddress').value = data.customer?.address || '';
+                document.getElementById('pqCustomerEmail').value = data.customer?.email || '';
+                document.getElementById('pqCustomerPhone').value = data.customer?.phone || '';
+                document.getElementById('pqPaymentTerms').value = data.payment_terms || '';
+                document.getElementById('pqDeliveryTerms').value = data.delivery_terms || '';
+                document.getElementById('pqWarranty').value = data.warranty || '';
+                document.getElementById('pqOtherTerms').value = data.other_terms || '';
+                taxInput.value = money(parseMoney(data.tax));
+                discountInput.value = money(parseMoney(data.discount));
+                shippingInput.value = money(parseMoney(data.shipping));
+                initialPaymentInput.value = money(parseMoney(data.initial_payment));
+                document.getElementById('pqPreparedName').value = data.prepared_by?.name || '';
+                document.getElementById('pqPreparedPosition').value = data.prepared_by?.title || '';
+                document.getElementById('pqPreparedSignature').value = data.prepared_by?.signature || '';
+                document.getElementById('pqPreparedDate').value = data.prepared_by?.date || '';
+                document.getElementById('pqApprovedSignature').value = data.approved_by?.signature || '';
+                document.getElementById('pqApprovedDate').value = data.approved_by?.date || '';
+
+                const items = Array.isArray(data.items) && data.items.length ? data.items : [{}];
+                const template = itemsBody.querySelector('tr').cloneNode(true);
+                itemsBody.innerHTML = '';
+                items.forEach((item, idx) => {
+                    const row = template.cloneNode(true);
+                    row.querySelector('.pq-col-no').value = item.no || (idx + 1);
+                    row.querySelector('.pq-col-desc').value = item.description || '';
+                    row.querySelector('.pq-qty').value = item.qty || 1;
+                    row.querySelector('.pq-col-unit').value = item.unit || '';
+                    row.querySelector('.pq-unit-price').value = money(parseMoney(item.unit_price));
+                    row.querySelector('.pq-line-total').value = money(parseMoney(item.total));
+                    itemsBody.appendChild(row);
+                });
+                bindMoneyInputs(itemsBody, '.pq-unit-price');
+                renumberRows();
+                recalcAll();
+            }
+
+            async function loadPqForEdit() {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('tab') !== 'product-quotation-tab') return;
+                const editId = params.get('edit');
+                if (!editId) return;
+                const tmpl = (window.__SALES_CONFIG__ && window.__SALES_CONFIG__.quotationJsonUrlTemplate) || '';
+                const url = tmpl.replace('/0/', `/${editId}/`);
+                try {
+                    const response = await fetch(url, { credentials: 'same-origin' });
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('Unable to load quotation.');
+                    }
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Unable to load quotation.');
+                    fillPqForm(data);
+                } catch (error) {
+                    alert('Unable to load product quotation: ' + (error.message || error));
+                }
+            }
 
             resetBtn.addEventListener('click', function () {
                 if (!confirm('Reset the Product Quotation form? All entered data will be cleared.')) return;
@@ -664,10 +759,12 @@
                 document.getElementById('pqPreparedDate').value = '';
                 document.getElementById('pqApprovedSignature').value = '';
                 document.getElementById('pqApprovedDate').value = '';
+                setPqEditMode('', '');
                 recalcAll();
             });
 
             recalcAll();
+            loadPqForEdit();
         })();
 
         // ══════════════════════════════════════════════════════════════
@@ -807,7 +904,7 @@
                     });
                 });
 
-                return {
+                const payload = {
                     quotation_number: document.getElementById('svqNumber')?.value || '',
                     currency,
                     currency_other: currencyOther?.value || '',
@@ -845,6 +942,9 @@
                         date: document.getElementById('svqApprovedDate')?.value || '',
                     },
                 };
+                const recordId = document.getElementById('svqRecordId')?.value;
+                if (recordId) payload.id = recordId;
+                return payload;
             }
 
             function getCookie(name) {
@@ -872,7 +972,7 @@
                     if (response.status !== 200) {
                         throw new Error(body?.error || 'Unable to save service quotation.');
                     }
-                    if (body.next_quotation_number) {
+                    if (!body.updated && body.next_quotation_number) {
                         const svqNumber = document.getElementById('svqNumber');
                         svqNumber.value = body.next_quotation_number;
                         svqNumber.setAttribute('data-auto-number', body.next_quotation_number);
@@ -952,6 +1052,12 @@
                             sourceId: body.id,
                             fileName: body.quotation_number || 'service_quotation',
                         });
+                        if (body.updated) {
+                            alert('Service quotation updated. Status now reflects the payment amount.');
+                            const dash = (window.__SALES_CONFIG__ && window.__SALES_CONFIG__.dashboardUrl) || window.location.pathname;
+                            window.location.href = `${dash}?tab=service-quotation-tab`;
+                            return;
+                        }
                         alert('Service quotation PDF saved to the database.');
                         goToSavedDocuments();
                     } catch (error) {
@@ -981,6 +1087,89 @@
                         printBtn.disabled = false;
                     });
             });
+
+            function setSvqEditMode(id, number) {
+                const recordId = document.getElementById('svqRecordId');
+                const banner = document.getElementById('svqEditBanner');
+                const title = document.getElementById('svqFormTitle');
+                if (recordId) recordId.value = id ? String(id) : '';
+                if (id) {
+                    if (banner) {
+                        banner.hidden = false;
+                        banner.textContent = `Editing ${number || 'saved quotation'}. Change Initial Payment to update status (Unpaid / Partial / Paid).`;
+                    }
+                    if (title) title.textContent = '🛠️ Edit Service Quotation';
+                } else {
+                    if (banner) banner.hidden = true;
+                    if (title) title.textContent = '🛠️ Create Service Quotation';
+                }
+            }
+
+            function fillSvqForm(data) {
+                setSvqEditMode(data.id, data.quotation_number);
+                const svqNumber = document.getElementById('svqNumber');
+                if (svqNumber) svqNumber.value = data.quotation_number || '';
+                document.getElementById('svqDate').value = data.quotation_date || todayISO();
+                document.getElementById('svqValidUntil').value = data.valid_until || '';
+                currencySelect.value = data.currency || 'PHP';
+                const isOther = currencySelect.value === 'OTHER';
+                currencyOther.hidden = !isOther;
+                currencyOther.value = data.currency_other || '';
+                document.getElementById('svqCustomerCompany').value = data.customer?.company || '';
+                document.getElementById('svqCustomerContact').value = data.customer?.contact || '';
+                document.getElementById('svqCustomerAddress').value = data.customer?.address || '';
+                document.getElementById('svqCustomerEmail').value = data.customer?.email || '';
+                document.getElementById('svqCustomerPhone').value = data.customer?.phone || '';
+                document.getElementById('svqPaymentTerms').value = data.payment_terms || '';
+                document.getElementById('svqServiceSchedule').value = data.service_schedule || '';
+                document.getElementById('svqWarranty').value = data.warranty || '';
+                document.getElementById('svqOtherTerms').value = data.other_terms || '';
+                taxInput.value = money(parseMoney(data.tax));
+                discountInput.value = money(parseMoney(data.discount));
+                otherFeesInput.value = money(parseMoney(data.other_fees));
+                initialPaymentInput.value = money(parseMoney(data.initial_payment));
+                document.getElementById('svqPreparedName').value = data.prepared_by?.name || '';
+                document.getElementById('svqPreparedPosition').value = data.prepared_by?.title || '';
+                document.getElementById('svqPreparedSignature').value = data.prepared_by?.signature || '';
+                document.getElementById('svqPreparedDate').value = data.prepared_by?.date || '';
+                document.getElementById('svqApprovedSignature').value = data.approved_by?.signature || '';
+                document.getElementById('svqApprovedDate').value = data.approved_by?.date || '';
+
+                const items = Array.isArray(data.items) && data.items.length ? data.items : [{}];
+                const template = itemsBody.querySelector('tr').cloneNode(true);
+                itemsBody.innerHTML = '';
+                items.forEach((item, idx) => {
+                    const row = template.cloneNode(true);
+                    row.querySelector('.svq-col-no').value = item.no || (idx + 1);
+                    row.querySelector('.svq-col-desc').value = item.description || '';
+                    row.querySelector('.svq-line-total').value = money(parseMoney(item.total || item.unit_price));
+                    itemsBody.appendChild(row);
+                });
+                bindMoneyInputs(itemsBody, '.svq-line-total');
+                renumberRows();
+                recalcAll();
+            }
+
+            async function loadSvqForEdit() {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('tab') !== 'service-quotation-tab') return;
+                const editId = params.get('edit');
+                if (!editId) return;
+                const tmpl = (window.__SALES_CONFIG__ && window.__SALES_CONFIG__.serviceQuotationJsonUrlTemplate) || '';
+                const url = tmpl.replace('/0/', `/${editId}/`);
+                try {
+                    const response = await fetch(url, { credentials: 'same-origin' });
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('Unable to load quotation.');
+                    }
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Unable to load quotation.');
+                    fillSvqForm(data);
+                } catch (error) {
+                    alert('Unable to load service quotation: ' + (error.message || error));
+                }
+            }
 
             resetBtn.addEventListener('click', function () {
                 if (!confirm('Reset the Service Quotation form? All entered data will be cleared.')) return;
@@ -1019,10 +1208,12 @@
                 document.getElementById('svqPreparedDate').value = '';
                 document.getElementById('svqApprovedSignature').value = '';
                 document.getElementById('svqApprovedDate').value = '';
+                setSvqEditMode('', '');
                 recalcAll();
             });
 
             recalcAll();
+            loadSvqForEdit();
         })();
 
         // ══════════════════════════════════════════════════════════════

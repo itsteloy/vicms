@@ -618,9 +618,14 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- PRODUCT QUOTATION TAB ─────────────────────────────────────── -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div id="product-quotation-tab" class="tab-panel">
+        <div id="product-quotation-tab" class="tab-panel {% if active_tab == 'product-quotation-tab' %}is-active{% endif %}">
             <div class="panel" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">📦 Create Product Quotation</h1>
+                <h1 style="margin-top:0;" id="pqFormTitle">📦 Create Product Quotation</h1>
+                <div id="pqEditBanner" hidden
+                    style="margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#ecfdf3; color:#166534; font-weight:600;">
+                    Editing saved quotation.
+                </div>
+                <input type="hidden" id="pqRecordId" value="">
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
@@ -905,7 +910,7 @@
                                 <th>Initial Payment</th>
                                 <th>Balance Due</th>
                                 <th>Status</th>
-                                <th>PDF</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -918,11 +923,14 @@
                                 <td>₱{{ pq.initial_payment }}</td>
                                 <td>₱{{ pq.balance_due }}</td>
                                 <td>
-                                    <span class="status-chip {% if pq.payment_status == 'Paid' %}completed{% elif pq.payment_status == 'Pending' %}out-stock{% endif %}">{{ pq.payment_status }}</span>
+                                    <span class="status-chip {% if pq.payment_status == 'Paid' %}completed{% elif pq.payment_status == 'Unpaid' %}out-stock{% endif %}">{{ pq.payment_status }}</span>
                                 </td>
                                 <td>
-                                    <a class="action" href="{% url 'download_quotation_pdf' pq.id %}"
-                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                    <div class="record-actions">
+                                        <a class="action" href="{% url 'view_quotation_pdf' pq.id %}" target="_blank" rel="noopener">View</a>
+                                        <a class="action" href="{% url 'sales_dashboard' %}?tab=product-quotation-tab&amp;edit={{ pq.id }}">Edit</a>
+                                        <a class="action" href="{% url 'download_quotation_pdf' pq.id %}">Download</a>
+                                    </div>
                                 </td>
                             </tr>
                             {% empty %}
@@ -940,9 +948,14 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- SERVICE QUOTATION TAB ─────────────────────────────────────── -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div id="service-quotation-tab" class="tab-panel">
+        <div id="service-quotation-tab" class="tab-panel {% if active_tab == 'service-quotation-tab' %}is-active{% endif %}">
             <div class="panel" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">🛠️ Create Service Quotation</h1>
+                <h1 style="margin-top:0;" id="svqFormTitle">🛠️ Create Service Quotation</h1>
+                <div id="svqEditBanner" hidden
+                    style="margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#ecfdf3; color:#166534; font-weight:600;">
+                    Editing saved quotation.
+                </div>
+                <input type="hidden" id="svqRecordId" value="">
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
@@ -1210,7 +1223,7 @@
                                 <th>Initial Payment</th>
                                 <th>Balance Due</th>
                                 <th>Status</th>
-                                <th>PDF</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1223,11 +1236,14 @@
                                 <td>₱{{ svq.initial_payment }}</td>
                                 <td>₱{{ svq.balance_due }}</td>
                                 <td>
-                                    <span class="status-chip {% if svq.payment_status == 'Paid' %}completed{% elif svq.payment_status == 'Pending' %}out-stock{% endif %}">{{ svq.payment_status }}</span>
+                                    <span class="status-chip {% if svq.payment_status == 'Paid' %}completed{% elif svq.payment_status == 'Unpaid' %}out-stock{% endif %}">{{ svq.payment_status }}</span>
                                 </td>
                                 <td>
-                                    <a class="action" href="{% url 'download_service_quotation_pdf' svq.id %}"
-                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                    <div class="record-actions">
+                                        <a class="action" href="{% url 'view_service_quotation_pdf' svq.id %}" target="_blank" rel="noopener">View</a>
+                                        <a class="action" href="{% url 'sales_dashboard' %}?tab=service-quotation-tab&amp;edit={{ svq.id }}">Edit</a>
+                                        <a class="action" href="{% url 'download_service_quotation_pdf' svq.id %}">Download</a>
+                                    </div>
                                 </td>
                             </tr>
                             {% empty %}
@@ -1948,8 +1964,10 @@
     dashboardUrl: "{% url 'sales_dashboard' %}",
     activeTab: "{{ active_tab|default:'sales-tab' }}",
     saveQuotationUrl: "{% url 'save_quotation' %}",
-    saveServiceQuotationUrl: "{% url 'save_service_quotation' %}"
+    quotationJsonUrlTemplate: "{% url 'quotation_json' 0 %}",
+    saveServiceQuotationUrl: "{% url 'save_service_quotation' %}",
+    serviceQuotationJsonUrlTemplate: "{% url 'service_quotation_json' 0 %}"
   };
 </script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=dr1"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=pq2"></script>
 {% endblock %}

@@ -1187,6 +1187,140 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _parse_iso_date(value):
+    try:
+        return datetime.fromisoformat(value).date() if value else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _quotation_fields_from_payload(payload):
+    grand_total = Decimal(payload.get("grand_total") or "0")
+    initial_payment = Decimal(payload.get("initial_payment") or "0")
+    return {
+        "quotation_number": payload.get("quotation_number", "").strip() or Quotation.generate_quotation_number(),
+        "quotation_date": _parse_iso_date(payload.get("quotation_date")),
+        "valid_until": _parse_iso_date(payload.get("valid_until")),
+        "currency": payload.get("currency", "PHP") or "PHP",
+        "currency_other": payload.get("currency_other", "").strip(),
+        "customer_company": payload.get("customer", {}).get("company", "").strip(),
+        "customer_contact": payload.get("customer", {}).get("contact", "").strip(),
+        "customer_address": payload.get("customer", {}).get("address", "").strip(),
+        "customer_email": payload.get("customer", {}).get("email", "").strip(),
+        "customer_phone": payload.get("customer", {}).get("phone", "").strip(),
+        "payment_terms": payload.get("payment_terms", "").strip(),
+        "delivery_terms": payload.get("delivery_terms", "").strip(),
+        "warranty": payload.get("warranty", "").strip(),
+        "other_terms": payload.get("other_terms", "").strip(),
+        "subtotal": Decimal(payload.get("subtotal") or "0"),
+        "tax": Decimal(payload.get("tax") or "0"),
+        "discount": Decimal(payload.get("discount") or "0"),
+        "shipping": Decimal(payload.get("shipping") or "0"),
+        "grand_total": grand_total,
+        "initial_payment": initial_payment,
+        "balance_due": grand_total - initial_payment,
+        "prepared_name": payload.get("prepared_by", {}).get("name", "").strip(),
+        "prepared_title": payload.get("prepared_by", {}).get("title", "").strip(),
+        "prepared_signature": payload.get("prepared_by", {}).get("signature", "").strip(),
+        "prepared_date": _parse_iso_date(payload.get("prepared_by", {}).get("date")),
+        "approved_signature": payload.get("approved_by", {}).get("signature", "").strip(),
+        "approved_date": _parse_iso_date(payload.get("approved_by", {}).get("date")),
+    }
+
+
+def _replace_quotation_lines(quotation, items):
+    quotation.lines.all().delete()
+    for item in items or []:
+        try:
+            item_number = int(item.get("no") or 0)
+        except (TypeError, ValueError):
+            item_number = 0
+        QuotationLine.objects.create(
+            quotation=quotation,
+            item_number=item_number,
+            product_description=item.get("description", "").strip(),
+            quantity=max(int(item.get("qty") or 0), 0),
+            unit=item.get("unit", "").strip(),
+            unit_price=Decimal(item.get("unit_price") or "0"),
+            total_amount=Decimal(item.get("total") or "0"),
+        )
+
+
+def _quotation_to_payload(quotation):
+    def date_str(value):
+        return value.isoformat() if value else ""
+
+    def money_str(value):
+        return f"{Decimal(value or 0):.2f}"
+
+    return {
+        "id": quotation.id,
+        "quotation_number": quotation.quotation_number,
+        "quotation_date": date_str(quotation.quotation_date),
+        "valid_until": date_str(quotation.valid_until),
+        "currency": quotation.currency or "PHP",
+        "currency_other": quotation.currency_other or "",
+        "customer": {
+            "company": quotation.customer_company or "",
+            "contact": quotation.customer_contact or "",
+            "address": quotation.customer_address or "",
+            "email": quotation.customer_email or "",
+            "phone": quotation.customer_phone or "",
+        },
+        "items": [
+            {
+                "no": line.item_number,
+                "description": line.product_description or "",
+                "qty": str(line.quantity),
+                "unit": line.unit or "",
+                "unit_price": money_str(line.unit_price),
+                "total": money_str(line.total_amount),
+            }
+            for line in quotation.lines.all()
+        ],
+        "subtotal": money_str(quotation.subtotal),
+        "tax": money_str(quotation.tax),
+        "discount": money_str(quotation.discount),
+        "shipping": money_str(quotation.shipping),
+        "grand_total": money_str(quotation.grand_total),
+        "initial_payment": money_str(quotation.initial_payment),
+        "balance_due": money_str(quotation.balance_due),
+        "payment_terms": quotation.payment_terms or "",
+        "delivery_terms": quotation.delivery_terms or "",
+        "warranty": quotation.warranty or "",
+        "other_terms": quotation.other_terms or "",
+        "prepared_by": {
+            "name": quotation.prepared_name or "",
+            "title": quotation.prepared_title or "",
+            "signature": quotation.prepared_signature or "",
+            "date": date_str(quotation.prepared_date),
+        },
+        "approved_by": {
+            "signature": quotation.approved_signature or "",
+            "date": date_str(quotation.approved_date),
+        },
+        "payment_status": quotation.payment_status,
+    }
+
+
+def _quotation_pdf_response(quotation, inline=False):
+    from .po_pdf import build_quotation_pdf
+
+    lines = quotation.lines.all()
+    generated_date = timezone.localtime(timezone.now())
+    pdf_bytes = build_quotation_pdf(
+        quotation, lines, quotation.grand_total, generated_date, "VERSATEC Industrial Corporation"
+    )
+    safe_name = "".join(
+        ch if ch.isalnum() or ch in "-_" else "_"
+        for ch in (quotation.quotation_number or "quotation")
+    )
+    disposition = "inline" if inline else "attachment"
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'{disposition}; filename="{safe_name}.pdf"'
+    return response
+
+
 @login_required
 @require_POST
 def save_quotation(request):
@@ -1195,83 +1329,33 @@ def save_quotation(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    def parse_date(value):
-        try:
-            return datetime.fromisoformat(value).date() if value else None
-        except (ValueError, TypeError):
-            return None
-
     try:
-        # Create the Quotation
-        grand_total = Decimal(payload.get("grand_total") or "0")
-        initial_payment = Decimal(payload.get("initial_payment") or "0")
-        balance_due = grand_total - initial_payment
+        fields = _quotation_fields_from_payload(payload)
+        quotation_id = payload.get("id")
+        updated = False
+        if quotation_id not in (None, "", 0, "0"):
+            quotation = get_object_or_404(Quotation, pk=int(quotation_id))
+            for name, value in fields.items():
+                setattr(quotation, name, value)
+            quotation.save()
+            updated = True
+        else:
+            quotation = Quotation.objects.create(**fields)
 
-        quotation = Quotation.objects.create(
-            quotation_number=payload.get("quotation_number", "").strip() or Quotation.generate_quotation_number(),
-            quotation_date=parse_date(payload.get("quotation_date")),
-            valid_until=parse_date(payload.get("valid_until")),
-            currency=payload.get("currency", "PHP") or "PHP",
-            currency_other=payload.get("currency_other", "").strip(),
-            customer_company=payload.get("customer", {}).get("company", "").strip(),
-            customer_contact=payload.get("customer", {}).get("contact", "").strip(),
-            customer_address=payload.get("customer", {}).get("address", "").strip(),
-            customer_email=payload.get("customer", {}).get("email", "").strip(),
-            customer_phone=payload.get("customer", {}).get("phone", "").strip(),
-            payment_terms=payload.get("payment_terms", "").strip(),
-            delivery_terms=payload.get("delivery_terms", "").strip(),
-            warranty=payload.get("warranty", "").strip(),
-            other_terms=payload.get("other_terms", "").strip(),
-            subtotal=Decimal(payload.get("subtotal") or "0"),
-            tax=Decimal(payload.get("tax") or "0"),
-            discount=Decimal(payload.get("discount") or "0"),
-            shipping=Decimal(payload.get("shipping") or "0"),
-            grand_total=grand_total,
-            initial_payment=initial_payment,
-            balance_due=balance_due,
-            prepared_name=payload.get("prepared_by", {}).get("name", "").strip(),
-            prepared_title=payload.get("prepared_by", {}).get("title", "").strip(),
-            prepared_signature=payload.get("prepared_by", {})
-            .get("signature", "")
-            .strip(),
-            prepared_date=parse_date(payload.get("prepared_by", {}).get("date")),
-            approved_signature=payload.get("approved_by", {})
-            .get("signature", "")
-            .strip(),
-            approved_date=parse_date(payload.get("approved_by", {}).get("date")),
-        )
+        _replace_quotation_lines(quotation, payload.get("items", []) or [])
 
-        # Create lines
-        items = payload.get("items", []) or []
-        for item in items:
-            try:
-                item_number = int(item.get("no") or 0)
-            except (TypeError, ValueError):
-                item_number = 0
-
-            QuotationLine.objects.create(
-                quotation=quotation,
-                item_number=item_number,
-                product_description=item.get("description", "").strip(),
-                quantity=max(int(item.get("qty") or 0), 0),
-                unit=item.get("unit", "").strip(),
-                unit_price=Decimal(item.get("unit_price") or "0"),
-                total_amount=Decimal(item.get("total") or "0"),
-            )
-
-        # Build download URL
         download_url = reverse("download_quotation_pdf", args=[quotation.id])
         return JsonResponse({
             "id": quotation.id,
+            "updated": updated,
             "download_url": download_url,
             "quotation_number": quotation.quotation_number,
+            "payment_status": quotation.payment_status,
             "next_quotation_number": Quotation.generate_quotation_number(),
         })
 
     except Exception as e:
-        # Log the full traceback (check your console)
         logger.exception("save_quotation error")
-        # Return a JSON error with the exact message
         return JsonResponse(
             {"error": str(e), "traceback": traceback.format_exc()},
             status=500,
@@ -1279,24 +1363,147 @@ def save_quotation(request):
 
 
 @login_required
-def download_quotation_pdf(request, quotation_id):
-    from .po_pdf import build_quotation_pdf
+def quotation_json(request, quotation_id):
+    quotation = get_object_or_404(Quotation.objects.prefetch_related("lines"), pk=quotation_id)
+    return JsonResponse(_quotation_to_payload(quotation))
 
+
+@login_required
+def view_quotation_pdf(request, quotation_id):
     quotation = get_object_or_404(Quotation, pk=quotation_id)
+    return _quotation_pdf_response(quotation, inline=True)
+
+
+@login_required
+def download_quotation_pdf(request, quotation_id):
+    quotation = get_object_or_404(Quotation, pk=quotation_id)
+    return _quotation_pdf_response(quotation, inline=False)
+
+
+def _service_quotation_fields_from_payload(payload):
+    grand_total = Decimal(payload.get("grand_total") or "0")
+    initial_payment = Decimal(payload.get("initial_payment") or "0")
+    return {
+        "quotation_number": payload.get("quotation_number", "").strip() or ServiceQuotation.generate_quotation_number(),
+        "quotation_date": _parse_iso_date(payload.get("quotation_date")),
+        "valid_until": _parse_iso_date(payload.get("valid_until")),
+        "currency": payload.get("currency", "PHP") or "PHP",
+        "currency_other": payload.get("currency_other", "").strip(),
+        "customer_company": payload.get("customer", {}).get("company", "").strip(),
+        "customer_contact": payload.get("customer", {}).get("contact", "").strip(),
+        "customer_address": payload.get("customer", {}).get("address", "").strip(),
+        "customer_email": payload.get("customer", {}).get("email", "").strip(),
+        "customer_phone": payload.get("customer", {}).get("phone", "").strip(),
+        "payment_terms": payload.get("payment_terms", "").strip(),
+        "service_schedule": payload.get("service_schedule", "").strip(),
+        "warranty": payload.get("warranty", "").strip(),
+        "other_terms": payload.get("other_terms", "").strip(),
+        "subtotal": Decimal(payload.get("subtotal") or "0"),
+        "tax": Decimal(payload.get("tax") or "0"),
+        "discount": Decimal(payload.get("discount") or "0"),
+        "other_fees": Decimal(payload.get("other_fees") or "0"),
+        "grand_total": grand_total,
+        "initial_payment": initial_payment,
+        "balance_due": grand_total - initial_payment,
+        "prepared_name": payload.get("prepared_by", {}).get("name", "").strip(),
+        "prepared_title": payload.get("prepared_by", {}).get("title", "").strip(),
+        "prepared_signature": payload.get("prepared_by", {}).get("signature", "").strip(),
+        "prepared_date": _parse_iso_date(payload.get("prepared_by", {}).get("date")),
+        "approved_signature": payload.get("approved_by", {}).get("signature", "").strip(),
+        "approved_date": _parse_iso_date(payload.get("approved_by", {}).get("date")),
+    }
+
+
+def _replace_service_quotation_lines(quotation, items):
+    quotation.lines.all().delete()
+    for item in items or []:
+        try:
+            item_number = int(item.get("no") or 0)
+        except (TypeError, ValueError):
+            item_number = 0
+        ServiceQuotationLine.objects.create(
+            service_quotation=quotation,
+            item_number=item_number,
+            service_description=item.get("description", "").strip(),
+            quantity=max(int(item.get("qty") or 0), 0),
+            unit=item.get("unit", "").strip(),
+            unit_price=Decimal(item.get("unit_price") or "0"),
+            total_amount=Decimal(item.get("total") or "0"),
+        )
+
+
+def _service_quotation_to_payload(quotation):
+    def date_str(value):
+        return value.isoformat() if value else ""
+
+    def money_str(value):
+        return f"{Decimal(value or 0):.2f}"
+
+    return {
+        "id": quotation.id,
+        "quotation_number": quotation.quotation_number,
+        "quotation_date": date_str(quotation.quotation_date),
+        "valid_until": date_str(quotation.valid_until),
+        "currency": quotation.currency or "PHP",
+        "currency_other": quotation.currency_other or "",
+        "customer": {
+            "company": quotation.customer_company or "",
+            "contact": quotation.customer_contact or "",
+            "address": quotation.customer_address or "",
+            "email": quotation.customer_email or "",
+            "phone": quotation.customer_phone or "",
+        },
+        "items": [
+            {
+                "no": line.item_number,
+                "description": line.service_description or "",
+                "qty": str(line.quantity),
+                "unit": line.unit or "",
+                "unit_price": money_str(line.unit_price),
+                "total": money_str(line.total_amount),
+            }
+            for line in quotation.lines.all()
+        ],
+        "subtotal": money_str(quotation.subtotal),
+        "tax": money_str(quotation.tax),
+        "discount": money_str(quotation.discount),
+        "other_fees": money_str(quotation.other_fees),
+        "grand_total": money_str(quotation.grand_total),
+        "initial_payment": money_str(quotation.initial_payment),
+        "balance_due": money_str(quotation.balance_due),
+        "payment_terms": quotation.payment_terms or "",
+        "service_schedule": quotation.service_schedule or "",
+        "warranty": quotation.warranty or "",
+        "other_terms": quotation.other_terms or "",
+        "prepared_by": {
+            "name": quotation.prepared_name or "",
+            "title": quotation.prepared_title or "",
+            "signature": quotation.prepared_signature or "",
+            "date": date_str(quotation.prepared_date),
+        },
+        "approved_by": {
+            "signature": quotation.approved_signature or "",
+            "date": date_str(quotation.approved_date),
+        },
+        "payment_status": quotation.payment_status,
+    }
+
+
+def _service_quotation_pdf_response(quotation, inline=False):
+    from .po_pdf import build_service_quotation_pdf
+
     lines = quotation.lines.all()
     generated_date = timezone.localtime(timezone.now())
-    total_amount = quotation.grand_total
-    company_name = "VERSATEC Industrial Corporation"
-
-    pdf_bytes = build_quotation_pdf(
-        quotation, lines, total_amount, generated_date, company_name
+    pdf_bytes = build_service_quotation_pdf(
+        quotation, lines, quotation.grand_total, generated_date, "VERSATEC Industrial Corporation"
     )
     safe_name = "".join(
         ch if ch.isalnum() or ch in "-_" else "_"
-        for ch in (quotation.quotation_number or "quotation")
+        for ch in (quotation.quotation_number or "service_quotation")
     )
+    disposition = "inline" if inline else "attachment"
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
+    response["Content-Disposition"] = f'{disposition}; filename="{safe_name}.pdf"'
     return response
 
 
@@ -1308,73 +1515,28 @@ def save_service_quotation(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON payload."}, status=400)
 
-    def parse_date(value):
-        try:
-            return datetime.fromisoformat(value).date() if value else None
-        except (ValueError, TypeError):
-            return None
-
     try:
-        grand_total = Decimal(payload.get("grand_total") or "0")
-        initial_payment = Decimal(payload.get("initial_payment") or "0")
-        balance_due = grand_total - initial_payment
+        fields = _service_quotation_fields_from_payload(payload)
+        quotation_id = payload.get("id")
+        updated = False
+        if quotation_id not in (None, "", 0, "0"):
+            quotation = get_object_or_404(ServiceQuotation, pk=int(quotation_id))
+            for name, value in fields.items():
+                setattr(quotation, name, value)
+            quotation.save()
+            updated = True
+        else:
+            quotation = ServiceQuotation.objects.create(**fields)
 
-        quotation = ServiceQuotation.objects.create(
-            quotation_number=payload.get("quotation_number", "").strip() or ServiceQuotation.generate_quotation_number(),
-            quotation_date=parse_date(payload.get("quotation_date")),
-            valid_until=parse_date(payload.get("valid_until")),
-            currency=payload.get("currency", "PHP") or "PHP",
-            currency_other=payload.get("currency_other", "").strip(),
-            customer_company=payload.get("customer", {}).get("company", "").strip(),
-            customer_contact=payload.get("customer", {}).get("contact", "").strip(),
-            customer_address=payload.get("customer", {}).get("address", "").strip(),
-            customer_email=payload.get("customer", {}).get("email", "").strip(),
-            customer_phone=payload.get("customer", {}).get("phone", "").strip(),
-            payment_terms=payload.get("payment_terms", "").strip(),
-            service_schedule=payload.get("service_schedule", "").strip(),
-            warranty=payload.get("warranty", "").strip(),
-            other_terms=payload.get("other_terms", "").strip(),
-            subtotal=Decimal(payload.get("subtotal") or "0"),
-            tax=Decimal(payload.get("tax") or "0"),
-            discount=Decimal(payload.get("discount") or "0"),
-            other_fees=Decimal(payload.get("other_fees") or "0"),
-            grand_total=grand_total,
-            initial_payment=initial_payment,
-            balance_due=balance_due,
-            prepared_name=payload.get("prepared_by", {}).get("name", "").strip(),
-            prepared_title=payload.get("prepared_by", {}).get("title", "").strip(),
-            prepared_signature=payload.get("prepared_by", {})
-            .get("signature", "")
-            .strip(),
-            prepared_date=parse_date(payload.get("prepared_by", {}).get("date")),
-            approved_signature=payload.get("approved_by", {})
-            .get("signature", "")
-            .strip(),
-            approved_date=parse_date(payload.get("approved_by", {}).get("date")),
-        )
-
-        items = payload.get("items", []) or []
-        for item in items:
-            try:
-                item_number = int(item.get("no") or 0)
-            except (TypeError, ValueError):
-                item_number = 0
-
-            ServiceQuotationLine.objects.create(
-                service_quotation=quotation,
-                item_number=item_number,
-                service_description=item.get("description", "").strip(),
-                quantity=max(int(item.get("qty") or 0), 0),
-                unit=item.get("unit", "").strip(),
-                unit_price=Decimal(item.get("unit_price") or "0"),
-                total_amount=Decimal(item.get("total") or "0"),
-            )
+        _replace_service_quotation_lines(quotation, payload.get("items", []) or [])
 
         download_url = reverse("download_service_quotation_pdf", args=[quotation.id])
         return JsonResponse({
             "id": quotation.id,
+            "updated": updated,
             "download_url": download_url,
             "quotation_number": quotation.quotation_number,
+            "payment_status": quotation.payment_status,
             "next_quotation_number": ServiceQuotation.generate_quotation_number(),
         })
 
@@ -1387,25 +1549,21 @@ def save_service_quotation(request):
 
 
 @login_required
-def download_service_quotation_pdf(request, quotation_id):
-    from .po_pdf import build_service_quotation_pdf
+def service_quotation_json(request, quotation_id):
+    quotation = get_object_or_404(ServiceQuotation.objects.prefetch_related("lines"), pk=quotation_id)
+    return JsonResponse(_service_quotation_to_payload(quotation))
 
+
+@login_required
+def view_service_quotation_pdf(request, quotation_id):
     quotation = get_object_or_404(ServiceQuotation, pk=quotation_id)
-    lines = quotation.lines.all()
-    generated_date = timezone.localtime(timezone.now())
-    total_amount = quotation.grand_total
-    company_name = "VERSATEC Industrial Corporation"
+    return _service_quotation_pdf_response(quotation, inline=True)
 
-    pdf_bytes = build_service_quotation_pdf(
-        quotation, lines, total_amount, generated_date, company_name
-    )
-    safe_name = "".join(
-        ch if ch.isalnum() or ch in "-_" else "_"
-        for ch in (quotation.quotation_number or "service_quotation")
-    )
-    response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
-    return response
+
+@login_required
+def download_service_quotation_pdf(request, quotation_id):
+    quotation = get_object_or_404(ServiceQuotation, pk=quotation_id)
+    return _service_quotation_pdf_response(quotation, inline=False)
 
 
 @login_required

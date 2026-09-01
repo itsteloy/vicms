@@ -173,7 +173,7 @@ class Quotation(models.Model):
             return 'Paid'
         if self.initial_payment and self.initial_payment > 0:
             return 'Partial'
-        return 'Pending'
+        return 'Unpaid'
 
 
 class QuotationLine(models.Model):
@@ -246,7 +246,7 @@ class ServiceQuotation(models.Model):
             return 'Paid'
         if self.initial_payment and self.initial_payment > 0:
             return 'Partial'
-        return 'Pending'
+        return 'Unpaid'
 
 
 class ServiceQuotationLine(models.Model):
