@@ -1530,9 +1530,47 @@ h1, h2, h3, h4,
   @media print {
       .aa-doc {
           max-width: none !important;
+          width: 100% !important;
           border: none !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+          overflow: visible !important;
+      }
+      .aa-doc-body {
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+      }
+      .aa-items {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed !important;
+          font-size: 8pt !important;
+      }
+      .aa-items th,
+      .aa-items td,
+      .aa-items td.aa-num {
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          font-size: 7.5pt !important;
+          padding: 3px 4px !important;
+      }
+      #ageing-accounts-tab.is-active .panel:has(#aaDocument) > h2,
+      #ageing-accounts-tab.is-active .panel:has(#aaDocument) > p {
+          display: none !important;
+      }
+      .aa-items thead {
+          display: table-header-group !important;
+      }
+      .aa-items tfoot {
+          display: table-footer-group !important;
+      }
+      .aa-items tr,
+      .aa-items th,
+      .aa-items td {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
       }
   }
 
@@ -1699,9 +1737,31 @@ h1, h2, h3, h4,
   @media print {
       .rs-doc {
           max-width: none !important;
+          width: 100% !important;
           border: none !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+          overflow: visible !important;
+      }
+      .rs-doc-body {
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+      }
+      .rs-items {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed !important;
+          font-size: 8pt !important;
+      }
+      .rs-items th,
+      .rs-items td,
+      .rs-items td.rs-num {
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          font-size: 7.5pt !important;
+          padding: 3px 4px !important;
       }
   }
 
@@ -1772,7 +1832,7 @@ h1, h2, h3, h4,
       width: 100%;
       max-width: 100%;
       margin: 0 auto;
-      overflow: hidden;
+      overflow-x: auto;
       box-sizing: border-box;
   }
   .pc-doc-body {
@@ -1851,8 +1911,30 @@ h1, h2, h3, h4,
   @media print {
       .pc-doc {
           max-width: none !important;
+          width: 100% !important;
           border: none !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+          overflow: visible !important;
+      }
+      .pc-doc-body {
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+      }
+      .pc-items {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed !important;
+          font-size: 6.5pt !important;
+      }
+      .pc-items th,
+      .pc-items td,
+      .pc-items td.pc-num {
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          font-size: 6.5pt !important;
+          padding: 2px 3px !important;
       }
   }

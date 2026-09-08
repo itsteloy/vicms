@@ -26,6 +26,17 @@
                     panels[id].classList.toggle('is-active', id === targetId);
                 }
             });
+            const landscapePrint = ['ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab'].includes(targetId);
+            document.body.classList.toggle('sales-print-landscape', landscapePrint);
+            let pageStyle = document.getElementById('sales-print-page-style');
+            if (!pageStyle) {
+                pageStyle = document.createElement('style');
+                pageStyle.id = 'sales-print-page-style';
+                document.head.appendChild(pageStyle);
+            }
+            pageStyle.textContent = landscapePrint
+                ? '@media print { @page { size: A4 landscape; margin: 6mm; } }'
+                : '';
         }
 
         function getCsrfToken() {
@@ -77,24 +88,212 @@
         function printPdfBlob(pdfBlob) {
             const blobUrl = URL.createObjectURL(pdfBlob);
             const printFrame = document.createElement('iframe');
-            printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+            printFrame.setAttribute('title', 'Print document');
+            printFrame.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;border:0;opacity:0;pointer-events:none;z-index:-1;';
             printFrame.src = blobUrl;
             document.body.appendChild(printFrame);
-            const cleanup = () => setTimeout(() => {
+            let cleaned = false;
+            const cleanup = () => {
+                if (cleaned) return;
+                cleaned = true;
                 printFrame.remove();
                 URL.revokeObjectURL(blobUrl);
-            }, 2500);
+            };
             printFrame.onload = () => {
                 try {
-                    printFrame.contentWindow.focus();
-                    printFrame.contentWindow.print();
+                    const win = printFrame.contentWindow;
+                    win.focus();
+                    win.addEventListener('afterprint', cleanup);
+                    win.print();
                 } catch (err) {
                     console.error(err);
                     window.open(blobUrl, '_blank');
-                } finally {
                     cleanup();
                 }
             };
+        }
+
+        async function landscapePdfFromSheet(sheet, { width, margin = 6, maxPages = 16, jpegQuality = 0.96 } = {}) {
+            const captureW = Math.max(
+                width || 0,
+                Math.ceil(sheet.scrollWidth || 0),
+                Math.ceil(sheet.offsetWidth || 0)
+            );
+            sheet.style.width = captureW + 'px';
+            sheet.style.minWidth = captureW + 'px';
+            sheet.style.maxWidth = 'none';
+            sheet.style.overflow = 'visible';
+
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+            const canvas = await html2canvas(sheet, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: captureW,
+                width: captureW,
+                height: Math.ceil(sheet.scrollHeight || sheet.offsetHeight || 0),
+                onclone: (clonedDoc) => {
+                    const clonedSheet = clonedDoc.getElementById(sheet.id);
+                    if (clonedSheet) {
+                        clonedSheet.style.visibility = 'visible';
+                        clonedSheet.style.width = captureW + 'px';
+                        clonedSheet.style.minWidth = captureW + 'px';
+                        clonedSheet.style.maxWidth = 'none';
+                        clonedSheet.style.overflow = 'visible';
+                        if (clonedSheet.parentElement) {
+                            clonedSheet.parentElement.style.visibility = 'visible';
+                            clonedSheet.parentElement.style.width = captureW + 'px';
+                            clonedSheet.parentElement.style.overflow = 'visible';
+                        }
+                    }
+                },
+            });
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const usableW = pdf.internal.pageSize.getWidth() - margin * 2;
+            const usableH = pdf.internal.pageSize.getHeight() - margin * 2;
+            const imgW = usableW;
+            const imgH = (canvas.height * imgW) / canvas.width;
+            const pagePx = Math.max(1, Math.floor(usableH * canvas.width / imgW) - 8);
+
+            function addCanvasPage(pageCanvas, isFirst) {
+                if (!isFirst) pdf.addPage();
+                const drawH = (pageCanvas.height * imgW) / pageCanvas.width;
+                const fitH = Math.min(drawH, usableH);
+                const fitW = drawH > usableH ? (imgW * usableH / drawH) : imgW;
+                pdf.addImage(pageCanvas.toDataURL('image/jpeg', jpegQuality), 'JPEG', margin, margin, fitW, fitH);
+            }
+
+            function stackSlices(slices) {
+                const width = canvas.width;
+                const height = Math.max(1, slices.reduce((sum, part) => sum + Math.max(1, Math.round(part.sh)), 0));
+                const out = document.createElement('canvas');
+                out.width = width;
+                out.height = height;
+                const ctx = out.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, width, height);
+                let dy = 0;
+                slices.forEach((part) => {
+                    const sy = Math.max(0, Math.min(canvas.height - 1, Math.round(part.sy)));
+                    const sh = Math.max(1, Math.min(canvas.height - sy, Math.round(part.sh)));
+                    ctx.drawImage(canvas, 0, sy, width, sh, 0, dy, width, sh);
+                    dy += sh;
+                });
+                return out;
+            }
+
+            function collectTableLayout() {
+                const prevSheetVis = sheet.style.visibility;
+                const parent = sheet.parentElement;
+                const prevParentVis = parent ? parent.style.visibility : '';
+                sheet.style.visibility = 'visible';
+                if (parent) parent.style.visibility = 'visible';
+                try {
+                    const scale = canvas.height / Math.max(1, sheet.scrollHeight || sheet.offsetHeight || 1);
+                    const origin = sheet.getBoundingClientRect().top;
+                    const toY = (el, edge) => {
+                        const box = el.getBoundingClientRect();
+                        return (box[edge] - origin) * scale;
+                    };
+                    const table = sheet.querySelector('table');
+                    if (!table) return null;
+                    const thead = table.tHead;
+                    const rows = [];
+                    table.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => {
+                        rows.push({ top: toY(tr, 'top'), bottom: toY(tr, 'bottom') });
+                    });
+                    if (!rows.length) return null;
+                    return {
+                        theadTop: thead ? toY(thead, 'top') : 0,
+                        theadBottom: thead ? toY(thead, 'bottom') : 0,
+                        rows,
+                    };
+                } finally {
+                    sheet.style.visibility = prevSheetVis;
+                    if (parent) parent.style.visibility = prevParentVis;
+                }
+            }
+
+            function buildRowAwarePages(layout) {
+                const pages = [];
+                const rows = layout.rows;
+                const headerH = Math.max(0, layout.theadBottom - layout.theadTop);
+                let i = 0;
+                let first = true;
+                while (i < rows.length) {
+                    if (first) {
+                        const startY = 0;
+                        let endY = Math.max(layout.theadBottom, startY);
+                        let fitted = 0;
+                        while (i < rows.length && (rows[i].bottom - startY) <= pagePx) {
+                            endY = rows[i].bottom;
+                            i += 1;
+                            fitted += 1;
+                        }
+                        if (fitted === 0 && i < rows.length) {
+                            endY = Math.min(rows[i].bottom, startY + pagePx);
+                            i += 1;
+                        }
+                        pages.push([{ sy: startY, sh: Math.min(canvas.height, endY) - startY }]);
+                        first = false;
+                    } else {
+                        const startRow = i;
+                        const rowStart = rows[startRow].top;
+                        let endY = rows[startRow].bottom;
+                        let fitted = 0;
+                        while (i < rows.length && (headerH + (rows[i].bottom - rowStart)) <= pagePx) {
+                            endY = rows[i].bottom;
+                            i += 1;
+                            fitted += 1;
+                        }
+                        if (fitted === 0) {
+                            endY = Math.min(rows[i].bottom, rowStart + Math.max(pagePx - headerH, 1));
+                            i += 1;
+                        }
+                        const slices = [];
+                        if (headerH > 1) {
+                            slices.push({ sy: layout.theadTop, sh: headerH });
+                        }
+                        slices.push({ sy: rowStart, sh: endY - rowStart });
+                        pages.push(slices);
+                    }
+                    if (pages.length >= maxPages) break;
+                }
+                return pages;
+            }
+
+            if (imgH <= usableH) {
+                pdf.addImage(canvas.toDataURL('image/jpeg', jpegQuality), 'JPEG', margin, margin, imgW, imgH);
+            } else {
+                const layout = collectTableLayout();
+                const rowPages = layout ? buildRowAwarePages(layout) : null;
+                if (rowPages && rowPages.length) {
+                    rowPages.forEach((slices, idx) => addCanvasPage(stackSlices(slices), idx === 0));
+                } else {
+                    let remaining = imgH;
+                    let srcY = 0;
+                    const pxPerMm = canvas.height / imgH;
+                    let page = 0;
+                    while (remaining > 0.5 && page < maxPages) {
+                        const sliceH = Math.min(usableH, remaining);
+                        addCanvasPage(stackSlices([{
+                            sy: srcY * pxPerMm,
+                            sh: sliceH * pxPerMm,
+                        }]), page === 0);
+                        srcY += sliceH;
+                        remaining -= sliceH;
+                        page += 1;
+                    }
+                }
+            }
+            return pdf.output('blob');
         }
 
         // Shared currency helpers (commas + digits only)
@@ -2071,7 +2270,7 @@
                         savedReportId = saved.id;
                     }
 
-                    const pageW = 1060;
+                    const pageW = 1400;
                     const bodyNode = docEl.querySelector('.aa-doc-body');
 
                     holder = document.createElement('div');
@@ -2087,13 +2286,14 @@
                         #aa-print-sheet {
                             width: ${pageW}px !important;
                             min-width: ${pageW}px !important;
-                            max-width: ${pageW}px !important;
+                            max-width: none !important;
                             background: #fff !important;
                             color: #111 !important;
                             font-family: Arial, Helvetica, sans-serif !important;
                             font-size: 12px !important;
                             box-sizing: border-box !important;
                             padding: 12px 16px 20px !important;
+                            overflow: visible !important;
                         }
                         #aa-print-sheet * { box-sizing: border-box !important; }
                         #aa-print-sheet .aa-letterhead {
@@ -2115,17 +2315,24 @@
                         }
                         #aa-print-sheet table.aa-items {
                             width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
-                            table-layout: fixed !important; font-size: 10px !important;
+                            table-layout: fixed !important; font-size: 9px !important;
+                            page-break-inside: auto !important;
+                        }
+                        #aa-print-sheet .aa-items thead { display: table-header-group !important; }
+                        #aa-print-sheet .aa-items tr {
+                            break-inside: avoid !important;
+                            page-break-inside: avoid !important;
                         }
                         #aa-print-sheet .aa-items th, #aa-print-sheet .aa-items td {
-                            border: 1px solid #222 !important; padding: 4px 5px !important; vertical-align: top !important;
-                            word-break: break-word !important; color: #111 !important;
+                            border: 1px solid #222 !important; padding: 3px 4px !important; vertical-align: top !important;
+                            word-break: break-word !important; overflow-wrap: anywhere !important;
+                            white-space: normal !important; color: #111 !important;
                         }
                         #aa-print-sheet .aa-items th {
                             background: #dbeafe !important; color: #000 !important; font-weight: 700 !important;
-                            text-align: center !important; text-transform: uppercase !important; font-size: 9px !important;
+                            text-align: center !important; text-transform: uppercase !important; font-size: 8px !important;
                         }
-                        #aa-print-sheet .aa-num { text-align: right !important; white-space: nowrap !important; }
+                        #aa-print-sheet .aa-num { text-align: right !important; white-space: normal !important; }
                         #aa-print-sheet .aa-center { text-align: center !important; }
                         #aa-print-sheet .aa-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
                         #aa-print-sheet .aa-total-label { text-align: right !important; }
@@ -2139,68 +2346,7 @@
                     holder.appendChild(sheet);
                     document.body.appendChild(holder);
 
-                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-                    const canvas = await html2canvas(sheet, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        scrollX: 0,
-                        scrollY: 0,
-                        windowWidth: pageW,
-                        width: pageW,
-                        onclone: (clonedDoc) => {
-                            const clonedHolder = clonedDoc.getElementById('aa-print-holder');
-                            const clonedSheet = clonedDoc.getElementById('aa-print-sheet');
-                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
-                            if (clonedSheet) {
-                                clonedSheet.style.visibility = 'visible';
-                                clonedSheet.style.width = pageW + 'px';
-                            }
-                        },
-                    });
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    const margin = 8;
-                    const usableW = 297 - margin * 2;
-                    const usableH = 210 - margin * 2;
-                    const imgW = usableW;
-                    const imgH = (canvas.height * imgW) / canvas.width;
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-
-                    if (imgH <= usableH) {
-                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
-                    } else {
-                        let remaining = imgH;
-                        let srcY = 0;
-                        const pxPerMm = canvas.height / imgH;
-                        let page = 0;
-                        while (remaining > 0.5 && page < 12) {
-                            if (page > 0) pdf.addPage();
-                            const sliceH = Math.min(usableH, remaining);
-                            const sliceCanvas = document.createElement('canvas');
-                            sliceCanvas.width = canvas.width;
-                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
-                            const ctx = sliceCanvas.getContext('2d');
-                            ctx.fillStyle = '#fff';
-                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                            ctx.drawImage(
-                                canvas,
-                                0, Math.round(srcY * pxPerMm),
-                                canvas.width, sliceCanvas.height,
-                                0, 0, sliceCanvas.width, sliceCanvas.height
-                            );
-                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
-                            srcY += sliceH;
-                            remaining -= sliceH;
-                            page += 1;
-                        }
-                    }
-
-                    const pdfBlob = pdf.output('blob');
+                    const pdfBlob = await landscapePdfFromSheet(sheet, { width: pageW, margin: 6, maxPages: 16, jpegQuality: 0.98 });
                     holder.remove();
                     holder = null;
 
@@ -2674,7 +2820,7 @@
                         savedReportId = saved.id;
                     }
 
-                    const pageW = 1060;
+                    const pageW = 1400;
                     const bodyNode = docEl.querySelector('.rs-doc-body');
 
                     holder = document.createElement('div');
@@ -2690,13 +2836,14 @@
                         #rs-print-sheet {
                             width: ${pageW}px !important;
                             min-width: ${pageW}px !important;
-                            max-width: ${pageW}px !important;
+                            max-width: none !important;
                             background: #fff !important;
                             color: #111 !important;
                             font-family: Arial, Helvetica, sans-serif !important;
                             font-size: 12px !important;
                             box-sizing: border-box !important;
                             padding: 12px 16px 20px !important;
+                            overflow: visible !important;
                         }
                         #rs-print-sheet * { box-sizing: border-box !important; }
                         #rs-print-sheet .rs-letterhead {
@@ -2718,17 +2865,18 @@
                         }
                         #rs-print-sheet table.rs-items {
                             width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
-                            table-layout: fixed !important; font-size: 10px !important;
+                            table-layout: fixed !important; font-size: 9px !important;
                         }
                         #rs-print-sheet .rs-items th, #rs-print-sheet .rs-items td {
-                            border: 1px solid #222 !important; padding: 4px 5px !important; vertical-align: top !important;
-                            word-break: break-word !important; color: #111 !important;
+                            border: 1px solid #222 !important; padding: 3px 4px !important; vertical-align: top !important;
+                            word-break: break-word !important; overflow-wrap: anywhere !important;
+                            white-space: normal !important; color: #111 !important;
                         }
                         #rs-print-sheet .rs-items th {
                             background: #dbeafe !important; color: #000 !important; font-weight: 700 !important;
-                            text-align: center !important; text-transform: uppercase !important; font-size: 9px !important;
+                            text-align: center !important; text-transform: uppercase !important; font-size: 8px !important;
                         }
-                        #rs-print-sheet .rs-num { text-align: right !important; white-space: nowrap !important; }
+                        #rs-print-sheet .rs-num { text-align: right !important; white-space: normal !important; }
                         #rs-print-sheet .rs-center { text-align: center !important; }
                         #rs-print-sheet .rs-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
                         #rs-print-sheet .rs-total-label { text-align: right !important; }
@@ -2745,48 +2893,7 @@
                     holder.appendChild(sheet);
                     document.body.appendChild(holder);
 
-                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-                    const canvas = await html2canvas(sheet, {
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                    });
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    const margin = 8;
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-                    const imgW = pageWidth - margin * 2;
-                    const pxPerMm = canvas.width / imgW;
-                    const usableH = pageHeight - margin * 2;
-                    let srcY = 0;
-                    let remaining = canvas.height / pxPerMm;
-                    let page = 0;
-
-                    while (remaining > 0.5) {
-                        if (page > 0) pdf.addPage();
-                        const sliceH = Math.min(usableH, remaining);
-                        const sliceCanvas = document.createElement('canvas');
-                        sliceCanvas.width = canvas.width;
-                        sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
-                        const ctx = sliceCanvas.getContext('2d');
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                        ctx.drawImage(
-                            canvas,
-                            0, Math.round(srcY * pxPerMm),
-                            canvas.width, sliceCanvas.height,
-                            0, 0, sliceCanvas.width, sliceCanvas.height
-                        );
-                        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
-                        srcY += sliceH;
-                        remaining -= sliceH;
-                        page += 1;
-                    }
-
-                    const pdfBlob = pdf.output('blob');
+                    const pdfBlob = await landscapePdfFromSheet(sheet, { width: pageW, margin: 6, maxPages: 16, jpegQuality: 0.98 });
                     holder.remove();
                     holder = null;
 
@@ -3273,7 +3380,7 @@
                         savedReportId = saved.id;
                     }
 
-                    const pageW = 1500;
+                    const pageW = 1600;
                     const bodyNode = docEl.querySelector('.pc-doc-body');
 
                     holder = document.createElement('div');
@@ -3288,12 +3395,15 @@
                     styleEl.textContent = `
                         #pc-print-sheet {
                             width: ${pageW}px !important;
+                            min-width: ${pageW}px !important;
+                            max-width: none !important;
                             background: #fff !important;
                             color: #111 !important;
                             font-family: Arial, Helvetica, sans-serif !important;
                             font-size: 10px !important;
                             box-sizing: border-box !important;
                             padding: 10px 12px 16px !important;
+                            overflow: visible !important;
                         }
                         #pc-print-sheet * { box-sizing: border-box !important; }
                         #pc-print-sheet .pc-letterhead {
@@ -3311,17 +3421,18 @@
                         }
                         #pc-print-sheet table.pc-items {
                             width: 100% !important; min-width: 0 !important; border-collapse: collapse !important;
-                            table-layout: fixed !important; font-size: 7.5px !important;
+                            table-layout: fixed !important; font-size: 7px !important;
                         }
                         #pc-print-sheet .pc-items th, #pc-print-sheet .pc-items td {
                             border: 1px solid #222 !important; padding: 2px 2px !important; vertical-align: top !important;
-                            word-break: break-word !important; color: #111 !important;
+                            word-break: break-word !important; overflow-wrap: anywhere !important;
+                            white-space: normal !important; color: #111 !important;
                         }
                         #pc-print-sheet .pc-items th {
                             background: #e5e7eb !important; font-weight: 700 !important; text-align: center !important;
-                            text-transform: uppercase !important; font-size: 6.5px !important; line-height: 1.15 !important;
+                            text-transform: uppercase !important; font-size: 6px !important; line-height: 1.15 !important;
                         }
-                        #pc-print-sheet .pc-num { text-align: right !important; white-space: nowrap !important; }
+                        #pc-print-sheet .pc-num { text-align: right !important; white-space: normal !important; }
                         #pc-print-sheet .pc-center { text-align: center !important; }
                         #pc-print-sheet .pc-total-row td { font-weight: 700 !important; background: #f8fafc !important; }
                         #pc-print-sheet .pc-total-label { text-align: right !important; }
@@ -3335,68 +3446,7 @@
                     holder.appendChild(sheet);
                     document.body.appendChild(holder);
 
-                    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-                    const canvas = await html2canvas(sheet, {
-                        scale: 2,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        scrollX: 0,
-                        scrollY: 0,
-                        windowWidth: pageW,
-                        width: pageW,
-                        onclone: (clonedDoc) => {
-                            const clonedHolder = clonedDoc.getElementById('pc-print-holder');
-                            const clonedSheet = clonedDoc.getElementById('pc-print-sheet');
-                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
-                            if (clonedSheet) {
-                                clonedSheet.style.visibility = 'visible';
-                                clonedSheet.style.width = pageW + 'px';
-                            }
-                        },
-                    });
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    const margin = 6;
-                    const usableW = 297 - margin * 2;
-                    const usableH = 210 - margin * 2;
-                    const imgW = usableW;
-                    const imgH = (canvas.height * imgW) / canvas.width;
-                    const imgData = canvas.toDataURL('image/jpeg', 0.96);
-
-                    if (imgH <= usableH) {
-                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
-                    } else {
-                        let remaining = imgH;
-                        let srcY = 0;
-                        const pxPerMm = canvas.height / imgH;
-                        let page = 0;
-                        while (remaining > 0.5 && page < 16) {
-                            if (page > 0) pdf.addPage();
-                            const sliceH = Math.min(usableH, remaining);
-                            const sliceCanvas = document.createElement('canvas');
-                            sliceCanvas.width = canvas.width;
-                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
-                            const ctx = sliceCanvas.getContext('2d');
-                            ctx.fillStyle = '#fff';
-                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                            ctx.drawImage(
-                                canvas,
-                                0, Math.round(srcY * pxPerMm),
-                                canvas.width, sliceCanvas.height,
-                                0, 0, sliceCanvas.width, sliceCanvas.height
-                            );
-                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, imgW, sliceH);
-                            srcY += sliceH;
-                            remaining -= sliceH;
-                            page += 1;
-                        }
-                    }
-
-                    const pdfBlob = pdf.output('blob');
+                    const pdfBlob = await landscapePdfFromSheet(sheet, { width: pageW, margin: 6, maxPages: 16, jpegQuality: 0.96 });
                     holder.remove();
                     holder = null;
 

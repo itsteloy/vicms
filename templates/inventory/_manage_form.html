@@ -56,16 +56,20 @@
             </div>
             <input type="hidden" id="reusePicture" name="reuse_picture" value="">
             <div class="field full">
-              <label>Existing images</label>
-              <div class="reuse-image-grid" id="reuseImageGrid">
-                {% for img in inventory_existing_images %}
-                <button type="button" class="reuse-image-btn" data-name="{{ img.name }}" data-url="{{ img.url }}" title="{{ img.name }}">
-                  <img src="{{ img.url }}" alt="">
-                </button>
-                {% empty %}
-                <p class="field-hint" style="margin:0;">No images in the catalog yet. Upload one above.</p>
-                {% endfor %}
-              </div>
+              <details class="existing-images-toggle">
+                <summary>
+                  <span>Existing images{% if inventory_existing_images %} ({{ inventory_existing_images|length }}){% endif %}</span>
+                </summary>
+                <div class="reuse-image-grid" id="reuseImageGrid">
+                  {% for img in inventory_existing_images %}
+                  <button type="button" class="reuse-image-btn" data-name="{{ img.name }}" data-url="{{ img.url }}" title="{{ img.name }}">
+                    <img src="{{ img.url }}" alt="">
+                  </button>
+                  {% empty %}
+                  <p class="field-hint" style="margin:0;">No images in the catalog yet. Upload one above.</p>
+                  {% endfor %}
+                </div>
+              </details>
             </div>
             <div class="field">
               <label for="stockAvailable">Stocks available</label>

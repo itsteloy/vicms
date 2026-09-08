@@ -440,6 +440,43 @@
   pointer-events: none;
 }
 
+.existing-images-toggle {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.existing-images-toggle summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+  user-select: none;
+  background: var(--soft);
+}
+.existing-images-toggle summary::-webkit-details-marker {
+  display: none;
+}
+.existing-images-toggle summary::after {
+  content: 'Show';
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.existing-images-toggle[open] summary::after {
+  content: 'Hide';
+}
+.existing-images-toggle .reuse-image-grid {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+
 .reuse-image-grid {
   display: flex;
   flex-wrap: wrap;
