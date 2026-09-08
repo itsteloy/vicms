@@ -3,6 +3,9 @@
 {% block title %}{{ document_type|title }} Details{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboards/service_document_detail.css' %}">
+{% if document_type == 'service_invoice' %}
+<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}">
+{% endif %}
 {% endblock %}
 {% block content %}
 <main class="page">
@@ -19,6 +22,8 @@
       <a href="{% url 'edit_delivery_receipt' record.id %}">Edit</a>
       {% elif document_type == 'withdrawal_slip' %}
       <a href="{% url 'edit_withdrawal_slip' record.id %}">Edit</a>
+      {% elif document_type == 'service_invoice' %}
+      <a href="{% url 'edit_service_invoice' record.id %}">Edit</a>
       {% elif document_type == 'travel' and can_manage_services %}
       <a href="{% url 'edit_travel_order_form' record.id %}">Edit</a>
       {% elif document_type == 'borrow' %}
@@ -28,6 +33,9 @@
     </div>
   </div>
 
+  {% if document_type == 'service_invoice' %}
+  {% include "includes/service_invoice_document.html" %}
+  {% else %}
   <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'delivery_receipt' %} delivery-receipt-document{% elif document_type == 'withdrawal_slip' %} withdrawal-slip-document ws-doc{% elif document_type == 'travel' %} travel-document{% endif %}">
     <header class="doc-header">
       {% if document_type == 'withdrawal_slip' %}
@@ -299,6 +307,7 @@
       <img src="{% static 'versatec_footer.jpg' %}" alt="Versatec footer">
     </footer>
   </article>
+  {% endif %}
 
   {% if document_type == 'job' %}
   <section class="idle-panel">

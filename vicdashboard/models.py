@@ -298,6 +298,183 @@ class SalesDocumentArchive(models.Model):
         return f'{self.get_document_type_display()}: {self.title}'
 
 
+class AgeingOfAccountsReport(models.Model):
+    as_of_date = models.DateField()
+    note = models.CharField(max_length=255, blank=True, default='')
+    source_filename = models.CharField(max_length=255, blank=True, default='')
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ageing_of_accounts_reports',
+    )
+    imported_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-as_of_date', '-imported_at']
+
+    def __str__(self):
+        return f'Ageing of Accounts as of {self.as_of_date}'
+
+
+class AgeingOfAccountsLine(models.Model):
+    TERMS_OF_PAYMENT_CHOICES = [
+        ('7', '7 days'),
+        ('15', '15 days'),
+        ('30', '30 days'),
+        ('60', '60 days'),
+    ]
+
+    report = models.ForeignKey(
+        AgeingOfAccountsReport,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    line_date = models.DateField(null=True, blank=True)
+    line_date_raw = models.CharField(max_length=50, blank=True, default='')
+    customer_name = models.CharField(max_length=300)
+    po_number = models.CharField(max_length=100, blank=True, default='')
+    agent = models.CharField(max_length=100, blank=True, default='')
+    bi_number = models.CharField(max_length=100, blank=True, default='')
+    si_number = models.CharField(max_length=100, blank=True, default='')
+    cr_number = models.CharField(max_length=100, blank=True, default='')
+    ci_number = models.CharField(max_length=100, blank=True, default='')
+    ar_number = models.CharField(max_length=100, blank=True, default='')
+    dr_number = models.CharField(max_length=100, blank=True, default='')
+    terms_of_payment = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        choices=TERMS_OF_PAYMENT_CHOICES,
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    amount_raw = models.CharField(max_length=50, blank=True, default='')
+    amount_paid = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    amount_paid_raw = models.CharField(max_length=50, blank=True, default='')
+    paid_items = models.TextField(blank=True, default='')
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.customer_name} ({self.report_id})'
+
+
+class RetentionSummaryReport(models.Model):
+    as_of_date = models.DateField()
+    note = models.CharField(max_length=255, blank=True, default='')
+    source_filename = models.CharField(max_length=255, blank=True, default='')
+    total_trxn_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_retention_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='retention_summary_reports',
+    )
+    imported_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-as_of_date', '-imported_at']
+
+    def __str__(self):
+        return f'Retention Summary as of {self.as_of_date}'
+
+
+class RetentionSummaryLine(models.Model):
+    report = models.ForeignKey(
+        RetentionSummaryReport,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    delivery_date = models.DateField(null=True, blank=True)
+    delivery_date_raw = models.CharField(max_length=50, blank=True, default='')
+    client_name = models.CharField(max_length=300)
+    trxn_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    trxn_amount_raw = models.CharField(max_length=50, blank=True, default='')
+    percent = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    amount_raw = models.CharField(max_length=50, blank=True, default='')
+    remarks = models.TextField(blank=True, default='')
+    flag_red_remarks = models.BooleanField(default=False)
+    flag_yellow_client = models.BooleanField(default=False)
+    flag_pink_row = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.client_name} ({self.report_id})'
+
+
+class PettyCashReport(models.Model):
+    repr_number = models.CharField(max_length=50, blank=True, default='')
+    report_date = models.DateField()
+    note = models.CharField(max_length=255, blank=True, default='')
+    source_filename = models.CharField(max_length=255, blank=True, default='')
+    total_cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='petty_cash_reports',
+    )
+    imported_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-report_date', '-imported_at']
+
+    def __str__(self):
+        label = self.repr_number or self.pk
+        return f'Revolving Fund Replenishment Report {label}'
+
+
+class PettyCashLine(models.Model):
+    report = models.ForeignKey(
+        PettyCashReport,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    line_date = models.DateField(null=True, blank=True)
+    line_date_raw = models.CharField(max_length=50, blank=True, default='')
+    particulars = models.CharField(max_length=300, blank=True, default='')
+    explanation = models.TextField(blank=True, default='')
+    tin = models.CharField(max_length=100, blank=True, default='')
+    pcv_number = models.CharField(max_length=100, blank=True, default='')
+    cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    input_tax = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    fuel = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    fare = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    lodging = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    meal = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    purchases = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    repair = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    freight = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    meeting = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    office = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    communication = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    bidding = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    fines = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    misc = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.particulars or self.pcv_number or self.pk} ({self.report_id})'
+
+
 class HRDocument(models.Model):
     DOCUMENT_TYPES = [
         ('contract', 'Contract'),
@@ -1331,6 +1508,77 @@ class WithdrawalSlipLine(models.Model):
         return f'{self.description} x{self.quantity}'
 
 
+class ServiceInvoice(models.Model):
+    SALE_TYPE_CASH = 'cash'
+    SALE_TYPE_CHARGE = 'charge'
+    SALE_TYPE_CHOICES = [
+        (SALE_TYPE_CASH, 'Cash Sales'),
+        (SALE_TYPE_CHARGE, 'Charge Sales'),
+    ]
+
+    invoice_number = models.CharField(max_length=10, unique=True)
+    invoice_date = models.DateField()
+    sale_type = models.CharField(max_length=10, choices=SALE_TYPE_CHOICES, blank=True, default='')
+    registered_name = models.CharField(max_length=200)
+    tin = models.CharField(max_length=50, blank=True, default='')
+    business_address = models.TextField(blank=True, default='')
+    dr_number = models.CharField(max_length=100, blank=True, default='')
+    vatable_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    vat = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    zero_rated_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    vat_exempt_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_sales_vat_inclusive = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    less_vat = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    net_of_vat = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    less_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    add_vat = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    less_withholding_tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_amount_due = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    received_amount = models.CharField(max_length=200, blank=True, default='')
+    cashier_representative = models.CharField(max_length=200, blank=True, default='')
+    sc_pwd_id_no = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-invoice_date', '-created_at']
+
+    def __str__(self):
+        return self.invoice_number
+
+    @classmethod
+    def generate_invoice_number(cls):
+        max_num = 0
+        for value in cls.objects.values_list('invoice_number', flat=True):
+            digits = ''.join(ch for ch in (value or '') if ch.isdigit())
+            if digits:
+                max_num = max(max_num, int(digits))
+        return f'{max_num + 1:04d}'
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            self.invoice_number = self.generate_invoice_number()
+        super().save(*args, **kwargs)
+
+
+class ServiceInvoiceLine(models.Model):
+    service_invoice = models.ForeignKey(
+        ServiceInvoice,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    description = models.CharField(max_length=300)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    unit = models.CharField(max_length=50, blank=True, default='')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.description} x{self.quantity}'
+
+
 class WorkspaceAccount(models.Model):
     """Temporary demo credentials for each dashboard workspace."""
 
@@ -1844,6 +2092,7 @@ class WaterCustomer(models.Model):
     connection_status = models.CharField(max_length=20, choices=WATER_CONNECTION_STATUS, default='active')
     registration_date = models.DateField(default=date.today)
     installment_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    previous_unpaid_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     notes = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

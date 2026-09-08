@@ -1,0 +1,167 @@
+{% load static %}
+<article class="document service-document si-doc">
+  <div class="si-body">
+    <header class="si-header">
+      <div class="si-company">
+        <h1 class="si-company-name">VERSATEC INDUSTRIAL CORP.</h1>
+        <p class="si-company-meta">VAT Reg. TIN - 010-118-204-00000</p>
+        <p class="si-company-meta">7 Flowers &amp; 4 Bees Corporation Bldg. Tadeco Road, Purok Upo Nanyo, 8105 City of Panabo, Davao del Norte, Philippines</p>
+      </div>
+      <div class="si-title-block">
+        <h2 class="si-doc-title">Service INVOICE</h2>
+        <div class="si-invoice-no">No. <span class="si-invoice-serial"{% if preview_mode %} data-preview="invoice_number"{% endif %}>{% if not preview_mode %}{{ record.invoice_number }}{% else %}—{% endif %}</span></div>
+      </div>
+    </header>
+
+    <div class="si-sales-date-row">
+      <div class="si-sales-type">
+        <label class="si-checkbox">
+          <span class="si-check-box" data-preview-cash{% if not preview_mode and record.sale_type == 'cash' %} data-checked="true"{% endif %}></span>
+          CASH SALES
+        </label>
+        <label class="si-checkbox">
+          <span class="si-check-box" data-preview-charge{% if not preview_mode and record.sale_type == 'charge' %} data-checked="true"{% endif %}></span>
+          CHARGE SALES
+        </label>
+      </div>
+      <div class="si-date-box">
+        <span>Date:</span>
+        <span class="si-date-value"{% if preview_mode %} data-preview="invoice_date"{% endif %}>{% if not preview_mode %}{{ record.invoice_date|date:"m - d - y" }}{% else %}—{% endif %}</span>
+      </div>
+    </div>
+
+    <div class="si-sold-to">
+      <div class="si-sold-to-label">SOLD TO:</div>
+      <div class="si-sold-to-row si-sold-to-name-row">
+        <span class="si-field-label">Registered Name:</span>
+        <span class="si-field-value"{% if preview_mode %} data-preview="registered_name"{% endif %}>{% if not preview_mode %}{{ record.registered_name|default:"" }}{% endif %}</span>
+        <span class="si-dr-label">DR NO.:</span>
+        <span class="si-dr-value"{% if preview_mode %} data-preview="dr_number"{% endif %}>{% if not preview_mode %}{{ record.dr_number|default:"" }}{% endif %}</span>
+      </div>
+      <div class="si-sold-to-row">
+        <span class="si-field-label">TIN:</span>
+        <span class="si-field-value"{% if preview_mode %} data-preview="tin"{% endif %}>{% if not preview_mode %}{{ record.tin|default:"" }}{% endif %}</span>
+      </div>
+      <div class="si-sold-to-row">
+        <span class="si-field-label">Business Address:</span>
+        <span class="si-field-value"{% if preview_mode %} data-preview="business_address"{% endif %}>{% if not preview_mode %}{{ record.business_address|default:"" }}{% endif %}</span>
+      </div>
+    </div>
+
+    <table class="si-items-table">
+      <thead>
+        <tr>
+          <th class="si-col-desc">Item Description/ Nature of Service</th>
+          <th class="si-col-qty">Quantity</th>
+          <th class="si-col-unit">Unit Price</th>
+          <th class="si-col-amount">Amount</th>
+        </tr>
+      </thead>
+      <tbody{% if preview_mode %} data-preview="si_lines"{% endif %}>
+        {% if preview_mode %}
+        <tr class="empty-row">
+          <td colspan="4">No items added yet.</td>
+        </tr>
+        {% else %}
+          {% for line in service_invoice_lines %}
+          <tr>
+            <td>{{ line.description }}</td>
+            <td>{{ line.quantity|floatformat:"-2" }}</td>
+            <td>{{ line.unit }}</td>
+            <td class="si-amount-cell">₱{{ line.amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+          {% for _ in si_pad_rows %}
+          <tr class="si-empty-row"><td>&nbsp;</td><td></td><td></td><td></td></tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="si-footer-grid">
+      <div class="si-footer-left">
+        <div class="si-summary-stack">
+          <div class="si-summary-row">
+            <span>VATable Sales</span>
+            <span class="si-summary-amount"{% if preview_mode %} data-preview="vatable_sales"{% endif %}>{% if not preview_mode %}₱{{ record.vatable_sales|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-summary-row">
+            <span>VAT</span>
+            <span class="si-summary-amount"{% if preview_mode %} data-preview="vat"{% endif %}>{% if not preview_mode %}₱{{ record.vat|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-summary-row">
+            <span>Zero Rated Sales</span>
+            <span class="si-summary-amount"{% if preview_mode %} data-preview="zero_rated_sales"{% endif %}>{% if not preview_mode %}₱{{ record.zero_rated_sales|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-summary-row">
+            <span>VAT-Exempt Sales</span>
+            <span class="si-summary-amount"{% if preview_mode %} data-preview="vat_exempt_sales"{% endif %}>{% if not preview_mode %}₱{{ record.vat_exempt_sales|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+        <div class="si-received-row">
+          <span>Received the amount of</span>
+          <span class="si-received-value"{% if preview_mode %} data-preview="received_amount"{% endif %}>{% if not preview_mode %}{{ record.received_amount|default:"" }}{% endif %}</span>
+        </div>
+        <div class="si-cashier-row">
+          <div class="si-signature-line"></div>
+          <span class="si-signature-label">Cashier/Authorized Representative</span>
+          {% if not preview_mode and record.cashier_representative %}
+          <span class="si-signature-name">{{ record.cashier_representative }}</span>
+          {% elif preview_mode %}
+          <span class="si-signature-name" data-preview="cashier_representative"></span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="si-footer-right">
+        <div class="si-totals-stack">
+          <div class="si-total-row">
+            <span>Total Sales (VAT Inclusive)</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="total_sales_vat_inclusive"{% endif %}>{% if not preview_mode %}₱{{ record.total_sales_vat_inclusive|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row">
+            <span>Less: VAT</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="less_vat"{% endif %}>{% if not preview_mode %}₱{{ record.less_vat|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row">
+            <span>Amount: Net of VAT</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="net_of_vat"{% endif %}>{% if not preview_mode %}₱{{ record.net_of_vat|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row">
+            <span>Less: Discount (SC/PWD/NAAC/MOV/SP)</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="less_discount"{% endif %}>{% if not preview_mode %}₱{{ record.less_discount|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row">
+            <span>Add: VAT</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="add_vat"{% endif %}>{% if not preview_mode %}₱{{ record.add_vat|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row">
+            <span>Less: Withholding Tax</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="less_withholding_tax"{% endif %}>{% if not preview_mode %}₱{{ record.less_withholding_tax|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="si-total-row si-total-due">
+            <span>TOTAL AMOUNT DUE</span>
+            <span class="si-total-amount"{% if preview_mode %} data-preview="total_amount_due"{% endif %}>{% if not preview_mode %}₱{{ record.total_amount_due|floatformat:2 }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+        <div class="si-sc-pwd-row">
+          <div class="si-sc-pwd-box">
+            <span class="si-sc-pwd-label">SC/PWD/NAAC/MOV/Solo Parent ID No.</span>
+            <span class="si-sc-pwd-value"{% if preview_mode %} data-preview="sc_pwd_id_no"{% endif %}>{% if not preview_mode %}{{ record.sc_pwd_id_no|default:"" }}{% endif %}</span>
+          </div>
+          <div class="si-sc-pwd-box">
+            <span class="si-sc-pwd-label">Signature</span>
+            <span class="si-sc-pwd-value"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="si-legal-footer">
+      <p>RCC PRINTING &amp; MARKETING — Door 4, 2nd Floor, SPMC Bldg., J.P. Laurel Ave., Bajada, Davao City</p>
+      <p>VAT Reg. TIN: 005-386-230-00000 | Tel. No.: (082) 305-7188</p>
+      <p>BIR AUTHORITY TO PRINT NO. 112AU20250000003784</p>
+      <p>DATE ISSUED: March 20, 2025 | APPROVED SERIES: 0001-1200 24 Bklts (2x)</p>
+    </footer>
+  </div>
+</article>

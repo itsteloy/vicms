@@ -1,0 +1,174 @@
+{% load static %}
+<div class="grid-2">
+  <section class="panel no-print">
+    <form method="post" action="{% url 'create_service_invoice' %}" id="serviceInvoiceForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="field">
+          <label for="si_invoice_number">No.</label>
+          <input id="si_invoice_number" name="invoice_number" value="{{ next_invoice_number }}" data-auto-number="{{ next_invoice_number }}" readonly class="field-readonly" title="Assigned automatically">
+          <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically (4-digit serial)</small>
+        </div>
+        <div class="field">
+          <label for="si_invoice_date">Date *</label>
+          <input id="si_invoice_date" name="invoice_date" type="date" required>
+        </div>
+        <div class="field full">
+          <label>Sale Type</label>
+          <div class="si-sale-type-inputs">
+            <label><input type="radio" name="sale_type" value="cash"> Cash Sales</label>
+            <label><input type="radio" name="sale_type" value="charge"> Charge Sales</label>
+          </div>
+        </div>
+
+        <div class="field full section-heading">Sold To</div>
+        <div class="field full">
+          <label for="si_registered_name">Registered Name *</label>
+          <input id="si_registered_name" name="registered_name" required>
+        </div>
+        <div class="field">
+          <label for="si_tin">TIN</label>
+          <input id="si_tin" name="tin" placeholder="000-000-000-000">
+        </div>
+        <div class="field">
+          <label for="si_dr_number">DR No.</label>
+          <input id="si_dr_number" name="dr_number">
+        </div>
+        <div class="field full">
+          <label for="si_business_address">Business Address</label>
+          <textarea id="si_business_address" name="business_address" rows="2"></textarea>
+        </div>
+
+        <div class="field full section-heading">Line Items</div>
+        <div class="field full">
+          <div class="si-lines-head">
+            <span>Description *</span>
+            <span>Quantity</span>
+            <span>Unit</span>
+            <span>Amount</span>
+            <span></span>
+          </div>
+          <div class="repeatable-list" id="siLinesList">
+            <div class="repeatable-row si-line-row">
+              <input type="text" name="si_item_description" placeholder="Item / service description" required data-si-description>
+              <input type="number" name="si_item_quantity" value="1" min="0" step="0.01" data-si-quantity aria-label="Quantity">
+              <input type="text" name="si_item_unit" placeholder="PCS." data-si-unit aria-label="Unit">
+              <input type="number" name="si_item_amount" value="0" min="0" step="0.01" data-si-amount aria-label="Amount">
+              <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
+            </div>
+          </div>
+          <button type="button" class="action repeatable-add" id="siAddLine">+ Add line item</button>
+        </div>
+
+        <div class="field full section-heading">VAT Summary (manual entry)</div>
+        <p class="field full" style="margin:0 0 8px;color:var(--muted);font-size:0.82rem;">Enter amounts from your calculator. Values are not auto-calculated.</p>
+        <div class="field">
+          <label for="si_vatable_sales">VATable Sales</label>
+          <input id="si_vatable_sales" name="vatable_sales" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_vat">VAT</label>
+          <input id="si_vat" name="vat" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_zero_rated_sales">Zero Rated Sales</label>
+          <input id="si_zero_rated_sales" name="zero_rated_sales" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_vat_exempt_sales">VAT-Exempt Sales</label>
+          <input id="si_vat_exempt_sales" name="vat_exempt_sales" type="number" min="0" step="0.01" value="0">
+        </div>
+
+        <div class="field full section-heading">Totals (manual entry)</div>
+        <div class="field">
+          <label for="si_total_sales_vat_inclusive">Total Sales (VAT Inclusive)</label>
+          <input id="si_total_sales_vat_inclusive" name="total_sales_vat_inclusive" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_less_vat">Less: VAT</label>
+          <input id="si_less_vat" name="less_vat" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_net_of_vat">Net of VAT</label>
+          <input id="si_net_of_vat" name="net_of_vat" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_less_discount">Less: Discount</label>
+          <input id="si_less_discount" name="less_discount" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_add_vat">Add: VAT</label>
+          <input id="si_add_vat" name="add_vat" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_less_withholding_tax">Less: Withholding Tax</label>
+          <input id="si_less_withholding_tax" name="less_withholding_tax" type="number" min="0" step="0.01" value="0">
+        </div>
+        <div class="field">
+          <label for="si_total_amount_due">Total Amount Due</label>
+          <input id="si_total_amount_due" name="total_amount_due" type="number" min="0" step="0.01" value="0">
+        </div>
+
+        <div class="field full section-heading">Footer</div>
+        <div class="field full">
+          <label for="si_received_amount">Received the amount of</label>
+          <input id="si_received_amount" name="received_amount" placeholder="e.g. Twenty-Four Thousand Nine Hundred Pesos Only">
+        </div>
+        <div class="field">
+          <label for="si_cashier_representative">Cashier/Authorized Representative</label>
+          <input id="si_cashier_representative" name="cashier_representative">
+        </div>
+        <div class="field">
+          <label for="si_sc_pwd_id_no">SC/PWD/NAAC/MOV/Solo Parent ID No.</label>
+          <input id="si_sc_pwd_id_no" name="sc_pwd_id_no">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="reset" class="action">Clear</button>
+        <button type="submit" class="action primary">Save service invoice</button>
+      </div>
+    </form>
+  </section>
+
+  {% include "includes/service_invoice_document.html" with preview_mode=True %}
+</div>
+
+<div class="panel no-print">
+  <h2 style="margin:0 0 8px;font-size:1rem;">Recent Service Invoices</h2>
+  <p style="margin:0 0 12px;color:var(--muted);font-size:0.9rem;">Latest saved service invoices.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Total Due</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in service_invoices %}
+        <tr>
+          <td>{{ invoice.invoice_number }}</td>
+          <td>{{ invoice.invoice_date|date:'M d, Y' }}</td>
+          <td>{{ invoice.registered_name }}</td>
+          <td>₱{{ invoice.total_amount_due|floatformat:2 }}</td>
+          <td class="actions-cell">
+            <a class="action" href="{% url 'view_service_invoice' invoice.id %}?from=services">View</a>
+            <a class="action" href="{% url 'edit_service_invoice' invoice.id %}">Edit</a>
+            <form method="post" action="{% url 'delete_service_invoice' invoice.id %}" onsubmit="return confirm('Delete Service Invoice {{ invoice.invoice_number }}? This cannot be undone.');">
+              {% csrf_token %}
+              <button type="submit" class="action danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="color:var(--muted);">No service invoices saved yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

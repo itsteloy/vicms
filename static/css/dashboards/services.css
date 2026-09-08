@@ -230,10 +230,11 @@ h1, h2, h3, h4,
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.topbar .top-actions a,
-.topbar .top-actions button {
+.topbar .top-actions a {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.82rem;
@@ -247,8 +248,7 @@ h1, h2, h3, h4,
   font-family: inherit;
 }
 
-.topbar .top-actions a:hover,
-.topbar .top-actions button:hover {
+.topbar .top-actions a:hover {
   background: var(--soft);
 }
 
@@ -720,6 +720,398 @@ h1, h2, h3, h4,
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   margin-top: 28px;
+}
+
+/* Service Invoice — BIR form layout */
+#serviceInvoiceTab .si-doc {
+  position: sticky;
+  top: 22px;
+}
+
+.si-sale-type-inputs {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.si-sale-type-inputs label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.si-lines-head {
+  display: grid;
+  grid-template-columns: 1.6fr 0.55fr 0.55fr 0.8fr auto;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #667085;
+  padding: 0 2px;
+}
+
+.si-line-row {
+  display: grid;
+  grid-template-columns: 1.6fr 0.55fr 0.55fr 0.8fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.si-line-row input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.86rem;
+  border-radius: 8px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.si-line-row .row-remove {
+  min-width: 38px;
+  padding: 8px 10px;
+}
+
+.si-doc {
+  background: #f7f0a8;
+  border: 1px solid #000;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+}
+
+.si-doc .si-body {
+  padding: 14px 16px 12px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.si-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.si-company-name {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.si-company-meta {
+  margin: 0 0 2px;
+  font-size: 0.62rem;
+}
+
+.si-title-block {
+  text-align: right;
+  min-width: 140px;
+}
+
+.si-doc-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.si-invoice-no {
+  font-size: 0.82rem;
+}
+
+.si-invoice-serial {
+  color: #c00;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.si-sales-date-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.si-sales-type {
+  display: flex;
+  gap: 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.si-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.si-check-box {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  background: #fff;
+  vertical-align: middle;
+}
+
+.si-check-box[data-checked="true"]::after {
+  content: "✓";
+  display: block;
+  font-size: 10px;
+  line-height: 10px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.si-date-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #000;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 130px;
+}
+
+.si-date-value {
+  font-weight: 400;
+}
+
+.si-sold-to {
+  border: 1px solid #000;
+  margin-bottom: 0;
+}
+
+.si-sold-to-label {
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-bottom: 1px solid #000;
+}
+
+.si-sold-to-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  border-bottom: 1px solid #000;
+  min-height: 22px;
+  align-items: center;
+}
+
+.si-sold-to-name-row {
+  grid-template-columns: 110px 1fr auto auto;
+}
+
+.si-sold-to-row:last-child {
+  border-bottom: none;
+}
+
+.si-field-label,
+.si-dr-label {
+  font-weight: 700;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-right: 1px solid #000;
+}
+
+.si-dr-label {
+  border-left: 1px solid #000;
+  border-right: none;
+  padding-left: 12px;
+  white-space: nowrap;
+}
+
+.si-field-value,
+.si-dr-value {
+  padding: 3px 8px;
+  min-height: 18px;
+  font-size: 0.72rem;
+}
+
+.si-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.si-items-table th,
+.si-items-table td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  vertical-align: top;
+  font-size: 0.7rem;
+}
+
+.si-items-table th {
+  font-weight: 800;
+  text-align: center;
+  background: transparent;
+}
+
+.si-col-desc { width: 55%; }
+.si-col-qty { width: 12%; text-align: center; }
+.si-col-unit { width: 15%; text-align: center; }
+.si-col-amount { width: 18%; text-align: right; }
+
+.si-items-table td.si-amount-cell,
+.si-items-table td:nth-child(4) {
+  text-align: right;
+}
+
+.si-items-table td:nth-child(2),
+.si-items-table td:nth-child(3) {
+  text-align: center;
+}
+
+.si-items-table .empty-row td {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.si-empty-row td {
+  height: 22px;
+}
+
+.si-footer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #000;
+  border-top: none;
+}
+
+.si-footer-left,
+.si-footer-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.si-footer-right {
+  border-left: 1px solid #000;
+}
+
+.si-summary-stack,
+.si-totals-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.si-summary-row,
+.si-total-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border-bottom: 1px solid #000;
+  min-height: 22px;
+  align-items: center;
+  font-size: 0.68rem;
+}
+
+.si-summary-row span:first-child,
+.si-total-row span:first-child {
+  padding: 3px 8px;
+  border-right: 1px solid #000;
+  font-weight: 700;
+}
+
+.si-summary-amount,
+.si-total-amount {
+  padding: 3px 8px;
+  text-align: right;
+  min-width: 80px;
+}
+
+.si-total-due {
+  font-weight: 800;
+}
+
+.si-total-due .si-total-amount {
+  font-weight: 800;
+}
+
+.si-received-row {
+  padding: 8px;
+  font-size: 0.68rem;
+  border-bottom: 1px solid #000;
+  flex: 1;
+}
+
+.si-received-value {
+  display: inline-block;
+  min-width: 120px;
+  border-bottom: 1px solid #000;
+  margin-left: 6px;
+}
+
+.si-cashier-row {
+  padding: 12px 8px 8px;
+  text-align: center;
+}
+
+.si-signature-line {
+  border-bottom: 1px solid #000;
+  min-height: 28px;
+  margin-bottom: 4px;
+}
+
+.si-signature-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.si-signature-name {
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.si-sc-pwd-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #000;
+}
+
+.si-sc-pwd-box {
+  border-right: 1px solid #000;
+  min-height: 36px;
+  padding: 4px 6px;
+  font-size: 0.58rem;
+}
+
+.si-sc-pwd-box:last-child {
+  border-right: none;
+}
+
+.si-sc-pwd-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.si-sc-pwd-value {
+  display: block;
+  min-height: 16px;
+}
+
+.si-legal-footer {
+  margin-top: 8px;
+  font-size: 0.52rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.si-legal-footer p {
+  margin: 0 0 2px;
 }
 
 #deliveryReceiptTab .document {
@@ -1878,5 +2270,40 @@ tbody tr:last-child td {
     padding: 2pt 0 4pt !important;
     min-height: 18pt !important;
     font-size: 9.5pt !important;
+  }
+
+  /* Service Invoice print */
+  .si-doc {
+    background: #f7f0a8 !important;
+    border: 1pt solid #000 !important;
+    border-radius: 0 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .si-doc,
+  .si-doc * {
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  .si-doc .si-body {
+    padding: 0.12in 0.15in 0.1in !important;
+  }
+
+  .si-items-table th,
+  .si-items-table td {
+    border: 1pt solid #000 !important;
+    padding: 3pt 5pt !important;
+    font-size: 8pt !important;
+  }
+
+  .si-summary-row,
+  .si-total-row,
+  .si-sold-to-row,
+  .si-footer-grid,
+  .si-sold-to,
+  .si-date-box,
+  .si-check-box {
+    border-color: #000 !important;
   }
 }

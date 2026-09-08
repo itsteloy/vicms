@@ -2,11 +2,14 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
 from .attendance_sheet_metrics import annotate_attendance_sheet
+from .ageing_accounts_xlsx import parse_ageing_accounts_xlsx
+from .retention_summary_xlsx import parse_retention_summary_xlsx
+from .petty_cash_xlsx import parse_petty_cash_xlsx
 from .inventory_product_code import generate_inventory_product_code, next_product_codes_by_category
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -25,13 +28,16 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from .po_pdf import build_purchase_order_pdf
-from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, WithdrawalSlipForm, TravelOrderFormForm, ServiceRepairReportForm
+from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, WithdrawalSlipForm, ServiceInvoiceForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper
 from django.db.models.functions import Coalesce, Greatest
 import traceback
 import json
+import re
+import tempfile
+from pathlib import Path
 import csv
 import hashlib
 
@@ -294,6 +300,7 @@ DOCUMENT_SERVICES_TABS = {
     'borrow': 'borrowMaterialTab',
     'delivery_receipt': 'deliveryReceiptTab',
     'withdrawal_slip': 'withdrawalSlipTab',
+    'service_invoice': 'serviceInvoiceTab',
 }
 
 
@@ -1108,6 +1115,7 @@ def sales_dashboard(request):
     tab_param = (request.GET.get('tab') or '').strip()
     valid_sales_tabs = {
         'sales-tab', 'history-tab', 'refund-tab', 'analytics-tab',
+        'category-performance-tab',
         'product-quotation-tab', 'service-quotation-tab', 'collection-form-tab',
         'ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab',
         'saved-documents-tab',
@@ -1119,6 +1127,12 @@ def sales_dashboard(request):
 
     recent_quotations = Quotation.objects.all()[:10]
     recent_service_quotations = ServiceQuotation.objects.all()[:10]
+    recent_ageing_reports = AgeingOfAccountsReport.objects.prefetch_related('lines').all()[:8]
+    latest_ageing_report = recent_ageing_reports[0] if recent_ageing_reports else None
+    recent_retention_reports = RetentionSummaryReport.objects.prefetch_related('lines').all()[:8]
+    latest_retention_report = recent_retention_reports[0] if recent_retention_reports else None
+    recent_petty_cash_reports = PettyCashReport.objects.prefetch_related('lines').all()[:8]
+    latest_petty_cash_report = recent_petty_cash_reports[0] if recent_petty_cash_reports else None
 
     doc_type_filter = (request.GET.get('doc_type') or 'all').strip()
     saved_documents_qs = SalesDocumentArchive.objects.select_related('created_by').all()
@@ -1162,6 +1176,12 @@ def sales_dashboard(request):
             'saved_documents_page': saved_documents_page,
             'saved_document_types': SalesDocumentArchive.DOCUMENT_TYPES,
             'saved_doc_type_filter': doc_type_filter,
+            'recent_ageing_reports': recent_ageing_reports,
+            'latest_ageing_report_id': latest_ageing_report.id if latest_ageing_report else None,
+            'recent_retention_reports': recent_retention_reports,
+            'latest_retention_report_id': latest_retention_report.id if latest_retention_report else None,
+            'recent_petty_cash_reports': recent_petty_cash_reports,
+            'latest_petty_cash_report_id': latest_petty_cash_report.id if latest_petty_cash_report else None,
         },
     )
 
@@ -1615,6 +1635,645 @@ def save_sales_document_pdf(request):
         'created_at': archive.created_at.isoformat(),
         'pdf_url': archive.pdf.url if archive.pdf else '',
     })
+
+
+def _parse_ageing_decimal(value):
+    if value in (None, ''):
+        return None
+    try:
+        return Decimal(str(value).replace(',', ''))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _ageing_line_to_dict(line):
+    return {
+        'line_date': line.line_date.isoformat() if line.line_date else '',
+        'line_date_raw': line.line_date_raw or '',
+        'customer_name': line.customer_name,
+        'po_number': line.po_number,
+        'agent': line.agent,
+        'bi_number': line.bi_number,
+        'si_number': line.si_number,
+        'cr_number': line.cr_number,
+        'ci_number': line.ci_number,
+        'ar_number': line.ar_number,
+        'dr_number': line.dr_number,
+        'terms_of_payment': line.terms_of_payment or '',
+        'amount': str(line.amount) if line.amount is not None else '',
+        'amount_raw': line.amount_raw or '',
+        'amount_paid': str(line.amount_paid) if line.amount_paid is not None else '',
+        'amount_paid_raw': line.amount_paid_raw or '',
+        'paid_items': line.paid_items or '',
+        'sort_order': line.sort_order,
+    }
+
+
+def _ageing_report_to_payload(report):
+    return {
+        'id': report.id,
+        'as_of_date': report.as_of_date.isoformat(),
+        'note': report.note,
+        'source_filename': report.source_filename,
+        'total_amount': str(report.total_amount),
+        'total_amount_paid': str(report.total_amount_paid),
+        'imported_at': report.imported_at.isoformat(),
+        'lines': [_ageing_line_to_dict(line) for line in report.lines.all()],
+    }
+
+
+def _normalize_ageing_terms_of_payment(value):
+    text = str(value or '').strip().lower()
+    if not text:
+        return ''
+    allowed = {choice[0] for choice in AgeingOfAccountsLine.TERMS_OF_PAYMENT_CHOICES}
+    if text in allowed:
+        return text
+    match = re.search(r'\b(7|15|30|60)\b', text)
+    if match and match.group(1) in allowed:
+        return match.group(1)
+    return ''
+
+
+def _replace_ageing_lines(report, items, total_amount=None, total_amount_paid=None):
+    report.lines.all().delete()
+    lines = []
+    for index, item in enumerate(items):
+        customer = (item.get('customer_name') or '').strip()
+        if not customer:
+            continue
+        line_date = _parse_iso_date(item.get('line_date'))
+        lines.append(AgeingOfAccountsLine(
+            report=report,
+            line_date=line_date,
+            line_date_raw=(item.get('line_date_raw') or '').strip(),
+            customer_name=customer,
+            po_number=(item.get('po_number') or '').strip(),
+            agent=(item.get('agent') or '').strip(),
+            bi_number=(item.get('bi_number') or '').strip(),
+            si_number=(item.get('si_number') or '').strip(),
+            cr_number=(item.get('cr_number') or '').strip(),
+            ci_number=(item.get('ci_number') or '').strip(),
+            ar_number=(item.get('ar_number') or '').strip(),
+            dr_number=(item.get('dr_number') or '').strip(),
+            terms_of_payment=_normalize_ageing_terms_of_payment(item.get('terms_of_payment')),
+            amount=_parse_ageing_decimal(item.get('amount')),
+            amount_raw=(item.get('amount_raw') or '').strip(),
+            amount_paid=_parse_ageing_decimal(item.get('amount_paid')),
+            amount_paid_raw=(item.get('amount_paid_raw') or '').strip(),
+            paid_items=(item.get('paid_items') or '').strip(),
+            sort_order=index,
+        ))
+    if lines:
+        AgeingOfAccountsLine.objects.bulk_create(lines)
+
+    if total_amount is not None:
+        report.total_amount = Decimal(total_amount).quantize(Decimal('0.01'))
+    else:
+        report.total_amount = sum((line.amount or Decimal('0') for line in lines), Decimal('0')).quantize(Decimal('0.01'))
+
+    if total_amount_paid is not None:
+        report.total_amount_paid = Decimal(total_amount_paid).quantize(Decimal('0.01'))
+    else:
+        report.total_amount_paid = sum((line.amount_paid or Decimal('0') for line in lines), Decimal('0')).quantize(Decimal('0.01'))
+
+    report.save(update_fields=['total_amount', 'total_amount_paid', 'updated_at'])
+    return len(lines)
+
+
+@login_required
+@require_POST
+def save_ageing_accounts(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    as_of_date = _parse_iso_date(payload.get('as_of_date'))
+    if not as_of_date:
+        return JsonResponse({'error': 'As of date is required.'}, status=400)
+
+    items = payload.get('lines') or []
+    if not items:
+        return JsonResponse({'error': 'At least one account row is required.'}, status=400)
+
+    try:
+        report_id = payload.get('id')
+        updated = False
+        if report_id not in (None, '', 0, '0'):
+            report = get_object_or_404(AgeingOfAccountsReport, pk=int(report_id))
+            report.as_of_date = as_of_date
+            report.note = (payload.get('note') or '').strip()[:255]
+            report.save(update_fields=['as_of_date', 'note', 'updated_at'])
+            updated = True
+        else:
+            report = AgeingOfAccountsReport.objects.create(
+                as_of_date=as_of_date,
+                note=(payload.get('note') or '').strip()[:255],
+                created_by=request.user if request.user.is_authenticated else None,
+            )
+
+        line_count = _replace_ageing_lines(
+            report,
+            items,
+            total_amount=payload.get('total_amount'),
+            total_amount_paid=payload.get('total_amount_paid'),
+        )
+        if not line_count:
+            return JsonResponse({'error': 'At least one account row with a customer name is required.'}, status=400)
+
+        return JsonResponse({
+            'id': report.id,
+            'updated': updated,
+            **_ageing_report_to_payload(AgeingOfAccountsReport.objects.prefetch_related('lines').get(pk=report.id)),
+        })
+    except Exception as e:
+        logger.exception('save_ageing_accounts error')
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def ageing_accounts_json(request, report_id):
+    report = get_object_or_404(AgeingOfAccountsReport.objects.prefetch_related('lines'), pk=report_id)
+    return JsonResponse(_ageing_report_to_payload(report))
+
+
+@login_required
+def ageing_accounts_latest_json(request):
+    report = AgeingOfAccountsReport.objects.prefetch_related('lines').order_by('-imported_at').first()
+    if not report:
+        return JsonResponse({'id': None, 'lines': []})
+    return JsonResponse(_ageing_report_to_payload(report))
+
+
+@login_required
+@require_POST
+def import_ageing_accounts_upload(request):
+    xlsx_file = request.FILES.get('xlsx')
+    if not xlsx_file:
+        return JsonResponse({'error': 'Excel file is required.'}, status=400)
+
+    name = (getattr(xlsx_file, 'name', '') or '').lower()
+    if not name.endswith('.xlsx'):
+        return JsonResponse({'error': 'Uploaded file must be an .xlsx workbook.'}, status=400)
+
+    as_of_date = _parse_iso_date(request.POST.get('as_of_date')) or date.today()
+    note = (request.POST.get('note') or '').strip()[:255]
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
+            for chunk in xlsx_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        parsed = parse_ageing_accounts_xlsx(Path(tmp_path))
+        if not parsed['lines']:
+            return JsonResponse({'error': 'No ageing account rows found in the workbook.'}, status=400)
+
+        report = AgeingOfAccountsReport.objects.create(
+            as_of_date=as_of_date,
+            note=note,
+            source_filename=parsed['source_filename'] or xlsx_file.name,
+            total_amount=parsed['total_amount'],
+            total_amount_paid=parsed['total_amount_paid'],
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        AgeingOfAccountsLine.objects.bulk_create([
+            AgeingOfAccountsLine(report=report, **line)
+            for line in parsed['lines']
+        ])
+        return JsonResponse(_ageing_report_to_payload(
+            AgeingOfAccountsReport.objects.prefetch_related('lines').get(pk=report.id)
+        ))
+    except Exception as e:
+        logger.exception('import_ageing_accounts_upload error')
+        return JsonResponse({'error': str(e)}, status=500)
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+@login_required
+@require_POST
+def delete_ageing_accounts(request, report_id):
+    report = get_object_or_404(AgeingOfAccountsReport, pk=report_id)
+    report.delete()
+    return JsonResponse({'ok': True})
+
+
+def _retention_line_to_dict(line):
+    return {
+        'delivery_date': line.delivery_date.isoformat() if line.delivery_date else '',
+        'delivery_date_raw': line.delivery_date_raw or '',
+        'client_name': line.client_name,
+        'trxn_amount': str(line.trxn_amount) if line.trxn_amount is not None else '',
+        'trxn_amount_raw': line.trxn_amount_raw or '',
+        'percent': str(line.percent) if line.percent is not None else '',
+        'amount': str(line.amount) if line.amount is not None else '',
+        'amount_raw': line.amount_raw or '',
+        'remarks': line.remarks or '',
+        'flag_red_remarks': bool(line.flag_red_remarks),
+        'flag_yellow_client': bool(line.flag_yellow_client),
+        'flag_pink_row': bool(line.flag_pink_row),
+        'sort_order': line.sort_order,
+    }
+
+
+def _retention_report_to_payload(report):
+    return {
+        'id': report.id,
+        'as_of_date': report.as_of_date.isoformat(),
+        'note': report.note,
+        'source_filename': report.source_filename,
+        'total_trxn_amount': str(report.total_trxn_amount),
+        'total_retention_amount': str(report.total_retention_amount),
+        'imported_at': report.imported_at.isoformat(),
+        'lines': [_retention_line_to_dict(line) for line in report.lines.all()],
+    }
+
+
+def _replace_retention_lines(report, items, total_trxn_amount=None, total_retention_amount=None):
+    report.lines.all().delete()
+    lines = []
+    for index, item in enumerate(items):
+        client = (item.get('client_name') or '').strip()
+        if not client:
+            continue
+        lines.append(RetentionSummaryLine(
+            report=report,
+            delivery_date=_parse_iso_date(item.get('delivery_date')),
+            delivery_date_raw=(item.get('delivery_date_raw') or '').strip(),
+            client_name=client,
+            trxn_amount=_parse_ageing_decimal(item.get('trxn_amount')),
+            trxn_amount_raw=(item.get('trxn_amount_raw') or '').strip(),
+            percent=_parse_ageing_decimal(item.get('percent')),
+            amount=_parse_ageing_decimal(item.get('amount')),
+            amount_raw=(item.get('amount_raw') or '').strip(),
+            remarks=(item.get('remarks') or '').strip(),
+            flag_red_remarks=bool(item.get('flag_red_remarks')),
+            flag_yellow_client=bool(item.get('flag_yellow_client')),
+            flag_pink_row=bool(item.get('flag_pink_row')),
+            sort_order=index,
+        ))
+    if lines:
+        RetentionSummaryLine.objects.bulk_create(lines)
+
+    if total_trxn_amount is not None:
+        report.total_trxn_amount = Decimal(total_trxn_amount).quantize(Decimal('0.01'))
+    else:
+        report.total_trxn_amount = sum(
+            (line.trxn_amount or Decimal('0') for line in lines), Decimal('0')
+        ).quantize(Decimal('0.01'))
+
+    if total_retention_amount is not None:
+        report.total_retention_amount = Decimal(total_retention_amount).quantize(Decimal('0.01'))
+    else:
+        report.total_retention_amount = sum(
+            (line.amount or Decimal('0') for line in lines), Decimal('0')
+        ).quantize(Decimal('0.01'))
+
+    report.save(update_fields=['total_trxn_amount', 'total_retention_amount', 'updated_at'])
+    return len(lines)
+
+
+@login_required
+@require_POST
+def save_retention_summary(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    as_of_date = _parse_iso_date(payload.get('as_of_date'))
+    if not as_of_date:
+        return JsonResponse({'error': 'As of date is required.'}, status=400)
+
+    items = payload.get('lines') or []
+    if not items:
+        return JsonResponse({'error': 'At least one retention row is required.'}, status=400)
+
+    try:
+        report_id = payload.get('id')
+        if report_id not in (None, '', 0, '0'):
+            report = get_object_or_404(RetentionSummaryReport, pk=int(report_id))
+            report.as_of_date = as_of_date
+            report.note = (payload.get('note') or '').strip()[:255]
+            report.save(update_fields=['as_of_date', 'note', 'updated_at'])
+        else:
+            report = RetentionSummaryReport.objects.create(
+                as_of_date=as_of_date,
+                note=(payload.get('note') or '').strip()[:255],
+                created_by=request.user if request.user.is_authenticated else None,
+            )
+
+        line_count = _replace_retention_lines(
+            report,
+            items,
+            total_trxn_amount=payload.get('total_trxn_amount'),
+            total_retention_amount=payload.get('total_retention_amount'),
+        )
+        if not line_count:
+            return JsonResponse({'error': 'At least one retention row with a client name is required.'}, status=400)
+
+        return JsonResponse({
+            'ok': True,
+            **_retention_report_to_payload(
+                RetentionSummaryReport.objects.prefetch_related('lines').get(pk=report.id)
+            ),
+        })
+    except Exception:
+        logger.exception('save_retention_summary error')
+        return JsonResponse({'error': 'Could not save retention summary.'}, status=500)
+
+
+@login_required
+def retention_summary_json(request, report_id):
+    report = get_object_or_404(RetentionSummaryReport.objects.prefetch_related('lines'), pk=report_id)
+    return JsonResponse(_retention_report_to_payload(report))
+
+
+@login_required
+def retention_summary_latest_json(request):
+    report = RetentionSummaryReport.objects.prefetch_related('lines').order_by('-imported_at').first()
+    if not report:
+        return JsonResponse({'id': None, 'lines': []})
+    return JsonResponse(_retention_report_to_payload(report))
+
+
+@login_required
+@require_POST
+def import_retention_summary_upload(request):
+    upload = request.FILES.get('xlsx')
+    if not upload:
+        return JsonResponse({'error': 'Excel file is required.'}, status=400)
+    if not str(upload.name).lower().endswith('.xlsx'):
+        return JsonResponse({'error': 'Please upload an .xlsx file.'}, status=400)
+
+    as_of_date = _parse_iso_date(request.POST.get('as_of_date')) or date.today()
+    note = (request.POST.get('note') or '').strip()[:255]
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+        parsed = parse_retention_summary_xlsx(Path(tmp_path))
+        if not parsed.get('lines'):
+            return JsonResponse({'error': 'No retention summary rows found in the workbook.'}, status=400)
+
+        report = RetentionSummaryReport.objects.create(
+            as_of_date=as_of_date,
+            note=note,
+            source_filename=parsed.get('source_filename') or upload.name,
+            total_trxn_amount=parsed.get('total_trxn_amount') or Decimal('0'),
+            total_retention_amount=parsed.get('total_retention_amount') or Decimal('0'),
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        RetentionSummaryLine.objects.bulk_create([
+            RetentionSummaryLine(
+                report=report,
+                delivery_date=_parse_iso_date(line.get('delivery_date')),
+                delivery_date_raw=line.get('delivery_date_raw') or '',
+                client_name=line.get('client_name') or '',
+                trxn_amount=_parse_ageing_decimal(line.get('trxn_amount')),
+                trxn_amount_raw=line.get('trxn_amount_raw') or '',
+                percent=_parse_ageing_decimal(line.get('percent')),
+                amount=_parse_ageing_decimal(line.get('amount')),
+                amount_raw=line.get('amount_raw') or '',
+                remarks=line.get('remarks') or '',
+                flag_red_remarks=bool(line.get('flag_red_remarks')),
+                flag_yellow_client=bool(line.get('flag_yellow_client')),
+                flag_pink_row=bool(line.get('flag_pink_row')),
+                sort_order=index,
+            )
+            for index, line in enumerate(parsed['lines'])
+        ])
+        return JsonResponse(_retention_report_to_payload(
+            RetentionSummaryReport.objects.prefetch_related('lines').get(pk=report.id)
+        ))
+    except Exception:
+        logger.exception('import_retention_summary_upload error')
+        return JsonResponse({'error': 'Could not import retention summary workbook.'}, status=500)
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required
+@require_POST
+def delete_retention_summary(request, report_id):
+    report = get_object_or_404(RetentionSummaryReport, pk=report_id)
+    report.delete()
+    return JsonResponse({'ok': True})
+
+
+_PETTY_MONEY_FIELDS = (
+    'cash_in_bank', 'input_tax', 'fuel', 'fare', 'lodging', 'meal', 'purchases',
+    'repair', 'freight', 'meeting', 'office', 'communication', 'bidding', 'fines', 'misc',
+)
+
+
+def _petty_line_to_dict(line):
+    data = {
+        'line_date': line.line_date.isoformat() if line.line_date else '',
+        'line_date_raw': line.line_date_raw or '',
+        'particulars': line.particulars or '',
+        'explanation': line.explanation or '',
+        'tin': line.tin or '',
+        'pcv_number': line.pcv_number or '',
+        'sort_order': line.sort_order,
+    }
+    for field in _PETTY_MONEY_FIELDS:
+        value = getattr(line, field)
+        data[field] = str(value) if value is not None else ''
+    return data
+
+
+def _petty_report_to_payload(report):
+    return {
+        'id': report.id,
+        'repr_number': report.repr_number,
+        'report_date': report.report_date.isoformat(),
+        'note': report.note,
+        'source_filename': report.source_filename,
+        'total_cash_in_bank': str(report.total_cash_in_bank),
+        'imported_at': report.imported_at.isoformat(),
+        'lines': [_petty_line_to_dict(line) for line in report.lines.all()],
+    }
+
+
+def _replace_petty_lines(report, items, total_cash_in_bank=None):
+    report.lines.all().delete()
+    lines = []
+    for index, item in enumerate(items):
+        particulars = (item.get('particulars') or '').strip()
+        explanation = (item.get('explanation') or '').strip()
+        pcv = (item.get('pcv_number') or '').strip()
+        money = {field: _parse_ageing_decimal(item.get(field)) for field in _PETTY_MONEY_FIELDS}
+        if not (particulars or explanation or pcv or any(money.values()) or item.get('line_date') or item.get('line_date_raw')):
+            continue
+        lines.append(PettyCashLine(
+            report=report,
+            line_date=_parse_iso_date(item.get('line_date')),
+            line_date_raw=(item.get('line_date_raw') or '').strip(),
+            particulars=particulars,
+            explanation=explanation,
+            tin=(item.get('tin') or '').strip(),
+            pcv_number=pcv,
+            sort_order=index,
+            **money,
+        ))
+    if lines:
+        PettyCashLine.objects.bulk_create(lines)
+
+    if total_cash_in_bank is not None:
+        report.total_cash_in_bank = Decimal(total_cash_in_bank).quantize(Decimal('0.01'))
+    else:
+        report.total_cash_in_bank = sum(
+            (line.cash_in_bank or Decimal('0') for line in lines), Decimal('0')
+        ).quantize(Decimal('0.01'))
+    report.save(update_fields=['total_cash_in_bank', 'updated_at'])
+    return len(lines)
+
+
+@login_required
+@require_POST
+def save_petty_cash(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    report_date = _parse_iso_date(payload.get('report_date'))
+    if not report_date:
+        return JsonResponse({'error': 'Report date is required.'}, status=400)
+
+    items = payload.get('lines') or []
+    if not items:
+        return JsonResponse({'error': 'At least one expense row is required.'}, status=400)
+
+    try:
+        report_id = payload.get('id')
+        repr_number = (payload.get('repr_number') or '').strip()[:50]
+        note = (payload.get('note') or '').strip()[:255]
+        if report_id not in (None, '', 0, '0'):
+            report = get_object_or_404(PettyCashReport, pk=int(report_id))
+            report.repr_number = repr_number
+            report.report_date = report_date
+            report.note = note
+            report.save(update_fields=['repr_number', 'report_date', 'note', 'updated_at'])
+        else:
+            report = PettyCashReport.objects.create(
+                repr_number=repr_number,
+                report_date=report_date,
+                note=note,
+                created_by=request.user if request.user.is_authenticated else None,
+            )
+
+        line_count = _replace_petty_lines(
+            report,
+            items,
+            total_cash_in_bank=payload.get('total_cash_in_bank'),
+        )
+        if not line_count:
+            return JsonResponse({'error': 'At least one expense row with content is required.'}, status=400)
+
+        return JsonResponse({
+            'ok': True,
+            **_petty_report_to_payload(
+                PettyCashReport.objects.prefetch_related('lines').get(pk=report.id)
+            ),
+        })
+    except Exception:
+        logger.exception('save_petty_cash error')
+        return JsonResponse({'error': 'Could not save petty cash report.'}, status=500)
+
+
+@login_required
+def petty_cash_json(request, report_id):
+    report = get_object_or_404(PettyCashReport.objects.prefetch_related('lines'), pk=report_id)
+    return JsonResponse(_petty_report_to_payload(report))
+
+
+@login_required
+def petty_cash_latest_json(request):
+    report = PettyCashReport.objects.prefetch_related('lines').order_by('-imported_at').first()
+    if not report:
+        return JsonResponse({'id': None, 'lines': []})
+    return JsonResponse(_petty_report_to_payload(report))
+
+
+@login_required
+@require_POST
+def import_petty_cash_upload(request):
+    upload = request.FILES.get('xlsx')
+    if not upload:
+        return JsonResponse({'error': 'Excel file is required.'}, status=400)
+    if not str(upload.name).lower().endswith('.xlsx'):
+        return JsonResponse({'error': 'Please upload an .xlsx file.'}, status=400)
+
+    report_date = _parse_iso_date(request.POST.get('report_date')) or date.today()
+    repr_number = (request.POST.get('repr_number') or '').strip()[:50]
+    note = (request.POST.get('note') or '').strip()[:255]
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+        parsed = parse_petty_cash_xlsx(Path(tmp_path))
+        if not parsed.get('lines'):
+            return JsonResponse({'error': 'No petty cash rows found in the workbook.'}, status=400)
+
+        report = PettyCashReport.objects.create(
+            repr_number=repr_number,
+            report_date=report_date,
+            note=note,
+            source_filename=parsed.get('source_filename') or upload.name,
+            total_cash_in_bank=parsed.get('total_cash_in_bank') or Decimal('0'),
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+        PettyCashLine.objects.bulk_create([
+            PettyCashLine(
+                report=report,
+                line_date=_parse_iso_date(line.get('line_date')),
+                line_date_raw=line.get('line_date_raw') or '',
+                particulars=line.get('particulars') or '',
+                explanation=line.get('explanation') or '',
+                tin=line.get('tin') or '',
+                pcv_number=line.get('pcv_number') or '',
+                sort_order=index,
+                **{field: _parse_ageing_decimal(line.get(field)) for field in _PETTY_MONEY_FIELDS},
+            )
+            for index, line in enumerate(parsed['lines'])
+        ])
+        return JsonResponse(_petty_report_to_payload(
+            PettyCashReport.objects.prefetch_related('lines').get(pk=report.id)
+        ))
+    except Exception:
+        logger.exception('import_petty_cash_upload error')
+        return JsonResponse({'error': 'Could not import petty cash workbook.'}, status=500)
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required
+@require_POST
+def delete_petty_cash(request, report_id):
+    report = get_object_or_404(PettyCashReport, pk=report_id)
+    report.delete()
+    return JsonResponse({'ok': True})
 
 
 def _sales_document_pdf_response(archive, inline=False):
@@ -3087,6 +3746,9 @@ def services_dashboard(request):
             'withdrawal_slips': WithdrawalSlip.objects.prefetch_related('lines').all()[:8],
             'withdrawal_slip_count': WithdrawalSlip.objects.count(),
             'next_slip_number': WithdrawalSlip.generate_slip_number(),
+            'service_invoices': ServiceInvoice.objects.prefetch_related('lines').all()[:8],
+            'service_invoice_count': ServiceInvoice.objects.count(),
+            'next_invoice_number': ServiceInvoice.generate_invoice_number(),
             **_build_idle_days_report(request),
         }
     )
@@ -3295,6 +3957,10 @@ def _withdrawal_slip_redirect():
     return redirect(f"{reverse('services_dashboard')}?tab=withdrawalSlipTab")
 
 
+def _service_invoice_redirect():
+    return redirect(f"{reverse('services_dashboard')}?tab=serviceInvoiceTab")
+
+
 @require_dashboard('services_dashboard')
 @require_POST
 def create_official_business_form(request):
@@ -3487,6 +4153,82 @@ def create_withdrawal_slip(request):
     return _withdrawal_slip_redirect()
 
 
+def _parse_decimal(value, default='0'):
+    try:
+        return Decimal(value) if str(value).strip() else Decimal(default)
+    except (InvalidOperation, TypeError):
+        return Decimal(default)
+
+
+@login_required
+@require_POST
+def create_service_invoice(request):
+    required = ('invoice_date', 'registered_name')
+    if not all(request.POST.get(field, '').strip() for field in required):
+        messages.error(request, 'Please complete all required Service Invoice fields.')
+        return _service_invoice_redirect()
+
+    descriptions = request.POST.getlist('si_item_description')
+    quantities = request.POST.getlist('si_item_quantity')
+    units = request.POST.getlist('si_item_unit')
+    amounts = request.POST.getlist('si_item_amount')
+
+    lines = []
+    for index, description in enumerate(descriptions):
+        description = description.strip()
+        if not description:
+            continue
+        try:
+            quantity = Decimal(quantities[index]) if index < len(quantities) and quantities[index].strip() else Decimal('1')
+        except (InvalidOperation, IndexError):
+            quantity = Decimal('1')
+        unit = units[index].strip() if index < len(units) else ''
+        amount = _parse_decimal(amounts[index] if index < len(amounts) else '0')
+        lines.append({
+            'description': description,
+            'quantity': quantity,
+            'unit': unit,
+            'amount': amount,
+        })
+
+    if not lines:
+        messages.error(request, 'Please add at least one line item to the service invoice.')
+        return _service_invoice_redirect()
+
+    try:
+        invoice = ServiceInvoice.objects.create(
+            invoice_number=request.POST.get('invoice_number', '').strip() or ServiceInvoice.generate_invoice_number(),
+            invoice_date=request.POST['invoice_date'],
+            sale_type=request.POST.get('sale_type', '').strip(),
+            registered_name=request.POST['registered_name'].strip(),
+            tin=request.POST.get('tin', '').strip(),
+            business_address=request.POST.get('business_address', '').strip(),
+            dr_number=request.POST.get('dr_number', '').strip(),
+            vatable_sales=_parse_decimal(request.POST.get('vatable_sales')),
+            vat=_parse_decimal(request.POST.get('vat')),
+            zero_rated_sales=_parse_decimal(request.POST.get('zero_rated_sales')),
+            vat_exempt_sales=_parse_decimal(request.POST.get('vat_exempt_sales')),
+            total_sales_vat_inclusive=_parse_decimal(request.POST.get('total_sales_vat_inclusive')),
+            less_vat=_parse_decimal(request.POST.get('less_vat')),
+            net_of_vat=_parse_decimal(request.POST.get('net_of_vat')),
+            less_discount=_parse_decimal(request.POST.get('less_discount')),
+            add_vat=_parse_decimal(request.POST.get('add_vat')),
+            less_withholding_tax=_parse_decimal(request.POST.get('less_withholding_tax')),
+            total_amount_due=_parse_decimal(request.POST.get('total_amount_due')),
+            received_amount=request.POST.get('received_amount', '').strip(),
+            cashier_representative=request.POST.get('cashier_representative', '').strip(),
+            sc_pwd_id_no=request.POST.get('sc_pwd_id_no', '').strip(),
+        )
+        ServiceInvoiceLine.objects.bulk_create([
+            ServiceInvoiceLine(service_invoice=invoice, **line)
+            for line in lines
+        ])
+        messages.success(request, 'Service Invoice saved successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not save Service Invoice: {exc}')
+    return _service_invoice_redirect()
+
+
 SERVICE_FIELD_LABELS = {
     'repair': [('Report No.', 'report_number'), ('Report Date', 'report_date'), ('Customer / Company', 'customer_name'),
                ('Contact Person', 'contact_person'), ('Contact Number', 'contact_number'), ('Customer Address', 'customer_address'),
@@ -3554,6 +4296,29 @@ SERVICE_FIELD_LABELS = {
         ('Prepared By', 'prepared_by'),
         ('Attested By', 'attested_by'),
         ('Received By', 'received_by'),
+    ],
+    'service_invoice': [
+        ('No.', 'invoice_number'),
+        ('Date', 'invoice_date'),
+        ('Sale Type', 'get_sale_type_display'),
+        ('Registered Name', 'registered_name'),
+        ('TIN', 'tin'),
+        ('Business Address', 'business_address'),
+        ('DR No.', 'dr_number'),
+        ('VATable Sales', 'vatable_sales'),
+        ('VAT', 'vat'),
+        ('Zero Rated Sales', 'zero_rated_sales'),
+        ('VAT-Exempt Sales', 'vat_exempt_sales'),
+        ('Total Sales (VAT Inclusive)', 'total_sales_vat_inclusive'),
+        ('Less: VAT', 'less_vat'),
+        ('Net of VAT', 'net_of_vat'),
+        ('Less: Discount', 'less_discount'),
+        ('Add: VAT', 'add_vat'),
+        ('Less: Withholding Tax', 'less_withholding_tax'),
+        ('Total Amount Due', 'total_amount_due'),
+        ('Received Amount', 'received_amount'),
+        ('Cashier/Representative', 'cashier_representative'),
+        ('SC/PWD ID No.', 'sc_pwd_id_no'),
     ],
     'travel': [
         ('Date', 'travel_date'),
@@ -3717,6 +4482,14 @@ def _delivery_receipt_record_context(record):
 def _withdrawal_slip_record_context(record):
     context = _service_record_context(record, 'withdrawal_slip')
     context['withdrawal_slip_lines'] = record.lines.all()
+    return context
+
+
+def _service_invoice_record_context(record):
+    context = _service_record_context(record, 'service_invoice')
+    lines = list(record.lines.all())
+    context['service_invoice_lines'] = lines
+    context['si_pad_rows'] = range(max(0, 10 - len(lines)))
     return context
 
 
@@ -3956,6 +4729,41 @@ def delete_withdrawal_slip(request, slip_id):
 
 
 @login_required
+def view_service_invoice(request, invoice_id):
+    context = _service_invoice_record_context(
+        get_object_or_404(ServiceInvoice.objects.prefetch_related('lines'), pk=invoice_id)
+    )
+    return render(
+        request,
+        'service_document_detail.html',
+        _enrich_document_context(request, context, 'service_invoice'),
+    )
+
+
+@login_required
+def edit_service_invoice(request, invoice_id):
+    invoice = get_object_or_404(ServiceInvoice, pk=invoice_id)
+    form = ServiceInvoiceForm(request.POST or None, instance=invoice)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Service Invoice updated successfully.')
+        return redirect('view_service_invoice', invoice_id=invoice.id)
+    return render(request, 'service_document_form.html', {
+        'form': form,
+        'record': invoice,
+        'document_type': 'service_invoice',
+    })
+
+
+@login_required
+@require_POST
+def delete_service_invoice(request, invoice_id):
+    get_object_or_404(ServiceInvoice, pk=invoice_id).delete()
+    messages.success(request, 'Service Invoice deleted.')
+    return _service_invoice_redirect()
+
+
+@login_required
 def view_material_borrow(request, borrow_id):
     context = _borrow_record_context(
         get_object_or_404(MaterialBorrow.objects.prefetch_related('lines'), pk=borrow_id)
@@ -4079,7 +4887,11 @@ def _water_annotate_outstanding(qs):
     )
     return qs.annotate(
         annotated_outstanding=Greatest(
-            Coalesce(Subquery(outstanding_sq, output_field=money), Value(Decimal('0.00')), output_field=money),
+            ExpressionWrapper(
+                Coalesce(Subquery(outstanding_sq, output_field=money), Value(Decimal('0.00')), output_field=money)
+                + Coalesce(F('previous_unpaid_balance'), Value(Decimal('0.00')), output_field=money),
+                output_field=money,
+            ),
             Value(Decimal('0.00')),
             output_field=money,
         )
@@ -4843,6 +5655,11 @@ def _water_update_customer(request, customer):
             if bal < 0:
                 bal = Decimal('0.00')
             customer.installment_balance = bal
+        if 'previous_unpaid_balance' in request.POST:
+            seed = _dec(request.POST.get('previous_unpaid_balance'), str(customer.previous_unpaid_balance or 0))
+            if seed < 0:
+                seed = Decimal('0.00')
+            customer.previous_unpaid_balance = seed
         customer.notes = request.POST.get('notes', '').strip()
         customer.save()
         _water_audit(request, 'Updated customer', 'WaterCustomer', customer.account_number, customer.display_name)
@@ -4872,7 +5689,8 @@ def _water_create_reading(request):
             raise ValueError('Previous reading cannot be negative.')
         current = int(current_raw)
         parsed_reading_date = _water_parse_date(reading_date, required=True)
-        unpaid = customer.outstanding_balance
+        seed = customer.previous_unpaid_balance or Decimal('0.00')
+        unpaid = (customer.outstanding_balance or Decimal('0.00')) + seed
         installment = _dec(request.POST.get('installment_balance'), str(customer.installment_balance or 0))
         reading = WaterMeterReading(
             customer=customer,
@@ -4887,9 +5705,16 @@ def _water_create_reading(request):
             remarks=request.POST.get('remarks', '').strip(),
         )
         reading.save()
+        customer_updates = []
         if installment != (customer.installment_balance or Decimal('0')):
             customer.installment_balance = installment
-            customer.save(update_fields=['installment_balance', 'updated_at'])
+            customer_updates.append('installment_balance')
+        if seed:
+            customer.previous_unpaid_balance = Decimal('0.00')
+            customer_updates.append('previous_unpaid_balance')
+        if customer_updates:
+            customer_updates.append('updated_at')
+            customer.save(update_fields=customer_updates)
         _water_audit(
             request, 'Recorded meter reading', 'WaterMeterReading', reading.pk,
             f'{customer.account_number} {billing_period} consumption={reading.consumption}',

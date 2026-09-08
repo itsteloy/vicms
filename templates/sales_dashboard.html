@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=aaterms1">
 {% endblock %}
 
 
@@ -49,6 +49,11 @@
                 <span class="tab-icon">📈</span> Reporting & Analytics
             </button>
             <button class="tab-button" type="button" role="tab"
+                aria-selected="{% if active_tab == 'category-performance-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="category-performance-tab">
+                <span class="tab-icon">🏷️</span> Category Performance
+            </button>
+            <button class="tab-button" type="button" role="tab"
                 aria-selected="{% if active_tab == 'product-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="product-quotation-tab">
                 <span class="tab-icon">📦</span> Product Quotation
@@ -84,68 +89,6 @@
                 <span class="tab-icon">🗂️</span> Saved Documents
             </button>
         </nav>
-
-        <!-- Category Performance -->
-        <section class="sidebar-category" aria-label="Category performance">
-            <div class="cat-head">
-                <h3>Category Performance</h3>
-                <span class="pill">Item-led</span>
-            </div>
-
-            {% if page_obj.object_list %}
-            <div class="perf-list">
-                {% for category in page_obj.object_list %}
-                <div class="perf-item" data-category-card>
-                    <div class="perf-top">
-                        <span class="perf-name">{{ category.name }}</span>
-                        <span class="perf-stock {% if category.stock == 0 %}low{% endif %}">
-                            {{ category.stock }} in stock
-                        </span>
-                    </div>
-
-                    {% if category.variants|length > 1 %}
-                    <select class="product-code-select" aria-label="Product codes for {{ category.name }}">
-                        {% for variant in category.variants %}
-                        <option value="{{ variant.code }}" data-quantity="{{ variant.quantity }}"
-                            data-revenue="{{ variant.revenue|floatformat:2 }}" data-orders="{{ variant.orders }}"
-                            data-stock="{{ variant.stock }}">
-                            {{ variant.code|default:"No code" }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    {% else %}
-                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);padding:2px 0;">
-                        {{ category.variants.0.code|default:"Item" }}
-                    </div>
-                    {% endif %}
-
-                    <div class="perf-metrics">
-                        <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2 }}</strong></span>
-                        <span>Sold <strong class="metric-quantity">{{ category.variants.0.quantity }}</strong></span>
-                        <span>Orders <strong class="metric-orders">{{ category.variants.0.orders }}</strong></span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% if show_pagination %}
-            <div class="pagination" style="justify-content:center;margin-top:14px;">
-                {% if page_obj.has_previous %}
-                <a class="action" href="?page={{ page_obj.previous_page_number }}"
-                    style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">‹</a>
-                {% endif %}
-                <span style="color:rgba(255,255,255,0.3);font-size:0.7rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
-                {% if page_obj.has_next %}
-                <a class="action" href="?page={{ page_obj.next_page_number }}"
-                    style="font-size:0.7rem;padding:4px 12px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.08);">›</a>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            {% else %}
-            <div class="empty-state-sm">No sales recorded yet.</div>
-            {% endif %}
-        </section>
     </aside>
 
     <!-- ─── MAIN CONTENT ─── -->
@@ -613,6 +556,71 @@
                     {% endfor %}
                 </div>
             </div>
+        </div>
+
+        <!-- Category Performance -->
+        <div id="category-performance-tab" class="tab-panel {% if active_tab == 'category-performance-tab' %}is-active{% endif %}">
+            <div class="panel-header">
+                <h2>Category Performance</h2>
+                <p>Item-led revenue, units sold, and orders by product category.</p>
+            </div>
+
+            <section class="panel category-performance" aria-label="Category performance">
+                <div class="cat-head">
+                    <h3>Categories</h3>
+                    <span class="pill">Item-led</span>
+                </div>
+
+                {% if page_obj.object_list %}
+                <div class="perf-list">
+                    {% for category in page_obj.object_list %}
+                    <div class="perf-item" data-category-card>
+                        <div class="perf-top">
+                            <span class="perf-name">{{ category.name }}</span>
+                            <span class="perf-stock {% if category.stock == 0 %}low{% endif %}">
+                                {{ category.stock }} in stock
+                            </span>
+                        </div>
+
+                        {% if category.variants|length > 1 %}
+                        <select class="product-code-select" aria-label="Product codes for {{ category.name }}">
+                            {% for variant in category.variants %}
+                            <option value="{{ variant.code }}" data-quantity="{{ variant.quantity }}"
+                                data-revenue="{{ variant.revenue|floatformat:2 }}" data-orders="{{ variant.orders }}"
+                                data-stock="{{ variant.stock }}">
+                                {{ variant.code|default:"No code" }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <div class="perf-code">{{ category.variants.0.code|default:"Item" }}</div>
+                        {% endif %}
+
+                        <div class="perf-metrics">
+                            <span>Revenue <strong class="metric-revenue">₱{{ category.variants.0.revenue|floatformat:2 }}</strong></span>
+                            <span>Sold <strong class="metric-quantity">{{ category.variants.0.quantity }}</strong></span>
+                            <span>Orders <strong class="metric-orders">{{ category.variants.0.orders }}</strong></span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if show_pagination %}
+                <div class="pagination" style="justify-content:center;margin-top:18px;">
+                    {% if page_obj.has_previous %}
+                    <a class="action" href="?tab=category-performance-tab&amp;page={{ page_obj.previous_page_number }}">‹ Prev</a>
+                    {% endif %}
+                    <span style="color:var(--muted);font-size:0.85rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                    <a class="action" href="?tab=category-performance-tab&amp;page={{ page_obj.next_page_number }}">Next ›</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="empty-state-sm">No sales recorded yet.</div>
+                {% endif %}
+            </section>
         </div>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
@@ -1447,10 +1455,15 @@
             <div class="panel no-print" style="margin-bottom:20px;">
                 <h1 style="margin-top:0;">📊 Create Ageing of Accounts</h1>
 
-                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                     <button class="action brand-link" type="button" id="aaSave" style="padding:10px 16px;">💾 Save</button>
                     <button class="action" type="button" id="aaPrint" style="padding:10px 16px;">🖨️ Print</button>
                     <button class="action" type="button" id="aaReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
+                        📥 Import Excel
+                        <input type="file" id="aaImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                    </label>
+                    <input type="hidden" id="aaReportId" value="">
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
@@ -1477,8 +1490,11 @@
                                     <th style="width:80px;">Agent</th>
                                     <th style="width:70px;">BI#</th>
                                     <th style="width:70px;">SI#</th>
+                                    <th style="width:70px;">CR#</th>
                                     <th style="width:70px;">CI#</th>
+                                    <th style="width:70px;">AR#</th>
                                     <th style="width:110px;">DR No.</th>
+                                    <th style="width:110px;">Terms of Payment</th>
                                     <th style="width:110px; text-align:right;">Amount</th>
                                     <th style="width:110px; text-align:right;">Amount Paid</th>
                                     <th style="width:100px;">Paid Items</th>
@@ -1493,8 +1509,19 @@
                                     <td><input type="text" class="aa-item-agent" placeholder="Agent"></td>
                                     <td><input type="text" class="aa-item-bi" placeholder="BI#"></td>
                                     <td><input type="text" class="aa-item-si" placeholder="SI#"></td>
+                                    <td><input type="text" class="aa-item-cr" placeholder="CR#"></td>
                                     <td><input type="text" class="aa-item-ci" placeholder="CI#"></td>
+                                    <td><input type="text" class="aa-item-ar" placeholder="AR#"></td>
                                     <td><input type="text" class="aa-item-dr" placeholder="DR No."></td>
+                                    <td>
+                                        <select class="aa-item-terms" aria-label="Terms of payment">
+                                            <option value="">—</option>
+                                            <option value="7">7 days</option>
+                                            <option value="15">15 days</option>
+                                            <option value="30">30 days</option>
+                                            <option value="60">60 days</option>
+                                        </select>
+                                    </td>
                                     <td><input type="text" class="aa-item-amount" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
                                     <td><input type="text" class="aa-item-paid" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
                                     <td><input type="text" class="aa-item-paid-items" placeholder="Paid items"></td>
@@ -1536,29 +1563,33 @@
                         <table class="aa-items">
                             <thead>
                                 <tr>
-                                    <th style="width:8%;">DATE</th>
-                                    <th style="width:18%;">CUSTOMERS NAME</th>
-                                    <th style="width:7%;">PO NO.</th>
-                                    <th style="width:7%;">AGENT</th>
-                                    <th style="width:6%;">BI#</th>
-                                    <th style="width:6%;">SI#</th>
-                                    <th style="width:6%;">CI#</th>
-                                    <th style="width:10%;">DR NO.</th>
-                                    <th style="width:10%;">AMOUNT</th>
-                                    <th style="width:11%;">AMOUNT PAID</th>
-                                    <th style="width:11%;">PAID ITEMS</th>
+                                    <th style="width:7%;">DATE</th>
+                                    <th style="width:15%;">CUSTOMERS NAME</th>
+                                    <th style="width:6%;">PO NO.</th>
+                                    <th style="width:5%;">AGENT</th>
+                                    <th style="width:5%;">BI#</th>
+                                    <th style="width:5%;">SI#</th>
+                                    <th style="width:5%;">CR#</th>
+                                    <th style="width:5%;">CI#</th>
+                                    <th style="width:5%;">AR#</th>
+                                    <th style="width:8%;">DR NO.</th>
+                                    <th style="width:8%;">TERMS OF PAYMENT</th>
+                                    <th style="width:8%;">AMOUNT</th>
+                                    <th style="width:8%;">AMOUNT PAID</th>
+                                    <th style="width:10%;">PAID ITEMS</th>
                                 </tr>
                             </thead>
                             <tbody id="aaPrevItemsBody">
                                 <tr>
                                     <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                    <td class="aa-center">&nbsp;</td>
                                     <td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>
                                 </tr>
                             </tbody>
                             <tfoot>
                                 <tr class="aa-total-row">
-                                    <td colspan="8" class="aa-total-label">TOTAL</td>
+                                    <td colspan="11" class="aa-total-label">TOTAL</td>
                                     <td class="aa-num" id="aaPrevTotalAmount">0.00</td>
                                     <td class="aa-num" id="aaPrevTotalPaid">0.00</td>
                                     <td></td>
@@ -1568,6 +1599,46 @@
                     </div>
                 </article>
             </div>
+
+            <div class="panel no-print" style="margin-top:20px;">
+                <h2 style="margin:0 0 8px; font-size:1rem;">Recent Ageing Reports</h2>
+                <p style="margin:0 0 12px; color:var(--muted); font-size:0.9rem;">Structured reports stored in the database. Saved Documents keeps PDF snapshots only.</p>
+                <div class="table-wrap">
+                    <table aria-label="Recent ageing reports">
+                        <thead>
+                            <tr>
+                                <th>As of</th>
+                                <th>Imported</th>
+                                <th>Rows</th>
+                                <th>Total Amount</th>
+                                <th>Total Paid</th>
+                                <th>Source</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_ageing_reports %}
+                            <tr>
+                                <td>{{ report.as_of_date|date:"M d, Y" }}</td>
+                                <td>{{ report.imported_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ report.lines.count }}</td>
+                                <td>₱{{ report.total_amount|floatformat:2 }}</td>
+                                <td>₱{{ report.total_amount_paid|floatformat:2 }}</td>
+                                <td>{{ report.source_filename|default:"—" }}</td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <button type="button" class="action aa-load-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
+                                    <button type="button" class="action aa-delete-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align:center;color:#667085;padding:24px;">No ageing reports saved yet. Import an Excel file or enter rows manually.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
 
@@ -1576,10 +1647,15 @@
             <div class="panel no-print" style="margin-bottom:20px;">
                 <h1 style="margin-top:0;">📋 Create Retention Summary</h1>
 
-                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                     <button class="action brand-link" type="button" id="rsSave" style="padding:10px 16px;">💾 Save</button>
                     <button class="action" type="button" id="rsPrint" style="padding:10px 16px;">🖨️ Print</button>
                     <button class="action" type="button" id="rsReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
+                        📥 Import Excel
+                        <input type="file" id="rsImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                    </label>
+                    <input type="hidden" id="rsReportId" value="">
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
@@ -1693,6 +1769,46 @@
                     </div>
                 </article>
             </div>
+
+            <div class="panel no-print" style="margin-top:20px;">
+                <h2 style="margin:0 0 8px; font-size:1rem;">Recent Retention Reports</h2>
+                <p style="margin:0 0 12px; color:var(--muted); font-size:0.9rem;">Structured reports stored in the database. Saved Documents keeps PDF snapshots only.</p>
+                <div class="table-wrap">
+                    <table aria-label="Recent retention reports">
+                        <thead>
+                            <tr>
+                                <th>As of</th>
+                                <th>Imported</th>
+                                <th>Rows</th>
+                                <th>Total Trxn</th>
+                                <th>Total Retention</th>
+                                <th>Source</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_retention_reports %}
+                            <tr>
+                                <td>{{ report.as_of_date|date:"M d, Y" }}</td>
+                                <td>{{ report.imported_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ report.lines.count }}</td>
+                                <td>₱{{ report.total_trxn_amount|floatformat:2 }}</td>
+                                <td>₱{{ report.total_retention_amount|floatformat:2 }}</td>
+                                <td>{{ report.source_filename|default:"—" }}</td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <button type="button" class="action rs-load-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
+                                    <button type="button" class="action rs-delete-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align:center;color:#667085;padding:24px;">No retention reports saved yet. Import an Excel file or enter rows manually.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
 
@@ -1701,10 +1817,15 @@
             <div class="panel no-print" style="margin-bottom:20px;">
                 <h1 style="margin-top:0;">💵 Revolving Fund Replenishment Report</h1>
 
-                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                     <button class="action brand-link" type="button" id="pcSave" style="padding:10px 16px;">💾 Save</button>
                     <button class="action" type="button" id="pcPrint" style="padding:10px 16px;">🖨️ Print</button>
                     <button class="action" type="button" id="pcReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
+                        📥 Import Excel
+                        <input type="file" id="pcImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                    </label>
+                    <input type="hidden" id="pcReportId" value="">
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
@@ -1726,7 +1847,7 @@
 
                 <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
                     <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Expense Rows</legend>
-                    <div style="overflow-x:auto; margin-bottom:12px;">
+                    <div class="table-wrap pc-table-scroll">
                         <table class="pc-form-table" aria-label="Petty cash lines">
                             <thead>
                                 <tr>
@@ -1810,62 +1931,104 @@
                         <h3 class="pc-title">REVOLVING FUND REPLENISHMENT REPORT</h3>
                         <p class="pc-meta" id="pcPrevMeta">REPR # — &nbsp;&nbsp; DATE: —</p>
                         <p id="pcPrevNote" style="margin:0 0 8px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
-                        <table class="pc-items">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2" style="width:5%;">DATE</th>
-                                    <th rowspan="2" style="width:9%;">PARTICULARS</th>
-                                    <th rowspan="2" style="width:12%;">EXPLANATION</th>
-                                    <th rowspan="2" style="width:6%;">TIN NUMBER</th>
-                                    <th rowspan="2" style="width:4%;">PCV#</th>
-                                    <th rowspan="2" style="width:5%;">CASH IN BANK</th>
-                                    <th rowspan="2" style="width:4%;">INPUT TAX</th>
-                                    <th rowspan="2" style="width:4%;">FUEL &amp; LUBRICANT</th>
-                                    <th rowspan="2" style="width:4%;">FARE / TRANSPORTATION</th>
-                                    <th colspan="2">TRANSPORTATION &amp; TRAVEL ALLOWANCE</th>
-                                    <th rowspan="2" style="width:4%;">PURCHASES</th>
-                                    <th rowspan="2" style="width:4%;">REPAIR &amp; MAINTENANCE</th>
-                                    <th rowspan="2" style="width:4%;">FREIGHT &amp; HANDLING</th>
-                                    <th rowspan="2" style="width:4%;">MEETING &amp; CONFERENCE</th>
-                                    <th rowspan="2" style="width:4%;">OFFICE SUPPLIES</th>
-                                    <th rowspan="2" style="width:4%;">COMMUNICATION</th>
-                                    <th rowspan="2" style="width:4%;">BIDDING EXPENSES</th>
-                                    <th rowspan="2" style="width:4%;">FINES &amp; PENALTIES</th>
-                                    <th rowspan="2" style="width:4%;">MISC</th>
-                                </tr>
-                                <tr>
-                                    <th style="width:4%;">LODGING / HOTEL</th>
-                                    <th style="width:4%;">MEAL ALLOWANCE</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pcPrevItemsBody">
-                                <tr>
-                                    <td colspan="20" style="text-align:center; color:#667085;">&nbsp;</td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="pc-total-row">
-                                    <td colspan="5" class="pc-total-label">TOTAL</td>
-                                    <td class="pc-num" id="pcPrevTotalCash">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalInputTax">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalFuel">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalFare">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalLodging">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalMeal">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalPurchases">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalRepair">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalFreight">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalMeeting">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalOffice">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalCommunication">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalBidding">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalFines">0.00</td>
-                                    <td class="pc-num" id="pcPrevTotalMisc">0.00</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <div class="table-wrap pc-table-scroll">
+                            <table class="pc-items">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" style="width:5%;">DATE</th>
+                                        <th rowspan="2" style="width:9%;">PARTICULARS</th>
+                                        <th rowspan="2" style="width:12%;">EXPLANATION</th>
+                                        <th rowspan="2" style="width:6%;">TIN NUMBER</th>
+                                        <th rowspan="2" style="width:4%;">PCV#</th>
+                                        <th rowspan="2" style="width:5%;">CASH IN BANK</th>
+                                        <th rowspan="2" style="width:4%;">INPUT TAX</th>
+                                        <th rowspan="2" style="width:4%;">FUEL &amp; LUBRICANT</th>
+                                        <th rowspan="2" style="width:4%;">FARE / TRANSPORTATION</th>
+                                        <th colspan="2">TRANSPORTATION &amp; TRAVEL ALLOWANCE</th>
+                                        <th rowspan="2" style="width:4%;">PURCHASES</th>
+                                        <th rowspan="2" style="width:4%;">REPAIR &amp; MAINTENANCE</th>
+                                        <th rowspan="2" style="width:4%;">FREIGHT &amp; HANDLING</th>
+                                        <th rowspan="2" style="width:4%;">MEETING &amp; CONFERENCE</th>
+                                        <th rowspan="2" style="width:4%;">OFFICE SUPPLIES</th>
+                                        <th rowspan="2" style="width:4%;">COMMUNICATION</th>
+                                        <th rowspan="2" style="width:4%;">BIDDING EXPENSES</th>
+                                        <th rowspan="2" style="width:4%;">FINES &amp; PENALTIES</th>
+                                        <th rowspan="2" style="width:4%;">MISC</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="width:4%;">LODGING / HOTEL</th>
+                                        <th style="width:4%;">MEAL ALLOWANCE</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pcPrevItemsBody">
+                                    <tr>
+                                        <td colspan="20" style="text-align:center; color:#667085;">&nbsp;</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="pc-total-row">
+                                        <td colspan="5" class="pc-total-label">TOTAL</td>
+                                        <td class="pc-num" id="pcPrevTotalCash">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalInputTax">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalFuel">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalFare">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalLodging">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalMeal">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalPurchases">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalRepair">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalFreight">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalMeeting">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalOffice">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalCommunication">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalBidding">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalFines">0.00</td>
+                                        <td class="pc-num" id="pcPrevTotalMisc">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </article>
+            </div>
+
+            <div class="panel no-print" style="margin-top:20px;">
+                <h2 style="margin:0 0 8px; font-size:1rem;">Recent Petty Cash Reports</h2>
+                <p style="margin:0 0 12px; color:var(--muted); font-size:0.9rem;">Structured reports stored in the database. Saved Documents keeps PDF snapshots only.</p>
+                <div class="table-wrap">
+                    <table aria-label="Recent petty cash reports">
+                        <thead>
+                            <tr>
+                                <th>REPR #</th>
+                                <th>Report Date</th>
+                                <th>Imported</th>
+                                <th>Rows</th>
+                                <th>Total Cash</th>
+                                <th>Source</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_petty_cash_reports %}
+                            <tr>
+                                <td>{{ report.repr_number|default:"—" }}</td>
+                                <td>{{ report.report_date|date:"M d, Y" }}</td>
+                                <td>{{ report.imported_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ report.lines.count }}</td>
+                                <td>₱{{ report.total_cash_in_bank|floatformat:2 }}</td>
+                                <td>{{ report.source_filename|default:"—" }}</td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <button type="button" class="action pc-load-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
+                                    <button type="button" class="action pc-delete-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align:center;color:#667085;padding:24px;">No petty cash reports saved yet. Import an Excel file or enter rows manually.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1874,7 +2037,7 @@
         <div id="saved-documents-tab" class="tab-panel {% if active_tab == 'saved-documents-tab' %}is-active{% endif %}">
             <div class="panel-header">
                 <h2>Saved Documents</h2>
-                <p>PDF records saved from Product Quotation, Service Quotation, Collection Form, Ageing of Accounts, and Retention Summary.</p>
+                <p>PDF records saved from Product Quotation, Service Quotation, Collection Form, Ageing of Accounts, Retention Summary, and Petty Cash. PDF snapshots only — structured report data are stored separately in their tabs.</p>
             </div>
 
             <div class="panel" style="margin-bottom:20px;">
@@ -1966,8 +2129,26 @@
     saveQuotationUrl: "{% url 'save_quotation' %}",
     quotationJsonUrlTemplate: "{% url 'quotation_json' 0 %}",
     saveServiceQuotationUrl: "{% url 'save_service_quotation' %}",
-    serviceQuotationJsonUrlTemplate: "{% url 'service_quotation_json' 0 %}"
+    serviceQuotationJsonUrlTemplate: "{% url 'service_quotation_json' 0 %}",
+    saveAgeingAccountsUrl: "{% url 'save_ageing_accounts' %}",
+    ageingAccountsLatestJsonUrl: "{% url 'ageing_accounts_latest_json' %}",
+    ageingAccountsJsonUrlTemplate: "{% url 'ageing_accounts_json' 0 %}",
+    ageingAccountsDeleteUrlTemplate: "{% url 'delete_ageing_accounts' 0 %}",
+    importAgeingAccountsUrl: "{% url 'import_ageing_accounts_upload' %}",
+    latestAgeingReportId: {% if latest_ageing_report_id %}{{ latest_ageing_report_id }}{% else %}null{% endif %},
+    saveRetentionSummaryUrl: "{% url 'save_retention_summary' %}",
+    retentionSummaryLatestJsonUrl: "{% url 'retention_summary_latest_json' %}",
+    retentionSummaryJsonUrlTemplate: "{% url 'retention_summary_json' 0 %}",
+    retentionSummaryDeleteUrlTemplate: "{% url 'delete_retention_summary' 0 %}",
+    importRetentionSummaryUrl: "{% url 'import_retention_summary_upload' %}",
+    latestRetentionReportId: {% if latest_retention_report_id %}{{ latest_retention_report_id }}{% else %}null{% endif %},
+    savePettyCashUrl: "{% url 'save_petty_cash' %}",
+    pettyCashLatestJsonUrl: "{% url 'petty_cash_latest_json' %}",
+    pettyCashJsonUrlTemplate: "{% url 'petty_cash_json' 0 %}",
+    pettyCashDeleteUrlTemplate: "{% url 'delete_petty_cash' 0 %}",
+    importPettyCashUrl: "{% url 'import_petty_cash_upload' %}",
+    latestPettyCashReportId: {% if latest_petty_cash_report_id %}{{ latest_petty_cash_report_id }}{% else %}null{% endif %}
   };
 </script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=pq2"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=aaterms1"></script>
 {% endblock %}

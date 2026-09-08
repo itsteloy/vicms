@@ -62,16 +62,19 @@
       url.searchParams.delete('customer_zone');
       url.searchParams.delete('customer_type');
       url.searchParams.delete('customer_status');
+      url.searchParams.delete('customer_view');
     }
     if (tabId !== 'overviewTab' && tabId !== 'paymentsTab') {
       url.searchParams.delete('revenue_period');
     }
     if (tabId !== 'paymentsTab') {
       url.searchParams.delete('payment_q');
+      url.searchParams.delete('payment_view');
     }
     if (tabId !== 'readingsBillingTab') {
       url.searchParams.delete('reading_zone');
       url.searchParams.delete('reading_q');
+      url.searchParams.delete('reading_view');
     }
     if (tabId !== 'reportsTab') {
       url.searchParams.delete('report');
@@ -81,7 +84,7 @@
     if (extra && extra.page != null) url.searchParams.set('page', String(extra.page));
     else if (!extra || extra.keepPage !== true) url.searchParams.delete('page');
     if (extra) {
-      ['customer_q', 'customer_zone', 'customer_status', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'payment_q', 'week_start', 'week_end'].forEach((key) => {
+      ['customer_q', 'customer_zone', 'customer_status', 'customer_view', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'reading_view', 'payment_q', 'payment_view', 'week_start', 'week_end'].forEach((key) => {
         if (extra[key] == null) return;
         if (extra[key] === '') url.searchParams.delete(key);
         else url.searchParams.set(key, extra[key]);
@@ -135,12 +138,16 @@
         if (tabId === 'readingsBillingTab') {
           const readingZone = loc.searchParams.get('reading_zone');
           const readingQ = loc.searchParams.get('reading_q');
+          const readingView = loc.searchParams.get('reading_view');
           if (readingZone) url.searchParams.set('reading_zone', readingZone);
           if (readingQ) url.searchParams.set('reading_q', readingQ);
+          if (readingView) url.searchParams.set('reading_view', readingView);
         }
         if (tabId === 'paymentsTab') {
           const paymentQ = loc.searchParams.get('payment_q');
+          const paymentView = loc.searchParams.get('payment_view');
           if (paymentQ) url.searchParams.set('payment_q', paymentQ);
+          if (paymentView) url.searchParams.set('payment_view', paymentView);
         }
       } else {
         url.searchParams.set('fragment', '1');
@@ -278,6 +285,30 @@
     }
     forceUppercase(zoneNewInput);
 
+    function setCustomerView(view) {
+      const next = view === 'list' ? 'list' : 'register';
+      const registerPanel = document.getElementById('customerRegisterPanel');
+      const listPanel = document.getElementById('customerListPanel');
+      document.querySelectorAll('.customer-subnav-btn').forEach((btn) => {
+        const selected = btn.dataset.customerPanel === next;
+        btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+      if (registerPanel) {
+        registerPanel.classList.toggle('is-active', next === 'register');
+        registerPanel.hidden = next !== 'register';
+      }
+      if (listPanel) {
+        listPanel.classList.toggle('is-active', next === 'list');
+        listPanel.hidden = next !== 'list';
+      }
+      const params = currentCustomerParams();
+      updateTabUrl('customersTab', {
+        ...params,
+        customer_view: next,
+        keepPage: next === 'list',
+      });
+    }
+
     const customerSearch = document.getElementById('customerSearch');
     const zoneFilter = document.getElementById('customerZoneFilter');
     const statusFilter = document.getElementById('customerStatusFilter');
@@ -298,6 +329,7 @@
       url.searchParams.set('tab', 'customersTab');
       url.searchParams.set('fragment', '1');
       url.searchParams.set('list_only', '1');
+      url.searchParams.set('customer_view', 'list');
       url.searchParams.set('page', String(page || 1));
       if (params.customer_q) url.searchParams.set('customer_q', params.customer_q);
       if (params.customer_zone) url.searchParams.set('customer_zone', params.customer_zone);
@@ -310,13 +342,25 @@
         })
         .then((html) => {
           wrap.outerHTML = html;
-          updateTabUrl('customersTab', { ...params, page: page || 1 });
+          updateTabUrl('customersTab', { ...params, customer_view: 'list', page: page || 1 });
         })
         .catch(() => {
           const next = document.getElementById('customerListWrap');
           if (next) next.setAttribute('aria-busy', 'false');
         });
     }
+    document.querySelectorAll('.customer-subnav-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setCustomerView(btn.dataset.customerPanel));
+    });
+    const loc = new URL(window.location.href);
+    const viewParam = loc.searchParams.get('customer_view');
+    const pageParam = loc.searchParams.get('page');
+    const openList = viewParam === 'list'
+      || Boolean(loc.searchParams.get('customer_q'))
+      || Boolean(loc.searchParams.get('customer_zone'))
+      || Boolean(loc.searchParams.get('customer_status'))
+      || (pageParam && pageParam !== '1');
+    setCustomerView(openList ? 'list' : 'register');
     if (customerSearch) {
       customerSearch.addEventListener('input', () => {
         clearTimeout(searchTimer);
@@ -539,6 +583,29 @@
         reading_zone: readingZoneFilter?.value || '',
       };
     }
+    function setReadingView(view) {
+      const next = view === 'history' ? 'history' : 'new';
+      const newPanel = document.getElementById('readingNewPanel');
+      const historyPanel = document.getElementById('readingHistoryPanel');
+      document.querySelectorAll('.reading-subnav-btn').forEach((btn) => {
+        const selected = btn.dataset.readingPanel === next;
+        btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+      if (newPanel) {
+        newPanel.classList.toggle('is-active', next === 'new');
+        newPanel.hidden = next !== 'new';
+      }
+      if (historyPanel) {
+        historyPanel.classList.toggle('is-active', next === 'history');
+        historyPanel.hidden = next !== 'history';
+      }
+      const params = currentReadingParams();
+      updateTabUrl('readingsBillingTab', {
+        ...params,
+        reading_view: next,
+        keepPage: next === 'history',
+      });
+    }
     function fetchReadingList(page) {
       const wrap = document.getElementById('readingListWrap');
       if (!wrap) return;
@@ -547,6 +614,7 @@
       url.searchParams.set('tab', 'readingsBillingTab');
       url.searchParams.set('fragment', '1');
       url.searchParams.set('list_only', '1');
+      url.searchParams.set('reading_view', 'history');
       url.searchParams.set('page', String(page || 1));
       if (params.reading_q) url.searchParams.set('reading_q', params.reading_q);
       if (params.reading_zone) url.searchParams.set('reading_zone', params.reading_zone);
@@ -558,7 +626,7 @@
         })
         .then((html) => {
           wrap.outerHTML = html;
-          updateTabUrl('readingsBillingTab', { ...params, page: page || 1 });
+          updateTabUrl('readingsBillingTab', { ...params, reading_view: 'history', page: page || 1 });
           refreshBatchPrintBars(false);
         })
         .catch(() => {
@@ -566,6 +634,17 @@
           if (next) next.setAttribute('aria-busy', 'false');
         });
     }
+    document.querySelectorAll('.reading-subnav-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setReadingView(btn.dataset.readingPanel));
+    });
+    const readingLoc = new URL(window.location.href);
+    const readingViewParam = readingLoc.searchParams.get('reading_view');
+    const readingPageParam = readingLoc.searchParams.get('page');
+    const openHistory = readingViewParam === 'history'
+      || Boolean(readingLoc.searchParams.get('reading_q'))
+      || Boolean(readingLoc.searchParams.get('reading_zone'))
+      || (readingPageParam && readingPageParam !== '1');
+    setReadingView(openHistory ? 'history' : 'new');
     if (readingSearch) {
       readingSearch.addEventListener('input', () => {
         clearTimeout(readingSearchTimer);
@@ -729,6 +808,29 @@
     const paymentSearch = document.getElementById('paymentSearch');
     const paymentFilterForm = document.getElementById('paymentFilterForm');
     let paymentSearchTimer = null;
+    function setPaymentView(view) {
+      const next = view === 'history' ? 'history' : 'record';
+      const recordPanel = document.getElementById('paymentRecordPanel');
+      const historyPanel = document.getElementById('paymentHistoryPanel');
+      document.querySelectorAll('.payment-subnav-btn').forEach((btn) => {
+        const selected = btn.dataset.paymentPanel === next;
+        btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+      if (recordPanel) {
+        recordPanel.classList.toggle('is-active', next === 'record');
+        recordPanel.hidden = next !== 'record';
+      }
+      if (historyPanel) {
+        historyPanel.classList.toggle('is-active', next === 'history');
+        historyPanel.hidden = next !== 'history';
+      }
+      const paymentQ = paymentSearch?.value.trim() || '';
+      updateTabUrl('paymentsTab', {
+        payment_q: paymentQ,
+        payment_view: next,
+        keepPage: next === 'history',
+      });
+    }
     function fetchPaymentList(page) {
       const wrap = document.getElementById('paymentListWrap');
       if (!wrap) return;
@@ -737,6 +839,7 @@
       url.searchParams.set('tab', 'paymentsTab');
       url.searchParams.set('fragment', '1');
       url.searchParams.set('list_only', '1');
+      url.searchParams.set('payment_view', 'history');
       url.searchParams.set('page', String(page || 1));
       if (paymentQ) url.searchParams.set('payment_q', paymentQ);
       wrap.setAttribute('aria-busy', 'true');
@@ -747,13 +850,23 @@
         })
         .then((html) => {
           wrap.outerHTML = html;
-          updateTabUrl('paymentsTab', { payment_q: paymentQ, page: page || 1 });
+          updateTabUrl('paymentsTab', { payment_q: paymentQ, payment_view: 'history', page: page || 1 });
         })
         .catch(() => {
           const next = document.getElementById('paymentListWrap');
           if (next) next.setAttribute('aria-busy', 'false');
         });
     }
+    document.querySelectorAll('.payment-subnav-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setPaymentView(btn.dataset.paymentPanel));
+    });
+    const paymentLoc = new URL(window.location.href);
+    const paymentViewParam = paymentLoc.searchParams.get('payment_view');
+    const paymentPageParam = paymentLoc.searchParams.get('page');
+    const openHistory = paymentViewParam === 'history'
+      || Boolean(paymentLoc.searchParams.get('payment_q'))
+      || (paymentPageParam && paymentPageParam !== '1');
+    setPaymentView(openHistory ? 'history' : 'record');
     paymentSearch?.addEventListener('input', () => {
       clearTimeout(paymentSearchTimer);
       paymentSearchTimer = setTimeout(() => fetchPaymentList(1), 300);
@@ -1217,6 +1330,7 @@
             customer_q: url.searchParams.get('customer_q') || '',
             customer_zone: url.searchParams.get('customer_zone') || '',
             customer_status: url.searchParams.get('customer_status') || '',
+            customer_view: 'list',
             page,
           });
         })
@@ -1240,6 +1354,7 @@
           updateTabUrl('readingsBillingTab', {
             reading_q: url.searchParams.get('reading_q') || '',
             reading_zone: url.searchParams.get('reading_zone') || '',
+            reading_view: 'history',
             page,
           });
           refreshBatchPrintBars(false);
@@ -1262,6 +1377,7 @@
           paymentWrap.outerHTML = html;
           updateTabUrl('paymentsTab', {
             payment_q: url.searchParams.get('payment_q') || '',
+            payment_view: 'history',
             page: url.searchParams.get('page') || '1',
           });
         })

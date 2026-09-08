@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=ws1">
+<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=si1">
 {% endblock %}
 
 {% block content %}
@@ -57,6 +57,11 @@
         Withdrawal Slip
         <span class="tab-badge">{{ withdrawal_slip_count }}</span>
       </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="serviceInvoiceTab">
+        <span class="tab-icon">🧾</span>
+        Service Invoice
+        <span class="tab-badge">{{ service_invoice_count }}</span>
+      </button>
       <div class="nav-label" style="margin-top:14px;">Reports</div>
       <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
         <span class="tab-icon">⏸</span>
@@ -73,6 +78,7 @@
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
       <div class="stat-row"><span>Delivery receipts</span><strong>{{ delivery_receipt_count }}</strong></div>
       <div class="stat-row"><span>Withdrawal slips</span><strong>{{ withdrawal_slip_count }}</strong></div>
+      <div class="stat-row"><span>Service invoices</span><strong>{{ service_invoice_count }}</strong></div>
     </div>
   </aside>
 
@@ -80,10 +86,9 @@
     <header class="topbar">
       <div class="greeting">
         <h2>Services Dashboard</h2>
-        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, official business forms, delivery receipts, and withdrawal slips.</p>
+        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, official business forms, delivery receipts, withdrawal slips, and service invoices.</p>
       </div>
-      <div class="top-actions no-print">
-        <button type="button" onclick="window.print()">🖨 Print preview</button>
+      <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
       </div>
     </header>
@@ -116,6 +121,10 @@
       <div class="stat-card">
         <div class="stat-label">Withdrawal Slips</div>
         <div class="stat-value">{{ withdrawal_slip_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Service Invoices</div>
+        <div class="stat-value">{{ service_invoice_count }}</div>
       </div>
     </div>
 
@@ -568,6 +577,15 @@
       {% include "includes/withdrawal_slip_encode.html" %}
     </div>
 
+    <!-- Service Invoice -->
+    <div id="serviceInvoiceTab" class="tab-panel">
+      <div class="panel-header no-print">
+        <h2>Service Invoice</h2>
+        <p>Encode and print BIR-style service invoices for Versatec Industrial Corp.</p>
+      </div>
+      {% include "includes/service_invoice_encode.html" %}
+    </div>
+
     <!-- Idle Days -->
     <div id="idleDaysTab" class="tab-panel">
       <div class="panel no-print">
@@ -585,5 +603,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/services.js' %}?v=ws1"></script>
+<script src="{% static 'js/dashboards/services.js' %}?v=si1"></script>
 {% endblock %}

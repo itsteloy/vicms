@@ -8,6 +8,7 @@
       officialBusinessTab: document.getElementById('officialBusinessTab'),
       deliveryReceiptTab: document.getElementById('deliveryReceiptTab'),
       withdrawalSlipTab: document.getElementById('withdrawalSlipTab'),
+      serviceInvoiceTab: document.getElementById('serviceInvoiceTab'),
       idleDaysTab: document.getElementById('idleDaysTab'),
     };
     const defaultTab = 'repairTab';
@@ -34,6 +35,7 @@
       '#ob': 'officialBusinessTab',
       '#dr': 'deliveryReceiptTab',
       '#ws': 'withdrawalSlipTab',
+      '#si': 'serviceInvoiceTab',
       '#idle': 'idleDaysTab',
     };
     const hashTab = hashTabMap[location.hash] || null;
@@ -465,6 +467,17 @@
               wsTbody.innerHTML = '<tr class="empty-row"><td colspan="3">No items added yet.</td></tr>';
             }
           }
+          if (panel?.id === 'serviceInvoiceTab') {
+            const siTbody = panel.querySelector('[data-preview="si_lines"]');
+            if (siTbody) {
+              siTbody.innerHTML = '<tr class="empty-row"><td colspan="4">No items added yet.</td></tr>';
+            }
+            panel.querySelectorAll('input[name="sale_type"]').forEach((radio) => {
+              radio.checked = false;
+            });
+            panel.querySelector('[data-preview-cash]')?.removeAttribute('data-checked');
+            panel.querySelector('[data-preview-charge]')?.removeAttribute('data-checked');
+          }
         });
       });
     });
@@ -803,5 +816,204 @@
 
       syncWsPanelPreviews();
       updateWithdrawalSlipLinesPreview();
+    })();
+
+    (function setupServiceInvoiceTab() {
+      const panel = document.getElementById('serviceInvoiceTab');
+      if (!panel) return;
+
+      const currencyFields = new Set([
+        'vatable_sales',
+        'vat',
+        'zero_rated_sales',
+        'vat_exempt_sales',
+        'total_sales_vat_inclusive',
+        'less_vat',
+        'net_of_vat',
+        'less_discount',
+        'add_vat',
+        'less_withholding_tax',
+        'total_amount_due',
+      ]);
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function formatCurrency(value) {
+        const num = parseFloat(value);
+        if (Number.isNaN(num)) return '—';
+        return `₱${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      function formatSiDate(value) {
+        if (!value) return '—';
+        const parsed = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(parsed.getTime())) return value;
+        const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+        const dd = String(parsed.getDate()).padStart(2, '0');
+        const yy = String(parsed.getFullYear()).slice(-2);
+        return `${mm} - ${dd} - ${yy}`;
+      }
+
+      function syncSaleTypePreview() {
+        const selected = panel.querySelector('input[name="sale_type"]:checked')?.value || '';
+        const cashBox = panel.querySelector('[data-preview-cash]');
+        const chargeBox = panel.querySelector('[data-preview-charge]');
+        if (cashBox) {
+          if (selected === 'cash') cashBox.setAttribute('data-checked', 'true');
+          else cashBox.removeAttribute('data-checked');
+        }
+        if (chargeBox) {
+          if (selected === 'charge') chargeBox.setAttribute('data-checked', 'true');
+          else chargeBox.removeAttribute('data-checked');
+        }
+      }
+
+      function syncSiFieldPreview(field) {
+        if (!field?.name) return;
+        if (field.name === 'sale_type') {
+          syncSaleTypePreview();
+          return;
+        }
+        panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach((target) => {
+          let displayValue = field.value || '';
+          if (field.type === 'date') {
+            displayValue = formatSiDate(field.value);
+          } else if (currencyFields.has(field.name)) {
+            displayValue = field.value ? formatCurrency(field.value) : '—';
+          } else if (!displayValue) {
+            displayValue = field.type === 'number' ? '—' : '';
+          }
+          target.textContent = displayValue;
+        });
+      }
+
+      function syncSiPanelPreviews() {
+        panel.querySelectorAll('input, textarea, select').forEach(syncSiFieldPreview);
+        syncSaleTypePreview();
+      }
+
+      function padRowsHtml(lines) {
+        const rows = lines.map((line) => `
+          <tr>
+            <td>${escapeHtml(line.description || '')}</td>
+            <td>${escapeHtml(line.quantity)}</td>
+            <td>${escapeHtml(line.unit)}</td>
+            <td class="si-amount-cell">${line.amount ? formatCurrency(line.amount) : ''}</td>
+          </tr>
+        `).join('');
+        const padCount = Math.max(0, 10 - lines.length);
+        const emptyRows = Array.from({ length: padCount }, () => (
+          '<tr class="si-empty-row"><td>&nbsp;</td><td></td><td></td><td></td></tr>'
+        )).join('');
+        return rows + emptyRows;
+      }
+
+      function updateServiceInvoiceLinesPreview() {
+        const tbody = panel.querySelector('[data-preview="si_lines"]');
+        if (!tbody) return;
+
+        const rows = [...panel.querySelectorAll('.si-line-row')];
+        const lines = rows.map((row) => {
+          const description = row.querySelector('[data-si-description]')?.value.trim() || '';
+          const quantity = row.querySelector('[data-si-quantity]')?.value.trim() || '';
+          const unit = row.querySelector('[data-si-unit]')?.value.trim() || '';
+          const amount = row.querySelector('[data-si-amount]')?.value.trim() || '';
+          return { description, quantity, unit, amount };
+        }).filter((line) => line.description || line.quantity || line.unit || line.amount);
+
+        if (!lines.length) {
+          tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No items added yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = padRowsHtml(lines);
+      }
+
+      const list = document.getElementById('siLinesList');
+      const addBtn = document.getElementById('siAddLine');
+
+      function refreshRemoveButtons() {
+        if (!list) return;
+        const rows = list.querySelectorAll('.si-line-row');
+        rows.forEach((row) => {
+          const removeBtn = row.querySelector('[data-remove-row]');
+          if (removeBtn) removeBtn.hidden = rows.length === 1;
+          const description = row.querySelector('[data-si-description]');
+          if (description) description.required = rows.length >= 1 && row === rows[0];
+        });
+      }
+
+      function bindRow(row) {
+        row.querySelectorAll('input').forEach((field) => {
+          field.addEventListener('input', () => {
+            syncSiFieldPreview(field);
+            updateServiceInvoiceLinesPreview();
+          });
+          field.addEventListener('change', () => {
+            syncSiFieldPreview(field);
+            updateServiceInvoiceLinesPreview();
+          });
+        });
+        const removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            if (!list || list.querySelectorAll('.si-line-row').length === 1) return;
+            row.remove();
+            refreshRemoveButtons();
+            updateServiceInvoiceLinesPreview();
+          });
+        }
+      }
+
+      if (list && addBtn) {
+        addBtn.addEventListener('click', () => {
+          const row = document.createElement('div');
+          row.className = 'repeatable-row si-line-row';
+          row.innerHTML = `
+            <input type="text" name="si_item_description" placeholder="Item / service description" data-si-description>
+            <input type="number" name="si_item_quantity" value="1" min="0" step="0.01" data-si-quantity aria-label="Quantity">
+            <input type="text" name="si_item_unit" placeholder="PCS." data-si-unit aria-label="Unit">
+            <input type="number" name="si_item_amount" value="0" min="0" step="0.01" data-si-amount aria-label="Amount">
+            <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
+          `;
+          list.appendChild(row);
+          bindRow(row);
+          refreshRemoveButtons();
+          row.querySelector('[data-si-description]')?.focus();
+          updateServiceInvoiceLinesPreview();
+        });
+        list.querySelectorAll('.si-line-row').forEach(bindRow);
+        refreshRemoveButtons();
+      }
+
+      panel.querySelectorAll('input, textarea, select').forEach((field) => {
+        field.addEventListener('input', () => syncSiFieldPreview(field));
+        field.addEventListener('change', () => syncSiFieldPreview(field));
+      });
+
+      const form = document.getElementById('serviceInvoiceForm');
+      if (form) {
+        form.addEventListener('reset', () => {
+          requestAnimationFrame(() => {
+            form.querySelectorAll('input[type="date"]').forEach((input) => {
+              if (!input.value) input.value = localTodayISO();
+            });
+            form.querySelectorAll('input[data-auto-number]').forEach((input) => {
+              input.value = input.getAttribute('data-auto-number') || '';
+            });
+            syncSiPanelPreviews();
+            updateServiceInvoiceLinesPreview();
+          });
+        });
+      }
+
+      syncSiPanelPreviews();
+      updateServiceInvoiceLinesPreview();
     })();
   })();

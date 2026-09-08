@@ -778,6 +778,51 @@ table.data tr:hover td { background: #f8fafc; }
 .money { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
 .money.muted { color: var(--muted); font-weight: 600; }
 .stack-section { display: grid; gap: 18px; }
+.customer-views,
+.payment-views,
+.reading-views { display: grid; gap: 14px; }
+.customer-subnav,
+.payment-subnav,
+.reading-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.customer-subnav-btn,
+.payment-subnav-btn,
+.reading-subnav-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+.customer-subnav-btn:hover,
+.payment-subnav-btn:hover,
+.reading-subnav-btn:hover {
+  background: var(--soft);
+  border-color: #98a2b3;
+}
+.customer-subnav-btn[aria-selected="true"],
+.payment-subnav-btn[aria-selected="true"],
+.reading-subnav-btn[aria-selected="true"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.customer-panel,
+.payment-panel,
+.reading-panel { display: none; }
+.customer-panel.is-active,
+.payment-panel.is-active,
+.reading-panel.is-active { display: block; }
 .form-card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

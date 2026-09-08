@@ -1721,12 +1721,48 @@
         // ══════════════════════════════════════════════════════════════
 
         (function initAgeingAccounts() {
+            const cfg = window.__SALES_CONFIG__ || {};
             const itemsBody = document.getElementById('aaItemsBody');
             if (!itemsBody) return;
 
             const asOfInput = document.getElementById('aaAsOfDate');
             const noteInput = document.getElementById('aaNote');
+            const reportIdInput = document.getElementById('aaReportId');
             const prevBody = document.getElementById('aaPrevItemsBody');
+            const importFileInput = document.getElementById('aaImportFile');
+            let storedReportTotals = null;
+
+            function setStoredReportTotals(data) {
+                if (data && data.total_amount != null && data.total_amount !== '') {
+                    storedReportTotals = {
+                        amount: parseAmount(data.total_amount),
+                        paid: parseAmount(data.total_amount_paid),
+                    };
+                } else {
+                    storedReportTotals = null;
+                }
+            }
+
+            function currentLineTotals() {
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                return {
+                    amount: rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-amount')?.value), 0),
+                    paid: rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-paid')?.value), 0),
+                };
+            }
+
+            function activeReportTotals() {
+                if (storedReportTotals) return storedReportTotals;
+                return currentLineTotals();
+            }
+
+            function ageingJsonUrl(reportId) {
+                return (cfg.ageingAccountsJsonUrlTemplate || '').replace('/0/', `/${reportId}/`);
+            }
+
+            function ageingDeleteUrl(reportId) {
+                return (cfg.ageingAccountsDeleteUrlTemplate || ageingJsonUrl(reportId).replace('/json/', '/delete/')).replace('/0/', `/${reportId}/`);
+            }
 
             function todayISO() {
                 const d = new Date();
@@ -1755,10 +1791,6 @@
                 return parseMoney(val);
             }
 
-            function formatMoneyLocal(num) {
-                return formatMoney(num);
-            }
-
             function formatPHP(num) {
                 return 'PHP ' + formatMoney(num);
             }
@@ -1771,26 +1803,141 @@
                     .replace(/"/g, '&quot;');
             }
 
-            function createRow() {
+            function displayAmountInput(input) {
+                const raw = (input?.dataset.raw || '').trim();
+                const value = (input?.value || '').trim();
+                if (raw && (!value || parseAmount(value) === 0)) return raw;
+                return formatMoney(parseAmount(value));
+            }
+
+            function createRow(data = {}) {
+                const amountValue = data.amount || data.amount_raw || '0.00';
+                const paidValue = data.amount_paid || data.amount_paid_raw || '0.00';
+                const terms = String(data.terms_of_payment || '');
+                const termsOptions = [
+                    ['', '—'],
+                    ['7', '7 days'],
+                    ['15', '15 days'],
+                    ['30', '30 days'],
+                    ['60', '60 days'],
+                ].map(([value, label]) => (
+                    `<option value="${value}"${terms === value ? ' selected' : ''}>${label}</option>`
+                )).join('');
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><input type="date" class="aa-item-date"></td>
-                    <td><input type="text" class="aa-item-customer" placeholder="CUSTOMER NAME"></td>
-                    <td><input type="text" class="aa-item-po" placeholder="PO No."></td>
-                    <td><input type="text" class="aa-item-agent" placeholder="Agent"></td>
-                    <td><input type="text" class="aa-item-bi" placeholder="BI#"></td>
-                    <td><input type="text" class="aa-item-si" placeholder="SI#"></td>
-                    <td><input type="text" class="aa-item-ci" placeholder="CI#"></td>
-                    <td><input type="text" class="aa-item-dr" placeholder="DR No."></td>
-                    <td><input type="text" class="aa-item-amount" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
-                    <td><input type="text" class="aa-item-paid" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
-                    <td><input type="text" class="aa-item-paid-items" placeholder="Paid items"></td>
+                    <td><input type="date" class="aa-item-date" value="${escapeHtml(data.line_date || '')}"></td>
+                    <td><input type="text" class="aa-item-customer" placeholder="CUSTOMER NAME" value="${escapeHtml(data.customer_name || '')}"></td>
+                    <td><input type="text" class="aa-item-po" placeholder="PO No." value="${escapeHtml(data.po_number || '')}"></td>
+                    <td><input type="text" class="aa-item-agent" placeholder="Agent" value="${escapeHtml(data.agent || '')}"></td>
+                    <td><input type="text" class="aa-item-bi" placeholder="BI#" value="${escapeHtml(data.bi_number || '')}"></td>
+                    <td><input type="text" class="aa-item-si" placeholder="SI#" value="${escapeHtml(data.si_number || '')}"></td>
+                    <td><input type="text" class="aa-item-cr" placeholder="CR#" value="${escapeHtml(data.cr_number || '')}"></td>
+                    <td><input type="text" class="aa-item-ci" placeholder="CI#" value="${escapeHtml(data.ci_number || '')}"></td>
+                    <td><input type="text" class="aa-item-ar" placeholder="AR#" value="${escapeHtml(data.ar_number || '')}"></td>
+                    <td><input type="text" class="aa-item-dr" placeholder="DR No." value="${escapeHtml(data.dr_number || '')}"></td>
+                    <td>
+                        <select class="aa-item-terms" aria-label="Terms of payment">${termsOptions}</select>
+                    </td>
+                    <td><input type="text" class="aa-item-amount" value="${escapeHtml(amountValue)}" placeholder="0.00" inputmode="decimal" style="text-align:right;" data-raw="${escapeHtml(data.amount_raw || '')}"></td>
+                    <td><input type="text" class="aa-item-paid" value="${escapeHtml(paidValue)}" placeholder="0.00" inputmode="decimal" style="text-align:right;" data-raw="${escapeHtml(data.amount_paid_raw || '')}"></td>
+                    <td><input type="text" class="aa-item-paid-items" placeholder="Paid items" value="${escapeHtml(data.paid_items || '')}"></td>
                     <td style="text-align:center;">
                         <button type="button" class="aa-row-remove"
                             style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
                     </td>
                 `;
+                if (data.line_date_raw && !data.line_date) {
+                    const dateInput = tr.querySelector('.aa-item-date');
+                    if (dateInput) {
+                        dateInput.type = 'text';
+                        dateInput.value = data.line_date_raw;
+                        dateInput.dataset.rawDate = data.line_date_raw;
+                    }
+                }
                 return tr;
+            }
+
+            function termsLabel(value) {
+                const map = { '7': '7 days', '15': '15 days', '30': '30 days', '60': '60 days' };
+                return map[String(value || '')] || '';
+            }
+
+            function collectLinesFromForm() {
+                return Array.from(itemsBody.querySelectorAll('tr')).map((row) => {
+                    const dateInput = row.querySelector('.aa-item-date');
+                    const lineDate = dateInput?.type === 'date' ? (dateInput.value || '') : '';
+                    const lineDateRaw = dateInput?.dataset.rawDate || (dateInput?.type !== 'date' ? (dateInput?.value || '') : '');
+                    return {
+                        line_date: lineDate,
+                        line_date_raw: lineDateRaw,
+                        customer_name: row.querySelector('.aa-item-customer')?.value.trim() || '',
+                        po_number: row.querySelector('.aa-item-po')?.value.trim() || '',
+                        agent: row.querySelector('.aa-item-agent')?.value.trim() || '',
+                        bi_number: row.querySelector('.aa-item-bi')?.value.trim() || '',
+                        si_number: row.querySelector('.aa-item-si')?.value.trim() || '',
+                        cr_number: row.querySelector('.aa-item-cr')?.value.trim() || '',
+                        ci_number: row.querySelector('.aa-item-ci')?.value.trim() || '',
+                        ar_number: row.querySelector('.aa-item-ar')?.value.trim() || '',
+                        dr_number: row.querySelector('.aa-item-dr')?.value.trim() || '',
+                        terms_of_payment: row.querySelector('.aa-item-terms')?.value || '',
+                        amount: row.querySelector('.aa-item-amount')?.value.trim() || '',
+                        amount_raw: row.querySelector('.aa-item-amount')?.dataset.raw || '',
+                        amount_paid: row.querySelector('.aa-item-paid')?.value.trim() || '',
+                        amount_paid_raw: row.querySelector('.aa-item-paid')?.dataset.raw || '',
+                        paid_items: row.querySelector('.aa-item-paid-items')?.value.trim() || '',
+                    };
+                }).filter((line) => line.customer_name || line.po_number || line.agent || line.dr_number || line.terms_of_payment || line.amount || line.amount_paid || line.amount_raw || line.amount_paid_raw);
+            }
+
+            function populateForm(data) {
+                if (reportIdInput) reportIdInput.value = data?.id ? String(data.id) : '';
+                asOfInput.value = data?.as_of_date || todayISO();
+                noteInput.value = data?.note || '';
+                setStoredReportTotals(data);
+                itemsBody.innerHTML = '';
+                const lines = data?.lines?.length ? data.lines : [{}];
+                lines.forEach((line) => itemsBody.appendChild(createRow(line)));
+                bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
+                refreshPreview();
+            }
+
+            async function loadReport(reportId) {
+                const url = reportId ? ageingJsonUrl(reportId) : (cfg.ageingAccountsLatestJsonUrl || '');
+                if (!url) return;
+                const response = await fetch(url, { credentials: 'same-origin' });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to load ageing report.');
+                if (!body?.lines?.length && !body?.id) {
+                    populateForm({ as_of_date: todayISO(), lines: [{}] });
+                    return;
+                }
+                populateForm(body);
+            }
+
+            async function saveReportToDb() {
+                const totals = activeReportTotals();
+                const payload = {
+                    id: reportIdInput?.value || null,
+                    as_of_date: asOfInput.value || todayISO(),
+                    note: noteInput.value || '',
+                    lines: collectLinesFromForm(),
+                    total_amount: String(totals.amount),
+                    total_amount_paid: String(totals.paid),
+                };
+                const response = await fetch(cfg.saveAgeingAccountsUrl || '', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to save ageing report.');
+                if (reportIdInput) reportIdInput.value = String(body.id);
+                setStoredReportTotals(body);
+                return body;
             }
 
             function refreshPreview() {
@@ -1800,8 +1947,6 @@
                 document.getElementById('aaPrevNote').textContent = note ? note.toUpperCase() : '';
 
                 const rows = Array.from(itemsBody.querySelectorAll('tr'));
-                let totalAmount = 0;
-                let totalPaid = 0;
                 prevBody.innerHTML = '';
 
                 const usable = rows.filter((row) => {
@@ -1811,32 +1956,37 @@
                     const po = row.querySelector('.aa-item-po')?.value.trim();
                     const agent = row.querySelector('.aa-item-agent')?.value.trim();
                     const dr = row.querySelector('.aa-item-dr')?.value.trim();
-                    return customer || amount || paid || po || agent || dr;
+                    const amountRaw = row.querySelector('.aa-item-amount')?.dataset.raw;
+                    const paidRaw = row.querySelector('.aa-item-paid')?.dataset.raw;
+                    return customer || amount || paid || po || agent || dr || amountRaw || paidRaw;
                 });
 
                 if (!usable.length) {
                     const empty = document.createElement('tr');
-                    empty.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>';
+                    empty.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td class="aa-center">&nbsp;</td><td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>';
                     prevBody.appendChild(empty);
                 } else {
                     usable.forEach((row) => {
-                        const amount = parseAmount(row.querySelector('.aa-item-amount')?.value);
-                        const paid = parseAmount(row.querySelector('.aa-item-paid')?.value);
-                        totalAmount += amount;
-                        totalPaid += paid;
                         const tr = document.createElement('tr');
-                        const dateVal = row.querySelector('.aa-item-date')?.value || '';
-                        const amountText = formatMoney(amount);
-                        const paidText = formatMoney(paid);
+                        const dateInput = row.querySelector('.aa-item-date');
+                        const dateVal = dateInput?.type === 'date'
+                            ? (dateInput.value || '')
+                            : (dateInput?.dataset.rawDate || dateInput?.value || '');
+                        const amountText = displayAmountInput(row.querySelector('.aa-item-amount'));
+                        const paidText = displayAmountInput(row.querySelector('.aa-item-paid'));
+                        const termsText = termsLabel(row.querySelector('.aa-item-terms')?.value);
                         tr.innerHTML = `
-                            <td>${escapeHtml(formatShortDate(dateVal) || (dateVal ? dateVal : '\u00a0'))}</td>
+                            <td>${escapeHtml(formatShortDate(dateVal) || dateVal || '\u00a0')}</td>
                             <td>${escapeHtml((row.querySelector('.aa-item-customer')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-po')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-agent')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-bi')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-si')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-cr')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-ci')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-ar')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="aa-center">${escapeHtml((row.querySelector('.aa-item-dr')?.value || '').toUpperCase()) || '&nbsp;'}</td>
+                            <td class="aa-center">${escapeHtml(termsText) || '&nbsp;'}</td>
                             <td class="aa-num">${escapeHtml(amountText)}</td>
                             <td class="aa-num">${escapeHtml(paidText)}</td>
                             <td>${escapeHtml((row.querySelector('.aa-item-paid-items')?.value || '').toUpperCase()) || '&nbsp;'}</td>
@@ -1845,13 +1995,11 @@
                     });
                 }
 
-                totalAmount = rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-amount')?.value), 0);
-                totalPaid = rows.reduce((s, row) => s + parseAmount(row.querySelector('.aa-item-paid')?.value), 0);
-
-                document.getElementById('aaTotalAmount').textContent = formatPHP(totalAmount);
-                document.getElementById('aaTotalPaid').textContent = formatPHP(totalPaid);
-                document.getElementById('aaPrevTotalAmount').textContent = formatMoney(totalAmount);
-                document.getElementById('aaPrevTotalPaid').textContent = formatMoney(totalPaid);
+                const totals = activeReportTotals();
+                document.getElementById('aaTotalAmount').textContent = formatPHP(totals.amount);
+                document.getElementById('aaTotalPaid').textContent = formatPHP(totals.paid);
+                document.getElementById('aaPrevTotalAmount').textContent = formatMoney(totals.amount);
+                document.getElementById('aaPrevTotalPaid').textContent = formatMoney(totals.paid);
             }
 
             itemsBody.addEventListener('input', refreshPreview);
@@ -1866,7 +2014,7 @@
                 if (!btn) return;
                 const rows = itemsBody.querySelectorAll('tr');
                 if (rows.length <= 1) {
-                    rows[0].querySelectorAll('input, textarea').forEach((el) => {
+                    rows[0].querySelectorAll('input, textarea, select').forEach((el) => {
                         if (el.classList.contains('aa-item-amount') || el.classList.contains('aa-item-paid')) el.value = '0.00';
                         else el.value = '';
                     });
@@ -1878,6 +2026,7 @@
 
             document.getElementById('aaAddRow').addEventListener('click', () => {
                 itemsBody.appendChild(createRow());
+                bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
                 refreshPreview();
             });
 
@@ -1915,8 +2064,13 @@
                 }
 
                 let holder = null;
+                let savedReportId = reportIdInput?.value || null;
                 try {
-                    // Landscape A4 printable width @ 96dpi ≈ (297-16)mm
+                    if (mode === 'save') {
+                        const saved = await saveReportToDb();
+                        savedReportId = saved.id;
+                    }
+
                     const pageW = 1060;
                     const bodyNode = docEl.querySelector('.aa-doc-body');
 
@@ -1980,7 +2134,6 @@
                     const sheet = document.createElement('div');
                     sheet.id = 'aa-print-sheet';
                     const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
-                    // Flatten: print sheet IS the body content (no Versatec header)
                     while (bodyClone.firstChild) sheet.appendChild(bodyClone.firstChild);
                     holder.appendChild(styleEl);
                     holder.appendChild(sheet);
@@ -2059,8 +2212,9 @@
                             title: `Ageing of Accounts as of ${asOf}`,
                             reference: asOf,
                             fileName: `ageing_accounts_${asOf}`,
+                            sourceId: savedReportId,
                         });
-                        alert('Ageing of Accounts PDF saved to the database.');
+                        alert('Ageing of Accounts saved to the database and PDF archived.');
                         goToSavedDocuments();
                     } else {
                         printPdfBlob(pdfBlob);
@@ -2077,16 +2231,77 @@
                 }
             }
 
-            document.getElementById('aaReset').addEventListener('click', () => {
-                asOfInput.value = todayISO();
-                noteInput.value = '';
-                itemsBody.innerHTML = '';
-                itemsBody.appendChild(createRow());
-                refreshPreview();
+            if (importFileInput) {
+                importFileInput.addEventListener('change', async () => {
+                    const file = importFileInput.files?.[0];
+                    importFileInput.value = '';
+                    if (!file) return;
+                    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                        alert('Please choose an .xlsx file.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('xlsx', file);
+                    formData.append('as_of_date', asOfInput.value || todayISO());
+                    formData.append('note', noteInput.value || '');
+                    try {
+                        const response = await fetch(cfg.importAgeingAccountsUrl || '', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                            body: formData,
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Import failed.');
+                        populateForm(body);
+                        alert(`Imported ${body.lines.length} rows from ${file.name}.`);
+                        window.location.reload();
+                    } catch (error) {
+                        alert(error.message || 'Could not import Excel file.');
+                    }
+                });
+            }
+
+            document.querySelectorAll('.aa-load-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    try {
+                        await loadReport(button.dataset.reportId);
+                        activateTab('ageing-accounts-tab');
+                    } catch (error) {
+                        alert(error.message || 'Could not load report.');
+                    }
+                });
             });
 
-            asOfInput.value = todayISO();
-            refreshPreview();
+            document.querySelectorAll('.aa-delete-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const reportId = button.dataset.reportId;
+                    if (!reportId || !confirm('Delete this ageing report? This cannot be undone.')) return;
+                    try {
+                        const response = await fetch(ageingDeleteUrl(reportId), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=ageing-accounts-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not delete report.');
+                    }
+                });
+            });
+
+            document.getElementById('aaReset').addEventListener('click', () => {
+                populateForm({ as_of_date: todayISO(), lines: [{}] });
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('aa_edit') || cfg.latestAgeingReportId;
+            loadReport(editId).catch((error) => {
+                console.error(error);
+                populateForm({ as_of_date: todayISO(), lines: [{}] });
+            });
         })();
 
         // ══════════════════════════════════════════════════════════════
@@ -2094,12 +2309,48 @@
         // ══════════════════════════════════════════════════════════════
 
         (function initRetentionSummary() {
+            const cfg = window.__SALES_CONFIG__ || {};
             const itemsBody = document.getElementById('rsItemsBody');
             if (!itemsBody) return;
 
             const asOfInput = document.getElementById('rsAsOfDate');
             const noteInput = document.getElementById('rsNote');
+            const reportIdInput = document.getElementById('rsReportId');
             const prevBody = document.getElementById('rsPrevItemsBody');
+            const importFileInput = document.getElementById('rsImportFile');
+            let storedReportTotals = null;
+
+            function setStoredReportTotals(data) {
+                if (data && data.total_trxn_amount != null && data.total_trxn_amount !== '') {
+                    storedReportTotals = {
+                        trxn: parseAmount(data.total_trxn_amount),
+                        amount: parseAmount(data.total_retention_amount),
+                    };
+                } else {
+                    storedReportTotals = null;
+                }
+            }
+
+            function currentLineTotals() {
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                return {
+                    trxn: rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-trxn')?.value), 0),
+                    amount: rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-amount')?.value), 0),
+                };
+            }
+
+            function activeReportTotals() {
+                if (storedReportTotals) return storedReportTotals;
+                return currentLineTotals();
+            }
+
+            function retentionJsonUrl(reportId) {
+                return (cfg.retentionSummaryJsonUrlTemplate || '').replace('/0/', `/${reportId}/`);
+            }
+
+            function retentionDeleteUrl(reportId) {
+                return (cfg.retentionSummaryDeleteUrlTemplate || retentionJsonUrl(reportId).replace('/json/', '/delete/')).replace('/0/', `/${reportId}/`);
+            }
 
             function todayISO() {
                 const d = new Date();
@@ -2159,20 +2410,23 @@
                 amountInput.value = formatMoney(trxn * (pct / 100));
             }
 
-            function createRow() {
+            function createRow(data = {}) {
+                const trxnValue = data.trxn_amount || data.trxn_amount_raw || '0.00';
+                const amountValue = data.amount || data.amount_raw || '0.00';
+                const percentValue = data.percent != null && data.percent !== '' ? data.percent : '10';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><input type="date" class="rs-item-date"></td>
-                    <td><input type="text" class="rs-item-client" placeholder="CLIENT NAME"></td>
-                    <td><input type="text" class="rs-item-trxn" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
-                    <td><input type="text" class="rs-item-percent" value="10" placeholder="10%" style="text-align:right;"></td>
-                    <td><input type="text" class="rs-item-amount" value="0.00" placeholder="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
-                    <td><textarea class="rs-item-remarks" rows="2" placeholder="Remarks"></textarea></td>
+                    <td><input type="date" class="rs-item-date" value="${escapeHtml(data.delivery_date || '')}"></td>
+                    <td><input type="text" class="rs-item-client" placeholder="CLIENT NAME" value="${escapeHtml(data.client_name || '')}"></td>
+                    <td><input type="text" class="rs-item-trxn" value="${escapeHtml(trxnValue)}" placeholder="0.00" inputmode="decimal" style="text-align:right;" data-raw="${escapeHtml(data.trxn_amount_raw || '')}"></td>
+                    <td><input type="text" class="rs-item-percent" value="${escapeHtml(percentValue)}" placeholder="10%" style="text-align:right;"></td>
+                    <td><input type="text" class="rs-item-amount" value="${escapeHtml(amountValue)}" placeholder="0.00" data-auto="${data.amount || data.amount_raw ? '0' : '1'}" inputmode="decimal" style="text-align:right;" data-raw="${escapeHtml(data.amount_raw || '')}"></td>
+                    <td><textarea class="rs-item-remarks" rows="2" placeholder="Remarks">${escapeHtml(data.remarks || '')}</textarea></td>
                     <td>
                         <div class="rs-flag">
-                            <label><input type="checkbox" class="rs-flag-red"> Red remarks</label>
-                            <label><input type="checkbox" class="rs-flag-client"> Yellow client</label>
-                            <label><input type="checkbox" class="rs-flag-row"> Pink row</label>
+                            <label><input type="checkbox" class="rs-flag-red"${data.flag_red_remarks ? ' checked' : ''}> Red remarks</label>
+                            <label><input type="checkbox" class="rs-flag-client"${data.flag_yellow_client ? ' checked' : ''}> Yellow client</label>
+                            <label><input type="checkbox" class="rs-flag-row"${data.flag_pink_row ? ' checked' : ''}> Pink row</label>
                         </div>
                     </td>
                     <td style="text-align:center;">
@@ -2180,7 +2434,88 @@
                             style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
                     </td>
                 `;
+                if (data.delivery_date_raw && !data.delivery_date) {
+                    const dateInput = tr.querySelector('.rs-item-date');
+                    if (dateInput) {
+                        dateInput.type = 'text';
+                        dateInput.value = data.delivery_date_raw;
+                        dateInput.dataset.rawDate = data.delivery_date_raw;
+                    }
+                }
                 return tr;
+            }
+
+            function collectLinesFromForm() {
+                return Array.from(itemsBody.querySelectorAll('tr')).map((row) => {
+                    const dateInput = row.querySelector('.rs-item-date');
+                    const deliveryDate = dateInput?.type === 'date' ? (dateInput.value || '') : '';
+                    const deliveryDateRaw = dateInput?.dataset.rawDate || (dateInput?.type !== 'date' ? (dateInput?.value || '') : '');
+                    return {
+                        delivery_date: deliveryDate,
+                        delivery_date_raw: deliveryDateRaw,
+                        client_name: row.querySelector('.rs-item-client')?.value.trim() || '',
+                        trxn_amount: row.querySelector('.rs-item-trxn')?.value.trim() || '',
+                        trxn_amount_raw: row.querySelector('.rs-item-trxn')?.dataset.raw || '',
+                        percent: row.querySelector('.rs-item-percent')?.value.trim() || '',
+                        amount: row.querySelector('.rs-item-amount')?.value.trim() || '',
+                        amount_raw: row.querySelector('.rs-item-amount')?.dataset.raw || '',
+                        remarks: row.querySelector('.rs-item-remarks')?.value.trim() || '',
+                        flag_red_remarks: Boolean(row.querySelector('.rs-flag-red')?.checked),
+                        flag_yellow_client: Boolean(row.querySelector('.rs-flag-client')?.checked),
+                        flag_pink_row: Boolean(row.querySelector('.rs-flag-row')?.checked),
+                    };
+                }).filter((line) => line.client_name || line.trxn_amount || line.amount || line.remarks || line.delivery_date || line.delivery_date_raw || line.trxn_amount_raw || line.amount_raw);
+            }
+
+            function populateForm(data) {
+                if (reportIdInput) reportIdInput.value = data?.id ? String(data.id) : '';
+                asOfInput.value = data?.as_of_date || todayISO();
+                noteInput.value = data?.note || '';
+                setStoredReportTotals(data);
+                itemsBody.innerHTML = '';
+                const lines = data?.lines?.length ? data.lines : [{}];
+                lines.forEach((line) => itemsBody.appendChild(createRow(line)));
+                bindMoneyInputs(itemsBody, '.rs-item-trxn, .rs-item-amount');
+                refreshPreview();
+            }
+
+            async function loadReport(reportId) {
+                const url = reportId ? retentionJsonUrl(reportId) : (cfg.retentionSummaryLatestJsonUrl || '');
+                if (!url) return;
+                const response = await fetch(url, { credentials: 'same-origin' });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to load retention report.');
+                if (!body?.lines?.length && !body?.id) {
+                    populateForm({ as_of_date: todayISO(), lines: [{}] });
+                    return;
+                }
+                populateForm(body);
+            }
+
+            async function saveReportToDb() {
+                const totals = activeReportTotals();
+                const payload = {
+                    id: reportIdInput?.value || null,
+                    as_of_date: asOfInput.value || todayISO(),
+                    note: noteInput.value || '',
+                    lines: collectLinesFromForm(),
+                    total_trxn_amount: String(totals.trxn),
+                    total_retention_amount: String(totals.amount),
+                };
+                const response = await fetch(cfg.saveRetentionSummaryUrl || '', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to save retention report.');
+                if (reportIdInput) reportIdInput.value = String(body.id);
+                setStoredReportTotals(body);
+                return body;
             }
 
             function refreshPreview() {
@@ -2201,9 +2536,6 @@
                     return client || trxn || amount || remarks || dateVal;
                 });
 
-                let totalTrxn = 0;
-                let totalAmount = 0;
-
                 if (!usable.length) {
                     const empty = document.createElement('tr');
                     empty.innerHTML = '<td>&nbsp;</td><td>&nbsp;</td><td class="rs-num">&nbsp;</td><td class="rs-center">&nbsp;</td><td class="rs-num">&nbsp;</td><td>&nbsp;</td>';
@@ -2212,9 +2544,10 @@
                     usable.forEach((row) => {
                         const trxn = parseAmount(row.querySelector('.rs-item-trxn')?.value);
                         const amount = parseAmount(row.querySelector('.rs-item-amount')?.value);
-                        totalTrxn += trxn;
-                        totalAmount += amount;
-                        const dateVal = row.querySelector('.rs-item-date')?.value || '';
+                        const dateInput = row.querySelector('.rs-item-date');
+                        const dateVal = dateInput?.type === 'date'
+                            ? (dateInput.value || '')
+                            : (dateInput?.dataset.rawDate || dateInput?.value || '');
                         const client = (row.querySelector('.rs-item-client')?.value || '').toUpperCase();
                         const pctText = formatPercent(row.querySelector('.rs-item-percent')?.value);
                         const remarks = row.querySelector('.rs-item-remarks')?.value || '';
@@ -2225,7 +2558,7 @@
                         const tr = document.createElement('tr');
                         if (rowHl) tr.classList.add('rs-row-hl');
                         tr.innerHTML = `
-                            <td>${escapeHtml(formatShortDate(dateVal) || '\u00a0')}</td>
+                            <td>${escapeHtml(formatShortDate(dateVal) || dateVal || '\u00a0')}</td>
                             <td class="${clientHl ? 'rs-client-hl' : ''}">${escapeHtml(client) || '&nbsp;'}</td>
                             <td class="rs-num">${escapeHtml(formatMoney(trxn))}</td>
                             <td class="rs-center">${escapeHtml(pctText) || '&nbsp;'}</td>
@@ -2236,13 +2569,11 @@
                     });
                 }
 
-                totalTrxn = rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-trxn')?.value), 0);
-                totalAmount = rows.reduce((s, row) => s + parseAmount(row.querySelector('.rs-item-amount')?.value), 0);
-
-                document.getElementById('rsTotalTrxn').textContent = formatPHP(totalTrxn);
-                document.getElementById('rsTotalAmount').textContent = formatPHP(totalAmount);
-                document.getElementById('rsPrevTotalTrxn').textContent = formatMoney(totalTrxn);
-                document.getElementById('rsPrevTotalAmount').textContent = formatMoney(totalAmount);
+                const totals = activeReportTotals();
+                document.getElementById('rsTotalTrxn').textContent = formatPHP(totals.trxn);
+                document.getElementById('rsTotalAmount').textContent = formatPHP(totals.amount);
+                document.getElementById('rsPrevTotalTrxn').textContent = formatMoney(totals.trxn);
+                document.getElementById('rsPrevTotalAmount').textContent = formatMoney(totals.amount);
             }
 
             itemsBody.addEventListener('input', (e) => {
@@ -2250,9 +2581,11 @@
                 if (!row) return;
                 if (e.target.classList.contains('rs-item-trxn') || e.target.classList.contains('rs-item-percent')) {
                     syncRetentionAmount(row);
+                    storedReportTotals = null;
                 }
                 if (e.target.classList.contains('rs-item-amount')) {
                     e.target.dataset.auto = '0';
+                    storedReportTotals = null;
                 }
                 refreshPreview();
             });
@@ -2262,7 +2595,10 @@
                 if (row) syncRetentionAmount(row);
                 refreshPreview();
             }, true);
-            itemsBody.addEventListener('change', refreshPreview);
+            itemsBody.addEventListener('change', () => {
+                storedReportTotals = null;
+                refreshPreview();
+            });
             bindMoneyInputs(itemsBody, '.rs-item-trxn, .rs-item-amount');
 
             asOfInput.addEventListener('input', refreshPreview);
@@ -2286,11 +2622,14 @@
                 } else {
                     btn.closest('tr').remove();
                 }
+                storedReportTotals = null;
                 refreshPreview();
             });
 
             document.getElementById('rsAddRow').addEventListener('click', () => {
                 itemsBody.appendChild(createRow());
+                bindMoneyInputs(itemsBody, '.rs-item-trxn, .rs-item-amount');
+                storedReportTotals = null;
                 refreshPreview();
             });
 
@@ -2328,7 +2667,13 @@
                 }
 
                 let holder = null;
+                let savedReportId = reportIdInput?.value || null;
                 try {
+                    if (mode === 'save') {
+                        const saved = await saveReportToDb();
+                        savedReportId = saved.id;
+                    }
+
                     const pageW = 1060;
                     const bodyNode = docEl.querySelector('.rs-doc-body');
 
@@ -2395,71 +2740,50 @@
 
                     const sheet = document.createElement('div');
                     sheet.id = 'rs-print-sheet';
-                    const bodyClone = bodyNode ? bodyNode.cloneNode(true) : document.createElement('div');
-                    while (bodyClone.firstChild) sheet.appendChild(bodyClone.firstChild);
+                    sheet.appendChild(bodyNode.cloneNode(true));
                     holder.appendChild(styleEl);
                     holder.appendChild(sheet);
                     document.body.appendChild(holder);
 
                     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
                     const canvas = await html2canvas(sheet, {
                         scale: 2,
                         useCORS: true,
-                        allowTaint: true,
                         backgroundColor: '#ffffff',
                         logging: false,
-                        scrollX: 0,
-                        scrollY: 0,
-                        windowWidth: pageW,
-                        width: pageW,
-                        onclone: (clonedDoc) => {
-                            const clonedHolder = clonedDoc.getElementById('rs-print-holder');
-                            const clonedSheet = clonedDoc.getElementById('rs-print-sheet');
-                            if (clonedHolder) clonedHolder.style.visibility = 'visible';
-                            if (clonedSheet) {
-                                clonedSheet.style.visibility = 'visible';
-                                clonedSheet.style.width = pageW + 'px';
-                            }
-                        },
                     });
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                     const margin = 8;
-                    const usableW = 297 - margin * 2;
-                    const usableH = 210 - margin * 2;
-                    const imgW = usableW;
-                    const imgH = (canvas.height * imgW) / canvas.width;
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const imgW = pageWidth - margin * 2;
+                    const pxPerMm = canvas.width / imgW;
+                    const usableH = pageHeight - margin * 2;
+                    let srcY = 0;
+                    let remaining = canvas.height / pxPerMm;
+                    let page = 0;
 
-                    if (imgH <= usableH) {
-                        pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
-                    } else {
-                        let remaining = imgH;
-                        let srcY = 0;
-                        const pxPerMm = canvas.height / imgH;
-                        let page = 0;
-                        while (remaining > 0.5 && page < 12) {
-                            if (page > 0) pdf.addPage();
-                            const sliceH = Math.min(usableH, remaining);
-                            const sliceCanvas = document.createElement('canvas');
-                            sliceCanvas.width = canvas.width;
-                            sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
-                            const ctx = sliceCanvas.getContext('2d');
-                            ctx.fillStyle = '#fff';
-                            ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                            ctx.drawImage(
-                                canvas,
-                                0, Math.round(srcY * pxPerMm),
-                                canvas.width, sliceCanvas.height,
-                                0, 0, sliceCanvas.width, sliceCanvas.height
-                            );
-                            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
-                            srcY += sliceH;
-                            remaining -= sliceH;
-                            page += 1;
-                        }
+                    while (remaining > 0.5) {
+                        if (page > 0) pdf.addPage();
+                        const sliceH = Math.min(usableH, remaining);
+                        const sliceCanvas = document.createElement('canvas');
+                        sliceCanvas.width = canvas.width;
+                        sliceCanvas.height = Math.max(1, Math.round(sliceH * pxPerMm));
+                        const ctx = sliceCanvas.getContext('2d');
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                        ctx.drawImage(
+                            canvas,
+                            0, Math.round(srcY * pxPerMm),
+                            canvas.width, sliceCanvas.height,
+                            0, 0, sliceCanvas.width, sliceCanvas.height
+                        );
+                        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.98), 'JPEG', margin, margin, imgW, sliceH);
+                        srcY += sliceH;
+                        remaining -= sliceH;
+                        page += 1;
                     }
 
                     const pdfBlob = pdf.output('blob');
@@ -2474,8 +2798,9 @@
                             title: `Retention Summary as of ${asOf}`,
                             reference: asOf,
                             fileName: `retention_summary_${asOf}`,
+                            sourceId: savedReportId,
                         });
-                        alert('Retention Summary PDF saved to the database.');
+                        alert('Retention Summary saved to the database and PDF archived.');
                         goToSavedDocuments();
                     } else {
                         printPdfBlob(pdfBlob);
@@ -2492,36 +2817,144 @@
                 }
             }
 
-            document.getElementById('rsReset').addEventListener('click', () => {
-                asOfInput.value = todayISO();
-                noteInput.value = '';
-                itemsBody.innerHTML = '';
-                itemsBody.appendChild(createRow());
-                refreshPreview();
+            if (importFileInput) {
+                importFileInput.addEventListener('change', async () => {
+                    const file = importFileInput.files?.[0];
+                    importFileInput.value = '';
+                    if (!file) return;
+                    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                        alert('Please choose an .xlsx file.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('xlsx', file);
+                    formData.append('as_of_date', asOfInput.value || todayISO());
+                    formData.append('note', noteInput.value || '');
+                    try {
+                        const response = await fetch(cfg.importRetentionSummaryUrl || '', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                            body: formData,
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Import failed.');
+                        populateForm(body);
+                        alert(`Imported ${body.lines.length} rows from ${file.name}.`);
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=retention-summary-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not import Excel file.');
+                    }
+                });
+            }
+
+            document.querySelectorAll('.rs-load-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    try {
+                        await loadReport(button.dataset.reportId);
+                        activateTab('retention-summary-tab');
+                    } catch (error) {
+                        alert(error.message || 'Could not load report.');
+                    }
+                });
             });
 
-            asOfInput.value = todayISO();
-            refreshPreview();
+            document.querySelectorAll('.rs-delete-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const reportId = button.dataset.reportId;
+                    if (!reportId || !confirm('Delete this retention report? This cannot be undone.')) return;
+                    try {
+                        const response = await fetch(retentionDeleteUrl(reportId), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=retention-summary-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not delete report.');
+                    }
+                });
+            });
+
+            document.getElementById('rsReset').addEventListener('click', () => {
+                populateForm({ as_of_date: todayISO(), lines: [{}] });
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('rs_edit') || cfg.latestRetentionReportId;
+            loadReport(editId).catch((error) => {
+                console.error(error);
+                populateForm({ as_of_date: todayISO(), lines: [{}] });
+            });
         })();
 
         // ══════════════════════════════════════════════════════════════
         // PETTY CASH / REVOLVING FUND REPLENISHMENT REPORT
         // ══════════════════════════════════════════════════════════════
 
-        (function initPettyCash() {
+                (function initPettyCash() {
+            const cfg = window.__SALES_CONFIG__ || {};
             const itemsBody = document.getElementById('pcItemsBody');
             if (!itemsBody) return;
 
             const reprInput = document.getElementById('pcReprNumber');
             const reportDateInput = document.getElementById('pcReportDate');
             const noteInput = document.getElementById('pcNote');
+            const reportIdInput = document.getElementById('pcReportId');
             const prevBody = document.getElementById('pcPrevItemsBody');
+            const importFileInput = document.getElementById('pcImportFile');
+            let storedReportTotals = null;
 
             const CAT_FIELDS = [
                 'input-tax', 'fuel', 'fare', 'lodging', 'meal', 'purchases',
                 'repair', 'freight', 'meeting', 'office', 'communication',
                 'bidding', 'fines', 'misc'
             ];
+            const CAT_TO_API = {
+                'input-tax': 'input_tax',
+                fuel: 'fuel',
+                fare: 'fare',
+                lodging: 'lodging',
+                meal: 'meal',
+                purchases: 'purchases',
+                repair: 'repair',
+                freight: 'freight',
+                meeting: 'meeting',
+                office: 'office',
+                communication: 'communication',
+                bidding: 'bidding',
+                fines: 'fines',
+                misc: 'misc',
+            };
+            function setStoredReportTotals(data) {
+                if (data && data.total_cash_in_bank != null && data.total_cash_in_bank !== '') {
+                    storedReportTotals = { cash: parseMoney(data.total_cash_in_bank) };
+                } else {
+                    storedReportTotals = null;
+                }
+            }
+
+            function currentCashTotal() {
+                return Array.from(itemsBody.querySelectorAll('tr')).reduce(
+                    (s, row) => s + parseMoney(row.querySelector('.pc-item-cash')?.value),
+                    0
+                );
+            }
+
+            function activeCashTotal() {
+                if (storedReportTotals) return storedReportTotals.cash;
+                return currentCashTotal();
+            }
+
+            function pettyJsonUrl(reportId) {
+                return (cfg.pettyCashJsonUrlTemplate || '').replace('/0/', `/${reportId}/`);
+            }
+
+            function pettyDeleteUrl(reportId) {
+                return (cfg.pettyCashDeleteUrlTemplate || pettyJsonUrl(reportId).replace('/json/', '/delete/')).replace('/0/', `/${reportId}/`);
+            }
 
             function todayISO() {
                 const d = new Date();
@@ -2564,32 +2997,119 @@
                 cashInput.value = formatMoney(catSum(row));
             }
 
-            function moneyCellsHtml() {
-                return CAT_FIELDS.map((key) =>
-                    `<td><input type="text" class="pc-item-${key} pc-money pc-cat" value="0.00" inputmode="decimal" style="text-align:right;"></td>`
-                ).join('');
+            function moneyCellsHtml(data = {}) {
+                return CAT_FIELDS.map((key) => {
+                    const apiKey = CAT_TO_API[key];
+                    const value = data[apiKey] || '0.00';
+                    return `<td><input type="text" class="pc-item-${key} pc-money pc-cat" value="${escapeHtml(value)}" inputmode="decimal" style="text-align:right;"></td>`;
+                }).join('');
             }
 
-            function createRow() {
+            function createRow(data = {}) {
+                const cashValue = data.cash_in_bank || '0.00';
+                const autoCash = data.cash_in_bank ? '0' : '1';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><input type="date" class="pc-item-date"></td>
-                    <td><input type="text" class="pc-item-particulars" placeholder="Name"></td>
-                    <td><input type="text" class="pc-item-explanation" placeholder="Explanation"></td>
-                    <td><input type="text" class="pc-item-tin" placeholder="TIN"></td>
-                    <td><input type="text" class="pc-item-pcv" placeholder="PCV#"></td>
-                    <td><input type="text" class="pc-item-cash pc-money" value="0.00" data-auto="1" inputmode="decimal" style="text-align:right;"></td>
-                    ${moneyCellsHtml()}
+                    <td><input type="date" class="pc-item-date" value="${escapeHtml(data.line_date || '')}"></td>
+                    <td><input type="text" class="pc-item-particulars" placeholder="Name" value="${escapeHtml(data.particulars || '')}"></td>
+                    <td><input type="text" class="pc-item-explanation" placeholder="Explanation" value="${escapeHtml(data.explanation || '')}"></td>
+                    <td><input type="text" class="pc-item-tin" placeholder="TIN" value="${escapeHtml(data.tin || '')}"></td>
+                    <td><input type="text" class="pc-item-pcv" placeholder="PCV#" value="${escapeHtml(data.pcv_number || '')}"></td>
+                    <td><input type="text" class="pc-item-cash pc-money" value="${escapeHtml(cashValue)}" data-auto="${autoCash}" inputmode="decimal" style="text-align:right;"></td>
+                    ${moneyCellsHtml(data)}
                     <td style="text-align:center;">
                         <button type="button" class="pc-row-remove"
                             style="padding:4px 8px; background:#f5f5f5; border:1px solid var(--line); border-radius:4px; cursor:pointer; color:var(--danger); font-weight:600;">✕</button>
                     </td>
                 `;
+                if (data.line_date_raw && !data.line_date) {
+                    const dateInput = tr.querySelector('.pc-item-date');
+                    if (dateInput) {
+                        dateInput.type = 'text';
+                        dateInput.value = data.line_date_raw;
+                        dateInput.dataset.rawDate = data.line_date_raw;
+                    }
+                }
                 return tr;
             }
 
             function blankMoney(n) {
                 return n ? formatMoney(n) : '&nbsp;';
+            }
+
+            function collectLinesFromForm() {
+                return Array.from(itemsBody.querySelectorAll('tr')).map((row) => {
+                    const dateInput = row.querySelector('.pc-item-date');
+                    const lineDate = dateInput?.type === 'date' ? (dateInput.value || '') : '';
+                    const lineDateRaw = dateInput?.dataset.rawDate || (dateInput?.type !== 'date' ? (dateInput?.value || '') : '');
+                    const line = {
+                        line_date: lineDate,
+                        line_date_raw: lineDateRaw,
+                        particulars: row.querySelector('.pc-item-particulars')?.value.trim() || '',
+                        explanation: row.querySelector('.pc-item-explanation')?.value.trim() || '',
+                        tin: row.querySelector('.pc-item-tin')?.value.trim() || '',
+                        pcv_number: row.querySelector('.pc-item-pcv')?.value.trim() || '',
+                        cash_in_bank: row.querySelector('.pc-item-cash')?.value.trim() || '',
+                    };
+                    CAT_FIELDS.forEach((key) => {
+                        line[CAT_TO_API[key]] = row.querySelector('.pc-item-' + key)?.value.trim() || '';
+                    });
+                    return line;
+                }).filter((line) => (
+                    line.particulars || line.explanation || line.pcv_number || line.line_date || line.line_date_raw
+                    || line.cash_in_bank || CAT_FIELDS.some((key) => line[CAT_TO_API[key]])
+                ));
+            }
+
+            function populateForm(data) {
+                if (reportIdInput) reportIdInput.value = data?.id ? String(data.id) : '';
+                reprInput.value = data?.repr_number || '';
+                reportDateInput.value = data?.report_date || todayISO();
+                noteInput.value = data?.note || '';
+                setStoredReportTotals(data);
+                itemsBody.innerHTML = '';
+                const lines = data?.lines?.length ? data.lines : [{}];
+                lines.forEach((line) => itemsBody.appendChild(createRow(line)));
+                bindMoneyInputs(itemsBody, '.pc-money');
+                refreshPreview();
+            }
+
+            async function loadReport(reportId) {
+                const url = reportId ? pettyJsonUrl(reportId) : (cfg.pettyCashLatestJsonUrl || '');
+                if (!url) return;
+                const response = await fetch(url, { credentials: 'same-origin' });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to load petty cash report.');
+                if (!body?.lines?.length && !body?.id) {
+                    populateForm({ report_date: todayISO(), lines: [{}] });
+                    return;
+                }
+                populateForm(body);
+            }
+
+            async function saveReportToDb() {
+                const payload = {
+                    id: reportIdInput?.value || null,
+                    repr_number: reprInput.value || '',
+                    report_date: reportDateInput.value || todayISO(),
+                    note: noteInput.value || '',
+                    lines: collectLinesFromForm(),
+                    total_cash_in_bank: String(activeCashTotal()),
+                };
+                const response = await fetch(cfg.savePettyCashUrl || '', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to save petty cash report.');
+                if (reportIdInput) reportIdInput.value = String(body.id);
+                setStoredReportTotals(body);
+                return body;
             }
 
             function refreshPreview() {
@@ -2625,10 +3145,13 @@
                             vals[k] = parseMoney(row.querySelector('.pc-item-' + k)?.value);
                             totals[k] += vals[k];
                         });
-                        const dateVal = row.querySelector('.pc-item-date')?.value || '';
+                        const dateInput = row.querySelector('.pc-item-date');
+                        const dateVal = dateInput?.type === 'date'
+                            ? (dateInput.value || '')
+                            : (dateInput?.dataset.rawDate || dateInput?.value || '');
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>${escapeHtml(formatShortDate(dateVal) || '\u00a0')}</td>
+                            <td>${escapeHtml(formatShortDate(dateVal) || dateVal || '\u00a0')}</td>
                             <td>${escapeHtml((row.querySelector('.pc-item-particulars')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td>${escapeHtml((row.querySelector('.pc-item-explanation')?.value || '').toUpperCase()) || '&nbsp;'}</td>
                             <td class="pc-center">${escapeHtml(row.querySelector('.pc-item-tin')?.value || '') || '&nbsp;'}</td>
@@ -2640,8 +3163,7 @@
                     });
                 }
 
-                // Totals from all form rows
-                totals.cash = rows.reduce((s, row) => s + parseMoney(row.querySelector('.pc-item-cash')?.value), 0);
+                totals.cash = activeCashTotal();
                 CAT_FIELDS.forEach((k) => {
                     totals[k] = rows.reduce((s, row) => s + parseMoney(row.querySelector('.pc-item-' + k)?.value), 0);
                 });
@@ -2673,11 +3195,20 @@
             itemsBody.addEventListener('input', (e) => {
                 const row = e.target.closest('tr');
                 if (!row) return;
-                if (e.target.classList.contains('pc-cat')) syncCash(row);
-                if (e.target.classList.contains('pc-item-cash')) e.target.dataset.auto = '0';
+                if (e.target.classList.contains('pc-cat')) {
+                    syncCash(row);
+                    storedReportTotals = null;
+                }
+                if (e.target.classList.contains('pc-item-cash')) {
+                    e.target.dataset.auto = '0';
+                    storedReportTotals = null;
+                }
                 refreshPreview();
             });
-            itemsBody.addEventListener('change', refreshPreview);
+            itemsBody.addEventListener('change', () => {
+                storedReportTotals = null;
+                refreshPreview();
+            });
             bindMoneyInputs(itemsBody, '.pc-money');
 
             [reprInput, reportDateInput, noteInput].forEach((el) => {
@@ -2700,11 +3231,14 @@
                 } else {
                     btn.closest('tr').remove();
                 }
+                storedReportTotals = null;
                 refreshPreview();
             });
 
             document.getElementById('pcAddRow').addEventListener('click', () => {
                 itemsBody.appendChild(createRow());
+                bindMoneyInputs(itemsBody, '.pc-money');
+                storedReportTotals = null;
                 refreshPreview();
             });
 
@@ -2732,7 +3266,13 @@
                 }
 
                 let holder = null;
+                let savedReportId = reportIdInput?.value || null;
                 try {
+                    if (mode === 'save') {
+                        const saved = await saveReportToDb();
+                        savedReportId = saved.id;
+                    }
+
                     const pageW = 1500;
                     const bodyNode = docEl.querySelector('.pc-doc-body');
 
@@ -2868,8 +3408,9 @@
                             title: `Revolving Fund Replenishment Report ${repr}`,
                             reference: repr,
                             fileName: `petty_cash_${repr}`,
+                            sourceId: savedReportId,
                         });
-                        alert('Petty cash PDF saved to the database.');
+                        alert('Petty cash saved to the database and PDF archived.');
                         goToSavedDocuments();
                     } else {
                         printPdfBlob(pdfBlob);
@@ -2890,18 +3431,80 @@
             const pcSaveBtn = document.getElementById('pcSave');
             if (pcSaveBtn) pcSaveBtn.addEventListener('click', () => runPettyCashPdf('save'));
 
-            document.getElementById('pcReset').addEventListener('click', () => {
-                reprInput.value = '';
-                reportDateInput.value = todayISO();
-                noteInput.value = '';
-                itemsBody.innerHTML = '';
-                itemsBody.appendChild(createRow());
-                refreshPreview();
+            if (importFileInput) {
+                importFileInput.addEventListener('change', async () => {
+                    const file = importFileInput.files?.[0];
+                    importFileInput.value = '';
+                    if (!file) return;
+                    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                        alert('Please choose an .xlsx file.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('xlsx', file);
+                    formData.append('report_date', reportDateInput.value || todayISO());
+                    formData.append('repr_number', reprInput.value || '');
+                    formData.append('note', noteInput.value || '');
+                    try {
+                        const response = await fetch(cfg.importPettyCashUrl || '', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                            body: formData,
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Import failed.');
+                        populateForm(body);
+                        alert(`Imported ${body.lines.length} rows from ${file.name}.`);
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=petty-cash-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not import Excel file.');
+                    }
+                });
+            }
+
+            document.querySelectorAll('.pc-load-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    try {
+                        await loadReport(button.dataset.reportId);
+                        activateTab('petty-cash-tab');
+                    } catch (error) {
+                        alert(error.message || 'Could not load report.');
+                    }
+                });
             });
 
-            reportDateInput.value = todayISO();
-            refreshPreview();
+            document.querySelectorAll('.pc-delete-report').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const reportId = button.dataset.reportId;
+                    if (!reportId || !confirm('Delete this petty cash report? This cannot be undone.')) return;
+                    try {
+                        const response = await fetch(pettyDeleteUrl(reportId), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=petty-cash-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not delete report.');
+                    }
+                });
+            });
+
+            document.getElementById('pcReset').addEventListener('click', () => {
+                populateForm({ report_date: todayISO(), lines: [{}] });
+            });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('pc_edit') || cfg.latestPettyCashReportId;
+            loadReport(editId).catch((error) => {
+                console.error(error);
+                populateForm({ report_date: todayISO(), lines: [{}] });
+            });
         })();
+
 
     })();
 
