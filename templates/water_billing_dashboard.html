@@ -6,47 +6,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=readsub1">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=otherpay2">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=11">
+<script>
+  try {
+    if (localStorage.getItem('waterBillingSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="water-billing-page dashboard-wrapper" data-fragment-url="{% url 'water_billing_dashboard' %}">
-  <aside class="sidebar">
+<div class="water-billing-page dashboard-wrapper" data-sidebar-key="waterBillingSidebarCollapsed" data-fragment-url="{% url 'water_billing_dashboard' %}">
+  <aside class="sidebar" id="waterSidebar">
     <div class="sidebar-brand">
       <a class="logo" href="{% url 'dashboard' %}">
         <img class="logo-icon" src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo">
         <span class="logo-text">VERSATEC <small>Water Billing</small></span>
       </a>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="waterSidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
     <nav class="sidebar-nav" aria-label="Water billing sections">
       <div class="nav-label">Water Billing</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'overviewTab' %}true{% else %}false{% endif %}" data-tab-target="overviewTab"><span class="tab-icon">📊</span> Overview</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'customersTab' %}true{% else %}false{% endif %}" data-tab-target="customersTab"><span class="tab-icon">👤</span> Customers</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'readingsBillingTab' %}true{% else %}false{% endif %}" data-tab-target="readingsBillingTab"><span class="tab-icon">📋</span> Readings &amp; Billing</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'paymentsTab' %}true{% else %}false{% endif %}" data-tab-target="paymentsTab"><span class="tab-icon">💵</span> Payments</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'arTab' %}true{% else %}false{% endif %}" data-tab-target="arTab"><span class="tab-icon">📈</span> Receivables</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'disconnectTab' %}true{% else %}false{% endif %}" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span> Service Status</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'reportsTab' %}true{% else %}false{% endif %}" data-tab-target="reportsTab"><span class="tab-icon">📄</span> Reports</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'auditTab' %}true{% else %}false{% endif %}" data-tab-target="auditTab"><span class="tab-icon">🛡️</span> Audit</button>
-      <button class="tab-button" type="button" role="tab" aria-selected="{% if active_tab == 'helpTab' %}true{% else %}false{% endif %}" data-tab-target="helpTab"><span class="tab-icon">❓</span> Help</button>
+      <button class="tab-button" type="button" role="tab" title="Overview" aria-selected="{% if active_tab == 'overviewTab' %}true{% else %}false{% endif %}" data-tab-target="overviewTab"><span class="tab-icon">📊</span><span class="tab-label">Overview</span></button>
+      <button class="tab-button" type="button" role="tab" title="Customers" aria-selected="{% if active_tab == 'customersTab' %}true{% else %}false{% endif %}" data-tab-target="customersTab"><span class="tab-icon">👤</span><span class="tab-label">Customers</span></button>
+      <button class="tab-button" type="button" role="tab" title="Readings &amp; Billing" aria-selected="{% if active_tab == 'readingsBillingTab' %}true{% else %}false{% endif %}" data-tab-target="readingsBillingTab"><span class="tab-icon">📋</span><span class="tab-label">Readings &amp; Billing</span></button>
+      <button class="tab-button" type="button" role="tab" title="Payments" aria-selected="{% if active_tab == 'paymentsTab' %}true{% else %}false{% endif %}" data-tab-target="paymentsTab"><span class="tab-icon">💵</span><span class="tab-label">Payments</span></button>
+      <button class="tab-button" type="button" role="tab" title="Receivables" aria-selected="{% if active_tab == 'arTab' %}true{% else %}false{% endif %}" data-tab-target="arTab"><span class="tab-icon">📈</span><span class="tab-label">Receivables</span></button>
+      <button class="tab-button" type="button" role="tab" title="Service Status" aria-selected="{% if active_tab == 'disconnectTab' %}true{% else %}false{% endif %}" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span><span class="tab-label">Service Status</span></button>
+      <button class="tab-button" type="button" role="tab" title="Reports" aria-selected="{% if active_tab == 'reportsTab' %}true{% else %}false{% endif %}" data-tab-target="reportsTab"><span class="tab-icon">📄</span><span class="tab-label">Reports</span></button>
+      <button class="tab-button" type="button" role="tab" title="Audit" aria-selected="{% if active_tab == 'auditTab' %}true{% else %}false{% endif %}" data-tab-target="auditTab"><span class="tab-icon">🛡️</span><span class="tab-label">Audit</span></button>
     </nav>
     <div class="sidebar-stats">
       <div class="stat-row"><span>Customers</span><strong>{{ stats.total_customers }}</strong></div>
       <div class="stat-row"><span>Active</span><strong>{{ stats.active_connections }}</strong></div>
       <div class="stat-row"><span>Outstanding</span><strong>₱{{ stats.outstanding_balance|floatformat:0 }}</strong></div>
     </div>
-    <div class="sidebar-footer">
-      <a href="{% url 'dashboard' %}">← Back to workspaces</a>
-    </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <main class="main-content">
     <header class="topbar">
-      <div class="greeting">
-        <h2>Water Billing Dashboard</h2>
-        <p>Track accounts, meter readings, statements, and collections in one place.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="waterSidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>Water Billing Dashboard</h2>
+          <p>Track accounts, meter readings, statements, and collections in one place.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -84,10 +98,6 @@
     <section id="auditTab" class="tab-panel{% if active_tab == 'auditTab' %} is-active{% endif %}" role="tabpanel" data-fragment-tab="auditTab"{% if 'auditTab' in loaded_tabs %} data-loaded="1"{% endif %}>
       {% if 'auditTab' in loaded_tabs %}{% include "includes/water_tab_audit.html" %}{% endif %}
     </section>
-
-    <section id="helpTab" class="tab-panel{% if active_tab == 'helpTab' %} is-active{% endif %}" role="tabpanel" data-fragment-tab="helpTab"{% if 'helpTab' in loaded_tabs %} data-loaded="1"{% endif %}>
-      {% if 'helpTab' in loaded_tabs %}{% include "includes/water_tab_help.html" %}{% endif %}
-    </section>
   </main>
 </div>
 {% endblock %}
@@ -98,5 +108,6 @@
     batchPrintUrl: "{% url 'print_water_bills_batch' %}"
   };
 </script>
-<script src="{% static 'js/dashboards/water_billing.js' %}?v=readsub1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/water_billing.js' %}?v=otherpay5"></script>
 {% endblock %}

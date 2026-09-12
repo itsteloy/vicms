@@ -2199,10 +2199,10 @@ WATER_MIN_CHARGE_MAX_CUM = 5
 
 
 def water_consumption_charge(consumption, rate_per_cum=None):
-    """Current bill: ₱100 for 1–5 cu.m.; otherwise consumption × rate (₱20)."""
+    """Current bill: ₱100 for 0–5 cu.m.; otherwise consumption × rate (₱20)."""
     consumption = int(consumption or 0)
     rate = Decimal(rate_per_cum if rate_per_cum is not None else WATER_RATE_PER_CUM)
-    if 1 <= consumption <= WATER_MIN_CHARGE_MAX_CUM:
+    if 0 <= consumption <= WATER_MIN_CHARGE_MAX_CUM:
         return WATER_MIN_CHARGE.quantize(Decimal('0.01'))
     return (Decimal(consumption) * rate).quantize(Decimal('0.01'))
 
@@ -2296,6 +2296,14 @@ class WaterBill(models.Model):
     def balance_due(self):
         return max(self.total_amount - self.amount_paid, Decimal('0.00'))
 
+    @property
+    def water_balance_due(self):
+        """Outstanding water charges only — excludes installation installment baked into total_amount."""
+        install = self.installment_balance or Decimal('0.00')
+        water_total = max((self.total_amount or Decimal('0.00')) - install, Decimal('0.00'))
+        paid = self.amount_paid or Decimal('0.00')
+        return max(water_total - paid, Decimal('0.00'))
+
     def recompute_totals(self):
         self.consumption_charge = water_consumption_charge(self.consumption, self.rate_per_cum)
         # Statement of Account format:
@@ -2318,11 +2326,11 @@ class WaterBill(models.Model):
     def refresh_status(self):
         if self.status == 'cancelled':
             return
+        # Keep amount_paid as recorded (may exceed total_amount for advance / overpayment).
         if self.amount_paid <= 0:
             self.status = 'overdue' if self.due_date < date.today() else 'unpaid'
         elif self.amount_paid >= self.total_amount:
             self.status = 'paid'
-            self.amount_paid = self.total_amount
         else:
             self.status = 'partial'
 
@@ -2334,10 +2342,25 @@ class WaterBill(models.Model):
 
 
 class WaterPayment(models.Model):
+    PURPOSE_BILL = 'bill'
+    PURPOSE_INSTALLATION = 'installation'
+    PURPOSE_CHOICES = [
+        (PURPOSE_BILL, 'Water bill'),
+        (PURPOSE_INSTALLATION, 'Installation fee'),
+    ]
+
     receipt_number = models.CharField(max_length=50, unique=True)
-    ar_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    bill = models.ForeignKey(WaterBill, on_delete=models.CASCADE, related_name='payments')
+    # Shared across bill + installation lines from one OR/AR transaction.
+    ar_number = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    bill = models.ForeignKey(
+        WaterBill,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        null=True,
+        blank=True,
+    )
     customer = models.ForeignKey(WaterCustomer, on_delete=models.CASCADE, related_name='payments')
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default=PURPOSE_BILL)
     payment_date = models.DateField()
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     payment_method = models.CharField(max_length=20, choices=WATER_PAYMENT_METHODS, default='cash')
@@ -2360,6 +2383,8 @@ class WaterPayment(models.Model):
         if not self.receipt_number:
             self.receipt_number = self.generate_receipt_number()
         self.ar_number = (self.ar_number or '').strip() or None
+        if not self.purpose:
+            self.purpose = self.PURPOSE_INSTALLATION if not self.bill_id else self.PURPOSE_BILL
         if self.customer_id is None and self.bill_id:
             self.customer = self.bill.customer
         super().save(*args, **kwargs)
@@ -2495,6 +2520,45 @@ class WaterServiceContract(models.Model):
             val = getattr(self, field, None)
             if val and isinstance(val, str):
                 setattr(self, field, val.strip().upper())
+        super().save(*args, **kwargs)
+
+
+class WaterOtherPayment(models.Model):
+    """Miscellaneous water-office receipts not tied to a bill or installation balance."""
+    payment_date = models.DateField()
+    ar_number = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    received_from = models.CharField(max_length=200)
+    address = models.CharField(max_length=255, blank=True, default='')
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    amount_received = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Actual amount received; editable on the weekly report.',
+    )
+    payment_of = models.CharField(max_length=255, help_text='What the payment is for')
+    remarks = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-payment_date', '-created_at']
+
+    def __str__(self):
+        return f'Other {self.ar_number or self.pk} – {self.received_from} ({self.amount})'
+
+    @property
+    def effective_amount_received(self):
+        if self.amount_received is not None:
+            return self.amount_received
+        return self.amount or Decimal('0.00')
+
+    def save(self, *args, **kwargs):
+        self.ar_number = (self.ar_number or '').strip() or None
+        self.received_from = (self.received_from or '').strip()
+        self.address = (self.address or '').strip()
+        self.payment_of = (self.payment_of or '').strip()
+        self.remarks = (self.remarks or '').strip()
         super().save(*args, **kwargs)
 
 

@@ -5,7 +5,34 @@
       managePanel: document.getElementById('managePanel'),
       allItemsPanel: document.getElementById('allItemsPanel'),
       purchaseOrderPanel: document.getElementById('purchaseOrderPanel'),
+      withdrawalSlipPanel: document.getElementById('withdrawalSlipPanel'),
+      reportsPanel: document.getElementById('reportsPanel'),
     };
+
+    function syncWithdrawalSlipPrintPage(targetId) {
+      const styleId = 'ws-print-page-style';
+      let styleEl = document.getElementById(styleId);
+      if (targetId === 'withdrawalSlipPanel') {
+        document.body.classList.add('ws-print-active');
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = styleId;
+          document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = [
+          '@media print {',
+          '  @page { size: letter portrait; margin: 0 !important; }',
+          '  html, body { margin: 0 !important; padding: 0 !important; background: #eaf2a8 !important; }',
+          '  .dashboard-wrapper, .main-content, .tab-panel.is-active, .grid-2 {',
+          '    margin: 0 !important; padding: 0 !important; background: #eaf2a8 !important;',
+          '  }',
+          '}',
+        ].join('');
+      } else {
+        document.body.classList.remove('ws-print-active');
+        styleEl?.remove();
+      }
+    }
 
     function activateTab(targetId) {
       tabButtons.forEach(b => {
@@ -17,12 +44,14 @@
           panels[id].classList.toggle('is-active', id === targetId);
         }
       });
+      syncWithdrawalSlipPrintPage(targetId);
     }
 
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
+    const hashTab = location.hash === '#ws' ? 'withdrawalSlipPanel' : null;
     const defaultTab = 'managePanel';
-    const initialTab = tabParam && panels[tabParam] ? tabParam : defaultTab;
+    const initialTab = (tabParam && panels[tabParam]) ? tabParam : (hashTab || defaultTab);
     activateTab(initialTab);
 
     tabButtons.forEach(btn => {
@@ -1059,6 +1088,486 @@
       });
 
       recalcAll();
+    })();
+
+    (function setupWithdrawalSlipTab() {
+      const panel = document.getElementById('withdrawalSlipPanel');
+      if (!panel) return;
+
+      function localTodayISO() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function syncWsFieldPreview(field) {
+        if (!field?.name) return;
+        panel.querySelectorAll(`[data-preview="${field.name}"]`).forEach((target) => {
+          if (field.tagName === 'SELECT') {
+            target.textContent = field.options[field.selectedIndex].text;
+            return;
+          }
+          let displayValue = field.value || '—';
+          if (field.type === 'date' && field.value) {
+            const parsed = new Date(`${field.value}T00:00:00`);
+            if (!Number.isNaN(parsed.getTime())) {
+              displayValue = parsed.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              });
+            }
+          }
+          target.textContent = displayValue;
+        });
+      }
+
+      function syncWsPanelPreviews() {
+        panel.querySelectorAll('input, textarea, select').forEach(syncWsFieldPreview);
+      }
+
+      function updateWithdrawalSlipLinesPreview() {
+        const tbody = panel.querySelector('[data-preview="ws_lines"]');
+        if (!tbody) return;
+
+        const rows = [...panel.querySelectorAll('.ws-line-row')];
+        const lines = rows.map((row) => {
+          const description = row.querySelector('[data-ws-description]')?.value.trim() || '';
+          const quantity = row.querySelector('[data-ws-quantity]')?.value.trim() || '';
+          const unit = row.querySelector('[data-ws-unit]')?.value.trim() || 'UNIT';
+          return { description, quantity, unit };
+        }).filter((line) => line.description || line.quantity);
+
+        const minRows = 7;
+        if (!lines.length) {
+          const blanks = Array.from({ length: minRows }, () =>
+            '<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
+          ).join('');
+          tbody.innerHTML = blanks;
+          return;
+        }
+
+        const filled = lines.map((line) => `
+          <tr>
+            <td>${escapeHtml(line.quantity || '—')}</td>
+            <td>${escapeHtml(line.unit)}</td>
+            <td>${escapeHtml(line.description || '—')}</td>
+          </tr>
+        `);
+        while (filled.length < minRows) {
+          filled.push('<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>');
+        }
+        tbody.innerHTML = filled.join('');
+      }
+
+      const list = document.getElementById('wsLinesList');
+      const addBtn = document.getElementById('wsAddLine');
+      const inventoryListTemplate = list?.querySelector('[data-ws-inventory-list]')?.innerHTML || '';
+      const listByCombo = new WeakMap();
+      let openInventoryCombo = null;
+
+      function refreshRemoveButtons() {
+        if (!list) return;
+        const rows = list.querySelectorAll('.ws-line-row');
+        rows.forEach((row) => {
+          const removeBtn = row.querySelector('[data-remove-row]');
+          if (removeBtn) removeBtn.hidden = rows.length === 1;
+          const description = row.querySelector('[data-ws-description]');
+          if (description) description.required = rows.length >= 1 && row === rows[0];
+        });
+      }
+
+      function getInventoryList(combo) {
+        let itemList = combo.querySelector('[data-ws-inventory-list]');
+        if (itemList) {
+          listByCombo.set(combo, itemList);
+          return itemList;
+        }
+        return listByCombo.get(combo) || null;
+      }
+
+      function applyInventoryDescription(row, item) {
+        const description = row?.querySelector('[data-ws-description]');
+        if (!description) return;
+        if (!item || !(item.dataset.id || '').trim()) return;
+        const name = (item.dataset.name || '').trim();
+        const detail = (item.dataset.description || '').trim();
+        if (!name && !detail) {
+          description.value = '';
+        } else if (detail && name && detail !== name) {
+          description.value = `${name} \u2014 ${detail}`;
+        } else {
+          description.value = name || detail;
+        }
+      }
+
+      function closeInventoryCombobox(combo) {
+        if (!combo) return;
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const itemList = getInventoryList(combo);
+        if (itemList) {
+          itemList.classList.remove('is-open');
+          itemList.hidden = true;
+          if (itemList.parentElement !== combo) {
+            combo.appendChild(itemList);
+          }
+        }
+        if (search) search.setAttribute('aria-expanded', 'false');
+        if (openInventoryCombo === combo) openInventoryCombo = null;
+      }
+
+      function closeAllInventoryComboboxes(exceptCombo) {
+        panel.querySelectorAll('[data-ws-inventory-combo]').forEach((combo) => {
+          if (combo !== exceptCombo) closeInventoryCombobox(combo);
+        });
+      }
+
+      function positionInventoryList(combo) {
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const itemList = getInventoryList(combo);
+        if (!search || !itemList) return;
+        const rect = search.getBoundingClientRect();
+        itemList.style.left = `${rect.left}px`;
+        itemList.style.top = `${rect.bottom + 4}px`;
+        itemList.style.width = `${Math.max(rect.width, 320)}px`;
+      }
+
+      function filterInventoryList(combo) {
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const itemList = getInventoryList(combo);
+        if (!search || !itemList) return;
+        const query = search.value.trim().toLowerCase();
+        let visible = 0;
+        itemList.querySelectorAll('.ws-inv-combobox-item').forEach((item) => {
+          const id = (item.dataset.id || '').trim();
+          const haystack = [
+            item.dataset.name || '',
+            item.dataset.code || '',
+            item.dataset.description || '',
+            item.dataset.label || '',
+            item.textContent || '',
+          ].join(' ').toLowerCase();
+          const isManual = !id;
+          const match = isManual
+            ? (!query || 'manual entry'.includes(query) || query === 'manual')
+            : (!query || haystack.includes(query));
+          item.hidden = !match;
+          if (match) visible += 1;
+        });
+        const noMatch = itemList.querySelector('[data-ws-inventory-no-match]');
+        if (noMatch) noMatch.hidden = visible > 0;
+      }
+
+      function openInventoryCombobox(combo) {
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const itemList = getInventoryList(combo);
+        if (!search || !itemList) return;
+        closeAllInventoryComboboxes(combo);
+        const preparedList = document.body.querySelector(':scope > .ws-inv-combobox-list.is-open[data-ws-prepared-list]')
+          || panel.querySelector('[data-ws-prepared-list].is-open');
+        if (preparedList) {
+          preparedList.classList.remove('is-open');
+          preparedList.hidden = true;
+          const preparedCombo = panel.querySelector('[data-ws-prepared-combo]');
+          if (preparedCombo && preparedList.parentElement !== preparedCombo) {
+            preparedCombo.appendChild(preparedList);
+          }
+          panel.querySelector('[data-ws-prepared-search]')?.setAttribute('aria-expanded', 'false');
+        }
+        filterInventoryList(combo);
+        if (itemList.parentElement !== document.body) {
+          document.body.appendChild(itemList);
+        }
+        positionInventoryList(combo);
+        itemList.hidden = false;
+        itemList.classList.add('is-open');
+        search.setAttribute('aria-expanded', 'true');
+        openInventoryCombo = combo;
+      }
+
+      function selectInventoryItem(combo, item) {
+        const hidden = combo.querySelector('[data-ws-inventory]');
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const row = combo.closest('.ws-line-row');
+        if (!hidden || !search) return;
+        const id = (item?.dataset.id || '').trim();
+        hidden.value = id;
+        search.value = id ? (item.dataset.label || item.textContent || '').trim() : '';
+        applyInventoryDescription(row, item);
+        closeInventoryCombobox(combo);
+        updateWithdrawalSlipLinesPreview();
+      }
+
+      function syncInventoryManualOnBlur(combo) {
+        const hidden = combo.querySelector('[data-ws-inventory]');
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        if (!hidden || !search) return;
+        const query = search.value.trim();
+        if (!query) {
+          hidden.value = '';
+          return;
+        }
+        const selectedId = (hidden.value || '').trim();
+        if (!selectedId) return;
+        const itemList = getInventoryList(combo);
+        const selected = itemList?.querySelector(`.ws-inv-combobox-item[data-id="${CSS.escape(selectedId)}"]`);
+        const label = (selected?.dataset.label || selected?.textContent || '').trim();
+        if (!selected || label !== query) {
+          hidden.value = '';
+        }
+      }
+
+      function bindInventoryCombobox(row) {
+        const combo = row.querySelector('[data-ws-inventory-combo]');
+        if (!combo || combo.dataset.bound === '1') return;
+        combo.dataset.bound = '1';
+        const search = combo.querySelector('[data-ws-inventory-search]');
+        const itemList = getInventoryList(combo);
+        if (!search || !itemList) return;
+
+        search.addEventListener('focus', () => openInventoryCombobox(combo));
+        search.addEventListener('input', () => {
+          const hidden = combo.querySelector('[data-ws-inventory]');
+          if (hidden) hidden.value = '';
+          openInventoryCombobox(combo);
+        });
+        search.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closeInventoryCombobox(combo);
+            search.blur();
+          }
+        });
+        search.addEventListener('blur', () => {
+          window.setTimeout(() => {
+            if (openInventoryCombo === combo) return;
+            syncInventoryManualOnBlur(combo);
+          }, 150);
+        });
+        itemList.addEventListener('mousedown', (event) => {
+          const item = event.target.closest('.ws-inv-combobox-item');
+          if (!item || item.hidden) return;
+          event.preventDefault();
+          selectInventoryItem(combo, item);
+        });
+      }
+
+      function bindRow(row) {
+        row.querySelectorAll('input:not([type="hidden"]), select').forEach((field) => {
+          if (field.hasAttribute('data-ws-inventory-search')) return;
+          field.addEventListener('input', () => {
+            syncWsFieldPreview(field);
+            updateWithdrawalSlipLinesPreview();
+          });
+          field.addEventListener('change', () => {
+            syncWsFieldPreview(field);
+            updateWithdrawalSlipLinesPreview();
+          });
+        });
+        bindInventoryCombobox(row);
+        const removeBtn = row.querySelector('[data-remove-row]');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            if (!list || list.querySelectorAll('.ws-line-row').length === 1) return;
+            const combo = row.querySelector('[data-ws-inventory-combo]');
+            if (combo) closeInventoryCombobox(combo);
+            row.remove();
+            refreshRemoveButtons();
+            updateWithdrawalSlipLinesPreview();
+          });
+        }
+      }
+
+      if (list && addBtn) {
+        addBtn.addEventListener('click', () => {
+          const row = document.createElement('div');
+          row.className = 'repeatable-row ws-line-row';
+          row.innerHTML = `
+            <div class="ws-inv-combobox" data-ws-inventory-combo>
+              <input type="hidden" name="ws_item_inventory" value="" data-ws-inventory>
+              <input type="text" data-ws-inventory-search placeholder="Search inventory or leave blank for manual…" autocomplete="off" aria-label="Inventory item" aria-autocomplete="list" aria-expanded="false">
+              <ul class="ws-inv-combobox-list" data-ws-inventory-list hidden>${inventoryListTemplate}</ul>
+            </div>
+            <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
+            <input type="text" name="ws_item_unit" value="pcs" placeholder="Unit" data-ws-unit aria-label="Unit">
+            <input type="text" name="ws_item_description" placeholder="Item description" data-ws-description>
+            <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
+          `;
+          list.appendChild(row);
+          bindRow(row);
+          refreshRemoveButtons();
+          row.querySelector('[data-ws-inventory-search]')?.focus();
+          updateWithdrawalSlipLinesPreview();
+        });
+        list.querySelectorAll('.ws-line-row').forEach(bindRow);
+        refreshRemoveButtons();
+      }
+
+      document.addEventListener('click', (event) => {
+        if (!openInventoryCombo) return;
+        const itemList = getInventoryList(openInventoryCombo);
+        const inCombo = openInventoryCombo.contains(event.target);
+        const inList = itemList?.contains(event.target);
+        if (!inCombo && !inList) {
+          closeInventoryCombobox(openInventoryCombo);
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        if (openInventoryCombo) positionInventoryList(openInventoryCombo);
+      });
+      window.addEventListener('scroll', () => {
+        if (openInventoryCombo) positionInventoryList(openInventoryCombo);
+      }, true);
+
+      panel.querySelectorAll('input:not([data-ws-inventory-search]):not([type="hidden"]), textarea, select').forEach((field) => {
+        field.addEventListener('input', () => syncWsFieldPreview(field));
+        field.addEventListener('change', () => syncWsFieldPreview(field));
+      });
+
+      const form = document.getElementById('withdrawalSlipForm');
+      if (form) {
+        form.querySelectorAll('input[type="date"]').forEach((input) => {
+          if (!input.value) input.value = localTodayISO();
+        });
+        form.addEventListener('reset', () => {
+          requestAnimationFrame(() => {
+            form.querySelectorAll('input[type="date"]').forEach((input) => {
+              if (!input.value) input.value = localTodayISO();
+            });
+            form.querySelectorAll('input[data-auto-number]').forEach((input) => {
+              input.value = input.getAttribute('data-auto-number') || '';
+            });
+            form.querySelectorAll('[data-ws-inventory-combo]').forEach((combo) => {
+              const hidden = combo.querySelector('[data-ws-inventory]');
+              const search = combo.querySelector('[data-ws-inventory-search]');
+              if (hidden) hidden.value = '';
+              if (search) search.value = '';
+              closeInventoryCombobox(combo);
+            });
+            syncWsPanelPreviews();
+            updateWithdrawalSlipLinesPreview();
+          });
+        });
+      }
+
+      syncWsPanelPreviews();
+      updateWithdrawalSlipLinesPreview();
+
+      (function setupPreparedByCombobox() {
+        const combo = panel.querySelector('[data-ws-prepared-combo]');
+        if (!combo) return;
+        const search = combo.querySelector('[data-ws-prepared-search]');
+        const itemList = combo.querySelector('[data-ws-prepared-list]');
+        if (!search || !itemList) return;
+
+        let listOnBody = false;
+
+        function getList() {
+          return listOnBody && itemList.isConnected ? itemList : combo.querySelector('[data-ws-prepared-list]') || itemList;
+        }
+
+        function closePreparedList() {
+          const listEl = getList();
+          listEl.classList.remove('is-open');
+          listEl.hidden = true;
+          if (listEl.parentElement !== combo) {
+            combo.appendChild(listEl);
+            listOnBody = false;
+          }
+          search.setAttribute('aria-expanded', 'false');
+        }
+
+        function positionPreparedList() {
+          const listEl = getList();
+          const rect = search.getBoundingClientRect();
+          listEl.style.left = `${rect.left}px`;
+          listEl.style.top = `${rect.bottom + 4}px`;
+          listEl.style.width = `${Math.max(rect.width, 240)}px`;
+        }
+
+        function filterPreparedList() {
+          const listEl = getList();
+          const query = search.value.trim().toLowerCase();
+          let visible = 0;
+          listEl.querySelectorAll('.ws-inv-combobox-item').forEach((item) => {
+            const name = (item.dataset.name || item.textContent || '').toLowerCase();
+            const match = !query || name.includes(query);
+            item.hidden = !match;
+            if (match) visible += 1;
+          });
+          const noMatch = listEl.querySelector('[data-ws-prepared-no-match]');
+          if (noMatch) noMatch.hidden = visible > 0;
+        }
+
+        function openPreparedList() {
+          closeAllInventoryComboboxes(null);
+          filterPreparedList();
+          const listEl = getList();
+          if (listEl.parentElement !== document.body) {
+            document.body.appendChild(listEl);
+            listOnBody = true;
+          }
+          positionPreparedList();
+          listEl.hidden = false;
+          listEl.classList.add('is-open');
+          search.setAttribute('aria-expanded', 'true');
+        }
+
+        function selectPreparedName(item) {
+          const name = (item?.dataset.name || item?.textContent || '').trim();
+          search.value = name;
+          closePreparedList();
+          syncWsFieldPreview(search);
+        }
+
+        search.addEventListener('focus', openPreparedList);
+        search.addEventListener('input', () => {
+          openPreparedList();
+          syncWsFieldPreview(search);
+        });
+        search.addEventListener('change', () => syncWsFieldPreview(search));
+        search.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closePreparedList();
+            search.blur();
+          }
+        });
+        itemList.addEventListener('mousedown', (event) => {
+          const item = event.target.closest('.ws-inv-combobox-item');
+          if (!item || item.hidden) return;
+          event.preventDefault();
+          selectPreparedName(item);
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!itemList.classList.contains('is-open') && !getList().classList.contains('is-open')) return;
+          const listEl = getList();
+          if (!combo.contains(event.target) && !listEl.contains(event.target)) {
+            closePreparedList();
+          }
+        });
+        window.addEventListener('resize', () => {
+          if (getList().classList.contains('is-open')) positionPreparedList();
+        });
+        window.addEventListener('scroll', () => {
+          if (getList().classList.contains('is-open')) positionPreparedList();
+        }, true);
+
+        const formEl = document.getElementById('withdrawalSlipForm');
+        formEl?.addEventListener('reset', () => {
+          requestAnimationFrame(() => closePreparedList());
+        });
+      })();
     })();
 
   })();

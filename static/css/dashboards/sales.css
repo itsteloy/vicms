@@ -56,6 +56,7 @@ h1, h2, h3, h4,
       flex: 0 0 var(--sidebar-width);
       width: var(--sidebar-width);
       height: 100vh;
+      overflow-x: hidden;
       overflow-y: auto;
       background: var(--brand);
       color: #e6f0f0;
@@ -64,12 +65,17 @@ h1, h2, h3, h4,
       flex-direction: column;
       border-right: 1px solid rgba(255, 255, 255, 0.06);
       z-index: 100;
+      transition: width 0.2s ease, flex-basis 0.2s ease;
   }
 
   .sidebar-brand {
-      padding: 28px 24px 20px;
+      padding: 20px 16px 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
   }
 
   .sidebar-brand .logo {
@@ -78,6 +84,8 @@ h1, h2, h3, h4,
       gap: 12px;
       text-decoration: none;
       color: #fff;
+      min-width: 0;
+      flex: 1;
   }
 
   .sidebar-brand .logo-icon {
@@ -1076,44 +1084,8 @@ h1, h2, h3, h4,
   }
 
   @media (max-width: 768px) {
-      .dashboard-wrapper {
-          flex-direction: column;
-      }
-
-      .sidebar {
-          position: relative;
-          width: 100%;
-          height: auto;
-          max-height: 480px;
-          flex: none;
-          border-right: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-          overflow-y: auto;
-      }
-
-      .sidebar-brand {
-          padding: 16px 20px 12px;
-      }
-
-      .sidebar-nav {
-          padding: 8px 12px;
-      }
-
-      .sidebar-nav .nav-label {
-          display: none;
-      }
-
-      .sidebar-nav .tab-button {
-          padding: 10px 14px;
-          font-size: 0.8rem;
-      }
-
       .category-performance .perf-list {
           grid-template-columns: 1fr 1fr;
-      }
-
-      .main-content {
-          padding: 0 16px 24px;
       }
 
       .hero-stats {
@@ -1126,16 +1098,6 @@ h1, h2, h3, h4,
 
       .grid-4 {
           grid-template-columns: 1fr 1fr;
-      }
-
-      .topbar {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 12px;
-      }
-
-      .topbar .top-actions {
-          justify-content: flex-start;
       }
   }
 

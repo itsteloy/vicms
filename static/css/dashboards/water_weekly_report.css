@@ -48,6 +48,12 @@
 .weekly-table.weekly-refill th {
   background: #1565c0;
 }
+.weekly-table.weekly-gcash th {
+  background: #0f766e;
+}
+.weekly-table.weekly-other th {
+  background: #b45309;
+}
 .weekly-table td.num,
 .weekly-table td.amt { text-align: right; white-space: nowrap; }
 .weekly-table td.name { min-width: 8rem; }
@@ -56,12 +62,73 @@
   background: #f8fafc;
 }
 .weekly-table td.highlight { background: #dcfce7; }
+.weekly-table.weekly-gcash td.highlight { background: #ccfbf1; }
+.weekly-table.weekly-other td.highlight { background: #fef3c7; }
+.weekly-table th.col-cash-bank,
+.weekly-table td.col-cash-bank {
+  background: #fecaca;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.weekly-table th.col-cash-bank {
+  background: #f87171;
+  color: #fff;
+}
+.weekly-table tr.totals td.col-cash-bank {
+  background: #fca5a5;
+}
 .weekly-grand {
   text-align: right;
   font-weight: 800;
   color: #b42318;
   margin: 0 0 16px;
 }
+.weekly-grand-gcash {
+  color: #0f766e;
+}
+.weekly-grand-other {
+  color: #b45309;
+}
+.weekly-cash-remittance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  width: 280px;
+  max-width: 100%;
+  margin: 18px 0 8px auto;
+  padding: 10px 14px;
+  border: 2px solid #b42318;
+  border-radius: 6px;
+  background: #fff7f7;
+  box-sizing: border-box;
+}
+.weekly-cash-remittance-label {
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1f2937;
+  margin-right: 0;
+  line-height: 1.25;
+}
+.weekly-cash-remittance-value {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #b42318;
+  white-space: nowrap;
+}
+.weekly-cash-remittance-note {
+  flex: 1 0 100%;
+  margin: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #667085;
+}
+.weekly-gcash-title,
+.weekly-other-title,
 .weekly-refill-title {
   margin: 12px 0 6px;
   font-size: 0.95rem;
@@ -109,6 +176,8 @@
   .weekly-report-sheet,
   .weekly-table th,
   .weekly-table td.highlight,
+  .weekly-table td.col-cash-bank,
+  .weekly-table th.col-cash-bank,
   .weekly-table tr.totals td {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -117,8 +186,26 @@
     background: #2e7d32 !important;
     color: #fff !important;
   }
+  .weekly-table.weekly-main th.col-cash-bank {
+    background: #f87171 !important;
+    color: #fff !important;
+  }
+  .weekly-table td.col-cash-bank {
+    background: #fecaca !important;
+  }
+  .weekly-table tr.totals td.col-cash-bank {
+    background: #fca5a5 !important;
+  }
   .weekly-table.weekly-refill th {
     background: #1565c0 !important;
+    color: #fff !important;
+  }
+  .weekly-table.weekly-other th {
+    background: #b45309 !important;
+    color: #fff !important;
+  }
+  .weekly-table.weekly-refill th.col-cash-bank {
+    background: #f87171 !important;
     color: #fff !important;
   }
 }

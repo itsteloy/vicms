@@ -1,0 +1,43 @@
+<div id="otherPaymentListWrap">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>AR No.</th>
+          <th>Received From</th>
+          <th>Address</th>
+          <th>Amount</th>
+          <th>Amount Received</th>
+          <th>Payment of</th>
+          <th>Remarks</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in other_payments %}
+        <tr>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.ar_number|default:"—" }}</td>
+          <td>{{ p.received_from }}</td>
+          <td>{{ p.address|default:"—" }}</td>
+          <td class="money">{% if p.amount_received is None %}₱{{ p.amount|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="money">{% if p.amount_received is not None %}₱{{ p.amount_received|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td>{{ p.payment_of }}</td>
+          <td>{{ p.remarks|default:"—" }}</td>
+          <td>
+            <form method="post" onsubmit="return confirm('Delete other payment{% if p.ar_number %} AR {{ p.ar_number }}{% endif %}?');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_other_payment">
+              <input type="hidden" name="other_payment_id" value="{{ p.id }}">
+              <button type="submit" class="action danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty">{% if payment_q %}No matching other payments.{% else %}No other payments recorded yet.{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

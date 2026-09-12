@@ -5,7 +5,7 @@
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="action" value="create_service_action">
-      <div class="form-grid">
+      <div class="form-grid service-action-form">
         <div class="field full">
           <label for="serviceCustomerSearch">Customer *</label>
           <div class="bill-combobox" id="serviceCustomerCombo">
@@ -40,8 +40,8 @@
           <input type="date" name="action_date" id="actionDate" required>
         </div>
         <div class="field">
-          <label>Status</label>
-          <select name="status">
+          <label for="serviceActionStatus">Status</label>
+          <select id="serviceActionStatus" name="status">
             {% for value, label in service_action_statuses %}
             <option value="{{ value }}">{{ label }}</option>
             {% endfor %}

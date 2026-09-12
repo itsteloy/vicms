@@ -1,0 +1,656 @@
+/* Withdrawal Slip — encode layout + print document (Inventory + detail) */
+
+#withdrawalSlipPanel .panel-header {
+  margin-bottom: 16px;
+}
+
+#withdrawalSlipPanel .panel-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+}
+
+#withdrawalSlipPanel .panel-header p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 0.9rem;
+}
+
+#withdrawalSlipPanel .grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.88fr);
+  gap: 20px;
+  align-items: start;
+}
+
+#withdrawalSlipPanel .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#withdrawalSlipPanel .form-grid .full {
+  grid-column: 1 / -1;
+}
+
+#withdrawalSlipPanel .section-heading {
+  grid-column: 1 / -1;
+  color: var(--brand, #0d9488);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #eaecf0;
+  padding: 8px 0 4px;
+  margin-top: 4px;
+}
+
+#withdrawalSlipPanel .field {
+  display: grid;
+  gap: 6px;
+}
+
+#withdrawalSlipPanel .field label {
+  color: #475467;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+#withdrawalSlipPanel .field input,
+#withdrawalSlipPanel .field select,
+#withdrawalSlipPanel .field textarea {
+  width: 100%;
+  border: 1px solid var(--line, #d0d5dd);
+  background: #fff;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  color: var(--ink, #101828);
+}
+
+#withdrawalSlipPanel .field input.field-readonly {
+  background: var(--soft, #f2f4f7);
+  color: #475467;
+}
+
+#withdrawalSlipPanel .repeatable-list {
+  display: grid;
+  gap: 8px;
+}
+
+#withdrawalSlipPanel .repeatable-add {
+  margin-top: 8px;
+  width: fit-content;
+}
+
+#withdrawalSlipPanel .signature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+#withdrawalSlipPanel .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+#withdrawalSlipPanel .action.primary {
+  background: var(--brand, #0d9488);
+  color: #fff;
+  border-color: var(--brand, #0d9488);
+}
+
+#withdrawalSlipPanel .action.danger {
+  color: #b42318;
+  border-color: #fecdca;
+  background: #fff;
+}
+
+#withdrawalSlipPanel .record-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+#withdrawalSlipPanel .record-actions form {
+  display: inline;
+  margin: 0;
+}
+
+.ws-lines-head {
+  display: grid;
+  grid-template-columns: 1.2fr 0.55fr 0.55fr 1.6fr auto;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #667085;
+  padding: 0 2px;
+}
+
+.ws-line-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.55fr 0.55fr 1.6fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.ws-line-row select,
+.ws-line-row input {
+  width: 100%;
+  border: 1px solid var(--line, #d0d5dd);
+  background: #fff;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.86rem;
+  border-radius: 8px;
+  color: var(--ink, #101828);
+  min-width: 0;
+}
+
+.ws-inv-combobox {
+  position: relative;
+  z-index: 40;
+  min-width: 0;
+}
+
+.ws-inv-combobox input[data-ws-inventory-search],
+.ws-inv-combobox input[data-ws-prepared-search] {
+  width: 100%;
+}
+
+.ws-inv-combobox-list {
+  display: none;
+  position: fixed;
+  z-index: 4000;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line, #d0d5dd);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+
+.ws-inv-combobox-list.is-open {
+  display: block !important;
+}
+
+.ws-inv-combobox-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  color: var(--ink, #101828);
+  line-height: 1.35;
+}
+
+.ws-inv-combobox-item:hover,
+.ws-inv-combobox-item.is-active {
+  background: var(--soft, #f2f4f7);
+  color: var(--brand-dark, #1849a9);
+}
+
+.ws-inv-combobox-empty {
+  padding: 10px 12px;
+  color: #667085;
+  font-size: 0.86rem;
+}
+
+.ws-line-row .row-remove {
+  min-width: 38px;
+  padding: 8px 10px;
+}
+
+#withdrawalSlipPanel .ws-doc {
+  position: sticky;
+  top: 22px;
+  max-width: 8.5in;
+}
+
+.ws-doc {
+  background: #eaf2a8;
+  border: 1px solid var(--line, #d0d5dd);
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.ws-doc .doc-header img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.ws-doc .doc-body {
+  padding: 14px 20px 20px;
+  font-size: 0.88rem;
+  color: #111;
+}
+
+.ws-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  position: relative;
+  gap: 12px;
+  margin: 2px 0 14px;
+  min-height: 1.6em;
+}
+
+.ws-doc-title {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.ws-slip-no {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ws-slip-no b {
+  color: #c00;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
+.ws-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 36px;
+  margin-bottom: 14px;
+}
+
+.ws-meta-row {
+  display: grid;
+  grid-template-columns: 118px 12px 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+  align-items: end;
+}
+
+.ws-meta-label {
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.ws-meta-colon {
+  font-weight: 700;
+  padding-bottom: 1px;
+}
+
+.ws-meta-value {
+  min-height: 1.15em;
+  border-bottom: 1px solid #111;
+  padding: 0 2px 2px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.ws-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2px;
+  font-size: 0.86rem;
+}
+
+.ws-items-table th,
+.ws-items-table td {
+  border: 1px solid #111;
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ws-items-table th {
+  background: #eaf2a8;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ws-items-table th:nth-child(1),
+.ws-items-table td:nth-child(1),
+.ws-items-table th:nth-child(2),
+.ws-items-table td:nth-child(2) {
+  width: 88px;
+  text-align: center;
+}
+
+.ws-items-table .empty-row td {
+  text-align: center;
+  color: var(--muted, #667085);
+  font-style: italic;
+}
+
+.ws-items-table .ws-blank-row td {
+  height: 1.55em;
+}
+
+.ws-signatures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.ws-signatures .signature-block {
+  text-align: center;
+}
+
+.ws-signatures .signature-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  color: #111;
+}
+
+.ws-signatures .signature-line {
+  border-bottom: 1px solid #111;
+  min-height: 1.4em;
+  padding: 0 6px 4px;
+  font-size: 0.88rem;
+  color: #111;
+}
+
+@media (max-width: 1100px) {
+  #withdrawalSlipPanel .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  #withdrawalSlipPanel .ws-doc {
+    position: static;
+  }
+
+  .ws-lines-head {
+    display: none;
+  }
+
+  .ws-line-row {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    border: 1px solid var(--line, #d0d5dd);
+    border-radius: 10px;
+    background: #fff;
+  }
+}
+
+@media print {
+  html:has(.ws-doc),
+  body:has(.ws-doc),
+  body.ws-print-active,
+  body.ws-print-page {
+    background: #eaf2a8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.ws-print-active .sidebar,
+  body.ws-print-active .topbar,
+  body.ws-print-active .hero-stats,
+  body.ws-print-active .messages,
+  body.ws-print-active .panel-header,
+  body.ws-print-active .panel,
+  body.ws-print-active .no-print,
+  body.ws-print-active .tab-panel:not(.is-active),
+  body.ws-print-page .actions {
+    display: none !important;
+  }
+
+  body.ws-print-active .dashboard-wrapper,
+  body.ws-print-active .main-content,
+  body.ws-print-active .tab-panel.is-active,
+  body.ws-print-active .grid-2,
+  body.ws-print-page .page {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #eaf2a8 !important;
+    border: none !important;
+    box-shadow: none !important;
+    gap: 0 !important;
+    max-width: none !important;
+  }
+
+  .tab-panel.is-active .service-document.ws-doc,
+  .service-document.ws-doc,
+  .document.ws-doc {
+    min-height: 0 !important;
+    height: 5.5in !important;
+    max-height: 5.5in !important;
+    max-width: none !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #eaf2a8 !important;
+    position: static !important;
+    top: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .ws-doc,
+  .ws-doc * {
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  .ws-doc .doc-header {
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .ws-doc .doc-header img {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ws-doc .doc-body {
+    padding: 1mm 3mm 2mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    background: #eaf2a8 !important;
+  }
+
+  .ws-title-row {
+    justify-content: center !important;
+    margin: 0 0 1.5mm !important;
+    flex-shrink: 0 !important;
+  }
+
+  .ws-doc-title {
+    font-size: 11pt !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 800 !important;
+  }
+
+  .ws-slip-no {
+    font-size: 9.5pt !important;
+    font-weight: 700 !important;
+  }
+
+  .ws-slip-no b {
+    color: #c00 !important;
+    font-weight: 800 !important;
+  }
+
+  .ws-meta-grid {
+    gap: 0.5mm 6mm !important;
+    margin-bottom: 1.5mm !important;
+    flex-shrink: 0 !important;
+  }
+
+  .ws-meta-row {
+    grid-template-columns: 24mm 2mm 1fr !important;
+    gap: 0.5mm !important;
+    margin-bottom: 1mm !important;
+    align-items: end !important;
+    font-size: 8pt !important;
+  }
+
+  .ws-meta-label {
+    font-weight: 700 !important;
+    font-size: 7pt !important;
+  }
+
+  .ws-meta-value {
+    border-bottom: 1pt solid #000 !important;
+    min-height: 8pt !important;
+    padding-bottom: 0 !important;
+  }
+
+  .ws-items-table {
+    flex: 1 1 auto !important;
+    margin-top: 0 !important;
+    width: 100% !important;
+  }
+
+  .ws-items-table th,
+  .ws-items-table td {
+    border: 1pt solid #000 !important;
+    padding: 1pt 3pt !important;
+    font-size: 8pt !important;
+    background: #eaf2a8 !important;
+    line-height: 1.15 !important;
+  }
+
+  .ws-items-table th {
+    font-size: 7pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+  }
+
+  .ws-items-table th:nth-child(1),
+  .ws-items-table td:nth-child(1),
+  .ws-items-table th:nth-child(2),
+  .ws-items-table td:nth-child(2) {
+    width: 14mm !important;
+    text-align: center !important;
+  }
+
+  .ws-items-table .ws-blank-row td {
+    height: 4mm !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .ws-signatures {
+    margin-top: 2mm !important;
+    padding-top: 1mm !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4mm !important;
+    flex-shrink: 0 !important;
+  }
+
+  .ws-signatures .signature-label,
+  .ws-signatures .signature-line,
+  .ws-doc .signature-block .signature-label,
+  .ws-doc .signature-block .signature-line {
+    color: #111 !important;
+  }
+
+  .ws-signatures .signature-label {
+    font-size: 7pt !important;
+    font-weight: 800 !important;
+    margin-bottom: 4mm !important;
+  }
+
+  .ws-signatures .signature-line {
+    border-bottom: 1pt solid #000 !important;
+    min-height: 9pt !important;
+    font-size: 8pt !important;
+  }
+}
+
+/* Monthly withdrawal report */
+.ws-report-panel .ws-report-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.ws-report-panel .ws-report-filters .field {
+  min-width: 140px;
+  margin: 0;
+}
+.ws-report-head h3 {
+  margin: 8px 0 4px;
+  font-size: 1.05rem;
+}
+.ws-report-head .sub {
+  margin: 0 0 14px;
+  color: var(--muted, #667085);
+  font-size: 0.88rem;
+}
+.ws-report-stats {
+  margin-bottom: 18px;
+}
+.ws-report-section-title {
+  margin: 18px 0 8px;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+.ws-report-panel .text-right {
+  text-align: right;
+}
+.ws-report-panel table.data tfoot tr.totals td {
+  background: var(--soft, #f8fafc);
+  font-weight: 700;
+}
+@media print {
+  .ws-report-panel .filters,
+  .ws-report-stats {
+    display: none !important;
+  }
+  .ws-report-head h3 {
+    font-size: 14pt;
+  }
+}
+@media (max-width: 768px) {
+  .ws-report-panel .ws-report-filters .field {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}

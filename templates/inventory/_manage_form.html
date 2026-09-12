@@ -10,7 +10,7 @@
               <input type="hidden" name="action" value="create_category">
               <div class="category-form-grid">
                 <div class="field">
-                  <label for="category_parent">Parent (optional)</label>
+                  <label for="category_parent_trigger">Parent (optional)</label>
                   {% include "partials/inventory_category_picker.html" with picker_id="category_parent" picker_name="category_parent" picker_placeholder="Top-level category" picker_allow_empty=True picker_required=False picker_value="" %}
                 </div>
                 <div class="field">
@@ -34,7 +34,7 @@
 
           <div class="form-grid">
             <div class="field field-stack">
-              <label for="categoryId">Item category</label>
+              <label for="categoryId_trigger">Item category</label>
               <div class="field-control-slot">
                 {% include "partials/inventory_category_picker.html" with picker_id="categoryId" picker_name="categoryId" picker_placeholder="Select category / subcategory" picker_allow_empty=False picker_required=True picker_value="" %}
               </div>

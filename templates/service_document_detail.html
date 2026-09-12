@@ -4,7 +4,43 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboards/service_document_detail.css' %}">
 {% if document_type == 'service_invoice' %}
-<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=si2">
+{% elif document_type == 'withdrawal_slip' %}
+<link rel="stylesheet" href="{% static 'css/dashboards/withdrawal_slip.css' %}?v=ws-inv1">
+{% endif %}
+{% if document_type == 'withdrawal_slip' %}
+<style>
+.page { max-width: 820px; }
+@media print {
+  @page { size: letter portrait; margin: 0 !important; }
+  html, body {
+    background: #eaf2a8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .page {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #eaf2a8 !important;
+  }
+  .actions { display: none !important; }
+  .document.ws-doc {
+    min-height: 0 !important;
+    height: 5.5in !important;
+    max-height: 5.5in !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #eaf2a8 !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+</style>
+<script>document.body.classList.add('ws-print-page');</script>
 {% endif %}
 {% endblock %}
 {% block content %}
@@ -35,14 +71,12 @@
 
   {% if document_type == 'service_invoice' %}
   {% include "includes/service_invoice_document.html" %}
+  {% elif document_type == 'withdrawal_slip' %}
+  {% include "includes/withdrawal_slip_document.html" %}
   {% else %}
-  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'delivery_receipt' %} delivery-receipt-document{% elif document_type == 'withdrawal_slip' %} withdrawal-slip-document ws-doc{% elif document_type == 'travel' %} travel-document{% endif %}">
+  <article class="document{% if document_type == 'repair' %} repair-document{% elif document_type == 'job' %} job-order-document{% elif document_type == 'ob' %} ob-document{% elif document_type == 'delivery_receipt' %} delivery-receipt-document{% elif document_type == 'travel' %} travel-document{% endif %}">
     <header class="doc-header">
-      {% if document_type == 'withdrawal_slip' %}
-      <img src="{% static 'METRO DAVAO HEADER.png' %}" alt="Metro Davao header">
-      {% else %}
       <img src="{% static 'versatec_header.jpg' %}" alt="Versatec header">
-      {% endif %}
     </header>
 
     <div class="content">

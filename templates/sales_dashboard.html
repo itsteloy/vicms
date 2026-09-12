@@ -6,99 +6,117 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=aa-print-rows1">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=aa-print-rows2">
+<script>
+  try {
+    if (localStorage.getItem('salesSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 
 {% block content %}
-<div class="sales-page dashboard-wrapper">
+<div class="sales-page dashboard-wrapper" data-sidebar-key="salesSidebarCollapsed">
 
     <!-- ─── SIDEBAR ─── -->
-    <aside class="sidebar" role="navigation" aria-label="Sales dashboard navigation">
+    <aside class="sidebar" id="salesSidebar" role="navigation" aria-label="Sales dashboard navigation">
         <div class="sidebar-brand">
             <div class="logo">
                 <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
                     style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
                 <span class="logo-text">VERSATEC <small>Management System</small></span>
             </div>
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="salesSidebar" aria-expanded="true" title="Collapse sidebar">
+                <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+                <span class="sr-only">Collapse sidebar</span>
+            </button>
         </div>
 
         <nav class="sidebar-nav" aria-label="Sales sections">
             <div class="nav-label">Sales</div>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Record Sale"
                 aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="sales-tab">
-                <span class="tab-icon">🛒</span> Record Sale
+                <span class="tab-icon">🛒</span> <span class="tab-label">Record Sale</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Sales History"
                 aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="history-tab">
-                <span class="tab-icon">📜</span> Sales History
+                <span class="tab-icon">📜</span> <span class="tab-label">Sales History</span>
                 <span class="tab-badge">{{ sales_orders|length }}</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Refund History"
                 aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="refund-tab">
-                <span class="tab-icon">↩️</span> Refund History
+                <span class="tab-icon">↩️</span> <span class="tab-label">Refund History</span>
                 <span class="tab-badge">{{ refund_history|length }}</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Reporting & Analytics"
                 aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="analytics-tab">
-                <span class="tab-icon">📈</span> Reporting & Analytics
+                <span class="tab-icon">📈</span> <span class="tab-label">Reporting & Analytics</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Category Performance"
                 aria-selected="{% if active_tab == 'category-performance-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="category-performance-tab">
-                <span class="tab-icon">🏷️</span> Category Performance
+                <span class="tab-icon">🏷️</span> <span class="tab-label">Category Performance</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Product Quotation"
                 aria-selected="{% if active_tab == 'product-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="product-quotation-tab">
-                <span class="tab-icon">📦</span> Product Quotation
+                <span class="tab-icon">📦</span> <span class="tab-label">Product Quotation</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Service Quotation"
                 aria-selected="{% if active_tab == 'service-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="service-quotation-tab">
-                <span class="tab-icon">🛠️</span> Service Quotation
+                <span class="tab-icon">🛠️</span> <span class="tab-label">Service Quotation</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Collection Form"
                 aria-selected="{% if active_tab == 'collection-form-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="collection-form-tab">
-                <span class="tab-icon">📄</span> Collection Form
+                <span class="tab-icon">📄</span> <span class="tab-label">Collection Form</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Ageing of Accounts"
                 aria-selected="{% if active_tab == 'ageing-accounts-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="ageing-accounts-tab">
-                <span class="tab-icon">📊</span> Ageing of Accounts
+                <span class="tab-icon">📊</span> <span class="tab-label">Ageing of Accounts</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Retention Summary"
                 aria-selected="{% if active_tab == 'retention-summary-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="retention-summary-tab">
-                <span class="tab-icon">📋</span> Retention Summary
+                <span class="tab-icon">📋</span> <span class="tab-label">Retention Summary</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Petty Cash"
                 aria-selected="{% if active_tab == 'petty-cash-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="petty-cash-tab">
-                <span class="tab-icon">💵</span> Petty Cash
+                <span class="tab-icon">💵</span> <span class="tab-label">Petty Cash</span>
             </button>
-            <button class="tab-button" type="button" role="tab"
+            <button class="tab-button" type="button" role="tab" title="Saved Documents"
                 aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="saved-documents-tab">
-                <span class="tab-icon">🗂️</span> Saved Documents
+                <span class="tab-icon">🗂️</span> <span class="tab-label">Saved Documents</span>
             </button>
         </nav>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
     <!-- ─── MAIN CONTENT ─── -->
     <main class="main-content">
 
         <!-- Topbar -->
         <header class="topbar">
-            <div class="greeting">
-                <h2>Sales Dashboard</h2>
-                <p>Record sales from shared inventory items. Stock levels update automatically.</p>
+            <div class="topbar-leading">
+                <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="salesSidebar" aria-expanded="false" title="Open menu">
+                    <span class="mobile-nav-bars" aria-hidden="true"></span>
+                    <span class="sr-only">Open menu</span>
+                </button>
+                <div class="greeting">
+                    <h2>Sales Dashboard</h2>
+                    <p>Record sales from shared inventory items. Stock levels update automatically.</p>
+                </div>
             </div>
             <div class="top-actions">
                 <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -2150,5 +2168,6 @@
     latestPettyCashReportId: {% if latest_petty_cash_report_id %}{{ latest_petty_cash_report_id }}{% else %}null{% endif %}
   };
 </script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=aa-print-rows1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=aa-print-rows2"></script>
 {% endblock %}

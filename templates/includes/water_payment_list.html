@@ -19,18 +19,35 @@
           <td><strong>{{ p.receipt_number }}</strong></td>
           <td>{{ p.ar_number|default:"—" }}</td>
           <td>{{ p.payment_date }}</td>
-          <td>{{ p.customer.display_name }}</td>
+          <td>
+            {{ p.customer.display_name }}
+            {% if p.purpose == 'installation' %}
+            <div class="cell-muted">Installation fee{% if p.ar_shared %} · same AR as bill line{% endif %}</div>
+            {% elif p.bill %}
+            <div class="cell-muted">{{ p.bill.bill_number }}{% if p.ar_shared %} · combined AR{% endif %}</div>
+            {% endif %}
+          </td>
           <td class="money">₱{{ p.amount|floatformat:2 }}</td>
           <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
           <td>
-            {% if p.bill.balance_due <= 0 or p.bill.status == 'paid' %}
+            {% if p.purpose == 'installation' %}
+              {% if p.customer.installment_balance > 0 %}
+              <span class="badge partial" title="Installation">Partial</span>
+              {% else %}
+              <span class="badge paid" title="Installation">Paid</span>
+              {% endif %}
+            {% elif not p.bill %}
+            <span class="badge unpaid">—</span>
+            {% elif p.bill.status == 'paid' or p.bill.balance_due <= 0 %}
             <span class="badge paid">Paid</span>
+            {% elif p.bill.status == 'partial' or p.bill.amount_paid > 0 %}
+            <span class="badge partial">Partial</span>
             {% else %}
             <span class="badge unpaid">Unpaid</span>
             {% endif %}
           </td>
           <td>
-            <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}?');">
+            <form method="post" onsubmit="return confirm('Delete payment {{ p.receipt_number }}{% if p.ar_number %} (AR {{ p.ar_number }}){% endif %}?{% if p.ar_number %} Other ledger lines may share this AR.{% endif %}');">
               {% csrf_token %}
               <input type="hidden" name="action" value="delete_payment">
               <input type="hidden" name="payment_id" value="{{ p.id }}">

@@ -46,6 +46,26 @@
           </td>
           <td>
             <div class="action-group">
+              {% if r.bill and r.bill.payments.exists %}
+              <button type="button" class="action" disabled title="Cannot edit a reading whose bill already has payments.">Edit</button>
+              {% else %}
+              <button
+                type="button"
+                class="action reading-edit-btn"
+                data-id="{{ r.id }}"
+                data-customer-id="{{ r.customer_id }}"
+                data-customer-label="{{ r.customer.account_number }} – {{ r.customer.display_name }}{% if r.customer.connection_status == 'disconnected' %} ⚠ DISCONNECTED{% elif r.customer.connection_status != 'active' %} ({{ r.customer.get_connection_status_display|upper }}){% endif %}"
+                data-customer-status="{{ r.customer.connection_status }}"
+                data-reading-date="{{ r.reading_date|date:'Y-m-d' }}"
+                data-billing-period="{{ r.billing_period }}"
+                data-previous="{{ r.previous_reading }}"
+                data-current="{{ r.current_reading }}"
+                data-unpaid="{{ r.previous_bill_unpaid }}"
+                data-installment="{{ r.installment_balance }}"
+                data-estimated="{% if r.is_estimated %}1{% endif %}"
+                data-reader="{{ r.reader_name }}"
+                data-remarks="{{ r.remarks }}">Edit</button>
+              {% endif %}
               {% if r.bill %}
               <a class="action" href="{% url 'view_water_bill' r.bill.id %}">View</a>
               {% else %}

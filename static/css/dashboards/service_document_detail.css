@@ -338,7 +338,8 @@ body { display: block; padding: 30px; background: #f1f5f9; font-family: system-u
 
 @media print {
   @page { size: 8.5in 13in; margin: 0; }
-  body { padding: 0; background: #fff; }
+  body { padding: 0 !important; margin: 0 !important; background: #fff; }
+  body.ws-print-page { background: #eaf2a8 !important; padding: 0 !important; margin: 0 !important; }
   .actions { display: none !important; }
   .page { max-width: none; }
   .document {

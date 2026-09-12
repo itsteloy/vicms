@@ -1,30 +1,43 @@
 {% load static %}
 <!-- SIDEBAR -->
-<aside class="sidebar" role="navigation" aria-label="Inventory dashboard navigation">
+<aside class="sidebar" id="inventorySidebar" role="navigation" aria-label="Inventory dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
           style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="inventorySidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
 
     <nav class="sidebar-nav" aria-label="Inventory sections">
       <div class="nav-label">Inventory</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="managePanel">
+      <button class="tab-button" type="button" role="tab" title="Manage Item" aria-selected="true" data-tab-target="managePanel">
         <span class="tab-icon">📦</span>
-        Manage Item
+        <span class="tab-label">Manage Item</span>
         <span class="tab-badge">{{ inventory_items|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="allItemsPanel">
+      <button class="tab-button" type="button" role="tab" title="All Items" aria-selected="false" data-tab-target="allItemsPanel">
         <span class="tab-icon">📋</span>
-        All Items
+        <span class="tab-label">All Items</span>
       </button>
 
       <div class="nav-label" style="margin-top:14px;">Documents</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="purchaseOrderPanel">
+      <button class="tab-button" type="button" role="tab" title="Purchase Order" aria-selected="false" data-tab-target="purchaseOrderPanel">
         <span class="tab-icon">🧾</span>
-        Purchase Order
+        <span class="tab-label">Purchase Order</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Withdrawal Slip" aria-selected="false" data-tab-target="withdrawalSlipPanel">
+        <span class="tab-icon">📤</span>
+        <span class="tab-label">Withdrawal Slip</span>
+        <span class="tab-badge">{{ withdrawal_slip_count|default:0 }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Withdrawal Reports" aria-selected="false" data-tab-target="reportsPanel">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">Reports</span>
       </button>
     </nav>
 
@@ -41,5 +54,10 @@
         <span>Low stock (< 10)</span>
             <strong>{{ low_stock_count|default:0 }}</strong>
       </div>
+      <div class="stat-row">
+        <span>Withdrawal slips</span>
+        <strong>{{ withdrawal_slip_count|default:0 }}</strong>
+      </div>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>

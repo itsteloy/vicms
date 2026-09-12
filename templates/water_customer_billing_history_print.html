@@ -3,7 +3,7 @@
 {% block title %}Billing History – {{ customer.display_name }} ({{ history.year }}){% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_billing_history.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_billing_history.css' %}?v=7">
 {% endblock %}
 
 {% block extra_head %}
@@ -31,6 +31,7 @@
         {% if customer.meter_number %} · Meter {{ customer.meter_number }}{% endif %}
         · Year {{ history.year }}
       </p>
+      <p class="meta balance-meta">Balance: ₱{{ account_balance|floatformat:2 }}</p>
     </header>
 
     <table class="billing-history-table">
@@ -45,7 +46,7 @@
         <tr>
           <td class="col-label">PREVIOUS BILL IN {{ history.previous_year }}</td>
           <td class="col-bill amt">{% if history.previous_bill %}₱{{ history.previous_bill|floatformat:2 }}{% endif %}</td>
-          <td class="col-pay amt"></td>
+          <td class="col-pay amt">{% if history.previous_bill_paid %}₱{{ history.previous_bill_paid|floatformat:2 }}{% endif %}</td>
         </tr>
         {% for row in history.month_rows %}
         <tr>
@@ -67,14 +68,19 @@
           <td class="col-pay amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
         </tr>
         <tr class="due-calc">
-          <td class="col-label"></td>
+          <td class="col-label">TOTAL BILL</td>
           <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2 }}</td>
           <td class="col-pay amt"></td>
         </tr>
         <tr class="due-calc">
-          <td class="col-label"></td>
+          <td class="col-label">TOTAL PAYMENT</td>
           <td class="col-bill amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
           <td class="col-pay amt"></td>
+        </tr>
+        <tr class="balance-row">
+          <td class="col-label"></td>
+          <td class="col-bill amt due-amt">₱{{ account_balance|floatformat:2 }}</td>
+          <td class="col-pay due-label">BALANCE</td>
         </tr>
         <tr class="due-final">
           <td class="col-label"></td>

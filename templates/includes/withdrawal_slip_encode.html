@@ -6,8 +6,8 @@
       <div class="form-grid">
         <div class="field">
           <label for="ws_slip_number">No.</label>
-          <input id="ws_slip_number" name="slip_number" value="{{ next_slip_number }}" data-auto-number="{{ next_slip_number }}" readonly class="field-readonly" title="Assigned automatically">
-          <small style="color:var(--muted);font-size:0.75rem;">Assigned automatically</small>
+          <input id="ws_slip_number" name="slip_number" value="{{ next_slip_number }}" data-auto-number="{{ next_slip_number }}" title="Slip number">
+          <small style="color:var(--muted);font-size:0.75rem;">Suggested next number — you can change it</small>
         </div>
         <div class="field">
           <label for="ws_slip_date">Date *</label>
@@ -45,14 +45,27 @@
           </div>
           <div class="repeatable-list" id="wsLinesList">
             <div class="repeatable-row ws-line-row">
-              <select name="ws_item_inventory" data-ws-inventory aria-label="Inventory item">
-                <option value="">Manual entry</option>
-                {% for item in inventory_items %}
-                <option value="{{ item.id }}" data-name="{{ item.name|escape }}">{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %} — Stock: {{ item.stock_available }}</option>
-                {% endfor %}
-              </select>
+              <div class="ws-inv-combobox" data-ws-inventory-combo>
+                <input type="hidden" name="ws_item_inventory" value="" data-ws-inventory>
+                <input type="text" data-ws-inventory-search placeholder="Item Name" autocomplete="off" aria-label="Inventory item" aria-autocomplete="list" aria-expanded="false">
+                <ul class="ws-inv-combobox-list" data-ws-inventory-list hidden>
+                  <li class="ws-inv-combobox-item" data-id="" data-name="" data-description="" data-stock="" data-code="" data-label="Manual entry">Manual entry</li>
+                  {% for item in inventory_items %}
+                  <li
+                    class="ws-inv-combobox-item"
+                    data-id="{{ item.id }}"
+                    data-name="{{ item.name|escape }}"
+                    data-description="{{ item.description|default:item.name|escape }}"
+                    data-stock="{{ item.stock_available }}"
+                    data-code="{{ item.product_code|escape }}"
+                    data-label="{{ item.name|escape }}{% if item.product_code %} ({{ item.product_code|escape }}){% endif %}{% if item.description %} — {{ item.description|escape }}{% endif %} — Stock: {{ item.stock_available }}"
+                  >{{ item.name }}{% if item.product_code %} ({{ item.product_code }}){% endif %}{% if item.description %} — {{ item.description }}{% endif %} — Stock: {{ item.stock_available }}</li>
+                  {% endfor %}
+                  <li class="ws-inv-combobox-empty" data-ws-inventory-no-match hidden>No matching items</li>
+                </ul>
+              </div>
               <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
-              <input type="text" name="ws_item_unit" value="pcs" placeholder="Unit" data-ws-unit aria-label="Unit">
+              <input type="text" name="ws_item_unit" value="UNIT" placeholder="Unit" data-ws-unit aria-label="Unit">
               <input type="text" name="ws_item_description" placeholder="Item description" required data-ws-description>
               <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
             </div>
@@ -64,7 +77,26 @@
         <div class="signature-grid">
           <div class="signature-field field">
             <label for="ws_prepared_by">Prepared By</label>
-            <input id="ws_prepared_by" name="prepared_by" placeholder="Name">
+            <div class="ws-inv-combobox" data-ws-prepared-combo>
+              <input
+                id="ws_prepared_by"
+                type="text"
+                name="prepared_by"
+                data-ws-prepared-search
+                placeholder="Name"
+                autocomplete="off"
+                aria-label="Prepared By"
+                aria-autocomplete="list"
+                aria-expanded="false"
+              >
+              <ul class="ws-inv-combobox-list" data-ws-prepared-list hidden>
+                <li class="ws-inv-combobox-item" data-name="JENECIL TUCONG">JENECIL TUCONG</li>
+                <li class="ws-inv-combobox-item" data-name="AIZA MAE POQUITA">AIZA MAE POQUITA</li>
+                <li class="ws-inv-combobox-item" data-name="JOANNE PERMALE">JOANNE PERMALE</li>
+                <li class="ws-inv-combobox-item" data-name="RANEL BECERA">RANEL BECERA</li>
+                <li class="ws-inv-combobox-empty" data-ws-prepared-no-match hidden>No matching names</li>
+              </ul>
+            </div>
           </div>
           <div class="signature-field field">
             <label for="ws_attested_by">Attested By</label>
@@ -83,81 +115,7 @@
     </form>
   </section>
 
-  <article class="document service-document ws-doc">
-    <header class="doc-header">
-      <img src="{% static 'METRO DAVAO HEADER.png' %}" alt="Metro Davao header">
-    </header>
-    <div class="doc-body">
-      <div class="ws-title-row">
-        <h3 class="ws-doc-title">WITHDRAWAL SLIP</h3>
-        <div class="ws-slip-no">No. <b data-preview="slip_number">—</b></div>
-      </div>
-      <div class="ws-meta-grid">
-        <div class="ws-meta-col">
-          <div class="ws-meta-row">
-            <span>Requested By</span>
-            <span>:</span>
-            <span data-preview="requested_by">—</span>
-          </div>
-          <div class="ws-meta-row">
-            <span>Project Area</span>
-            <span>:</span>
-            <span data-preview="project_area">—</span>
-          </div>
-          <div class="ws-meta-row">
-            <span>Client</span>
-            <span>:</span>
-            <span data-preview="client">—</span>
-          </div>
-        </div>
-        <div class="ws-meta-col">
-          <div class="ws-meta-row">
-            <span>Date</span>
-            <span>:</span>
-            <span data-preview="slip_date">—</span>
-          </div>
-          <div class="ws-meta-row">
-            <span>Ref. No.</span>
-            <span>:</span>
-            <span data-preview="ref_number">—</span>
-          </div>
-          <div class="ws-meta-row">
-            <span>Status</span>
-            <span>:</span>
-            <span data-preview="status">—</span>
-          </div>
-        </div>
-      </div>
-      <table class="ws-items-table">
-        <thead>
-          <tr>
-            <th>QTY</th>
-            <th>UNIT</th>
-            <th>DESCRIPTION</th>
-          </tr>
-        </thead>
-        <tbody data-preview="ws_lines">
-          <tr class="empty-row">
-            <td colspan="3">No items added yet.</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="ws-signatures">
-        <div class="signature-block">
-          <span class="signature-label">Prepared By</span>
-          <div class="signature-line"><span data-preview="prepared_by">—</span></div>
-        </div>
-        <div class="signature-block">
-          <span class="signature-label">Attested By</span>
-          <div class="signature-line"><span data-preview="attested_by">—</span></div>
-        </div>
-        <div class="signature-block">
-          <span class="signature-label">Received By</span>
-          <div class="signature-line"><span data-preview="received_by">—</span></div>
-        </div>
-      </div>
-    </div>
-  </article>
+  {% include "includes/withdrawal_slip_document.html" with preview_mode=True %}
 </div>
 
 <div class="panel no-print">
@@ -185,7 +143,7 @@
           <td>{{ slip.lines.count }}</td>
           <td>
             <div class="record-actions">
-              <a class="action" href="{% url 'view_withdrawal_slip' slip.id %}?from=services">View</a>
+              <a class="action" href="{% url 'view_withdrawal_slip' slip.id %}?from=inventory">View</a>
               <a class="action" href="{% url 'edit_withdrawal_slip' slip.id %}">Edit</a>
               <form method="post" action="{% url 'delete_withdrawal_slip' slip.id %}" onsubmit="return confirm('Delete Withdrawal Slip {{ slip.slip_number }}? This cannot be undone.');">
                 {% csrf_token %}

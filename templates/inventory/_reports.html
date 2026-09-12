@@ -1,0 +1,118 @@
+<div id="reportsPanel" class="tab-panel">
+  <div class="panel-header no-print">
+    <h2>Withdrawal Reports</h2>
+    <p>Monthly summary of materials withdrawn by slip date.</p>
+  </div>
+
+  <div class="panel ws-report-panel">
+    <div class="filters no-print">
+      <form method="get" class="ws-report-filters" id="wsReportFilterForm">
+        <input type="hidden" name="tab" value="reportsPanel">
+        <div class="field">
+          <label for="wsReportMonth">Month</label>
+          <select name="ws_month" id="wsReportMonth">
+            {% for value, label in ws_report_month_choices %}
+            <option value="{{ value }}" {% if value == ws_report_month %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="wsReportYear">Year</label>
+          <select name="ws_year" id="wsReportYear">
+            {% for year in ws_report_year_choices %}
+            <option value="{{ year }}" {% if year == ws_report_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="action primary">Show</button>
+        <button type="button" class="action" onclick="window.print()">Print</button>
+      </form>
+    </div>
+
+    <div class="ws-report-head">
+      <h3>Monthly Withdrawal Report — {{ ws_report_month_label }} {{ ws_report_year }}</h3>
+      <p class="sub">{{ ws_report_slip_count }} slip{{ ws_report_slip_count|pluralize }} · {{ ws_report_line_count }} line{{ ws_report_line_count|pluralize }} · Total qty {{ ws_report_total_qty }}</p>
+    </div>
+
+    <div class="hero-stats ws-report-stats no-print">
+      <div class="stat-card">
+        <div class="stat-label">Slips</div>
+        <div class="stat-value">{{ ws_report_slip_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Line items</div>
+        <div class="stat-value">{{ ws_report_line_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total quantity</div>
+        <div class="stat-value">{{ ws_report_total_qty }}</div>
+      </div>
+    </div>
+
+    <h4 class="ws-report-section-title">Withdrawals by slip</h4>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Slip No.</th>
+            <th>Requested By</th>
+            <th>Client / Project</th>
+            <th class="text-right">Items</th>
+            <th class="text-right">Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in ws_report_rows %}
+          <tr>
+            <td>{{ row.slip_date|date:"M j, Y" }}</td>
+            <td>
+              <a href="{% url 'view_withdrawal_slip' row.slip_id %}">{{ row.slip_number }}</a>
+            </td>
+            <td>{{ row.requested_by|default:"—" }}</td>
+            <td>{{ row.client_project|default:"—" }}</td>
+            <td class="text-right">{{ row.item_count }}</td>
+            <td class="text-right money">{{ row.quantity }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="empty">No withdrawal slips for this month.</td></tr>
+          {% endfor %}
+        </tbody>
+        {% if ws_report_rows %}
+        <tfoot>
+          <tr class="totals">
+            <td colspan="5"><strong>Total</strong></td>
+            <td class="text-right money"><strong>{{ ws_report_total_qty }}</strong></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+
+    <h4 class="ws-report-section-title">Totals by item</h4>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Unit</th>
+            <th class="text-right">Total qty</th>
+            <th class="text-right">Lines</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in ws_report_item_totals %}
+          <tr>
+            <td>{{ item.description }}</td>
+            <td>{{ item.unit }}</td>
+            <td class="text-right money">{{ item.quantity }}</td>
+            <td class="text-right">{{ item.line_count }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">No item totals for this month.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

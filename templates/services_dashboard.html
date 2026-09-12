@@ -6,66 +6,72 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=si1">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/services.css' %}?v=si3">
+<script>
+  try {
+    if (localStorage.getItem('servicesSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="services-page dashboard-wrapper">
-  <aside class="sidebar" role="navigation" aria-label="Services dashboard navigation">
+<div class="services-page dashboard-wrapper" data-sidebar-key="servicesSidebarCollapsed">
+  <aside class="sidebar" id="servicesSidebar" role="navigation" aria-label="Services dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="servicesSidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
 
     <nav class="sidebar-nav" aria-label="Services sections">
       <div class="nav-label">Services</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="repairTab">
+      <button class="tab-button" type="button" role="tab" title="Service Repair Reports" aria-selected="true" data-tab-target="repairTab">
         <span class="tab-icon">🔧</span>
-        Service Repair Reports
+        <span class="tab-label">Service Repair Reports</span>
         <span class="tab-badge">{{ repair_report_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="borrowMaterialTab">
+      <button class="tab-button" type="button" role="tab" title="Borrow Material" aria-selected="false" data-tab-target="borrowMaterialTab">
         <span class="tab-icon">📦</span>
-        Borrow Material
+        <span class="tab-label">Borrow Material</span>
         <span class="tab-badge">{{ material_borrow_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="jobOrderTab">
+      <button class="tab-button" type="button" role="tab" title="Job Orders" aria-selected="false" data-tab-target="jobOrderTab">
         <span class="tab-icon">📋</span>
-        Job Orders
+        <span class="tab-label">Job Orders</span>
         <span class="tab-badge">{{ job_order_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
+      <button class="tab-button" type="button" role="tab" title="Travel Orders" aria-selected="false" data-tab-target="travelOrderTab">
         <span class="tab-icon">🚗</span>
-        Travel Orders
+        <span class="tab-label">Travel Orders</span>
         <span class="tab-badge">{{ travel_order_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="officialBusinessTab">
+      <button class="tab-button" type="button" role="tab" title="Official Business" aria-selected="false" data-tab-target="officialBusinessTab">
         <span class="tab-icon">🧳</span>
-        Official Business
+        <span class="tab-label">Official Business</span>
         <span class="tab-badge">{{ official_business_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deliveryReceiptTab">
+      <button class="tab-button" type="button" role="tab" title="Delivery Receipt" aria-selected="false" data-tab-target="deliveryReceiptTab">
         <span class="tab-icon">🚚</span>
-        Delivery Receipt
+        <span class="tab-label">Delivery Receipt</span>
         <span class="tab-badge">{{ delivery_receipt_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="withdrawalSlipTab">
-        <span class="tab-icon">📝</span>
-        Withdrawal Slip
-        <span class="tab-badge">{{ withdrawal_slip_count }}</span>
-      </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="serviceInvoiceTab">
+      <button class="tab-button" type="button" role="tab" title="Service Invoice" aria-selected="false" data-tab-target="serviceInvoiceTab">
         <span class="tab-icon">🧾</span>
-        Service Invoice
+        <span class="tab-label">Service Invoice</span>
         <span class="tab-badge">{{ service_invoice_count }}</span>
       </button>
       <div class="nav-label" style="margin-top:14px;">Reports</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
+      <button class="tab-button" type="button" role="tab" title="Idle Days" aria-selected="false" data-tab-target="idleDaysTab">
         <span class="tab-icon">⏸</span>
-        Idle Days
+        <span class="tab-label">Idle Days</span>
         <span class="tab-badge">{{ idle_jobs_affected }}</span>
       </button>
     </nav>
@@ -77,16 +83,22 @@
       <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
       <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
       <div class="stat-row"><span>Delivery receipts</span><strong>{{ delivery_receipt_count }}</strong></div>
-      <div class="stat-row"><span>Withdrawal slips</span><strong>{{ withdrawal_slip_count }}</strong></div>
       <div class="stat-row"><span>Service invoices</span><strong>{{ service_invoice_count }}</strong></div>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <main class="main-content">
     <header class="topbar">
-      <div class="greeting">
-        <h2>Services Dashboard</h2>
-        <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, official business forms, delivery receipts, withdrawal slips, and service invoices.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="servicesSidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>Services Dashboard</h2>
+          <p>Create, save, review, and print service repair reports, borrow slips, job orders, travel orders, official business forms, delivery receipts, and service invoices.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -117,10 +129,6 @@
       <div class="stat-card">
         <div class="stat-label">Delivery Receipts</div>
         <div class="stat-value">{{ delivery_receipt_count }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Withdrawal Slips</div>
-        <div class="stat-value">{{ withdrawal_slip_count }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Service Invoices</div>
@@ -568,15 +576,6 @@
       {% include "includes/delivery_receipt_encode.html" %}
     </div>
 
-    <!-- Withdrawal Slip -->
-    <div id="withdrawalSlipTab" class="tab-panel">
-      <div class="panel-header no-print">
-        <h2>Withdrawal Slip</h2>
-        <p>Encode and print withdrawal slips for materials issued to a project or client.</p>
-      </div>
-      {% include "includes/withdrawal_slip_encode.html" %}
-    </div>
-
     <!-- Service Invoice -->
     <div id="serviceInvoiceTab" class="tab-panel">
       <div class="panel-header no-print">
@@ -603,5 +602,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/services.js' %}?v=si1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/services.js' %}?v=si3"></script>
 {% endblock %}

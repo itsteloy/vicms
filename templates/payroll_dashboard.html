@@ -6,31 +6,42 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/payroll.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/payroll.css' %}?v=1">
+<script>
+  try {
+    if (localStorage.getItem('payrollSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="payroll-page dashboard-wrapper">
-  <aside class="sidebar" role="navigation" aria-label="Payroll dashboard navigation">
+<div class="payroll-page dashboard-wrapper" data-sidebar-key="payrollSidebarCollapsed">
+  <aside class="sidebar" id="payrollSidebar" role="navigation" aria-label="Payroll dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;"> 
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="payrollSidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
     <nav class="sidebar-nav" aria-label="Payroll sections">
       <div class="nav-label">Payroll</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="payrunsTab">
-        <span class="tab-icon">💰</span> Pay Runs
+      <button class="tab-button" type="button" role="tab" title="Pay Runs" aria-selected="true" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> <span class="tab-label">Pay Runs</span>
         <span class="tab-badge">{{ runs|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deductionsTab">
-        <span class="tab-icon">📉</span> Deductions
+      <button class="tab-button" type="button" role="tab" title="Deductions" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> <span class="tab-label">Deductions</span>
         <span class="tab-badge">{{ deduction_configs|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="approvalsTab">
-        <span class="tab-icon">✅</span> Approvals
+      <button class="tab-button" type="button" role="tab" title="Approvals" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> <span class="tab-label">Approvals</span>
         <span class="tab-badge">{{ runs|length }}</span>
       </button>
     </nav>
@@ -39,12 +50,19 @@
       <div class="stat-row"><span>Pending approvals</span><strong>{{ runs|length }}</strong></div>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <main class="main-content">
     <header class="topbar">
-      <div class="greeting">
-        <h2>Payroll Dashboard</h2>
-        <p>Manage payroll runs, deductions, and approvals for VERSATEC.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="payrollSidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>Payroll Dashboard</h2>
+          <p>Manage payroll runs, deductions, and approvals for VERSATEC.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -633,5 +651,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/payroll.js' %}"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/payroll.js' %}?v=1"></script>
 {% endblock %}

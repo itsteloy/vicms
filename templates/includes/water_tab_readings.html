@@ -11,10 +11,10 @@
       <div class="panel-head">
         <div>
           <h2>New meter reading</h2>
-          <p class="sub">Current bill = ₱100 for 1–5 cu.m., otherwise consumption × ₱20. Total = current + previous unpaid + installment.</p>
+          <p class="sub">Current bill = ₱100 for 0–5 cu.m., otherwise consumption × ₱20. Total = current + previous unpaid + installment.</p>
         </div>
       </div>
-      <form method="post">
+      <form method="post" id="readingForm">
         {% csrf_token %}
         <input type="hidden" name="action" value="create_reading">
         <div class="form-grid">
@@ -33,6 +33,7 @@
                   data-label="{{ c.account_number }} – {{ c.display_name }}{% if c.connection_status == 'disconnected' %} ⚠ DISCONNECTED{% elif c.connection_status != 'active' %} ({{ c.get_connection_status_display|upper }}){% endif %}"
                   data-last="{{ c.last_current_reading|default_if_none:0 }}"
                   data-unpaid="{{ c.annotated_outstanding }}"
+                  data-unpaid-seed="{{ c.previous_unpaid_balance }}"
                   data-installment="{{ c.installment_balance }}"
                   data-status="{{ c.connection_status }}">
                   {{ c.account_number }} – {{ c.display_name }}{% if c.connection_status == 'disconnected' %} ⚠ DISCONNECTED{% elif c.connection_status != 'active' %} ({{ c.get_connection_status_display|upper }}){% endif %}
@@ -55,11 +56,11 @@
           </div>
           <div class="field">
             <label>Reader Name</label>
-            <input name="reader_name" value="James Pahilagao">
+            <input name="reader_name" id="readingReaderName" value="James Pahilagao">
           </div>
           <div class="field">
             <label>Estimated?</label>
-            <select name="is_estimated">
+            <select name="is_estimated" id="readingIsEstimated">
               <option value="">No</option>
               <option value="1">Yes</option>
             </select>
@@ -80,7 +81,7 @@
           </div>
           <div class="field">
             <label>Remarks</label>
-            <input name="remarks" placeholder="Optional">
+            <input name="remarks" id="readingRemarks" placeholder="Optional">
           </div>
 
           <div class="section-label">Charges</div>
@@ -90,7 +91,8 @@
           </div>
           <div class="field">
             <label>Previous Bill (Unpaid)</label>
-            <input type="text" id="previousBillUnpaid" value="0.00" readonly>
+            <input type="number" step="0.01" name="previous_bill_unpaid" id="previousBillUnpaid" value="0.00" title="Use a negative value for advance / overpayment credit">
+            <p class="field-hint" style="margin:4px 0 0;font-size:0.75rem;color:var(--muted,#667085);">Negative = advance payment (credit)</p>
           </div>
           <div class="field">
             <label>Water Installment Bal</label>
@@ -108,7 +110,9 @@
           <div class="t-item"><div class="t-label">Installment</div><div class="t-value" id="stripInstallment">₱0.00</div></div>
           <div class="t-item"><div class="t-label">Total due</div><div class="t-value" id="stripTotal">₱0.00</div></div>
         </div>
-        <div class="form-actions"><button type="submit" class="primary">Save reading</button></div>
+        <div class="form-actions">
+          <button type="submit" class="primary">Save reading</button>
+        </div>
       </form>
     </div>
   </div>
@@ -145,5 +149,87 @@
       </form>
       {% include "includes/water_reading_list.html" %}
     </div>
+  </div>
+</div>
+
+<div id="editReadingModal" class="wb-modal-overlay" hidden aria-hidden="true">
+  <div class="wb-modal-card" role="dialog" aria-modal="true" aria-labelledby="editReadingTitle">
+    <div class="wb-modal-head">
+      <div>
+        <h2 id="editReadingTitle">Edit meter reading</h2>
+        <p class="sub" id="editReadingCustomerLabel"></p>
+      </div>
+      <button type="button" class="wb-modal-close" id="editReadingClose" aria-label="Close">&times;</button>
+    </div>
+    <form method="post" id="editReadingForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_reading">
+      <input type="hidden" name="reading_id" id="editReadingId" value="">
+      <input type="hidden" name="customer_id" id="editReadingCustomerId" value="">
+      <div class="form-grid">
+        <div class="field">
+          <label for="editReadingDate">Reading Date *</label>
+          <input type="date" name="reading_date" id="editReadingDate" required>
+        </div>
+        <div class="field">
+          <label for="editBillingPeriod">Billing Period *</label>
+          <input type="month" name="billing_period" id="editBillingPeriod" required>
+        </div>
+        <div class="field">
+          <label for="editReaderName">Reader Name</label>
+          <input name="reader_name" id="editReaderName">
+        </div>
+        <div class="field">
+          <label for="editIsEstimated">Estimated?</label>
+          <select name="is_estimated" id="editIsEstimated">
+            <option value="">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="editPreviousReading">Previous</label>
+          <input type="number" min="0" name="previous_reading" id="editPreviousReading" value="0">
+        </div>
+        <div class="field">
+          <label for="editCurrentReading">Present *</label>
+          <input type="number" min="0" name="current_reading" id="editCurrentReading" required>
+        </div>
+        <div class="field">
+          <label for="editReadingConsumption">Consumption (cu.m)</label>
+          <input type="text" id="editReadingConsumption" value="0" readonly>
+        </div>
+        <div class="field">
+          <label for="editReadingRemarks">Remarks</label>
+          <input name="remarks" id="editReadingRemarks" placeholder="Optional">
+        </div>
+        <div class="field">
+          <label for="editReadingCurrentBill">Current Bill</label>
+          <input type="text" id="editReadingCurrentBill" value="0.00" readonly>
+        </div>
+        <div class="field">
+          <label for="editPreviousBillUnpaid">Previous Bill (Unpaid)</label>
+          <input type="number" step="0.01" name="previous_bill_unpaid" id="editPreviousBillUnpaid" value="0.00" title="Use a negative value for advance / overpayment credit">
+        </div>
+        <div class="field">
+          <label for="editInstallmentBalance">Water Installment Bal</label>
+          <input type="number" step="0.01" min="0" name="installment_balance" id="editInstallmentBalance" value="0.00">
+        </div>
+        <div class="field">
+          <label for="editReadingTotalBill">Total Bill</label>
+          <input type="text" id="editReadingTotalBill" value="0.00" readonly>
+        </div>
+      </div>
+      <div class="totals-strip" aria-hidden="true">
+        <div class="t-item"><div class="t-label">Consumption</div><div class="t-value" id="editStripConsumption">0 cu.m</div></div>
+        <div class="t-item"><div class="t-label">Current</div><div class="t-value" id="editStripCurrent">₱0.00</div></div>
+        <div class="t-item"><div class="t-label">Unpaid</div><div class="t-value" id="editStripUnpaid">₱0.00</div></div>
+        <div class="t-item"><div class="t-label">Installment</div><div class="t-value" id="editStripInstallment">₱0.00</div></div>
+        <div class="t-item"><div class="t-label">Total due</div><div class="t-value" id="editStripTotal">₱0.00</div></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="action" id="editReadingCancel">Cancel</button>
+        <button type="submit" class="primary">Update reading</button>
+      </div>
+    </form>
   </div>
 </div>

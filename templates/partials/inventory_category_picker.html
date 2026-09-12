@@ -6,7 +6,7 @@
     value="{{ picker_value|default:'' }}"
     {% if picker_required %}required{% endif %}
   >
-  <button type="button" class="cat-picker-trigger" aria-haspopup="menu" aria-expanded="false">
+  <button type="button" class="cat-picker-trigger" id="{{ picker_id }}_trigger" aria-haspopup="menu" aria-expanded="false">
     <span class="cat-picker-value is-placeholder">{{ picker_placeholder }}</span>
     <span class="cat-picker-chevron" aria-hidden="true">▾</span>
   </button>

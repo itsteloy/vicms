@@ -22,7 +22,6 @@
     disconnectTab: document.getElementById('disconnectTab'),
     reportsTab: document.getElementById('reportsTab'),
     auditTab: document.getElementById('auditTab'),
-    helpTab: document.getElementById('helpTab'),
   };
   const buttons = Array.from(document.querySelectorAll('.tab-button[data-tab-target]'));
 
@@ -417,12 +416,28 @@
   const installmentBalance = document.getElementById('installmentBalance');
   const readingTotalBill = document.getElementById('readingTotalBill');
     const readingCustomerWarning = document.getElementById('readingCustomerWarning');
+    const editModal = document.getElementById('editReadingModal');
+    const editReadingId = document.getElementById('editReadingId');
+    const editReadingCustomerId = document.getElementById('editReadingCustomerId');
+    const editReadingCustomerLabel = document.getElementById('editReadingCustomerLabel');
+    const editReadingDate = document.getElementById('editReadingDate');
+    const editBillingPeriod = document.getElementById('editBillingPeriod');
+    const editReaderName = document.getElementById('editReaderName');
+    const editIsEstimated = document.getElementById('editIsEstimated');
+    const editPreviousReading = document.getElementById('editPreviousReading');
+    const editCurrentReading = document.getElementById('editCurrentReading');
+    const editReadingConsumption = document.getElementById('editReadingConsumption');
+    const editReadingRemarks = document.getElementById('editReadingRemarks');
+    const editReadingCurrentBill = document.getElementById('editReadingCurrentBill');
+    const editPreviousBillUnpaid = document.getElementById('editPreviousBillUnpaid');
+    const editInstallmentBalance = document.getElementById('editInstallmentBalance');
+    const editReadingTotalBill = document.getElementById('editReadingTotalBill');
 
   function updateReadingTotals() {
     const prev = Number(previousReading?.value || 0);
     const curr = Number(currentReading?.value || 0);
       const consumption = curr - prev;
-    const currentBill = (consumption >= 1 && consumption <= MIN_CHARGE_MAX_CUM)
+    const currentBill = (consumption >= 0 && consumption <= MIN_CHARGE_MAX_CUM)
       ? MIN_CHARGE
       : consumption * RATE_PER_CUM;
     const unpaid = Number(previousBillUnpaid?.value || 0);
@@ -443,6 +458,61 @@
     if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
   }
 
+    function updateEditReadingTotals() {
+      const prev = Number(editPreviousReading?.value || 0);
+      const curr = Number(editCurrentReading?.value || 0);
+      const consumption = curr - prev;
+      const currentBill = (consumption >= 0 && consumption <= MIN_CHARGE_MAX_CUM)
+        ? MIN_CHARGE
+        : consumption * RATE_PER_CUM;
+      const unpaid = Number(editPreviousBillUnpaid?.value || 0);
+      const installment = Number(editInstallmentBalance?.value || 0);
+      const total = currentBill + unpaid + installment;
+      if (editReadingConsumption) editReadingConsumption.value = String(consumption);
+      if (editReadingCurrentBill) editReadingCurrentBill.value = currentBill.toFixed(2);
+      if (editReadingTotalBill) editReadingTotalBill.value = total.toFixed(2);
+      const stripConsumption = document.getElementById('editStripConsumption');
+      const stripCurrent = document.getElementById('editStripCurrent');
+      const stripUnpaid = document.getElementById('editStripUnpaid');
+      const stripInstallment = document.getElementById('editStripInstallment');
+      const stripTotal = document.getElementById('editStripTotal');
+      if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
+      if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
+      if (stripUnpaid) stripUnpaid.textContent = `₱${unpaid.toFixed(2)}`;
+      if (stripInstallment) stripInstallment.textContent = `₱${installment.toFixed(2)}`;
+      if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
+    }
+
+    function closeEditReadingModal() {
+      if (!editModal) return;
+      editModal.hidden = true;
+      editModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('wb-modal-open');
+    }
+
+    function openEditReadingModal(btn) {
+      if (!editModal || !btn) return;
+      if (editReadingId) editReadingId.value = btn.dataset.id || '';
+      if (editReadingCustomerId) editReadingCustomerId.value = btn.dataset.customerId || '';
+      if (editReadingCustomerLabel) {
+        editReadingCustomerLabel.textContent = btn.dataset.customerLabel || '';
+      }
+      if (editReadingDate) editReadingDate.value = btn.dataset.readingDate || '';
+      if (editBillingPeriod) editBillingPeriod.value = btn.dataset.billingPeriod || '';
+      if (editPreviousReading) editPreviousReading.value = btn.dataset.previous ?? '0';
+      if (editCurrentReading) editCurrentReading.value = btn.dataset.current ?? '';
+      if (editPreviousBillUnpaid) editPreviousBillUnpaid.value = Number(btn.dataset.unpaid || 0).toFixed(2);
+      if (editInstallmentBalance) editInstallmentBalance.value = Number(btn.dataset.installment || 0).toFixed(2);
+      if (editReaderName) editReaderName.value = btn.dataset.reader || 'James Pahilagao';
+      if (editIsEstimated) editIsEstimated.value = btn.dataset.estimated === '1' ? '1' : '';
+      if (editReadingRemarks) editReadingRemarks.value = btn.dataset.remarks || '';
+      updateEditReadingTotals();
+      editModal.hidden = false;
+      editModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('wb-modal-open');
+      editCurrentReading?.focus();
+    }
+
     function applyReadingCustomer(item) {
       const status = item?.dataset?.status || readingCustomer?.dataset?.status || '';
       if (readingCustomerWarning) {
@@ -457,7 +527,10 @@
         return;
       }
       if (previousReading) previousReading.value = item.dataset.last ?? '0';
-      if (previousBillUnpaid) previousBillUnpaid.value = Number(item.dataset.unpaid || 0).toFixed(2);
+      if (previousBillUnpaid) {
+        const unpaidVal = Number(item.dataset.unpaid);
+        previousBillUnpaid.value = Number.isFinite(unpaidVal) ? unpaidVal.toFixed(2) : '0.00';
+      }
       if (installmentBalance) installmentBalance.value = Number(item.dataset.installment || 0).toFixed(2);
       if (currentReading) currentReading.value = '';
       updateReadingTotals();
@@ -568,10 +641,23 @@
       });
       applyReadingCustomer(null);
   }
-  [previousReading, currentReading, installmentBalance].forEach((el) => {
+  [previousReading, currentReading, previousBillUnpaid, installmentBalance].forEach((el) => {
     if (el) el.addEventListener('input', updateReadingTotals);
   });
   updateReadingTotals();
+  [editPreviousReading, editCurrentReading, editPreviousBillUnpaid, editInstallmentBalance].forEach((el) => {
+    if (el) el.addEventListener('input', updateEditReadingTotals);
+  });
+  document.getElementById('editReadingClose')?.addEventListener('click', closeEditReadingModal);
+  document.getElementById('editReadingCancel')?.addEventListener('click', closeEditReadingModal);
+  editModal?.addEventListener('click', (event) => {
+    if (event.target === editModal) closeEditReadingModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && editModal && !editModal.hidden) {
+      closeEditReadingModal();
+    }
+  });
 
     const readingZoneFilter = document.getElementById('readingZoneFilter');
     const readingSearch = document.getElementById('readingSearch');
@@ -637,6 +723,12 @@
     document.querySelectorAll('.reading-subnav-btn').forEach((btn) => {
       btn.addEventListener('click', () => setReadingView(btn.dataset.readingPanel));
     });
+    readingsTab?.addEventListener('click', (event) => {
+      const editBtn = event.target.closest('.reading-edit-btn');
+      if (!editBtn || !readingsTab.contains(editBtn)) return;
+      event.preventDefault();
+      openEditReadingModal(editBtn);
+    });
     const readingLoc = new URL(window.location.href);
     const readingViewParam = readingLoc.searchParams.get('reading_view');
     const readingPageParam = readingLoc.searchParams.get('page');
@@ -672,38 +764,349 @@
     const paymentBillSearch = document.getElementById('paymentBillSearch');
     const paymentBillList = document.getElementById('paymentBillList');
     const paymentBillCombo = document.getElementById('paymentBillCombo');
+    const paymentBillField = document.getElementById('paymentBillField');
+    const paymentInstallField = document.getElementById('paymentInstallField');
+    const paymentInstallCustomer = document.getElementById('paymentInstallCustomer');
+    const paymentInstallSearch = document.getElementById('paymentInstallSearch');
+    const paymentInstallList = document.getElementById('paymentInstallList');
+    const paymentInstallCombo = document.getElementById('paymentInstallCombo');
+    const paymentPurposeBill = document.getElementById('paymentPurposeBill');
+    const paymentPurposeInstall = document.getElementById('paymentPurposeInstall');
+    const paymentPurposeCombined = document.getElementById('paymentPurposeCombined');
+    const paymentPurposeOther = document.getElementById('paymentPurposeOther');
+    const payBalanceLabel = document.getElementById('payBalanceLabel');
     const paymentAmount = document.getElementById('paymentAmount');
+    const paymentAmountField = document.getElementById('paymentAmountField');
+    const paymentBillAmount = document.getElementById('paymentBillAmount');
+    const paymentInstallAmount = document.getElementById('paymentInstallAmount');
+    const paymentBillAmountField = document.getElementById('paymentBillAmountField');
+    const paymentInstallAmountField = document.getElementById('paymentInstallAmountField');
+    const paymentRemarks = document.getElementById('paymentRemarks');
+    const paymentReceiptField = document.getElementById('paymentReceiptField');
+    const paymentReceiptHint = document.getElementById('paymentReceiptHint');
+    const paymentMethodField = document.getElementById('paymentMethodField');
+    const paymentReferenceField = document.getElementById('paymentReferenceField');
+    const paymentReceivedByField = document.getElementById('paymentReceivedByField');
+    const paymentOtherReceivedFromField = document.getElementById('paymentOtherReceivedFromField');
+    const paymentOtherAddressField = document.getElementById('paymentOtherAddressField');
+    const paymentOtherPaymentOfField = document.getElementById('paymentOtherPaymentOfField');
+    const paymentAmountReceivedStatus = document.getElementById('paymentAmountReceivedStatus');
+    const paymentReceivedFrom = document.getElementById('paymentReceivedFrom');
+    const paymentAddress = document.getElementById('paymentAddress');
+    const paymentOf = document.getElementById('paymentOf');
+    const paymentCombinedInstallWarning = document.getElementById('paymentCombinedInstallWarning');
+    const paymentSummarySingle = document.getElementById('paymentSummarySingle');
+    const paymentSummaryCombined = document.getElementById('paymentSummaryCombined');
     const payBalanceDisplay = document.getElementById('payBalanceDisplay');
     const payAmountDisplay = document.getElementById('payAmountDisplay');
     const payRemainingDisplay = document.getElementById('payRemainingDisplay');
+    const paymentRecordForm = document.getElementById('paymentRecordForm');
+
+    function paymentPurpose() {
+      if (paymentPurposeOther?.checked) return 'other';
+      if (paymentPurposeCombined?.checked) return 'combined';
+      if (paymentPurposeInstall?.checked) return 'installation';
+      return 'bill';
+    }
+    function isInstallPurpose() {
+      return paymentPurpose() === 'installation';
+    }
+    function isCombinedPurpose() {
+      return paymentPurpose() === 'combined';
+    }
+    function isOtherPurpose() {
+      return paymentPurpose() === 'other';
+    }
     function formatPeso(value) {
       const num = Number(value || 0);
       return `₱${num.toFixed(2)}`;
     }
-    function selectedBillBalance() {
+    function selectedBalance() {
+      if (isInstallPurpose()) {
+        return Number(paymentInstallCustomer?.dataset?.balance || 0);
+      }
       return Number(paymentBill?.dataset?.balance || 0);
     }
     function syncPaymentSummary() {
-      const balance = selectedBillBalance();
+      if (isCombinedPurpose()) {
+        const billBal = Number(paymentBill?.dataset?.balance || 0);
+        const installBal = Number(paymentInstallCustomer?.dataset?.balance || 0);
+        const billAmt = Number(paymentBillAmount?.value || 0);
+        const installAmt = Number(paymentInstallAmount?.value || 0);
+        const billRemaining = billBal - billAmt;
+        const installRemaining = installBal - installAmt;
+        const billBalEl = document.getElementById('payCombinedBillBal');
+        const billAmtEl = document.getElementById('payCombinedBillAmt');
+        const installBalEl = document.getElementById('payCombinedInstallBal');
+        const installAmtEl = document.getElementById('payCombinedInstallAmt');
+        const totalEl = document.getElementById('payCombinedTotal');
+        const remainEl = document.getElementById('payCombinedRemain');
+        const remainLabel = document.getElementById('payCombinedRemainLabel');
+        const installRemainEl = document.getElementById('payCombinedInstallRemain');
+        const installRemainLabel = document.getElementById('payCombinedInstallRemainLabel');
+        if (billBalEl) billBalEl.textContent = formatPeso(billBal);
+        if (billAmtEl) billAmtEl.textContent = formatPeso(billAmt);
+        if (installBalEl) installBalEl.textContent = formatPeso(installBal);
+        if (installAmtEl) installAmtEl.textContent = formatPeso(installAmt);
+        if (totalEl) totalEl.textContent = formatPeso(billAmt + installAmt);
+        if (remainEl) remainEl.textContent = formatPeso(billRemaining);
+        if (remainLabel) {
+          remainLabel.textContent = billRemaining < 0 ? 'Bill advance credit' : 'Bill remaining';
+        }
+        if (installRemainEl) installRemainEl.textContent = formatPeso(Math.max(installRemaining, 0));
+        if (installRemainLabel) {
+          installRemainLabel.textContent = 'Install remaining';
+        }
+        return;
+      }
+      const balance = selectedBalance();
       const amount = Number(paymentAmount?.value || 0);
+      const remaining = balance - amount;
       if (payBalanceDisplay) payBalanceDisplay.textContent = formatPeso(balance);
       if (payAmountDisplay) payAmountDisplay.textContent = formatPeso(amount);
-      if (payRemainingDisplay) payRemainingDisplay.textContent = formatPeso(Math.max(balance - amount, 0));
+      if (payRemainingDisplay) payRemainingDisplay.textContent = formatPeso(remaining);
+      const remainingLabel = document.getElementById('payRemainingLabel');
+      if (remainingLabel) {
+        remainingLabel.textContent = remaining < 0 ? 'Advance credit' : 'Remaining after pay';
+      }
+    }
+    function clearPaymentBill() {
+      if (paymentBill) {
+        paymentBill.value = '';
+        paymentBill.dataset.balance = '';
+        paymentBill.dataset.customerId = '';
+        paymentBill.dataset.installment = '';
+      }
+      if (paymentBillSearch) {
+        paymentBillSearch.value = '';
+        paymentBillSearch.setCustomValidity('Please select a bill from the list.');
+      }
+    }
+    function clearPaymentInstall() {
+      if (paymentInstallCustomer) {
+        paymentInstallCustomer.value = '';
+        paymentInstallCustomer.dataset.balance = '';
+      }
+      if (paymentInstallSearch) {
+        paymentInstallSearch.value = '';
+        if (isInstallPurpose() || isCombinedPurpose()) {
+          paymentInstallSearch.setCustomValidity('Please select a customer from the list.');
+        } else {
+          paymentInstallSearch.setCustomValidity('');
+        }
+      }
+    }
+    function findInstallItemByCustomerId(customerId) {
+      if (!paymentInstallList || !customerId) return null;
+      return paymentInstallList.querySelector(`.bill-combobox-item[data-id="${customerId}"]`);
+    }
+    function syncCombinedInstallFromBill(item) {
+      if (!isCombinedPurpose()) return;
+      const warning = paymentCombinedInstallWarning;
+      const customerId = item?.dataset?.customerId || '';
+      const installment = Number(item?.dataset?.installment || 0);
+      if (!customerId || installment <= 0) {
+        clearPaymentInstall();
+        if (paymentInstallAmount) paymentInstallAmount.value = '';
+        if (warning) warning.hidden = false;
+        if (paymentInstallSearch) {
+          paymentInstallSearch.setCustomValidity(
+            'Selected bill customer has no installation balance. Choose another bill or use Water bill only.'
+          );
+        }
+        syncPaymentSummary();
+        return;
+      }
+      if (warning) warning.hidden = true;
+      const installItem = findInstallItemByCustomerId(customerId);
+      if (installItem) {
+        setPaymentInstallCustomer(installItem, { fromCombined: true });
+      } else {
+        // Customer has installment on the bill row but may not be in the install list cache.
+        if (paymentInstallCustomer) {
+          paymentInstallCustomer.value = customerId;
+          paymentInstallCustomer.dataset.balance = String(installment);
+        }
+        if (paymentInstallSearch) {
+          paymentInstallSearch.value = `${item.dataset.label || ''} · installment ₱${installment.toFixed(2)}`;
+          paymentInstallSearch.setCustomValidity('');
+        }
+        if (paymentInstallAmount) paymentInstallAmount.value = installment.toFixed(2);
+      }
+      syncPaymentSummary();
+    }
+    function syncPaymentPurpose() {
+      const purpose = paymentPurpose();
+      const install = purpose === 'installation';
+      const combined = purpose === 'combined';
+      const other = purpose === 'other';
+      const showBill = !install && !other;
+      const showInstall = install || combined;
+
+      if (paymentReceiptField) paymentReceiptField.hidden = other;
+      if (paymentMethodField) paymentMethodField.hidden = other;
+      if (paymentReferenceField) paymentReferenceField.hidden = other;
+      if (paymentReceivedByField) paymentReceivedByField.hidden = other;
+      if (paymentOtherReceivedFromField) paymentOtherReceivedFromField.hidden = !other;
+      if (paymentOtherAddressField) paymentOtherAddressField.hidden = !other;
+      if (paymentOtherPaymentOfField) paymentOtherPaymentOfField.hidden = !other;
+      if (paymentAmountReceivedStatus) {
+        paymentAmountReceivedStatus.hidden = !other;
+        paymentAmountReceivedStatus.disabled = !other;
+        if (!other) paymentAmountReceivedStatus.value = 'not_received';
+      }
+
+      if (paymentBillField) paymentBillField.hidden = !showBill;
+      if (paymentInstallField) paymentInstallField.hidden = !showInstall;
+      if (paymentAmountField) paymentAmountField.hidden = combined;
+      if (paymentBillAmountField) paymentBillAmountField.hidden = !combined;
+      if (paymentInstallAmountField) paymentInstallAmountField.hidden = !combined;
+      if (paymentSummarySingle) {
+        paymentSummarySingle.hidden = combined || other;
+        paymentSummarySingle.setAttribute('aria-hidden', (combined || other) ? 'true' : 'false');
+      }
+      if (paymentSummaryCombined) {
+        paymentSummaryCombined.hidden = !combined;
+        paymentSummaryCombined.setAttribute('aria-hidden', combined ? 'false' : 'true');
+      }
+      if (paymentReceiptHint) paymentReceiptHint.hidden = !combined;
+      if (paymentCombinedInstallWarning && !combined) paymentCombinedInstallWarning.hidden = true;
+
+      if (payBalanceLabel) {
+        payBalanceLabel.textContent = install ? 'Installment balance' : 'Bill balance';
+      }
+
+      if (paymentBill) paymentBill.disabled = install || other;
+      if (paymentBillSearch) {
+        paymentBillSearch.disabled = install || other;
+        paymentBillSearch.required = showBill;
+        if (install || other) paymentBillSearch.setCustomValidity('');
+        else if (!paymentBill.value) {
+          paymentBillSearch.setCustomValidity('Please select a bill from the list.');
+        }
+      }
+      if (paymentAmount) {
+        paymentAmount.disabled = combined;
+        paymentAmount.required = !combined;
+        if (combined) paymentAmount.value = '';
+      }
+      if (paymentBillAmount) {
+        paymentBillAmount.disabled = !combined;
+        paymentBillAmount.required = combined;
+        if (!combined) paymentBillAmount.value = '';
+      }
+      if (paymentInstallAmount) {
+        paymentInstallAmount.disabled = !combined;
+        paymentInstallAmount.required = combined;
+        if (!combined) paymentInstallAmount.value = '';
+      }
+      if (paymentReceivedFrom) {
+        paymentReceivedFrom.disabled = !other;
+        paymentReceivedFrom.required = other;
+        if (!other) paymentReceivedFrom.value = '';
+      }
+      if (paymentAddress) {
+        paymentAddress.disabled = !other;
+        if (!other) paymentAddress.value = '';
+      }
+      if (paymentOf) {
+        paymentOf.disabled = !other;
+        paymentOf.required = other;
+        if (!other) paymentOf.value = '';
+      }
+
+      // Installation picker: interactive only in install-only mode; locked in combined.
+      if (paymentInstallCustomer) paymentInstallCustomer.disabled = !showInstall;
+      if (paymentInstallSearch) {
+        paymentInstallSearch.disabled = !install;
+        paymentInstallSearch.readOnly = combined;
+        paymentInstallSearch.required = showInstall;
+        if (!showInstall) paymentInstallSearch.setCustomValidity('');
+        else if (!paymentInstallCustomer.value) {
+          paymentInstallSearch.setCustomValidity('Please select a customer from the list.');
+        }
+      }
+
+      if (other) {
+        closePaymentBillList();
+        closePaymentInstallList();
+        clearPaymentBill();
+        clearPaymentInstall();
+        if (paymentRemarks) paymentRemarks.placeholder = 'Optional';
+      } else if (install) {
+        closePaymentBillList();
+        clearPaymentBill();
+        if (paymentRemarks && !paymentRemarks.value.trim()) {
+          paymentRemarks.placeholder = 'Installation fee';
+        }
+      } else if (combined) {
+        closePaymentInstallList();
+        if (paymentRemarks) paymentRemarks.placeholder = 'Optional (applies to both lines)';
+        if (paymentBill?.value) {
+          const selected = paymentBillList?.querySelector(`.bill-combobox-item[data-id="${paymentBill.value}"]`);
+          if (selected) syncCombinedInstallFromBill(selected);
+        } else {
+          clearPaymentInstall();
+        }
+      } else {
+        closePaymentInstallList();
+        clearPaymentInstall();
+        if (paymentRemarks) paymentRemarks.placeholder = 'Optional';
+      }
+      if (!combined && paymentAmount && (install || purpose === 'bill')) paymentAmount.value = '';
+      syncPaymentSummary();
     }
     function setPaymentBill(item) {
       if (!paymentBill || !paymentBillSearch) return;
       if (!item) {
-        paymentBill.value = '';
-        paymentBill.dataset.balance = '';
-        paymentBillSearch.setCustomValidity('Please select a bill from the list.');
+        clearPaymentBill();
+        if (isCombinedPurpose()) {
+          clearPaymentInstall();
+          if (paymentBillAmount) paymentBillAmount.value = '';
+          if (paymentInstallAmount) paymentInstallAmount.value = '';
+          if (paymentCombinedInstallWarning) paymentCombinedInstallWarning.hidden = true;
+        }
         syncPaymentSummary();
         return;
       }
       paymentBill.value = item.dataset.id || '';
       paymentBill.dataset.balance = item.dataset.balance || '0';
+      paymentBill.dataset.customerId = item.dataset.customerId || '';
+      paymentBill.dataset.installment = item.dataset.installment || '0';
       paymentBillSearch.value = item.dataset.label || item.textContent.trim();
       paymentBillSearch.setCustomValidity('');
-      if (paymentAmount && item.dataset.balance) paymentAmount.value = item.dataset.balance;
+      if (isCombinedPurpose()) {
+        if (paymentBillAmount && item.dataset.balance) {
+          paymentBillAmount.value = Number(item.dataset.balance).toFixed(2);
+        }
+        syncCombinedInstallFromBill(item);
+      } else if (paymentAmount && item.dataset.balance) {
+        paymentAmount.value = item.dataset.balance;
+      }
+      syncPaymentSummary();
+    }
+    function setPaymentInstallCustomer(item, opts) {
+      if (!paymentInstallCustomer || !paymentInstallSearch) return;
+      const fromCombined = Boolean(opts && opts.fromCombined);
+      if (!item) {
+        clearPaymentInstall();
+        syncPaymentSummary();
+        return;
+      }
+      paymentInstallCustomer.value = item.dataset.id || '';
+      paymentInstallCustomer.dataset.balance = item.dataset.balance || '0';
+      paymentInstallSearch.value = item.dataset.label || item.textContent.trim();
+      paymentInstallSearch.setCustomValidity('');
+      if (isCombinedPurpose() || fromCombined) {
+        if (paymentInstallAmount && item.dataset.balance) {
+          paymentInstallAmount.value = Number(item.dataset.balance).toFixed(2);
+        }
+      } else if (paymentAmount && item.dataset.balance) {
+        paymentAmount.value = item.dataset.balance;
+      }
+      if (!fromCombined && paymentRemarks && !paymentRemarks.value.trim()) {
+        paymentRemarks.value = 'Installation fee';
+      }
       syncPaymentSummary();
     }
     function filterPaymentBills() {
@@ -719,6 +1122,19 @@
       const noMatch = document.getElementById('paymentBillNoMatch');
       if (noMatch) noMatch.hidden = visible > 0;
     }
+    function filterPaymentInstallCustomers() {
+      if (!paymentInstallList || !paymentInstallSearch) return;
+      const query = paymentInstallSearch.value.trim().toLowerCase();
+      let visible = 0;
+      paymentInstallList.querySelectorAll('.bill-combobox-item').forEach((item) => {
+        const name = (item.dataset.name || '').toLowerCase();
+        const match = !query || name.includes(query);
+        item.hidden = !match;
+        if (match) visible += 1;
+      });
+      const noMatch = document.getElementById('paymentInstallNoMatch');
+      if (noMatch) noMatch.hidden = visible > 0;
+    }
     function positionPaymentBillList() {
       if (!paymentBillList || !paymentBillSearch) return;
       const rect = paymentBillSearch.getBoundingClientRect();
@@ -726,7 +1142,15 @@
       paymentBillList.style.top = `${rect.bottom + 4}px`;
       paymentBillList.style.width = `${Math.max(rect.width, 280)}px`;
     }
+    function positionPaymentInstallList() {
+      if (!paymentInstallList || !paymentInstallSearch) return;
+      const rect = paymentInstallSearch.getBoundingClientRect();
+      paymentInstallList.style.left = `${rect.left}px`;
+      paymentInstallList.style.top = `${rect.bottom + 4}px`;
+      paymentInstallList.style.width = `${Math.max(rect.width, 280)}px`;
+    }
     function openPaymentBillList() {
+      if (isInstallPurpose() || isOtherPurpose()) return;
       filterPaymentBills();
       positionPaymentBillList();
       if (paymentBillList.parentElement !== document.body) {
@@ -740,14 +1164,41 @@
         paymentBillCombo.appendChild(paymentBillList);
       }
     }
+    function openPaymentInstallList() {
+      if (!isInstallPurpose()) return;
+      filterPaymentInstallCustomers();
+      positionPaymentInstallList();
+      if (paymentInstallList.parentElement !== document.body) {
+        document.body.appendChild(paymentInstallList);
+      }
+      paymentInstallList.classList.add('is-open');
+    }
+    function closePaymentInstallList() {
+      paymentInstallList?.classList.remove('is-open');
+      if (paymentInstallCombo && paymentInstallList && paymentInstallList.parentElement !== paymentInstallCombo) {
+        paymentInstallCombo.appendChild(paymentInstallList);
+      }
+    }
+    paymentPurposeBill?.addEventListener('change', syncPaymentPurpose);
+    paymentPurposeInstall?.addEventListener('change', syncPaymentPurpose);
+    paymentPurposeCombined?.addEventListener('change', syncPaymentPurpose);
+    paymentPurposeOther?.addEventListener('change', syncPaymentPurpose);
     if (paymentBillSearch && paymentBillList && paymentBill) {
       paymentBillSearch.setCustomValidity('Please select a bill from the list.');
       paymentBillSearch.addEventListener('focus', openPaymentBillList);
       paymentBillSearch.addEventListener('input', () => {
         paymentBill.value = '';
         paymentBill.dataset.balance = '';
+        paymentBill.dataset.customerId = '';
+        paymentBill.dataset.installment = '';
         paymentBillSearch.setCustomValidity('Please select a bill from the list.');
         if (paymentAmount) paymentAmount.value = '';
+        if (paymentBillAmount) paymentBillAmount.value = '';
+        if (isCombinedPurpose()) {
+          clearPaymentInstall();
+          if (paymentInstallAmount) paymentInstallAmount.value = '';
+          if (paymentCombinedInstallWarning) paymentCombinedInstallWarning.hidden = true;
+        }
         syncPaymentSummary();
         openPaymentBillList();
       });
@@ -758,52 +1209,130 @@
         setPaymentBill(item);
         closePaymentBillList();
       });
-      if (!paymentChromeBound) {
-        paymentChromeBound = true;
-        document.addEventListener('click', (event) => {
-          const list = document.getElementById('paymentBillList');
-          const combo = document.getElementById('paymentBillCombo');
-          if (!list || !list.classList.contains('is-open')) return;
-          const inCombo = combo?.contains(event.target);
-          const inList = list.contains(event.target);
-          if (!inCombo && !inList) {
-            list.classList.remove('is-open');
-            if (combo && list.parentElement !== combo) combo.appendChild(list);
-          }
-        });
-        window.addEventListener('resize', () => {
-          const list = document.getElementById('paymentBillList');
-          const search = document.getElementById('paymentBillSearch');
-          if (!list || !search || !list.classList.contains('is-open')) return;
-          const rect = search.getBoundingClientRect();
-          list.style.left = `${rect.left}px`;
-          list.style.top = `${rect.bottom + 4}px`;
-          list.style.width = `${Math.max(rect.width, 280)}px`;
-        });
-        window.addEventListener('scroll', () => {
-          const list = document.getElementById('paymentBillList');
-          const search = document.getElementById('paymentBillSearch');
-          if (!list || !search || !list.classList.contains('is-open')) return;
-          const rect = search.getBoundingClientRect();
-          list.style.left = `${rect.left}px`;
-          list.style.top = `${rect.bottom + 4}px`;
-          list.style.width = `${Math.max(rect.width, 280)}px`;
-        }, true);
-      }
       paymentBillSearch.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') closePaymentBillList();
       });
-      if (paymentAmount) paymentAmount.addEventListener('input', syncPaymentSummary);
-      syncPaymentSummary();
-    } else if (paymentBill && paymentAmount) {
-      paymentBill.addEventListener('change', () => {
-        const opt = paymentBill.selectedOptions[0];
-        if (opt?.dataset?.balance) paymentAmount.value = opt.dataset.balance;
-        syncPaymentSummary();
-      });
-      paymentAmount.addEventListener('input', syncPaymentSummary);
-      syncPaymentSummary();
     }
+    if (paymentInstallSearch && paymentInstallList && paymentInstallCustomer) {
+      paymentInstallSearch.addEventListener('focus', openPaymentInstallList);
+      paymentInstallSearch.addEventListener('input', () => {
+        if (isCombinedPurpose()) return;
+        paymentInstallCustomer.value = '';
+        paymentInstallCustomer.dataset.balance = '';
+        paymentInstallSearch.setCustomValidity('Please select a customer from the list.');
+        if (paymentAmount) paymentAmount.value = '';
+        syncPaymentSummary();
+        openPaymentInstallList();
+      });
+      paymentInstallList.addEventListener('mousedown', (event) => {
+        const item = event.target.closest('.bill-combobox-item');
+        if (!item || item.hidden) return;
+        event.preventDefault();
+        setPaymentInstallCustomer(item);
+        closePaymentInstallList();
+      });
+      paymentInstallSearch.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closePaymentInstallList();
+      });
+    }
+    if (!paymentChromeBound) {
+      paymentChromeBound = true;
+      document.addEventListener('click', (event) => {
+        const billList = document.getElementById('paymentBillList');
+        const billCombo = document.getElementById('paymentBillCombo');
+        if (billList?.classList.contains('is-open')) {
+          const inCombo = billCombo?.contains(event.target);
+          const inList = billList.contains(event.target);
+          if (!inCombo && !inList) {
+            billList.classList.remove('is-open');
+            if (billCombo && billList.parentElement !== billCombo) billCombo.appendChild(billList);
+          }
+        }
+        const installList = document.getElementById('paymentInstallList');
+        const installCombo = document.getElementById('paymentInstallCombo');
+        if (installList?.classList.contains('is-open')) {
+          const inCombo = installCombo?.contains(event.target);
+          const inList = installList.contains(event.target);
+          if (!inCombo && !inList) {
+            installList.classList.remove('is-open');
+            if (installCombo && installList.parentElement !== installCombo) {
+              installCombo.appendChild(installList);
+            }
+          }
+        }
+      });
+      window.addEventListener('resize', () => {
+        const billList = document.getElementById('paymentBillList');
+        const billSearch = document.getElementById('paymentBillSearch');
+        if (billList?.classList.contains('is-open') && billSearch) {
+          const rect = billSearch.getBoundingClientRect();
+          billList.style.left = `${rect.left}px`;
+          billList.style.top = `${rect.bottom + 4}px`;
+          billList.style.width = `${Math.max(rect.width, 280)}px`;
+        }
+        const installList = document.getElementById('paymentInstallList');
+        const installSearch = document.getElementById('paymentInstallSearch');
+        if (installList?.classList.contains('is-open') && installSearch) {
+          const rect = installSearch.getBoundingClientRect();
+          installList.style.left = `${rect.left}px`;
+          installList.style.top = `${rect.bottom + 4}px`;
+          installList.style.width = `${Math.max(rect.width, 280)}px`;
+        }
+      });
+      window.addEventListener('scroll', () => {
+        const billList = document.getElementById('paymentBillList');
+        const billSearch = document.getElementById('paymentBillSearch');
+        if (billList?.classList.contains('is-open') && billSearch) {
+          const rect = billSearch.getBoundingClientRect();
+          billList.style.left = `${rect.left}px`;
+          billList.style.top = `${rect.bottom + 4}px`;
+          billList.style.width = `${Math.max(rect.width, 280)}px`;
+        }
+        const installList = document.getElementById('paymentInstallList');
+        const installSearch = document.getElementById('paymentInstallSearch');
+        if (installList?.classList.contains('is-open') && installSearch) {
+          const rect = installSearch.getBoundingClientRect();
+          installList.style.left = `${rect.left}px`;
+          installList.style.top = `${rect.bottom + 4}px`;
+          installList.style.width = `${Math.max(rect.width, 280)}px`;
+        }
+      }, true);
+    }
+    if (paymentAmount) paymentAmount.addEventListener('input', syncPaymentSummary);
+    if (paymentBillAmount) paymentBillAmount.addEventListener('input', syncPaymentSummary);
+    if (paymentInstallAmount) paymentInstallAmount.addEventListener('input', syncPaymentSummary);
+    paymentRecordForm?.addEventListener('submit', (event) => {
+      if (!isCombinedPurpose()) return;
+      const billAmt = Number(paymentBillAmount?.value || 0);
+      const installAmt = Number(paymentInstallAmount?.value || 0);
+      if (!paymentBill?.value) {
+        event.preventDefault();
+        paymentBillSearch?.setCustomValidity('Please select a bill from the list.');
+        paymentBillSearch?.reportValidity();
+        return;
+      }
+      if (!paymentInstallCustomer?.value) {
+        event.preventDefault();
+        paymentInstallSearch?.setCustomValidity(
+          'Selected bill customer has no installation balance. Choose another bill or use Water bill only.'
+        );
+        paymentInstallSearch?.reportValidity();
+        return;
+      }
+      if (!(billAmt > 0) || !(installAmt > 0)) {
+        event.preventDefault();
+        const target = !(billAmt > 0) ? paymentBillAmount : paymentInstallAmount;
+        target?.setCustomValidity('Enter an amount greater than zero for both bill and installation.');
+        target?.reportValidity();
+        return;
+      }
+      paymentBillAmount?.setCustomValidity('');
+      paymentInstallAmount?.setCustomValidity('');
+      // Ensure customer_id posts even though the control is not interactively edited.
+      if (paymentInstallCustomer) paymentInstallCustomer.disabled = false;
+    });
+    syncPaymentPurpose();
+    syncPaymentSummary();
 
     const paymentSearch = document.getElementById('paymentSearch');
     const paymentFilterForm = document.getElementById('paymentFilterForm');
@@ -1223,6 +1752,57 @@
       updateTabUrl('reportsTab', extra);
     });
     initWeeklyRefillForm();
+    initWeeklyOtherReceived();
+    updateWeeklyCashRemittance();
+  }
+
+  function parseWeeklyPesoText(text) {
+    return Number(String(text || '').replace(/[₱,\s]/g, '')) || 0;
+  }
+
+  function updateWeeklyCashRemittance() {
+    const block = document.getElementById('weeklyCashRemittanceBlock');
+    const valueEl = document.getElementById('weeklyCashRemittanceTotal');
+    if (!block || !valueEl) return;
+    const cashTotal = Number(block.dataset.cashTotal || 0);
+    const otherTotal = parseWeeklyPesoText(document.getElementById('weeklyOtherAmountTotal')?.textContent);
+    const refillTotal = parseWeeklyPesoText(document.getElementById('weeklyRefillAmountTotal')?.textContent);
+    valueEl.textContent = `₱${(cashTotal + otherTotal + refillTotal).toFixed(2)}`;
+  }
+
+  function initWeeklyOtherReceived() {
+    const body = document.getElementById('weeklyOtherBody');
+    if (!body) return;
+    function formatPeso(value) {
+      return `₱${Number(value || 0).toFixed(2)}`;
+    }
+    function sumOtherColumns() {
+      let amountTotal = 0;
+      let receivedTotal = 0;
+      body.querySelectorAll('.weekly-other-row').forEach((row) => {
+        const input = row.querySelector('.weekly-other-received');
+        const amountCell = row.querySelector('.weekly-other-amount');
+        const amount = Number(row.dataset.amount || 0);
+        const raw = (input?.value || '').trim();
+        if (raw === '') {
+          amountTotal += amount;
+          if (amountCell) amountCell.textContent = amount ? formatPeso(amount) : '';
+        } else {
+          receivedTotal += Number(raw || 0);
+          if (amountCell) amountCell.textContent = '';
+        }
+      });
+      const amountEl = document.getElementById('weeklyOtherAmountTotal');
+      const receivedEl = document.getElementById('weeklyOtherReceivedTotal');
+      const grandEl = document.getElementById('weeklyOtherGrand');
+      if (amountEl) amountEl.textContent = formatPeso(amountTotal);
+      if (receivedEl) receivedEl.textContent = formatPeso(receivedTotal);
+      if (grandEl) grandEl.textContent = formatPeso(amountTotal);
+      updateWeeklyCashRemittance();
+    }
+    body.addEventListener('input', (event) => {
+      if (event.target.classList.contains('weekly-other-received')) sumOtherColumns();
+    });
   }
 
   function initWeeklyRefillForm() {
@@ -1255,6 +1835,7 @@
       const amtTotal = document.getElementById('weeklyRefillAmountTotal');
       if (cashTotal) cashTotal.textContent = `₱${cash.toFixed(2)}`;
       if (amtTotal) amtTotal.textContent = `₱${amount.toFixed(2)}`;
+      updateWeeklyCashRemittance();
     }
     addBtn?.addEventListener('click', () => {
       const index = body.querySelectorAll('.weekly-refill-row').length;
@@ -1266,7 +1847,7 @@
         <td><input name="weekly_refill-${index}-name" placeholder="Name"></td>
         <td><input name="weekly_refill-${index}-explanation" placeholder="Explanation"></td>
         <td><input name="weekly_refill-${index}-ref_number" placeholder="Ref #"></td>
-        <td><input name="weekly_refill-${index}-cash_in_bank" class="weekly-money" inputmode="decimal"></td>
+        <td class="col-cash-bank"><input name="weekly_refill-${index}-cash_in_bank" class="weekly-money" inputmode="decimal"></td>
         <td><input name="weekly_refill-${index}-amount" class="weekly-money weekly-refill-amount" inputmode="decimal"></td>
         <td class="no-print"><button type="button" class="action danger" data-remove-refill>Remove</button></td>`;
       body.appendChild(tr);

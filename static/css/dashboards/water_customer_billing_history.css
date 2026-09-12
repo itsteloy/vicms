@@ -43,6 +43,12 @@
   font-size: 0.9rem;
 }
 
+.billing-history-head .balance-meta {
+  margin-top: 6px;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
 .billing-history-table {
   width: 100%;
   border-collapse: separate;
@@ -111,8 +117,14 @@
 }
 
 .billing-history-table .due-final td {
-  border-top: 1px solid #222;
+  border-top: none;
   border-bottom: 1px solid #222;
+}
+
+.billing-history-table .balance-row td {
+  border-top: 1px solid #222;
+  border-bottom: none;
+  font-weight: 800;
 }
 
 .billing-history-table .due-amt {

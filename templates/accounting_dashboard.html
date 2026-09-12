@@ -6,49 +6,60 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/accounting.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/accounting.css' %}?v=1">
+<script>
+  try {
+    if (localStorage.getItem('accountingSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="accounting-page dashboard-wrapper">
-  <aside class="sidebar" role="navigation" aria-label="Accounting dashboard navigation">
+<div class="accounting-page dashboard-wrapper" data-sidebar-key="accountingSidebarCollapsed">
+  <aside class="sidebar" id="accountingSidebar" role="navigation" aria-label="Accounting dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon" style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="accountingSidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
     <nav class="sidebar-nav" aria-label="Accounting sections">
       <div class="nav-label">Accounting</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="overviewTab">
-        <span class="tab-icon">📊</span> Overview
+      <button class="tab-button" type="button" role="tab" title="Overview" aria-selected="true" data-tab-target="overviewTab">
+        <span class="tab-icon">📊</span> <span class="tab-label">Overview</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="arTab">
-        <span class="tab-icon">🧾</span> Sales &amp; AR
+      <button class="tab-button" type="button" role="tab" title="Sales &amp; AR" aria-selected="false" data-tab-target="arTab">
+        <span class="tab-icon">🧾</span> <span class="tab-label">Sales &amp; AR</span>
         <span class="tab-badge">{{ invoices|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="apTab">
-        <span class="tab-icon">📥</span> Purchases &amp; AP
+      <button class="tab-button" type="button" role="tab" title="Purchases &amp; AP" aria-selected="false" data-tab-target="apTab">
+        <span class="tab-icon">📥</span> <span class="tab-label">Purchases &amp; AP</span>
         <span class="tab-badge">{{ bills|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="bankTab">
-        <span class="tab-icon">🏦</span> Bank &amp; Cash
+      <button class="tab-button" type="button" role="tab" title="Bank &amp; Cash" aria-selected="false" data-tab-target="bankTab">
+        <span class="tab-icon">🏦</span> <span class="tab-label">Bank &amp; Cash</span>
         <span class="tab-badge">{{ bank_accounts|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="payrollExpenseTab">
-        <span class="tab-icon">🧑</span> Payroll Expense
+      <button class="tab-button" type="button" role="tab" title="Payroll Expense" aria-selected="false" data-tab-target="payrollExpenseTab">
+        <span class="tab-icon">🧑</span> <span class="tab-label">Payroll Expense</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="journalTab">
-        <span class="tab-icon">📒</span> Journal &amp; COA
+      <button class="tab-button" type="button" role="tab" title="Journal &amp; COA" aria-selected="false" data-tab-target="journalTab">
+        <span class="tab-icon">📒</span> <span class="tab-label">Journal &amp; COA</span>
         <span class="tab-badge">{{ journal_entries|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="taxTab">
-        <span class="tab-icon">🧮</span> Tax
+      <button class="tab-button" type="button" role="tab" title="Tax" aria-selected="false" data-tab-target="taxTab">
+        <span class="tab-icon">🧮</span> <span class="tab-label">Tax</span>
         <span class="tab-badge">{{ upcoming_deadlines|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="reportsTab">
-        <span class="tab-icon">📈</span> Reports
+      <button class="tab-button" type="button" role="tab" title="Reports" aria-selected="false" data-tab-target="reportsTab">
+        <span class="tab-icon">📈</span> <span class="tab-label">Reports</span>
       </button>
     </nav>
     <div class="sidebar-stats">
@@ -57,12 +68,19 @@
       <div class="stat-row"><span>AP outstanding</span><strong>₱{{ ap_total|floatformat:2 }}</strong></div>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <main class="main-content">
     <header class="topbar">
-      <div class="greeting">
-        <h2>Accounting Dashboard</h2>
-        <p>Self-contained double-entry bookkeeping for VERSATEC — independent of the Sales dashboard and HR payroll runs.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="accountingSidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>Accounting Dashboard</h2>
+          <p>Self-contained double-entry bookkeeping for VERSATEC — independent of the Sales dashboard and HR payroll runs.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -851,5 +869,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/accounting.js' %}"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/accounting.js' %}?v=1"></script>
 {% endblock %}

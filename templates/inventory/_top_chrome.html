@@ -1,8 +1,14 @@
 <!-- top bar -->
     <header class="topbar">
-      <div class="greeting">
-        <h2>Inventory Dashboard</h2>
-        <p>Track products, stock, categories, and item images.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="inventorySidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>Inventory Dashboard</h2>
+          <p>Track products, stock, categories, and item images.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>

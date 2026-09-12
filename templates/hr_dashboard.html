@@ -6,64 +6,75 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}">
-<link rel="stylesheet" href="{% static 'css/dashboards/hr.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
+<link rel="stylesheet" href="{% static 'css/dashboards/hr.css' %}?v=drawerfix1">
+<script>
+  try {
+    if (localStorage.getItem('hrSidebarCollapsed') === '1') {
+      document.documentElement.classList.add('sidebar-pref-collapsed');
+    }
+  } catch (e) {}
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="hr-page dashboard-wrapper">
-  <aside class="sidebar" role="navigation" aria-label="HR dashboard navigation">
+<div class="hr-page dashboard-wrapper" data-sidebar-key="hrSidebarCollapsed">
+  <aside class="sidebar" id="hrSidebar" role="navigation" aria-label="HR dashboard navigation">
     <div class="sidebar-brand">
       <div class="logo">
         <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
         <span class="logo-text">VERSATEC <small>Management System</small></span>
       </div>
+      <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="hrSidebar" aria-expanded="true" title="Collapse sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+        <span class="sr-only">Collapse sidebar</span>
+      </button>
     </div>
     <nav class="sidebar-nav" aria-label="HR sections">
       <div class="nav-label">Human Resources</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab-target="employeesTab">
-        <span class="tab-icon">👤</span> Employee Records
+      <button class="tab-button" type="button" role="tab" title="Employee Records" aria-selected="true" data-tab-target="employeesTab">
+        <span class="tab-icon">👤</span> <span class="tab-label">Employee Records</span>
         <span class="tab-badge">{{ employee_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="attendanceSheetsTab">
-        <span class="tab-icon">📊</span> Attendance Sheets
+      <button class="tab-button" type="button" role="tab" title="Attendance Sheets" aria-selected="false" data-tab-target="attendanceSheetsTab">
+        <span class="tab-icon">📊</span> <span class="tab-label">Attendance Sheets</span>
         <span class="tab-badge">{{ punch_sheets|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="requestsTab">
-        <span class="tab-icon">📋</span> Requests
+      <button class="tab-button" type="button" role="tab" title="Requests" aria-selected="false" data-tab-target="requestsTab">
+        <span class="tab-icon">📋</span> <span class="tab-label">Requests</span>
         <span class="tab-badge">{{ pending_leave_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="documentsTab">
-        <span class="tab-icon">📄</span> Documents
+      <button class="tab-button" type="button" role="tab" title="Documents" aria-selected="false" data-tab-target="documentsTab">
+        <span class="tab-icon">📄</span> <span class="tab-label">Documents</span>
         <span class="tab-badge">2</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="jobOrderTab">
-        <span class="tab-icon">🧾</span> Job Orders
+      <button class="tab-button" type="button" role="tab" title="Job Orders" aria-selected="false" data-tab-target="jobOrderTab">
+        <span class="tab-icon">🧾</span> <span class="tab-label">Job Orders</span>
         <span class="tab-badge">{{ job_order_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="idleDaysTab">
-        <span class="tab-icon">⏸</span> Idle Days
+      <button class="tab-button" type="button" role="tab" title="Idle Days" aria-selected="false" data-tab-target="idleDaysTab">
+        <span class="tab-icon">⏸</span> <span class="tab-label">Idle Days</span>
         <span class="tab-badge">{{ idle_jobs_affected }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="officialBusinessTab">
-        <span class="tab-icon">🧳</span> Official Business
+      <button class="tab-button" type="button" role="tab" title="Official Business" aria-selected="false" data-tab-target="officialBusinessTab">
+        <span class="tab-icon">🧳</span> <span class="tab-label">Official Business</span>
         <span class="tab-badge">{{ official_business_count }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="travelOrderTab">
-        <span class="tab-icon">🚗</span> Travel Order
+      <button class="tab-button" type="button" role="tab" title="Travel Order" aria-selected="false" data-tab-target="travelOrderTab">
+        <span class="tab-icon">🚗</span> <span class="tab-label">Travel Order</span>
         <span class="tab-badge">{{ travel_order_count }}</span>
       </button>
       <div class="nav-label" style="margin-top:14px;">Payroll</div>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="payrunsTab">
-        <span class="tab-icon">💰</span> Pay Runs
+      <button class="tab-button" type="button" role="tab" title="Pay Runs" aria-selected="false" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> <span class="tab-label">Pay Runs</span>
         <span class="tab-badge">{{ runs|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="deductionsTab">
-        <span class="tab-icon">📉</span> Deductions
+      <button class="tab-button" type="button" role="tab" title="Deductions" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> <span class="tab-label">Deductions</span>
         <span class="tab-badge">{{ deduction_configs|length }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab-target="approvalsTab">
-        <span class="tab-icon">✅</span> Approvals
+      <button class="tab-button" type="button" role="tab" title="Approvals" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> <span class="tab-label">Approvals</span>
       </button>
     </nav>
     <div class="sidebar-stats">
@@ -76,12 +87,19 @@
       <div class="stat-row"><span>Payroll runs</span><strong>{{ runs|length }}</strong></div>
     </div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
 
   <main class="main-content">
     <header class="topbar">
-      <div class="greeting">
-        <h2>HR Dashboard</h2>
-        <p>Manage employee records, attendance, payroll, documents, and service document status.</p>
+      <div class="topbar-leading">
+        <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="hrSidebar" aria-expanded="false" title="Open menu">
+          <span class="mobile-nav-bars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+        <div class="greeting">
+          <h2>HR Dashboard</h2>
+          <p>Manage employee records, attendance, payroll, documents, and service document status.</p>
+        </div>
       </div>
       <div class="top-actions">
         <a href="{% url 'logout' %}">🚪 Logout</a>
@@ -821,5 +839,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/hr.js' %}"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/hr.js' %}?v=1"></script>
 {% endblock %}
