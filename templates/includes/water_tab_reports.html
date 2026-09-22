@@ -40,6 +40,31 @@
   </div>
 
   {% if report_type == 'weekly' %}
+  <div class="weekly-overview-remit-bar no-print">
+    <div class="weekly-overview-remit-info">
+      <strong>Mark as remitted</strong>
+      <span>
+        Water billing only — Cash ₱{{ weekly_billing_cash|floatformat:2 }}
+        · GCash ₱{{ weekly_billing_gcash|floatformat:2 }}
+        (excludes Other Payments)
+      </span>
+      {% if weekly_overview_remitted and weekly_report %}
+      <span class="weekly-remitted-status">
+        Already remitted {{ weekly_report.overview_remitted_at|date:"M j, Y g:i A" }}
+      </span>
+      {% endif %}
+    </div>
+    {% if not weekly_overview_remitted and not week_error %}
+    <form method="post" class="weekly-overview-remit-form"
+          onsubmit="return confirm('Mark this week as remitted? Water-billing Cash ₱{{ weekly_billing_cash|floatformat:2 }} and GCash ₱{{ weekly_billing_gcash|floatformat:2 }} will be removed from Overview Collections. Payment records will not be deleted.');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="deduct_weekly_overview">
+      <input type="hidden" name="week_start" value="{{ week_start|date:'Y-m-d' }}">
+      <input type="hidden" name="week_end" value="{{ week_end|date:'Y-m-d' }}">
+      <button type="submit" class="action primary">Mark as Remitted</button>
+    </form>
+    {% endif %}
+  </div>
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="save_weekly_report">

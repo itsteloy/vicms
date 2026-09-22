@@ -35,6 +35,7 @@
                   data-unpaid="{{ c.annotated_outstanding }}"
                   data-unpaid-seed="{{ c.previous_unpaid_balance }}"
                   data-installment="{{ c.installment_balance }}"
+                  data-rate="{{ c.water_rate_per_cum }}"
                   data-status="{{ c.connection_status }}">
                   {{ c.account_number }} – {{ c.display_name }}{% if c.connection_status == 'disconnected' %} ⚠ DISCONNECTED{% elif c.connection_status != 'active' %} ({{ c.get_connection_status_display|upper }}){% endif %}
                 </li>

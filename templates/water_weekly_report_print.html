@@ -3,12 +3,15 @@
 {% block title %}Weekly Report – {{ week_start }} to {{ week_end }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=11">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=24">
 {% endblock %}
 
 {% block extra_head %}
 <style>
+  /* Main weekly report pages */
   @page { size: A4 landscape; margin: 10mm; }
+  /* TOTAL CASH REMITTANCE denomination sheet */
+  @page remittance-portrait { size: A4 portrait; margin: 14mm; }
   body { padding: 0; background: #fff; display: block; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 </style>
@@ -22,4 +25,24 @@
   </div>
   {% include "includes/water_weekly_report_sheet.html" %}
 </div>
+<script>
+(function () {
+  function parsePeso(text) {
+    return Number(String(text || '').replace(/[₱,\s]/g, '')) || 0;
+  }
+  function peso(value) {
+    return '₱' + Number(value || 0).toFixed(2);
+  }
+  const cash = parsePeso(document.getElementById('weeklyBillingCashLine')?.textContent);
+  const gcash = parsePeso(document.getElementById('weeklyBillingGcashLine')?.textContent);
+  const aid = parsePeso(document.getElementById('weeklyBillingAidLine')?.textContent);
+  const billingTotal = document.getElementById('weeklyBillingCollectionTotal');
+  if (billingTotal) billingTotal.textContent = peso(cash + gcash + aid);
+
+  const refillCash = parsePeso(document.getElementById('weeklyRefillCashLine')?.textContent);
+  const refillAmt = parsePeso(document.getElementById('weeklyRefillAmountLine')?.textContent);
+  const refillTotal = document.getElementById('weeklyRefillCollectionTotal');
+  if (refillTotal) refillTotal.textContent = peso(refillCash + refillAmt);
+})();
+</script>
 {% endblock %}

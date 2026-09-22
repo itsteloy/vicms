@@ -42,6 +42,11 @@
           <span class="ws-meta-value"{% if preview_mode %} data-preview="ref_number"{% endif %}>{% if not preview_mode %}{{ record.ref_number|default:"" }}{% else %}—{% endif %}</span>
         </div>
         <div class="ws-meta-row">
+          <span class="ws-meta-label">PO #</span>
+          <span class="ws-meta-colon">:</span>
+          <span class="ws-meta-value"{% if preview_mode %} data-preview="po_number"{% endif %}>{% if not preview_mode %}{{ record.po_number|default:"" }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="ws-meta-row">
           <span class="ws-meta-label">STATUS</span>
           <span class="ws-meta-colon">:</span>
           <span class="ws-meta-value"{% if preview_mode %} data-preview="status"{% endif %}>{% if not preview_mode %}{{ record.status|default:"" }}{% else %}—{% endif %}</span>
@@ -55,12 +60,13 @@
           <th>QTY</th>
           <th>UNIT</th>
           <th>DESCRIPTION</th>
+          <th>SERIAL NO.</th>
         </tr>
       </thead>
       <tbody{% if preview_mode %} data-preview="ws_lines"{% endif %}>
         {% if preview_mode %}
         {% for _ in "xxxxxxx" %}
-        <tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        <tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
         {% endfor %}
         {% else %}
           {% for line in withdrawal_slip_lines %}
@@ -68,12 +74,13 @@
             <td>{{ line.quantity }}</td>
             <td>{{ line.unit|default:"pcs" }}</td>
             <td>{{ line.description }}</td>
+            <td>{{ line.serial_number|default:"" }}</td>
           </tr>
           {% endfor %}
           {% with line_count=withdrawal_slip_lines|length %}
             {% for _ in "xxxxxxx" %}
               {% if forloop.counter > line_count %}
-              <tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+              <tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
               {% endif %}
             {% endfor %}
           {% endwith %}

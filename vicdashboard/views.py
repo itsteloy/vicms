@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterOtherPayment, WaterAuditLog, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -32,7 +32,7 @@ from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialB
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Greatest
 import traceback
 import json
 import re
@@ -2331,6 +2331,47 @@ def download_sales_document_pdf(request, document_id):
     return _sales_document_pdf_response(archive, inline=False)
 
 
+def _inventory_resolve_delivery_item(inventory_item_id, item_name, description, quantity, apply_qty=True):
+    """
+    Find or create the InventoryItem for a stock delivery.
+    When apply_qty is True, add quantity to stock (or set stock on create).
+    When False, create new items with stock 0 so the caller can apply the correct amount.
+    Returns (item, created_new).
+    """
+    item = None
+    if inventory_item_id and str(inventory_item_id).isdigit():
+        item = (
+            InventoryItem.objects
+            .select_for_update()
+            .filter(pk=int(inventory_item_id))
+            .first()
+        )
+    if item is None and item_name:
+        item = (
+            InventoryItem.objects
+            .select_for_update()
+            .filter(name__iexact=item_name)
+            .first()
+        )
+    created_new = False
+    if item is None:
+        item = InventoryItem(
+            name=item_name,
+            description=description or '',
+            stock_available=quantity if apply_qty else 0,
+            category=None,
+            product_code=generate_inventory_product_code(None),
+        )
+        item.save()
+        created_new = True
+    elif apply_qty:
+        item.stock_available = (item.stock_available or 0) + quantity
+        if description and not (item.description or '').strip():
+            item.description = description
+        item.save(update_fields=['stock_available', 'description', 'updated_at'])
+    return item, created_new
+
+
 @require_dashboard('inventory_dashboard')
 def inventory_dashboard(request):
     if request.method == 'POST':
@@ -2402,56 +2443,259 @@ def inventory_dashboard(request):
                 return JsonResponse({'deleted': bool(deleted_count)})
             messages.success(request, "Item deleted successfully.")
             return redirect('inventory_dashboard')
-        
-        if action == 'add_delivery':
-            delivery_date = request.POST.get('delivery_date')
-            driver = request.POST.get('driver', '').strip()
-            delivered_from = request.POST.get('delivered_from', '').strip()
-            delivered_to = request.POST.get('delivered_to', '').strip()
 
-            if not delivery_date or not driver or not delivered_from or not delivered_to:
-                messages.error(request, 'All delivery header fields are required.')
+        if action == 'reveal_item_price':
+            if request.headers.get('x-requested-with') != 'XMLHttpRequest':
                 return redirect('inventory_dashboard')
-            
-            delivery = Delivery.objects.create(
-                delivery_date=delivery_date,
-                driver=driver,
-                delivered_from=delivered_from,
-                delivered_to=delivered_to,
-            )
+            password = request.POST.get('password', '')
+            if not password:
+                return JsonResponse({'error': 'Password is required to show the price.'}, status=400)
+            if not _inventory_delete_password_ok(request.user, password):
+                return JsonResponse({'error': 'Incorrect password.'}, status=400)
+            if not item_id or not str(item_id).isdigit():
+                return JsonResponse({'error': 'Item not found.'}, status=404)
+            item = InventoryItem.objects.filter(pk=int(item_id)).first()
+            if item is None:
+                return JsonResponse({'error': 'Item not found.'}, status=404)
+            price = (item.price or Decimal('0')).quantize(Decimal('0.01'))
+            return JsonResponse({
+                'ok': True,
+                'itemId': item.pk,
+                'price': f'{price:.2f}',
+                'price_display': f'₱{price:,.2f}',
+            })
 
-            item_types = request.POST.getlist('item_type[]')
-            quantities = request.POST.getlist('quantity_cartons[]')
-            pcs_list = request.POST.getlist('pcs_per_carton[]')
-            costs = request.POST.getlist('cost_per_carton[]')
+        if action == 'save_item_price':
+            if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+                return redirect('inventory_dashboard')
+            password = request.POST.get('password', '')
+            if not password:
+                return JsonResponse({'error': 'Password is required to save the price.'}, status=400)
+            if not _inventory_delete_password_ok(request.user, password):
+                return JsonResponse({'error': 'Incorrect password.'}, status=400)
+            if not item_id or not str(item_id).isdigit():
+                return JsonResponse({'error': 'Item not found.'}, status=404)
+            item = InventoryItem.objects.filter(pk=int(item_id)).first()
+            if item is None:
+                return JsonResponse({'error': 'Item not found.'}, status=404)
+            try:
+                price = Decimal(str(request.POST.get('price', '0')).replace(',', '').strip() or '0')
+            except (InvalidOperation, ValueError, TypeError):
+                return JsonResponse({'error': 'Enter a valid unit price.'}, status=400)
+            if price < 0:
+                return JsonResponse({'error': 'Unit price cannot be negative.'}, status=400)
+            price = price.quantize(Decimal('0.01'))
+            item.price = price
+            item.save(update_fields=['price', 'updated_at'])
+            return JsonResponse({
+                'ok': True,
+                'itemId': item.pk,
+                'price': f'{price:.2f}',
+                'price_display': f'₱{price:,.2f}',
+            })
 
-            created = 0
-            for i in range(len(item_types)):
-                item_type = item_types[i].strip()
-                try:
-                    qty = int(quantities[i]) if i < len(quantities) else 0
-                    pcs = int(pcs_list[i]) if i < len(pcs_list) else 0
-                    cost = Decimal(costs[i]) if i < len(costs) else Decimal('0')
-                except (ValueError, TypeError):
-                    continue
+        if action == 'add_delivery':
+            redirect_deliveries = redirect(f"{reverse('inventory_dashboard')}?tab=deliveriesPanel")
+            reference_no = request.POST.get('reference_no', '').strip()
+            date_arrived = request.POST.get('date_arrived', '').strip()
+            item_name = request.POST.get('item_name', '').strip()
+            description = request.POST.get('description', '').strip()
+            supplier = request.POST.get('supplier', '').strip()
+            inventory_item_id = request.POST.get('inventory_item_id', '').strip()
+            try:
+                quantity = int(request.POST.get('quantity', '0') or 0)
+            except (TypeError, ValueError):
+                quantity = 0
+            if not reference_no or not date_arrived or not item_name or quantity <= 0:
+                messages.error(
+                    request,
+                    'Reference No., Date Arrived, Item, and a quantity greater than zero are required.',
+                )
+                return redirect_deliveries
+            try:
+                with transaction.atomic():
+                    item, created_new = _inventory_resolve_delivery_item(
+                        inventory_item_id, item_name, description, quantity, apply_qty=True,
+                    )
+                    InventoryStockDelivery.objects.create(
+                        reference_no=reference_no,
+                        date_arrived=date_arrived,
+                        item_name=item_name,
+                        quantity=quantity,
+                        description=description,
+                        supplier=supplier,
+                        inventory_item=item,
+                    )
+                if created_new:
+                    messages.success(
+                        request,
+                        f'Delivery saved. Created inventory item "{item.name}" ({item.product_code}) with stock {quantity}.',
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f'Delivery saved. Added {quantity} to "{item.name}" (stock now {item.stock_available}).',
+                    )
+            except Exception as exc:
+                messages.error(request, f'Could not save delivery: {exc}')
+            return redirect_deliveries
 
-                if item_type and qty > 0 and pcs > 0 and cost >= 0:
-                    DeliveryLine.objects.create(
-                        delivery=delivery,
-                        item_type=item_type,
-                        quantity_cartons=qty,
-                        pcs_per_carton = pcs,
-                        cost_per_carton=cost,
+        if action == 'edit_delivery':
+            redirect_deliveries = redirect(f"{reverse('inventory_dashboard')}?tab=deliveriesPanel")
+            delivery_id = request.POST.get('delivery_id', '').strip()
+            reference_no = request.POST.get('reference_no', '').strip()
+            date_arrived = request.POST.get('date_arrived', '').strip()
+            item_name = request.POST.get('item_name', '').strip()
+            description = request.POST.get('description', '').strip()
+            supplier = request.POST.get('supplier', '').strip()
+            inventory_item_id = request.POST.get('inventory_item_id', '').strip()
+            try:
+                quantity = int(request.POST.get('quantity', '0') or 0)
+            except (TypeError, ValueError):
+                quantity = 0
+            if not delivery_id.isdigit():
+                messages.error(request, 'Delivery not found.')
+                return redirect_deliveries
+            if not reference_no or not date_arrived or not item_name or quantity <= 0:
+                messages.error(
+                    request,
+                    'Reference No., Date Arrived, Item, and a quantity greater than zero are required.',
+                )
+                return redirect_deliveries
+            try:
+                with transaction.atomic():
+                    delivery = (
+                        InventoryStockDelivery.objects
+                        .select_for_update()
+                        .filter(pk=int(delivery_id))
+                        .first()
+                    )
+                    if delivery is None:
+                        messages.error(request, 'Delivery not found.')
+                        return redirect_deliveries
+
+                    old_item_id = delivery.inventory_item_id
+                    old_qty = int(delivery.quantity or 0)
+
+                    # Resolve the target item without applying qty yet.
+                    new_item, created_new = _inventory_resolve_delivery_item(
+                        inventory_item_id, item_name, description, quantity, apply_qty=False,
                     )
 
-                    created += 1
-            if created == 0:
-                delivery.delete()
-                messages.error(request, 'No valid items added. Delivery not saved.')
-            else:
-                messages.success(request, f"Delivery recorded with {created} items.")
+                    if old_item_id and new_item and old_item_id == new_item.pk:
+                        delta = quantity - old_qty
+                        locked = (
+                            InventoryItem.objects
+                            .select_for_update()
+                            .filter(pk=new_item.pk)
+                            .first()
+                        )
+                        if locked:
+                            locked.stock_available = max(0, (locked.stock_available or 0) + delta)
+                            if description and not (locked.description or '').strip():
+                                locked.description = description
+                            locked.save(update_fields=['stock_available', 'description', 'updated_at'])
+                            new_item = locked
+                    else:
+                        if old_item_id:
+                            locked_old = (
+                                InventoryItem.objects
+                                .select_for_update()
+                                .filter(pk=old_item_id)
+                                .first()
+                            )
+                            if locked_old:
+                                locked_old.stock_available = max(
+                                    0, (locked_old.stock_available or 0) - old_qty,
+                                )
+                                locked_old.save(update_fields=['stock_available', 'updated_at'])
+                        locked_new = (
+                            InventoryItem.objects
+                            .select_for_update()
+                            .filter(pk=new_item.pk)
+                            .first()
+                        )
+                        if locked_new:
+                            if created_new:
+                                # New item was created with 0 stock; apply full qty.
+                                locked_new.stock_available = quantity
+                            else:
+                                locked_new.stock_available = (locked_new.stock_available or 0) + quantity
+                            if description and not (locked_new.description or '').strip():
+                                locked_new.description = description
+                            locked_new.save(update_fields=['stock_available', 'description', 'updated_at'])
+                            new_item = locked_new
 
-            return redirect('inventory_dashboard')
+                    delivery.reference_no = reference_no
+                    delivery.date_arrived = date_arrived
+                    delivery.item_name = item_name
+                    delivery.quantity = quantity
+                    delivery.description = description
+                    delivery.supplier = supplier
+                    delivery.inventory_item = new_item
+                    delivery.save()
+
+                messages.success(
+                    request,
+                    f'Delivery updated. "{new_item.name}" stock is now {new_item.stock_available}.',
+                )
+            except Exception as exc:
+                messages.error(request, f'Could not update delivery: {exc}')
+            return redirect_deliveries
+
+        if action == 'delete_delivery':
+            redirect_deliveries = redirect(f"{reverse('inventory_dashboard')}?tab=deliveriesPanel")
+            delivery_id = request.POST.get('delivery_id', '').strip()
+            if not delivery_id.isdigit():
+                messages.error(request, 'Delivery not found.')
+                return redirect_deliveries
+            try:
+                with transaction.atomic():
+                    # Lock delivery alone — select_related + FOR UPDATE fails on nullable FK joins.
+                    delivery = (
+                        InventoryStockDelivery.objects
+                        .select_for_update()
+                        .filter(pk=int(delivery_id))
+                        .first()
+                    )
+                    if delivery is None:
+                        messages.error(request, 'Delivery not found.')
+                        return redirect_deliveries
+                    qty = int(delivery.quantity or 0)
+                    item_id = delivery.inventory_item_id
+                    item_label = delivery.item_name
+                    if item_id:
+                        locked = (
+                            InventoryItem.objects
+                            .select_for_update()
+                            .filter(pk=item_id)
+                            .first()
+                        )
+                        if locked:
+                            locked.stock_available = max(0, (locked.stock_available or 0) - qty)
+                            locked.save(update_fields=['stock_available', 'updated_at'])
+                            item_label = locked.name
+                            messages.success(
+                                request,
+                                f'Delivery deleted. Deducted {qty} from "{item_label}" '
+                                f'(stock now {locked.stock_available}).',
+                            )
+                        else:
+                            messages.warning(
+                                request,
+                                f'Delivery deleted, but linked inventory item was missing. '
+                                f'Stock was not adjusted for "{item_label}".',
+                            )
+                    else:
+                        messages.warning(
+                            request,
+                            f'Delivery deleted, but it had no linked inventory item. '
+                            f'Stock was not adjusted for "{item_label}".',
+                        )
+                    delivery.delete()
+            except Exception as exc:
+                messages.error(request, f'Could not delete delivery: {exc}')
+            return redirect_deliveries
 
         category_id = request.POST.get('categoryId', '').strip()
         category = None
@@ -2533,6 +2777,11 @@ def inventory_dashboard(request):
     inventory_existing_images = list(seen_pictures.values())
 
     deliveries = Delivery.objects.prefetch_related('lines').order_by('-delivery_date')
+    stock_deliveries = (
+        InventoryStockDelivery.objects
+        .select_related('inventory_item')
+        .all()[:50]
+    )
 
     today = date.today()
     try:
@@ -2547,6 +2796,9 @@ def inventory_dashboard(request):
         ws_report_month = today.month
     if ws_report_year < 2000 or ws_report_year > today.year + 1:
         ws_report_year = today.year
+    report_subtab = (request.GET.get('report') or 'withdrawals').strip().lower()
+    if report_subtab not in ('withdrawals', 'deliveries'):
+        report_subtab = 'withdrawals'
 
     ws_report_lines = (
         WithdrawalSlipLine.objects
@@ -2622,9 +2874,60 @@ def inventory_dashboard(request):
         (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December'),
     ]
     earliest_ws = WithdrawalSlip.objects.order_by('slip_date').values_list('slip_date', flat=True).first()
-    start_year = earliest_ws.year if earliest_ws else today.year
+    earliest_sd = InventoryStockDelivery.objects.order_by('date_arrived').values_list('date_arrived', flat=True).first()
+    year_candidates = [today.year]
+    if earliest_ws:
+        year_candidates.append(earliest_ws.year)
+    if earliest_sd:
+        year_candidates.append(earliest_sd.year)
+    start_year = min(year_candidates)
     ws_report_year_choices = list(range(start_year, today.year + 2))
     ws_report_month_label = dict(ws_report_month_choices).get(ws_report_month, '')
+
+    # Monthly stock deliveries report (same period filter as withdrawals).
+    sd_report_qs = (
+        InventoryStockDelivery.objects
+        .filter(date_arrived__year=ws_report_year, date_arrived__month=ws_report_month)
+        .select_related('inventory_item')
+        .order_by('date_arrived', 'reference_no', 'id')
+    )
+    sd_report_rows = []
+    sd_report_total_qty = 0
+    sd_item_totals = {}
+    for delivery in sd_report_qs:
+        qty = int(delivery.quantity or 0)
+        sd_report_total_qty += qty
+        product_code = ''
+        if delivery.inventory_item_id:
+            product_code = (delivery.inventory_item.product_code or '').strip()
+        sd_report_rows.append({
+            'id': delivery.id,
+            'date_arrived': delivery.date_arrived,
+            'reference_no': delivery.reference_no,
+            'item_name': delivery.item_name,
+            'description': delivery.description or '',
+            'supplier': delivery.supplier or '',
+            'quantity': qty,
+            'product_code': product_code or '—',
+        })
+        item_key = (delivery.item_name or '').strip().lower() or '—'
+        item_bucket = sd_item_totals.get(item_key)
+        if item_bucket is None:
+            sd_item_totals[item_key] = {
+                'item_name': delivery.item_name or '—',
+                'product_code': product_code or '—',
+                'quantity': qty,
+                'line_count': 1,
+            }
+        else:
+            item_bucket['quantity'] += qty
+            item_bucket['line_count'] += 1
+            if item_bucket['product_code'] == '—' and product_code:
+                item_bucket['product_code'] = product_code
+    sd_report_item_totals = sorted(
+        sd_item_totals.values(),
+        key=lambda row: (-row['quantity'], row['item_name'].lower()),
+    )
 
     return render(
         request,
@@ -2639,6 +2942,7 @@ def inventory_dashboard(request):
             'inventory_category_tree': category_tree,
             'next_product_codes': next_product_codes,
             'deliveries': deliveries,
+            'stock_deliveries': stock_deliveries,
             'total_stock': sum(item.stock_available for item in inventory_items),
             'low_stock_count': sum(1 for item in inventory_items if item.stock_available < 10),
             'withdrawal_slips': WithdrawalSlip.objects.prefetch_related('lines').all()[:8],
@@ -2654,6 +2958,11 @@ def inventory_dashboard(request):
             'ws_report_slip_count': len(ws_report_rows),
             'ws_report_line_count': line_count,
             'ws_report_total_qty': ws_report_total_qty,
+            'sd_report_rows': sd_report_rows,
+            'sd_report_item_totals': sd_report_item_totals,
+            'sd_report_delivery_count': len(sd_report_rows),
+            'sd_report_total_qty': sd_report_total_qty,
+            'report_subtab': report_subtab,
             'modules': MANAGEMENT_MODULES,
         },
     )
@@ -4224,6 +4533,7 @@ def create_withdrawal_slip(request):
     quantities = request.POST.getlist('ws_item_quantity')
     units = request.POST.getlist('ws_item_unit')
     inventory_ids = request.POST.getlist('ws_item_inventory')
+    serial_numbers = request.POST.getlist('ws_item_serial')
 
     lines = []
     for index, description in enumerate(descriptions):
@@ -4238,6 +4548,7 @@ def create_withdrawal_slip(request):
             quantity = Decimal('0')
         unit = units[index].strip() if index < len(units) else 'pcs'
         inventory_id = inventory_ids[index].strip() if index < len(inventory_ids) else ''
+        serial_number = serial_numbers[index].strip() if index < len(serial_numbers) else ''
         inventory_item = None
         if inventory_id.isdigit():
             inventory_item = InventoryItem.objects.filter(pk=int(inventory_id)).first()
@@ -4246,6 +4557,7 @@ def create_withdrawal_slip(request):
             'description': description,
             'quantity': quantity,
             'unit': unit or 'pcs',
+            'serial_number': serial_number,
         })
 
     if not lines:
@@ -4289,6 +4601,7 @@ def create_withdrawal_slip(request):
                 project_area=request.POST.get('project_area', '').strip(),
                 client=request.POST.get('client', '').strip(),
                 ref_number=request.POST.get('ref_number', '').strip(),
+                po_number=request.POST.get('po_number', '').strip(),
                 status=request.POST.get('status', '').strip(),
                 prepared_by=request.POST.get('prepared_by', '').strip(),
                 attested_by=request.POST.get('attested_by', '').strip(),
@@ -4455,6 +4768,7 @@ SERVICE_FIELD_LABELS = {
         ('Project Area', 'project_area'),
         ('Client', 'client'),
         ('Ref. No.', 'ref_number'),
+        ('PO #', 'po_number'),
         ('Status', 'status'),
         ('Prepared By', 'prepared_by'),
         ('Attested By', 'attested_by'),
@@ -5224,16 +5538,28 @@ def _water_overview_stats():
         or 0
     )
     bills_generated = WaterBill.objects.filter(bill_date__gte=month_start).exclude(status='cancelled').count()
-    totals = WaterBill.objects.exclude(status='cancelled').aggregate(
+    open_bills = WaterBill.objects.exclude(status='cancelled')
+    totals = open_bills.aggregate(
         billed=Coalesce(Sum('total_amount'), Value(0), output_field=money),
-        paid=Coalesce(Sum('amount_paid'), Value(0), output_field=money),
+        outstanding=Coalesce(
+            Sum(
+                Greatest(
+                    F('total_amount') - F('amount_paid'),
+                    Value(Decimal('0.00')),
+                ),
+                output_field=money,
+            ),
+            Value(0),
+            output_field=money,
+        ),
     )
     billed_total = totals['billed'] or Decimal('0.00')
-    paid_total = totals['paid'] or Decimal('0.00')
-    outstanding = max(billed_total - paid_total, Decimal('0.00'))
+    # Per-bill balance due — do not net overpayments across bills.
+    outstanding = totals['outstanding'] or Decimal('0.00')
     collection_rate = Decimal('0.00')
     if billed_total > 0:
-        collection_rate = ((paid_total / billed_total) * Decimal('100')).quantize(Decimal('0.01'))
+        collected = max(billed_total - outstanding, Decimal('0.00'))
+        collection_rate = ((collected / billed_total) * Decimal('100')).quantize(Decimal('0.01'))
 
     reconnected = WaterServiceAction.objects.filter(
         action_type='reconnection', status='completed', action_date__gte=month_start,
@@ -5281,12 +5607,25 @@ def _water_revenue_by_method(period='month'):
         period = 'month'
     money = DecimalField(max_digits=14, decimal_places=2)
     start = _water_revenue_period_start(period)
+    today = date.today()
     totals = WaterPayment.objects.filter(payment_date__gte=start).aggregate(
         cash=Coalesce(Sum('amount', filter=Q(payment_method='cash')), Value(0), output_field=money),
         gcash=Coalesce(Sum('amount', filter=Q(payment_method='gcash')), Value(0), output_field=money),
     )
     cash = totals['cash'] or Decimal('0.00')
     gcash = totals['gcash'] or Decimal('0.00')
+
+    # Subtract remitted week snapshots that overlap this overview period.
+    remitted = WaterWeeklyReport.objects.filter(
+        overview_remitted_at__isnull=False,
+        week_start__lte=today,
+        week_end__gte=start,
+    ).aggregate(
+        cash=Coalesce(Sum('overview_remitted_cash'), Value(0), output_field=money),
+        gcash=Coalesce(Sum('overview_remitted_gcash'), Value(0), output_field=money),
+    )
+    cash = max(cash - (remitted['cash'] or Decimal('0.00')), Decimal('0.00'))
+    gcash = max(gcash - (remitted['gcash'] or Decimal('0.00')), Decimal('0.00'))
     return {
         'revenue_period': period,
         'revenue_period_label': WATER_REVENUE_PERIODS[period],
@@ -5518,10 +5857,14 @@ def _water_tab_context(request, tab):
     elif tab == 'arTab':
         open_bills = list(_water_open_bills())
         page_obj = _water_paginate(open_bills, request)
+        total_receivables = sum(
+            (bill.balance_due for bill in open_bills),
+            Decimal('0.00'),
+        )
         ctx.update({
             'unpaid_bills': page_obj,
             'page_obj': page_obj,
-            'aging_buckets': _water_aging_buckets(open_bills),
+            'total_receivables': total_receivables,
         })
     elif tab == 'disconnectTab':
         page_obj = _water_paginate(
@@ -5609,6 +5952,7 @@ def water_billing_dashboard(request):
             'delete_payment': _water_delete_payment,
             'delete_other_payment': _water_delete_other_payment,
             'save_weekly_report': _water_save_weekly_report,
+            'deduct_weekly_overview': _water_deduct_weekly_overview,
         }
         handler = handlers.get(action)
         if handler:
@@ -5684,15 +6028,16 @@ def _water_parse_week_range(request, source=None):
     return start, end, error
 
 
-def _water_weekly_empty_totals(*, amount_key='cash_in_bank'):
-    totals = {
+def _water_weekly_empty_totals():
+    return {
         'payment': Decimal('0.00'),
+        'cash_in_bank': Decimal('0.00'),
+        'gcash': Decimal('0.00'),
+        'cash_received_by_aid': Decimal('0.00'),
         'water_bill': Decimal('0.00'),
         'installation_fee': Decimal('0.00'),
         'reconnection_fee': Decimal('0.00'),
     }
-    totals[amount_key] = Decimal('0.00')
-    return totals
 
 
 def _water_ar_sort_key(ar_number):
@@ -5714,7 +6059,7 @@ def _water_ar_sort_key(ar_number):
     return (1, 0, raw.lower())
 
 
-def _water_weekly_finalize_rows(rows, *, amount_key):
+def _water_weekly_finalize_rows(rows):
     rows.sort(key=lambda row: (
         _water_ar_sort_key(row.get('ar_number')),
         row['sort_date'] or date.min,
@@ -5722,13 +6067,15 @@ def _water_weekly_finalize_rows(rows, *, amount_key):
     ))
     for index, row in enumerate(rows, start=1):
         row['row_no'] = index
-    totals = _water_weekly_empty_totals(amount_key=amount_key)
+    totals = _water_weekly_empty_totals()
     for row in rows:
-        totals['payment'] += row['payment'] or Decimal('0.00')
-        totals[amount_key] += row.get(amount_key) or Decimal('0.00')
-        totals['water_bill'] += row['water_bill'] or Decimal('0.00')
-        totals['installation_fee'] += row['installation_fee'] or Decimal('0.00')
-        totals['reconnection_fee'] += row['reconnection_fee'] or Decimal('0.00')
+        totals['payment'] += row.get('payment') or Decimal('0.00')
+        totals['cash_in_bank'] += row.get('cash_in_bank') or Decimal('0.00')
+        totals['gcash'] += row.get('gcash') or Decimal('0.00')
+        totals['cash_received_by_aid'] += row.get('cash_received_by_aid') or Decimal('0.00')
+        totals['water_bill'] += row.get('water_bill') or Decimal('0.00')
+        totals['installation_fee'] += row.get('installation_fee') or Decimal('0.00')
+        totals['reconnection_fee'] += row.get('reconnection_fee') or Decimal('0.00')
     return rows, totals
 
 
@@ -5744,9 +6091,15 @@ def _water_weekly_payment_split(amount, bill, purpose='bill'):
     return water_bill or None, installation_fee or None
 
 
+def _water_weekly_payment_of_label(purpose):
+    if purpose == WaterPayment.PURPOSE_INSTALLATION:
+        return 'Installation fee'
+    return 'Water Bill'
+
+
 def _water_weekly_collection_rows(week_start, week_end):
-    cash_rows = []
-    gcash_rows = []
+    rows = []
+    parcel_total = Decimal('0.00')
     payments = (
         WaterPayment.objects.select_related('customer', 'bill')
         .filter(payment_date__gte=week_start, payment_date__lte=week_end)
@@ -5762,30 +6115,27 @@ def _water_weekly_collection_rows(week_start, week_end):
         water_bill, installation_fee = _water_weekly_payment_split(
             amount, payment.bill, purpose=payment.purpose,
         )
-        base = {
+        is_gcash = (payment.payment_method or '').strip().lower() == 'gcash'
+        rows.append({
             'sort_date': payment.payment_date,
             'sort_name': payment.customer.display_name if payment.customer_id else '',
             'row_date': payment.payment_date,
             'name': payment.customer.display_name if payment.customer_id else '',
+            'received_from': '',
             'remarks': remarks,
             'payment': None,
+            'payment_of': _water_weekly_payment_of_label(payment.purpose),
             'ar_number': payment.ar_number or '',
+            'cash_in_bank': None if is_gcash else amount,
+            'gcash': amount if is_gcash else None,
+            'cash_received_by_aid': None,
             'water_bill': water_bill,
             'installation_fee': installation_fee,
             'reconnection_fee': None,
-        }
-        if (payment.payment_method or '').strip().lower() == 'gcash':
-            gcash_rows.append({
-                **base,
-                'gcash': amount,
-                'cash_in_bank': None,
-            })
-        else:
-            cash_rows.append({
-                **base,
-                'cash_in_bank': amount,
-                'gcash': None,
-            })
+            'other_id': None,
+            'other_amount': None,
+            'is_parcel': False,
+        })
     reconnects = (
         WaterServiceAction.objects.select_related('customer')
         .filter(
@@ -5798,44 +6148,97 @@ def _water_weekly_collection_rows(week_start, week_end):
     )
     for action in reconnects:
         fee = action.reconnection_fee or Decimal('0.00')
-        cash_rows.append({
+        rows.append({
             'sort_date': action.action_date,
             'sort_name': action.customer.display_name if action.customer_id else '',
             'row_date': action.action_date,
             'name': action.customer.display_name if action.customer_id else '',
+            'received_from': '',
             'remarks': (action.notes or action.reason or 'Reconnection fee').strip(),
             'payment': None,
+            'payment_of': 'Reconnection fee',
             'ar_number': '',
             'cash_in_bank': fee,
             'gcash': None,
+            'cash_received_by_aid': None,
             'water_bill': None,
             'installation_fee': None,
             'reconnection_fee': fee,
+            'other_id': None,
+            'other_amount': None,
+            'is_parcel': False,
         })
+
+    other_payments = list(
+        WaterOtherPayment.objects
+        .filter(payment_date__gte=week_start, payment_date__lte=week_end)
+    )
+    for payment in other_payments:
+        amount = payment.amount or Decimal('0.00')
+        received = payment.amount_received
+        payment_of = payment.payment_of or ''
+        is_parcel = 'parcel' in payment_of.lower()
+        if received is None:
+            cash_in_bank = amount
+            cash_received_by_aid = None
+            row_value = amount
+        else:
+            cash_in_bank = None
+            cash_received_by_aid = received
+            row_value = received
+        if is_parcel:
+            parcel_total += row_value
+        rows.append({
+            'sort_date': payment.payment_date,
+            'sort_name': payment.received_from or '',
+            'row_date': payment.payment_date,
+            'name': '',
+            'received_from': payment.received_from or '',
+            'remarks': payment.remarks or '',
+            'payment': None,
+            'payment_of': payment_of,
+            'ar_number': payment.ar_number or '',
+            'cash_in_bank': cash_in_bank,
+            'gcash': None,
+            'cash_received_by_aid': cash_received_by_aid,
+            'water_bill': None,
+            'installation_fee': None,
+            'reconnection_fee': None,
+            'other_id': payment.pk,
+            'other_amount': amount,
+            'is_parcel': is_parcel,
+        })
+
     # Installation fees only appear when recorded as WaterPayment rows above
     # (do not infer from new customer registration — those are not Payments).
-    cash_rows, cash_totals = _water_weekly_finalize_rows(cash_rows, amount_key='cash_in_bank')
-    gcash_rows, gcash_totals = _water_weekly_finalize_rows(gcash_rows, amount_key='gcash')
-    return cash_rows, cash_totals, gcash_rows, gcash_totals
+    rows, totals = _water_weekly_finalize_rows(rows)
+    return rows, totals, parcel_total
+
+
+def _water_weekly_billing_cash_gcash(week_start, week_end):
+    """WaterPayment cash/gcash only for the week (excludes Other Payments)."""
+    money = DecimalField(max_digits=14, decimal_places=2)
+    if not week_start or not week_end:
+        return Decimal('0.00'), Decimal('0.00')
+    totals = WaterPayment.objects.filter(
+        payment_date__gte=week_start,
+        payment_date__lte=week_end,
+    ).aggregate(
+        cash=Coalesce(Sum('amount', filter=Q(payment_method='cash')), Value(0), output_field=money),
+        gcash=Coalesce(Sum('amount', filter=Q(payment_method='gcash')), Value(0), output_field=money),
+    )
+    return totals['cash'] or Decimal('0.00'), totals['gcash'] or Decimal('0.00')
 
 
 def _water_weekly_report_context(request, source=None):
     week_start, week_end, week_error = _water_parse_week_range(request, source)
-    empty_cash = _water_weekly_empty_totals(amount_key='cash_in_bank')
-    empty_gcash = _water_weekly_empty_totals(amount_key='gcash')
     if week_error:
-        weekly_rows, weekly_totals, weekly_gcash_rows, weekly_gcash_totals = (
-            [], empty_cash, [], empty_gcash,
-        )
-        weekly_other_rows, weekly_other_total, weekly_other_received_total = (
-            [], Decimal('0.00'), Decimal('0.00')
+        weekly_rows, weekly_totals, weekly_parcel_total = (
+            [], _water_weekly_empty_totals(), Decimal('0.00')
         )
     else:
-        weekly_rows, weekly_totals, weekly_gcash_rows, weekly_gcash_totals = (
+        weekly_rows, weekly_totals, weekly_parcel_total = (
             _water_weekly_collection_rows(week_start, week_end)
-        )
-        weekly_other_rows, weekly_other_total, weekly_other_received_total = (
-            _water_weekly_other_payment_rows(week_start, week_end)
         )
     weekly_report = WaterWeeklyReport.objects.filter(week_start=week_start, week_end=week_end).first()
     refill_lines = list(weekly_report.refill_lines.all()) if weekly_report else []
@@ -5844,23 +6247,65 @@ def _water_weekly_report_context(request, source=None):
     refill_total = sum((line.amount or Decimal('0.00') for line in refill_lines), Decimal('0.00'))
     refill_cash_total = sum((line.cash_in_bank or Decimal('0.00') for line in refill_lines), Decimal('0.00'))
     cash_collection = weekly_totals.get('cash_in_bank') or Decimal('0.00')
-    weekly_cash_remittance = cash_collection + weekly_other_total + refill_total
+    gcash_collection = weekly_totals.get('gcash') or Decimal('0.00')
+    aid_received_total = weekly_totals.get('cash_received_by_aid') or Decimal('0.00')
+    # Gross Sales = merged cash in bank + GCash + Cash Received by AID + refill cash
+    weekly_gross_sales = (
+        cash_collection
+        + gcash_collection
+        + aid_received_total
+        + refill_cash_total
+    )
+    weekly_cash_remittance = (
+        weekly_gross_sales
+        - gcash_collection
+        - aid_received_total
+        - weekly_parcel_total
+    )
+    weekly_billing_collection_total = cash_collection + gcash_collection + aid_received_total
+    weekly_refill_collection_total = refill_cash_total + refill_total
+    denom_billing_rows, denom_billing_total = _water_weekly_denomination_rows(weekly_report, 'billing')
+    weekly_prepared_by = (
+        (weekly_report.prepared_by or '').strip()
+        if weekly_report else ''
+    ) or WaterWeeklyReport.DEFAULT_PREPARED_BY
+    weekly_audited_by = (
+        (weekly_report.audited_by or '').strip()
+        if weekly_report else ''
+    ) or WaterWeeklyReport.DEFAULT_AUDITED_BY
+    weekly_approved_by = (
+        (weekly_report.approved_by or '').strip()
+        if weekly_report else ''
+    ) or WaterWeeklyReport.DEFAULT_APPROVED_BY
+    billing_cash, billing_gcash = (
+        _water_weekly_billing_cash_gcash(week_start, week_end)
+        if not week_error else (Decimal('0.00'), Decimal('0.00'))
+    )
     return {
         'week_start': week_start,
         'week_end': week_end,
         'week_error': week_error,
         'weekly_rows': weekly_rows,
         'weekly_totals': weekly_totals,
-        'weekly_gcash_rows': weekly_gcash_rows,
-        'weekly_gcash_totals': weekly_gcash_totals,
-        'weekly_other_rows': weekly_other_rows,
-        'weekly_other_total': weekly_other_total,
-        'weekly_other_received_total': weekly_other_received_total,
+        'weekly_billing_collection_total': weekly_billing_collection_total,
+        'weekly_other_received_total': aid_received_total,
+        'weekly_parcel_total': weekly_parcel_total,
         'weekly_report': weekly_report,
+        'weekly_prepared_by': weekly_prepared_by,
+        'weekly_audited_by': weekly_audited_by,
+        'weekly_approved_by': weekly_approved_by,
         'weekly_refill_lines': refill_lines,
         'weekly_refill_total': refill_total,
         'weekly_refill_cash_total': refill_cash_total,
+        'weekly_refill_collection_total': weekly_refill_collection_total,
+        'weekly_gross_sales': weekly_gross_sales,
+        'weekly_gcash_collection': gcash_collection,
         'weekly_cash_remittance': weekly_cash_remittance,
+        'weekly_denom_billing_rows': denom_billing_rows,
+        'weekly_denom_billing_total': denom_billing_total,
+        'weekly_billing_cash': billing_cash,
+        'weekly_billing_gcash': billing_gcash,
+        'weekly_overview_remitted': bool(weekly_report and weekly_report.overview_remitted_at),
     }
 
 
@@ -5924,11 +6369,80 @@ def _water_save_weekly_report(request):
         else:
             WaterOtherPayment.objects.filter(pk=payment_id).update(amount_received=_dec(raw))
 
+    report.denomination_lines.all().delete()
+    for denom in WATER_WEEKLY_DENOMS:
+        raw = (request.POST.get(f'weekly_denom-billing-{denom}') or '').strip()
+        try:
+            qty = int(raw) if raw != '' else 0
+        except ValueError:
+            qty = 0
+        if qty < 0:
+            qty = 0
+        if qty == 0:
+            continue
+        WaterWeeklyDenominationLine.objects.create(
+            report=report,
+            collection='billing',
+            denomination=denom,
+            quantity=qty,
+        )
+
     _water_audit(
         request, 'Saved weekly report', 'WaterWeeklyReport', report.pk,
         f'{week_start} to {week_end} refill_lines={saved}',
     )
     messages.success(request, f'Weekly report {week_start} to {week_end} saved.')
+    return _water_redirect('reportsTab', extra)
+
+
+def _water_deduct_weekly_overview(request):
+    """Snapshot water-billing Cash/GCash for this week and deduct from Overview Collections."""
+    week_start, week_end, week_error = _water_parse_week_range(request, request.POST)
+    extra = {
+        'tab': 'reportsTab',
+        'report': 'weekly',
+        'week_start': week_start.isoformat() if week_start else '',
+        'week_end': week_end.isoformat() if week_end else '',
+    }
+    if week_error:
+        messages.error(request, week_error)
+        return _water_redirect('reportsTab', extra)
+
+    report, _created = WaterWeeklyReport.objects.get_or_create(
+        week_start=week_start,
+        week_end=week_end,
+    )
+    if report.overview_remitted_at:
+        messages.info(
+            request,
+            f'This week ({week_start} to {week_end}) was already remitted to Overview Collections.',
+        )
+        return _water_redirect('reportsTab', extra)
+
+    cash, gcash = _water_weekly_billing_cash_gcash(week_start, week_end)
+    report.overview_remitted_at = timezone.now()
+    report.overview_remitted_cash = cash
+    report.overview_remitted_gcash = gcash
+    report.overview_remitted_by = getattr(request.user, 'username', '') or ''
+    report.save(update_fields=[
+        'overview_remitted_at',
+        'overview_remitted_cash',
+        'overview_remitted_gcash',
+        'overview_remitted_by',
+        'updated_at',
+    ])
+    _water_audit(
+        request,
+        'Remitted weekly to overview',
+        'WaterWeeklyReport',
+        report.pk,
+        f'{week_start} to {week_end} cash={cash} gcash={gcash}',
+    )
+    messages.success(
+        request,
+        f'Marked as remitted: water-billing Cash ₱{cash:.2f} and GCash ₱{gcash:.2f} '
+        f'removed from Overview Collections for {week_start} to {week_end}.',
+    )
     return _water_redirect('reportsTab', extra)
 
 
@@ -5951,6 +6465,33 @@ def _water_resolve_zone(request):
     return None
 
 
+def _water_record_registration_installation_payment(customer, amount, payment_date=None):
+    """
+    Create a WaterPayment for installation collected at customer registration.
+    Does not change customer.installment_balance (caller already set fee − paid).
+    Skips if amount <= 0 or an installation payment already exists for this customer
+    (avoids duplicate payments / overview collections on re-run or double-submit).
+    """
+    amount = amount or Decimal('0.00')
+    if amount <= 0 or customer is None:
+        return None
+    if WaterPayment.objects.filter(
+        customer=customer,
+        purpose=WaterPayment.PURPOSE_INSTALLATION,
+    ).exists():
+        return None
+    return WaterPayment.objects.create(
+        receipt_number=WaterPayment.generate_receipt_number(),
+        bill=None,
+        customer=customer,
+        purpose=WaterPayment.PURPOSE_INSTALLATION,
+        payment_date=payment_date or customer.registration_date or date.today(),
+        amount=amount,
+        payment_method='cash',
+        remarks='Installation fee (customer registration)',
+    )
+
+
 def _water_create_customer(request):
     required = ('first_name', 'last_name', 'meter_number')
     if not all(request.POST.get(f, '').strip() for f in required):
@@ -5970,21 +6511,27 @@ def _water_create_customer(request):
                 installation_paid = WATER_INSTALLATION_FEE
         installment_balance = max(WATER_INSTALLATION_FEE - installation_paid, Decimal('0.00'))
 
-        customer = WaterCustomer.objects.create(
-            account_number=request.POST.get('account_number', '').strip() or WaterCustomer.generate_account_number(),
-            first_name=request.POST['first_name'].strip().upper(),
-            last_name=request.POST['last_name'].strip().upper(),
-            service_address=request.POST.get('service_address', '').strip().upper(),
-            contact_number=request.POST.get('contact_number', '').strip(),
-            email=request.POST.get('email', '').strip(),
-            customer_type=request.POST.get('customer_type', 'residential'),
-            zone=_water_resolve_zone(request),
-            meter_number=request.POST['meter_number'].strip().upper(),
-            connection_status=request.POST.get('connection_status', 'active'),
-            registration_date=_water_parse_date(request.POST.get('registration_date')) or date.today(),
-            installment_balance=installment_balance,
-            notes=request.POST.get('notes', '').strip(),
-        )
+        with transaction.atomic():
+            customer = WaterCustomer.objects.create(
+                account_number=request.POST.get('account_number', '').strip() or WaterCustomer.generate_account_number(),
+                first_name=request.POST['first_name'].strip().upper(),
+                last_name=request.POST['last_name'].strip().upper(),
+                service_address=request.POST.get('service_address', '').strip().upper(),
+                contact_number=request.POST.get('contact_number', '').strip(),
+                email=request.POST.get('email', '').strip(),
+                customer_type=request.POST.get('customer_type', 'residential'),
+                zone=_water_resolve_zone(request),
+                meter_number=request.POST['meter_number'].strip().upper(),
+                connection_status=request.POST.get('connection_status', 'active'),
+                registration_date=_water_parse_date(request.POST.get('registration_date')) or date.today(),
+                installment_balance=installment_balance,
+                notes=request.POST.get('notes', '').strip(),
+            )
+            # Persist installation collection as a real payment (payments tab / account / weekly report).
+            # Balance is already fee − paid above — do not reduce installment_balance again.
+            install_payment = _water_record_registration_installation_payment(
+                customer, installation_paid,
+            )
         _water_audit(
             request,
             'Created customer',
@@ -5992,6 +6539,14 @@ def _water_create_customer(request):
             customer.account_number,
             f'{customer.display_name} | install fee PHP {WATER_INSTALLATION_FEE} paid PHP {installation_paid} bal PHP {installment_balance}',
         )
+        if install_payment:
+            _water_audit(
+                request,
+                'Recorded payment',
+                'WaterPayment',
+                install_payment.receipt_number,
+                f'installation customer={customer.account_number} amount={installation_paid} method={install_payment.payment_method} (registration)',
+            )
         messages.success(
             request,
             f'Customer {customer.account_number} registered. '
@@ -6221,6 +6776,7 @@ def _water_update_reading(request):
                 bill.bill_date = reading.reading_date
                 bill.due_date = reading.reading_date + timedelta(days=15)
                 bill.consumption = reading.consumption
+                bill.rate_per_cum = water_rate_for_customer(customer)
                 bill.previous_bill_unpaid = reading.previous_bill_unpaid or Decimal('0')
                 bill.installment_balance = reading.installment_balance or Decimal('0')
                 bill.save()
@@ -6253,7 +6809,7 @@ def _water_bill_from_reading(reading):
         bill_date=reading.reading_date,
         due_date=due,
         consumption=reading.consumption,
-        rate_per_cum=WATER_DEFAULT_RATE,
+        rate_per_cum=water_rate_for_customer(reading.customer),
         previous_bill_unpaid=reading.previous_bill_unpaid or Decimal('0'),
         installment_balance=reading.installment_balance or Decimal('0'),
         fixed_charge=Decimal('0.00'),
@@ -6667,14 +7223,15 @@ def _water_create_payment(request):
         received_from = request.POST.get('received_from', '').strip()
         address = request.POST.get('address', '').strip()
         payment_of = request.POST.get('payment_of', '').strip()
-        amount = _dec(request.POST.get('amount'))
+        amount_raw = (request.POST.get('amount') or '').strip()
         remarks = request.POST.get('remarks', '').strip()
         received_status = (request.POST.get('amount_received_status') or 'not_received').strip()
-        amount_received = amount if received_status == 'already_received' else None
-        if not (payment_date and received_from and payment_of and amount > 0):
+        amount = _dec(amount_raw) if amount_raw != '' else None
+        amount_received = amount if received_status == 'already_received' and amount is not None else None
+        if not (payment_date and received_from and payment_of and amount_raw != '' and amount is not None and amount >= 0):
             messages.error(
                 request,
-                'Other payment requires date, received from, payment of, and an amount greater than zero.',
+                'Other payment requires date, received from, payment of, and an amount of zero or more.',
             )
             return _water_redirect('paymentsTab')
         try:
@@ -7224,40 +7781,23 @@ def _water_delete_other_payment(request):
     return _water_redirect('paymentsTab', {'payment_view': 'history'})
 
 
-def _water_weekly_other_payment_rows(week_start, week_end):
+def _water_weekly_denomination_rows(weekly_report, collection):
+    qty_by_denom = {}
+    if weekly_report:
+        for line in weekly_report.denomination_lines.filter(collection=collection):
+            qty_by_denom[line.denomination] = line.quantity or 0
     rows = []
-    payments = list(
-        WaterOtherPayment.objects
-        .filter(payment_date__gte=week_start, payment_date__lte=week_end)
-    )
-    payments.sort(key=lambda p: (
-        _water_ar_sort_key(p.ar_number),
-        p.payment_date or date.min,
-        p.id,
-    ))
-    amount_total = Decimal('0.00')
-    received_total = Decimal('0.00')
-    for index, payment in enumerate(payments, start=1):
-        amount = payment.amount or Decimal('0.00')
-        received = payment.amount_received
-        # Amount total only includes rows that still have no amount received entered.
-        if received is None:
-            amount_total += amount
-        else:
-            received_total += received
+    section_total = Decimal('0.00')
+    for denom in WATER_WEEKLY_DENOMS:
+        qty = int(qty_by_denom.get(denom, 0) or 0)
+        line_total = Decimal(denom) * Decimal(qty)
+        section_total += line_total
         rows.append({
-            'id': payment.pk,
-            'row_no': index,
-            'row_date': payment.payment_date,
-            'ar_number': payment.ar_number or '',
-            'received_from': payment.received_from,
-            'address': payment.address or '',
-            'amount': amount,
-            'amount_received': received,
-            'payment_of': payment.payment_of,
-            'remarks': payment.remarks or '',
+            'denomination': denom,
+            'quantity': qty,
+            'line_total': line_total,
         })
-    return rows, amount_total, received_total
+    return rows, section_total
 
 
 @require_dashboard('water_billing_dashboard')
@@ -7268,30 +7808,18 @@ def water_billing_export_csv(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="water_weekly_report.csv"'
         writer = csv.writer(response)
-        writer.writerow(['NO.', 'DATE', 'NAME', 'REMARKS', 'PAYMENT', 'AR NO.', 'CASH IN BANK', 'WATER BILL', 'INSTALLATION FEE', 'RECONNECTION FEE'])
+        writer.writerow([
+            'NO.', 'DATE', 'NAME', 'RECEIVED FROM', 'REMARKS', 'PAYMENT OF', 'AR NO.',
+            'CASH IN BANK', 'GCASH', 'CASH RECEIVED BY AID', 'WATER BILL',
+            'INSTALLATION FEE', 'RECONNECTION FEE',
+        ])
         for row in ctx['weekly_rows']:
             writer.writerow([
-                row['row_no'], row['row_date'], row['name'], row['remarks'],
-                row['payment'] or '', row['ar_number'], row['cash_in_bank'] or '',
+                row['row_no'], row['row_date'], row['name'], row.get('received_from') or '',
+                row['remarks'], row.get('payment_of') or '', row['ar_number'],
+                row['cash_in_bank'] or '', row.get('gcash') or '',
+                row.get('cash_received_by_aid') or '',
                 row['water_bill'] or '', row.get('installation_fee') or '', row['reconnection_fee'] or '',
-            ])
-        writer.writerow([])
-        writer.writerow(['GCASH COLLECTION'])
-        writer.writerow(['NO.', 'DATE', 'NAME', 'REMARKS', 'PAYMENT', 'AR NO.', 'GCASH', 'WATER BILL', 'INSTALLATION FEE', 'RECONNECTION FEE'])
-        for row in ctx['weekly_gcash_rows']:
-            writer.writerow([
-                row['row_no'], row['row_date'], row['name'], row['remarks'],
-                row['payment'] or '', row['ar_number'], row.get('gcash') or '',
-                row['water_bill'] or '', row.get('installation_fee') or '', row['reconnection_fee'] or '',
-            ])
-        writer.writerow([])
-        writer.writerow(['OTHER PAYMENTS'])
-        writer.writerow(['NO.', 'DATE', 'AR NO.', 'RECEIVED FROM', 'ADDRESS', 'AMOUNT', 'AMOUNT RECEIVED', 'PAYMENT OF', 'REMARKS'])
-        for row in ctx['weekly_other_rows']:
-            writer.writerow([
-                row['row_no'], row['row_date'], row['ar_number'], row['received_from'],
-                row['address'], row['amount'] or '', row.get('amount_received') or '',
-                row['payment_of'], row['remarks'],
             ])
         writer.writerow([])
         writer.writerow(['REFILLING COLLECTION'])
@@ -7306,7 +7834,7 @@ def water_billing_export_csv(request):
             'Exported report',
             'Report',
             report_type,
-            f'cash_rows={len(ctx["weekly_rows"])} gcash_rows={len(ctx["weekly_gcash_rows"])} other_rows={len(ctx["weekly_other_rows"])}',
+            f'cash_rows={len(ctx["weekly_rows"])}',
         )
         return response
     rows = _water_report_rows(report_type)

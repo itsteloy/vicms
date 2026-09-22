@@ -122,7 +122,7 @@
 
 .ws-lines-head {
   display: grid;
-  grid-template-columns: 1.2fr 0.55fr 0.55fr 1.6fr auto;
+  grid-template-columns: 1.1fr 0.5fr 0.5fr 1.3fr 0.85fr auto;
   gap: 8px;
   font-size: 0.68rem;
   font-weight: 800;
@@ -134,7 +134,7 @@
 
 .ws-line-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.55fr 0.55fr 1.6fr auto;
+  grid-template-columns: 1.1fr 0.5fr 0.5fr 1.3fr 0.85fr auto;
   gap: 8px;
   align-items: center;
 }
@@ -333,8 +333,13 @@
 .ws-items-table td:nth-child(1),
 .ws-items-table th:nth-child(2),
 .ws-items-table td:nth-child(2) {
-  width: 88px;
+  width: 72px;
   text-align: center;
+}
+
+.ws-items-table th:nth-child(4),
+.ws-items-table td:nth-child(4) {
+  width: 120px;
 }
 
 .ws-items-table .empty-row td {
@@ -568,6 +573,11 @@
     text-align: center !important;
   }
 
+  .ws-items-table th:nth-child(4),
+  .ws-items-table td:nth-child(4) {
+    width: 28mm !important;
+  }
+
   .ws-items-table .ws-blank-row td {
     height: 4mm !important;
     padding-top: 0 !important;
@@ -602,7 +612,44 @@
   }
 }
 
-/* Monthly withdrawal report */
+/* Monthly reports (withdrawals / deliveries) */
+.ws-report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.ws-report-tab {
+  appearance: none;
+  border: 1px solid var(--line, #eaecf0);
+  background: #fff;
+  color: var(--ink, #101828);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+.ws-report-tab:hover {
+  background: var(--soft, #f8fafc);
+  border-color: #98a2b3;
+}
+.ws-report-tab.is-active,
+.ws-report-tab[aria-selected="true"] {
+  background: var(--brand, #0f766e);
+  border-color: var(--brand, #0f766e);
+  color: #fff;
+  box-shadow: none;
+}
+.ws-report-subpanel {
+  display: none;
+}
+.ws-report-subpanel.is-active {
+  display: block;
+}
 .ws-report-panel .ws-report-filters {
   display: flex;
   flex-wrap: wrap;
@@ -639,16 +686,32 @@
   background: var(--soft, #f8fafc);
   font-weight: 700;
 }
+.ws-report-block .cell-muted {
+  color: var(--muted, #667085);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
 @media print {
   .ws-report-panel .filters,
+  .ws-report-tabs,
   .ws-report-stats {
     display: none !important;
+  }
+  .ws-report-subpanel {
+    display: none !important;
+  }
+  .ws-report-subpanel.is-active {
+    display: block !important;
   }
   .ws-report-head h3 {
     font-size: 14pt;
   }
 }
 @media (max-width: 768px) {
+  .ws-report-tab {
+    flex: 1 1 auto;
+    text-align: center;
+  }
   .ws-report-panel .ws-report-filters .field {
     flex: 1 1 140px;
     min-width: 0;

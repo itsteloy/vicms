@@ -25,6 +25,56 @@
   margin: 4px 0 0;
   font-weight: 600;
 }
+.weekly-remitted-badge {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.weekly-overview-remit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.weekly-overview-remit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.88rem;
+  color: #475467;
+}
+.weekly-overview-remit-info strong {
+  color: #0f172a;
+}
+.weekly-remitted-status {
+  color: #64748b;
+  font-weight: 600;
+}
+.weekly-overview-remit-form {
+  margin: 0;
+}
+.weekly-report-sheet.is-overview-remitted .weekly-table.weekly-main {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+  pointer-events: none;
+}
+.weekly-report-sheet.is-overview-remitted .weekly-table.weekly-main input,
+.weekly-report-sheet.is-overview-remitted .weekly-table.weekly-main select,
+.weekly-report-sheet.is-overview-remitted .weekly-table.weekly-main textarea {
+  pointer-events: none;
+}
 .weekly-table-wrap { overflow-x: auto; }
 .weekly-table {
   width: 100%;
@@ -48,9 +98,6 @@
 .weekly-table.weekly-refill th {
   background: #1565c0;
 }
-.weekly-table.weekly-gcash th {
-  background: #0f766e;
-}
 .weekly-table.weekly-other th {
   background: #b45309;
 }
@@ -62,7 +109,6 @@
   background: #f8fafc;
 }
 .weekly-table td.highlight { background: #dcfce7; }
-.weekly-table.weekly-gcash td.highlight { background: #ccfbf1; }
 .weekly-table.weekly-other td.highlight { background: #fef3c7; }
 .weekly-table th.col-cash-bank,
 .weekly-table td.col-cash-bank {
@@ -77,58 +123,240 @@
 .weekly-table tr.totals td.col-cash-bank {
   background: #fca5a5;
 }
-.weekly-grand {
-  text-align: right;
+.weekly-table th.col-gcash,
+.weekly-table td.col-gcash {
+  background: #ccfbf1;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.weekly-table th.col-gcash {
+  background: #0f766e;
+  color: #fff;
+}
+.weekly-table tr.totals td.col-gcash {
+  background: #99f6e4;
+}
+.weekly-table th.col-aid,
+.weekly-table td.col-aid {
+  background: #fef3c7;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.weekly-table th.col-aid {
+  background: #d97706;
+  color: #fff;
+}
+.weekly-table tr.totals td.col-aid {
+  background: #fde68a;
+}
+.weekly-section-total {
+  width: 320px;
+  max-width: 100%;
+  margin: 8px 0 18px auto;
+  padding: 10px 12px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.weekly-section-total-billing {
+  border: 2px solid #2e7d32;
+  background: #f3faf3;
+}
+.weekly-section-total-refill {
+  border: 2px solid #1565c0;
+  background: #eff6ff;
+}
+.weekly-section-total-title {
   font-weight: 800;
-  color: #b42318;
-  margin: 0 0 16px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+  color: #1f2937;
 }
-.weekly-grand-gcash {
-  color: #0f766e;
-}
-.weekly-grand-other {
-  color: #b45309;
-}
-.weekly-cash-remittance {
+.weekly-section-total-line {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px 12px;
-  width: 280px;
+  gap: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #344054;
+  margin-bottom: 4px;
+}
+.weekly-section-total-line span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.weekly-section-total-result {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  font-weight: 800;
+}
+.weekly-section-total-billing .weekly-section-total-result span:last-child {
+  color: #2e7d32;
+  font-size: 1.05rem;
+}
+.weekly-section-total-refill .weekly-section-total-result span:last-child {
+  color: #1565c0;
+  font-size: 1.05rem;
+}
+.weekly-cash-remittance {
+  width: 360px;
   max-width: 100%;
   margin: 18px 0 8px auto;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: 2px solid #b42318;
   border-radius: 6px;
   background: #fff7f7;
   box-sizing: border-box;
 }
-.weekly-cash-remittance-label {
+.weekly-cash-remittance-formula {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.weekly-cash-remittance-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.weekly-cash-remittance-gross .weekly-cash-remittance-label {
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+}
+.weekly-cash-remittance-hint {
+  margin: 0 0 4px;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: #667085;
+}
+.weekly-cash-remittance-less-head {
+  margin-top: 4px;
+  font-weight: 800;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   color: #1f2937;
-  margin-right: 0;
+}
+.weekly-cash-remittance-deduction {
+  padding-left: 14px;
+}
+.weekly-cash-remittance-deduction .weekly-cash-remittance-label::before {
+  content: "− ";
+  color: #b42318;
+  font-weight: 800;
+}
+.weekly-cash-remittance-result {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #fecdca;
+}
+.weekly-cash-remittance-label {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1f2937;
   line-height: 1.25;
+}
+.weekly-cash-remittance-amount {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #344054;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .weekly-cash-remittance-value {
   font-weight: 800;
   font-size: 1.15rem;
   color: #b42318;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-.weekly-cash-remittance-note {
-  flex: 1 0 100%;
-  margin: 0;
+.weekly-remittance-page {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px dashed #d0d5dd;
+}
+.weekly-denom-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto 16px;
+  clear: both;
+}
+.weekly-denom-panel {
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+}
+.weekly-denom-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 1rem;
+  background: #fff;
+}
+.weekly-denom-table col.col-money { width: 28%; }
+.weekly-denom-table col.col-qty { width: 28%; }
+.weekly-denom-table col.col-total { width: 44%; }
+.weekly-denom-table th,
+.weekly-denom-table td {
+  border: 1px solid #111;
+  padding: 10px 12px;
+  text-align: center;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.weekly-denom-table .num {
+  font-weight: 600;
+}
+.weekly-denom-table .amt {
   text-align: right;
-  font-size: 0.7rem;
-  line-height: 1.35;
-  color: #667085;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-right: 10px;
 }
-.weekly-gcash-title,
-.weekly-other-title,
+.weekly-denom-table .weekly-denom-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  padding: 12px 10px;
+}
+.weekly-denom-billing .weekly-denom-title {
+  background: #f4b183;
+}
+.weekly-denom-billing thead tr:nth-child(2) th {
+  background: #f8cbad;
+  font-weight: 700;
+}
+.weekly-denom-table tfoot td {
+  font-weight: 700;
+  background: #f8fafc;
+}
+.weekly-denom-table tfoot td:first-child {
+  text-align: left;
+  padding-left: 10px;
+}
+.weekly-denom-qty {
+  display: block;
+  width: 100%;
+  max-width: 88px;
+  margin: 0 auto;
+  border: 1px solid #98a2b3;
+  border-radius: 3px;
+  padding: 6px 4px;
+  text-align: center;
+  font: inherit;
+  box-sizing: border-box;
+}
 .weekly-refill-title {
   margin: 12px 0 6px;
   font-size: 0.95rem;
@@ -146,6 +374,11 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   margin-top: 20px;
+}
+.weekly-remittance-page .weekly-signoffs {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .weekly-signoffs label {
   display: block;
@@ -178,6 +411,10 @@
   .weekly-table td.highlight,
   .weekly-table td.col-cash-bank,
   .weekly-table th.col-cash-bank,
+  .weekly-table td.col-gcash,
+  .weekly-table th.col-gcash,
+  .weekly-table td.col-aid,
+  .weekly-table th.col-aid,
   .weekly-table tr.totals td {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -196,16 +433,79 @@
   .weekly-table tr.totals td.col-cash-bank {
     background: #fca5a5 !important;
   }
-  .weekly-table.weekly-refill th {
-    background: #1565c0 !important;
+  .weekly-table.weekly-main th.col-gcash {
+    background: #0f766e !important;
     color: #fff !important;
   }
-  .weekly-table.weekly-other th {
-    background: #b45309 !important;
+  .weekly-table td.col-gcash {
+    background: #ccfbf1 !important;
+  }
+  .weekly-table tr.totals td.col-gcash {
+    background: #99f6e4 !important;
+  }
+  .weekly-table.weekly-main th.col-aid {
+    background: #d97706 !important;
+    color: #fff !important;
+  }
+  .weekly-table td.col-aid {
+    background: #fef3c7 !important;
+  }
+  .weekly-table tr.totals td.col-aid {
+    background: #fde68a !important;
+  }
+  .weekly-table.weekly-refill th {
+    background: #1565c0 !important;
     color: #fff !important;
   }
   .weekly-table.weekly-refill th.col-cash-bank {
     background: #f87171 !important;
     color: #fff !important;
   }
+
+  .weekly-section-total {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .weekly-section-total-billing { border-color: #2e7d32 !important; background: #f3faf3 !important; }
+  .weekly-section-total-refill { border-color: #1565c0 !important; background: #eff6ff !important; }
+  .weekly-section-total-billing .weekly-section-total-result span:last-child { color: #2e7d32 !important; }
+  .weekly-section-total-refill .weekly-section-total-result span:last-child { color: #1565c0 !important; }
+
+  /* Force TOTAL CASH REMITTANCE onto its own portrait page */
+  .weekly-remittance-page {
+    page: remittance-portrait;
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .weekly-denom-grid {
+    max-width: 100%;
+    margin-top: 12mm;
+  }
+  .weekly-denom-panel {
+    max-width: 140mm;
+    margin: 0 auto;
+  }
+  .weekly-denom-table {
+    font-size: 14pt;
+  }
+  .weekly-denom-table th,
+  .weekly-denom-table td {
+    padding: 12px 14px;
+  }
+  .weekly-denom-table .weekly-denom-title {
+    font-size: 16pt;
+    padding: 14px 10px;
+  }
+  .weekly-denom-billing .weekly-denom-title,
+  .weekly-denom-billing thead tr:nth-child(2) th {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .weekly-denom-billing .weekly-denom-title { background: #f4b183 !important; }
+  .weekly-denom-billing thead tr:nth-child(2) th { background: #f8cbad !important; }
 }

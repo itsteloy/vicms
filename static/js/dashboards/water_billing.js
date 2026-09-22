@@ -6,9 +6,11 @@
   const BATCH_PRINT_MAX = 6;
   const INSTALLATION_FEE = 5900;
   const INSTALLATION_PARTIAL = 3000;
-  const RATE_PER_CUM = 20;
+  const DEFAULT_RATE_PER_CUM = 20;
   const MIN_CHARGE = 100;
   const MIN_CHARGE_MAX_CUM = 5;
+  let activeReadingRate = DEFAULT_RATE_PER_CUM;
+  let activeEditReadingRate = DEFAULT_RATE_PER_CUM;
   const batchPrintUrl = (window.__WATER_CONFIG__ && window.__WATER_CONFIG__.batchPrintUrl) || '';
   const pageRoot = document.querySelector('.water-billing-page');
   const fragmentBase = (pageRoot && pageRoot.dataset.fragmentUrl) || window.location.pathname;
@@ -437,9 +439,10 @@
     const prev = Number(previousReading?.value || 0);
     const curr = Number(currentReading?.value || 0);
       const consumption = curr - prev;
+    const rate = Number(activeReadingRate) || DEFAULT_RATE_PER_CUM;
     const currentBill = (consumption >= 0 && consumption <= MIN_CHARGE_MAX_CUM)
       ? MIN_CHARGE
-      : consumption * RATE_PER_CUM;
+      : consumption * rate;
     const unpaid = Number(previousBillUnpaid?.value || 0);
     const installment = Number(installmentBalance?.value || 0);
     const total = currentBill + unpaid + installment;
@@ -462,9 +465,10 @@
       const prev = Number(editPreviousReading?.value || 0);
       const curr = Number(editCurrentReading?.value || 0);
       const consumption = curr - prev;
+      const rate = Number(activeEditReadingRate) || DEFAULT_RATE_PER_CUM;
       const currentBill = (consumption >= 0 && consumption <= MIN_CHARGE_MAX_CUM)
         ? MIN_CHARGE
-        : consumption * RATE_PER_CUM;
+        : consumption * rate;
       const unpaid = Number(editPreviousBillUnpaid?.value || 0);
       const installment = Number(editInstallmentBalance?.value || 0);
       const total = currentBill + unpaid + installment;
@@ -503,6 +507,7 @@
       if (editCurrentReading) editCurrentReading.value = btn.dataset.current ?? '';
       if (editPreviousBillUnpaid) editPreviousBillUnpaid.value = Number(btn.dataset.unpaid || 0).toFixed(2);
       if (editInstallmentBalance) editInstallmentBalance.value = Number(btn.dataset.installment || 0).toFixed(2);
+      activeEditReadingRate = Number(btn.dataset.rate || DEFAULT_RATE_PER_CUM) || DEFAULT_RATE_PER_CUM;
       if (editReaderName) editReaderName.value = btn.dataset.reader || 'James Pahilagao';
       if (editIsEstimated) editIsEstimated.value = btn.dataset.estimated === '1' ? '1' : '';
       if (editReadingRemarks) editReadingRemarks.value = btn.dataset.remarks || '';
@@ -523,6 +528,7 @@
         if (previousBillUnpaid) previousBillUnpaid.value = '0.00';
         if (installmentBalance) installmentBalance.value = '0.00';
         if (currentReading) currentReading.value = '';
+        activeReadingRate = DEFAULT_RATE_PER_CUM;
         updateReadingTotals();
         return;
       }
@@ -532,6 +538,7 @@
         previousBillUnpaid.value = Number.isFinite(unpaidVal) ? unpaidVal.toFixed(2) : '0.00';
       }
       if (installmentBalance) installmentBalance.value = Number(item.dataset.installment || 0).toFixed(2);
+      activeReadingRate = Number(item.dataset.rate || DEFAULT_RATE_PER_CUM) || DEFAULT_RATE_PER_CUM;
       if (currentReading) currentReading.value = '';
       updateReadingTotals();
     }
@@ -931,7 +938,6 @@
           paymentInstallSearch.value = `${item.dataset.label || ''} · installment ₱${installment.toFixed(2)}`;
           paymentInstallSearch.setCustomValidity('');
         }
-        if (paymentInstallAmount) paymentInstallAmount.value = installment.toFixed(2);
       }
       syncPaymentSummary();
     }
@@ -1076,12 +1082,7 @@
       paymentBillSearch.value = item.dataset.label || item.textContent.trim();
       paymentBillSearch.setCustomValidity('');
       if (isCombinedPurpose()) {
-        if (paymentBillAmount && item.dataset.balance) {
-          paymentBillAmount.value = Number(item.dataset.balance).toFixed(2);
-        }
         syncCombinedInstallFromBill(item);
-      } else if (paymentAmount && item.dataset.balance) {
-        paymentAmount.value = item.dataset.balance;
       }
       syncPaymentSummary();
     }
@@ -1097,13 +1098,6 @@
       paymentInstallCustomer.dataset.balance = item.dataset.balance || '0';
       paymentInstallSearch.value = item.dataset.label || item.textContent.trim();
       paymentInstallSearch.setCustomValidity('');
-      if (isCombinedPurpose() || fromCombined) {
-        if (paymentInstallAmount && item.dataset.balance) {
-          paymentInstallAmount.value = Number(item.dataset.balance).toFixed(2);
-        }
-      } else if (paymentAmount && item.dataset.balance) {
-        paymentAmount.value = item.dataset.balance;
-      }
       if (!fromCombined && paymentRemarks && !paymentRemarks.value.trim()) {
         paymentRemarks.value = 'Installation fee';
       }
@@ -1753,6 +1747,7 @@
     });
     initWeeklyRefillForm();
     initWeeklyOtherReceived();
+    initWeeklyDenominationTables();
     updateWeeklyCashRemittance();
   }
 
@@ -1762,47 +1757,127 @@
 
   function updateWeeklyCashRemittance() {
     const block = document.getElementById('weeklyCashRemittanceBlock');
+    const grossEl = document.getElementById('weeklyGrossSalesTotal');
+    const gcashEl = document.getElementById('weeklyGcashCollectionTotal');
+    const aidEl = document.getElementById('weeklyAidReceivedTotal');
+    const parcelEl = document.getElementById('weeklyParcelPaymentTotal');
     const valueEl = document.getElementById('weeklyCashRemittanceTotal');
     if (!block || !valueEl) return;
-    const cashTotal = Number(block.dataset.cashTotal || 0);
-    const otherTotal = parseWeeklyPesoText(document.getElementById('weeklyOtherAmountTotal')?.textContent);
-    const refillTotal = parseWeeklyPesoText(document.getElementById('weeklyRefillAmountTotal')?.textContent);
-    valueEl.textContent = `₱${(cashTotal + otherTotal + refillTotal).toFixed(2)}`;
+
+    const gcashTotal = parseWeeklyPesoText(
+      document.getElementById('weeklyCollectionGcashTotal')?.textContent
+    ) || Number(block.dataset.gcashTotal || 0);
+    const refillCashTotal = parseWeeklyPesoText(
+      document.getElementById('weeklyRefillCashTotal')?.textContent
+    ) || Number(block.dataset.refillCashTotal || 0);
+
+    let cashTotal = 0;
+    let aidReceived = 0;
+    let parcelPayment = 0;
+
+    document.querySelectorAll('#weeklyBillingBody .weekly-billing-row').forEach((row) => {
+      const paymentOf = String(row.dataset.paymentOf || '').toLowerCase();
+      const isParcel = paymentOf.includes('parcel');
+      const otherId = row.dataset.otherId;
+      if (otherId) {
+        const amount = Number(row.dataset.amount || 0);
+        const raw = (row.querySelector('.weekly-other-received')?.value || '').trim();
+        if (raw === '') {
+          cashTotal += amount;
+          if (isParcel) parcelPayment += amount;
+        } else {
+          const received = Number(raw || 0);
+          aidReceived += received;
+          if (isParcel) parcelPayment += received;
+        }
+      } else {
+        cashTotal += parseWeeklyPesoText(row.querySelector('.weekly-row-cash')?.textContent);
+      }
+    });
+
+    // Include non-other cash already in footer if body empty of billing cash cells —
+    // cashTotal from rows is authoritative when rows exist.
+    const grossSales = cashTotal + gcashTotal + aidReceived + refillCashTotal;
+    const remittance = grossSales - gcashTotal - aidReceived - parcelPayment;
+
+    if (grossEl) grossEl.textContent = `₱${grossSales.toFixed(2)}`;
+    if (gcashEl) gcashEl.textContent = `₱${gcashTotal.toFixed(2)}`;
+    if (aidEl) aidEl.textContent = `₱${aidReceived.toFixed(2)}`;
+    if (parcelEl) parcelEl.textContent = `₱${parcelPayment.toFixed(2)}`;
+    valueEl.textContent = `₱${remittance.toFixed(2)}`;
+
+    const cashLine = document.getElementById('weeklyBillingCashLine');
+    const aidLine = document.getElementById('weeklyBillingAidLine');
+    const collectionTotal = document.getElementById('weeklyBillingCollectionTotal');
+    const cashFooter = document.getElementById('weeklyCollectionCashTotal');
+    const aidFooter = document.getElementById('weeklyCollectionAidTotal');
+    if (cashLine) cashLine.textContent = `₱${cashTotal.toFixed(2)}`;
+    if (aidLine) aidLine.textContent = `₱${aidReceived.toFixed(2)}`;
+    if (cashFooter) cashFooter.textContent = `₱${cashTotal.toFixed(2)}`;
+    if (aidFooter) aidFooter.textContent = `₱${aidReceived.toFixed(2)}`;
+    if (collectionTotal) collectionTotal.textContent = `₱${(cashTotal + gcashTotal + aidReceived).toFixed(2)}`;
+    if (block) block.dataset.cashTotal = String(cashTotal);
+  }
+
+  function initWeeklyDenominationTables() {
+    const wrap = document.querySelector('.weekly-denom-grid');
+    if (!wrap) return;
+    function formatPeso(value) {
+      return `₱${Number(value || 0).toFixed(2)}`;
+    }
+    function sumTable(table, totalId) {
+      if (!table) return;
+      let total = 0;
+      table.querySelectorAll('.weekly-denom-row').forEach((row) => {
+        const money = Number(row.dataset.money || 0);
+        const qtyRaw = (row.querySelector('.weekly-denom-qty')?.value || '').trim();
+        const qty = qtyRaw === '' ? 0 : Number(qtyRaw);
+        const lineTotal = Number.isFinite(qty) ? money * qty : 0;
+        total += lineTotal;
+        const cell = row.querySelector('.weekly-denom-line-total');
+        if (cell) cell.textContent = qtyRaw === '' || !qty ? '' : formatPeso(lineTotal);
+      });
+      const totalEl = document.getElementById(totalId);
+      if (totalEl) totalEl.textContent = formatPeso(total);
+    }
+    function refreshAll() {
+      sumTable(document.getElementById('weeklyDenomBillingTable'), 'weeklyDenomBillingTotal');
+    }
+    wrap.addEventListener('input', (event) => {
+      if (!event.target.classList.contains('weekly-denom-qty')) return;
+      refreshAll();
+    });
   }
 
   function initWeeklyOtherReceived() {
-    const body = document.getElementById('weeklyOtherBody');
+    const body = document.getElementById('weeklyBillingBody');
     if (!body) return;
     function formatPeso(value) {
       return `₱${Number(value || 0).toFixed(2)}`;
     }
-    function sumOtherColumns() {
-      let amountTotal = 0;
-      let receivedTotal = 0;
-      body.querySelectorAll('.weekly-other-row').forEach((row) => {
-        const input = row.querySelector('.weekly-other-received');
-        const amountCell = row.querySelector('.weekly-other-amount');
-        const amount = Number(row.dataset.amount || 0);
-        const raw = (input?.value || '').trim();
-        if (raw === '') {
-          amountTotal += amount;
-          if (amountCell) amountCell.textContent = amount ? formatPeso(amount) : '';
-        } else {
-          receivedTotal += Number(raw || 0);
-          if (amountCell) amountCell.textContent = '';
-        }
-      });
-      const amountEl = document.getElementById('weeklyOtherAmountTotal');
-      const receivedEl = document.getElementById('weeklyOtherReceivedTotal');
-      const grandEl = document.getElementById('weeklyOtherGrand');
-      if (amountEl) amountEl.textContent = formatPeso(amountTotal);
-      if (receivedEl) receivedEl.textContent = formatPeso(receivedTotal);
-      if (grandEl) grandEl.textContent = formatPeso(amountTotal);
+    function syncOtherRowCash(row) {
+      if (!row?.dataset.otherId) return;
+      const amount = Number(row.dataset.amount || 0);
+      const input = row.querySelector('.weekly-other-received');
+      const cashCell = row.querySelector('.weekly-row-cash');
+      const raw = (input?.value || '').trim();
+      if (!cashCell) return;
+      if (raw === '') {
+        cashCell.textContent = amount ? formatPeso(amount) : '';
+      } else {
+        cashCell.textContent = '';
+      }
+    }
+    function refreshMergedOther() {
+      body.querySelectorAll('.weekly-other-row').forEach(syncOtherRowCash);
       updateWeeklyCashRemittance();
     }
     body.addEventListener('input', (event) => {
-      if (event.target.classList.contains('weekly-other-received')) sumOtherColumns();
+      if (!event.target.classList.contains('weekly-other-received')) return;
+      syncOtherRowCash(event.target.closest('.weekly-other-row'));
+      updateWeeklyCashRemittance();
     });
+    refreshMergedOther();
   }
 
   function initWeeklyRefillForm() {
@@ -1825,18 +1900,32 @@
     function sumRefill() {
       let cash = 0;
       let amount = 0;
+      let hasInputs = false;
       body.querySelectorAll('.weekly-refill-row').forEach((row) => {
         const cashEl = row.querySelector('[name$="-cash_in_bank"]');
         const amtEl = row.querySelector('.weekly-refill-amount');
+        if (cashEl || amtEl) hasInputs = true;
         cash += Number(cashEl?.value || 0);
         amount += Number(amtEl?.value || 0);
       });
+      if (!hasInputs) {
+        cash = parseWeeklyPesoText(document.getElementById('weeklyRefillCashTotal')?.textContent);
+        amount = parseWeeklyPesoText(document.getElementById('weeklyRefillAmountTotal')?.textContent);
+      }
       const cashTotal = document.getElementById('weeklyRefillCashTotal');
       const amtTotal = document.getElementById('weeklyRefillAmountTotal');
-      if (cashTotal) cashTotal.textContent = `₱${cash.toFixed(2)}`;
-      if (amtTotal) amtTotal.textContent = `₱${amount.toFixed(2)}`;
+      const cashLine = document.getElementById('weeklyRefillCashLine');
+      const amountLine = document.getElementById('weeklyRefillAmountLine');
+      const collectionTotal = document.getElementById('weeklyRefillCollectionTotal');
+      const peso = (value) => `₱${Number(value || 0).toFixed(2)}`;
+      if (cashTotal) cashTotal.textContent = peso(cash);
+      if (amtTotal) amtTotal.textContent = peso(amount);
+      if (cashLine) cashLine.textContent = peso(cash);
+      if (amountLine) amountLine.textContent = peso(amount);
+      if (collectionTotal) collectionTotal.textContent = peso(cash + amount);
       updateWeeklyCashRemittance();
     }
+    sumRefill();
     addBtn?.addEventListener('click', () => {
       const index = body.querySelectorAll('.weekly-refill-row').length;
       const tr = document.createElement('tr');

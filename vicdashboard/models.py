@@ -75,6 +75,30 @@ class InventoryItem(models.Model):
         return self.name or self.product_code or 'Inventory Item'
 
 
+class InventoryStockDelivery(models.Model):
+    """Incoming stock receipt that increments or creates inventory items."""
+    reference_no = models.CharField(max_length=100)
+    date_arrived = models.DateField()
+    item_name = models.CharField(max_length=200)
+    quantity = models.PositiveIntegerField()
+    description = models.TextField(blank=True, default='')
+    supplier = models.CharField(max_length=200, blank=True, default='')
+    inventory_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_deliveries',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date_arrived', '-created_at']
+
+    def __str__(self):
+        return f'{self.reference_no} – {self.item_name} x{self.quantity}'
+
+
 class SalesOrder(models.Model):
     customer_name = models.CharField(max_length=200)
     inventory_item = models.ForeignKey(InventoryItem, on_delete=models.PROTECT, related_name='sales_orders')
@@ -1456,6 +1480,7 @@ class WithdrawalSlip(models.Model):
     project_area = models.CharField(max_length=200, blank=True, default='')
     client = models.CharField(max_length=200, blank=True, default='')
     ref_number = models.CharField(max_length=100, blank=True, default='')
+    po_number = models.CharField(max_length=100, blank=True, default='')
     status = models.CharField(max_length=100, blank=True, default='')
     prepared_by = models.CharField(max_length=200, blank=True, default='')
     attested_by = models.CharField(max_length=200, blank=True, default='')
@@ -1500,6 +1525,7 @@ class WithdrawalSlipLine(models.Model):
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     unit = models.CharField(max_length=50, blank=True, default='pcs')
+    serial_number = models.CharField(max_length=100, blank=True, default='')
 
     class Meta:
         ordering = ['id']
@@ -2124,6 +2150,10 @@ class WaterCustomer(models.Model):
     def full_name(self):
         return self.display_name
 
+    @property
+    def water_rate_per_cum(self):
+        return water_rate_for_customer(self)
+
     @classmethod
     def generate_account_number(cls):
         return _next_sequential_number(cls, 'account_number', f'WA-{date.today().year}-')
@@ -2196,10 +2226,46 @@ class WaterCustomer(models.Model):
 WATER_RATE_PER_CUM = Decimal('20.00')
 WATER_MIN_CHARGE = Decimal('100.00')
 WATER_MIN_CHARGE_MAX_CUM = 5
+# Exact customer name overrides (normalized: uppercase, trailing '.' stripped).
+WATER_CUSTOMER_RATE_OVERRIDES = {
+    'MINDANAO MOTORS IMPORT CORP': Decimal('35.00'),
+}
+
+
+def _water_normalize_customer_name(value):
+    return (value or '').strip().upper().rstrip('.').strip()
+
+
+def water_rate_for_customer(customer):
+    """Return per-cu.m rate for a customer; default ₱20 except named overrides."""
+    if customer is None:
+        return WATER_RATE_PER_CUM
+    candidates = [
+        getattr(customer, 'display_name', None),
+        getattr(customer, 'first_name', None),
+        getattr(customer, 'last_name', None),
+    ]
+    # Also try "LAST, FIRST" without comma spacing variants and joined company-style names.
+    last = (getattr(customer, 'last_name', None) or '').strip()
+    first = (getattr(customer, 'first_name', None) or '').strip()
+    if last and first:
+        candidates.append(f'{last} {first}')
+        candidates.append(f'{first} {last}')
+    for raw in candidates:
+        key = _water_normalize_customer_name(raw)
+        if key in WATER_CUSTOMER_RATE_OVERRIDES:
+            return WATER_CUSTOMER_RATE_OVERRIDES[key]
+        # Allow display_name "LAST, FIRST" where either side is the company name.
+        if ',' in key:
+            for part in key.split(','):
+                part_key = _water_normalize_customer_name(part)
+                if part_key in WATER_CUSTOMER_RATE_OVERRIDES:
+                    return WATER_CUSTOMER_RATE_OVERRIDES[part_key]
+    return WATER_RATE_PER_CUM
 
 
 def water_consumption_charge(consumption, rate_per_cum=None):
-    """Current bill: ₱100 for 0–5 cu.m.; otherwise consumption × rate (₱20)."""
+    """Current bill: ₱100 for 0–5 cu.m.; otherwise consumption × rate (₱20 default)."""
     consumption = int(consumption or 0)
     rate = Decimal(rate_per_cum if rate_per_cum is not None else WATER_RATE_PER_CUM)
     if 0 <= consumption <= WATER_MIN_CHARGE_MAX_CUM:
@@ -2230,7 +2296,10 @@ class WaterMeterReading(models.Model):
 
     @property
     def current_bill(self):
-        return water_consumption_charge(self.consumption)
+        return water_consumption_charge(
+            self.consumption,
+            water_rate_for_customer(self.customer),
+        )
 
     @property
     def total_bill(self):
@@ -2563,11 +2632,20 @@ class WaterOtherPayment(models.Model):
 
 
 class WaterWeeklyReport(models.Model):
+    DEFAULT_PREPARED_BY = 'AIZA MAE POQUITA'
+    DEFAULT_AUDITED_BY = 'CHRISTINE JOY ILOGON'
+    DEFAULT_APPROVED_BY = 'ENGR. ARTURO I. DAVIS, PME, PhD'
+
     week_start = models.DateField()
     week_end = models.DateField()
-    prepared_by = models.CharField(max_length=200, blank=True, default='')
-    audited_by = models.CharField(max_length=200, blank=True, default='')
-    approved_by = models.CharField(max_length=200, blank=True, default='')
+    prepared_by = models.CharField(max_length=200, blank=True, default=DEFAULT_PREPARED_BY)
+    audited_by = models.CharField(max_length=200, blank=True, default=DEFAULT_AUDITED_BY)
+    approved_by = models.CharField(max_length=200, blank=True, default=DEFAULT_APPROVED_BY)
+    # Snapshot of water-billing Cash/GCash remitted to Overview Collections (payments kept).
+    overview_remitted_at = models.DateTimeField(null=True, blank=True)
+    overview_remitted_cash = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    overview_remitted_gcash = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    overview_remitted_by = models.CharField(max_length=150, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -2579,6 +2657,10 @@ class WaterWeeklyReport(models.Model):
 
     def __str__(self):
         return f'Weekly report {self.week_start} – {self.week_end}'
+
+    @property
+    def is_overview_remitted(self):
+        return self.overview_remitted_at is not None
 
 
 class WaterWeeklyRefillLine(models.Model):
@@ -2596,6 +2678,41 @@ class WaterWeeklyRefillLine(models.Model):
 
     def __str__(self):
         return f'Refill line {self.line_no}'
+
+
+WATER_WEEKLY_DENOMS = (1000, 500, 200, 100, 50, 20, 10, 5, 1)
+WATER_WEEKLY_DENOM_COLLECTIONS = (
+    ('billing', 'Water Billing Collection'),
+    ('refilling', 'Water Refilling Collection'),
+)
+
+
+class WaterWeeklyDenominationLine(models.Model):
+    """Cash denomination count sheet lines for a weekly report."""
+    report = models.ForeignKey(
+        WaterWeeklyReport,
+        on_delete=models.CASCADE,
+        related_name='denomination_lines',
+    )
+    collection = models.CharField(max_length=20, choices=WATER_WEEKLY_DENOM_COLLECTIONS)
+    denomination = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['collection', '-denomination', 'id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['report', 'collection', 'denomination'],
+                name='uniq_water_weekly_denom_line',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.collection} {self.denomination} x {self.quantity}'
+
+    @property
+    def line_total(self):
+        return Decimal(self.denomination) * Decimal(self.quantity or 0)
 
 
 class WaterAuditLog(models.Model):

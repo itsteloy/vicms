@@ -24,6 +24,10 @@
         <span class="tab-icon">📋</span>
         <span class="tab-label">All Items</span>
       </button>
+      <button class="tab-button" type="button" role="tab" title="Delivery" aria-selected="false" data-tab-target="deliveriesPanel">
+        <span class="tab-icon">📥</span>
+        <span class="tab-label">Delivery</span>
+      </button>
 
       <div class="nav-label" style="margin-top:14px;">Documents</div>
       <button class="tab-button" type="button" role="tab" title="Purchase Order" aria-selected="false" data-tab-target="purchaseOrderPanel">
@@ -35,7 +39,7 @@
         <span class="tab-label">Withdrawal Slip</span>
         <span class="tab-badge">{{ withdrawal_slip_count|default:0 }}</span>
       </button>
-      <button class="tab-button" type="button" role="tab" title="Withdrawal Reports" aria-selected="false" data-tab-target="reportsPanel">
+      <button class="tab-button" type="button" role="tab" title="Reports" aria-selected="false" data-tab-target="reportsPanel">
         <span class="tab-icon">📊</span>
         <span class="tab-label">Reports</span>
       </button>

@@ -4,6 +4,7 @@
     const panels = {
       managePanel: document.getElementById('managePanel'),
       allItemsPanel: document.getElementById('allItemsPanel'),
+      deliveriesPanel: document.getElementById('deliveriesPanel'),
       purchaseOrderPanel: document.getElementById('purchaseOrderPanel'),
       withdrawalSlipPanel: document.getElementById('withdrawalSlipPanel'),
       reportsPanel: document.getElementById('reportsPanel'),
@@ -71,7 +72,57 @@
       } else {
         activateTab(defaultTab);
       }
+      const reportParam = new URLSearchParams(window.location.search).get('report');
+      if (typeof activateReportSubtab === 'function') {
+        activateReportSubtab(reportParam === 'deliveries' ? 'deliveries' : 'withdrawals', false);
+      }
     });
+
+    // ── Reports sub-tabs (Withdrawals / Deliveries) ──
+    const reportTabButtons = document.querySelectorAll('.ws-report-tab[data-report-tab]');
+    const reportSubpanels = {
+      withdrawals: document.getElementById('wsReportWithdrawalsPanel'),
+      deliveries: document.getElementById('wsReportDeliveriesPanel'),
+    };
+    const reportSubtabInput = document.getElementById('wsReportSubtabInput');
+
+    function activateReportSubtab(subtab, pushUrl) {
+      const target = subtab === 'deliveries' ? 'deliveries' : 'withdrawals';
+      reportTabButtons.forEach(btn => {
+        const isActive = btn.dataset.reportTab === target;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      Object.keys(reportSubpanels).forEach(key => {
+        const panel = reportSubpanels[key];
+        if (!panel) return;
+        const isActive = key === target;
+        panel.classList.toggle('is-active', isActive);
+        if (isActive) {
+          panel.removeAttribute('hidden');
+        } else {
+          panel.setAttribute('hidden', '');
+        }
+      });
+      if (reportSubtabInput) {
+        reportSubtabInput.value = target;
+      }
+      if (pushUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'reportsPanel');
+        url.searchParams.set('report', target);
+        window.history.pushState({}, '', url);
+      }
+    }
+
+    reportTabButtons.forEach(btn => {
+      btn.addEventListener('click', function () {
+        activateReportSubtab(this.dataset.reportTab, true);
+      });
+    });
+
+    const initialReportSubtab = urlParams.get('report') === 'deliveries' ? 'deliveries' : 'withdrawals';
+    activateReportSubtab(initialReportSubtab, false);
 
     // ── Inventory management ──
     const storageKey = 'inventory-management-data-v1';
@@ -553,11 +604,24 @@
         }));
     }
 
+    function getViewAllInventory() {
+      const items = Array.isArray(inventory) ? inventory : [];
+      const searchEl = document.getElementById('viewAllSearchInput');
+      const query = (searchEl?.value || '').trim().toLowerCase();
+      if (!query) return items;
+      return items.filter((item) =>
+        [item.productCode, item.name, item.categoryPath, item.description, item.notes]
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+
     function renderViewAllCatalog() {
       const catalog = document.getElementById('viewAllCatalog');
       const subtitle = document.getElementById('viewAllSubtitle');
       if (!catalog) return;
-      const items = getFilteredInventory();
+      const items = getViewAllInventory();
       if (subtitle) {
         subtitle.textContent = items.length
           ? `${items.length} item${items.length === 1 ? '' : 's'} · grouped by category`
@@ -567,7 +631,7 @@
         catalog.innerHTML = `
           <div class="view-all-empty">
             <strong>No matching items.</strong>
-            <p>Try clearing filters or searching a different term.</p>
+            <p>Try clearing the search or using a different term.</p>
           </div>`;
         return;
       }
@@ -605,17 +669,21 @@
     function showViewAllModal() {
       const modal = document.getElementById('viewAllModal');
       if (!modal) return;
+      const searchEl = document.getElementById('viewAllSearchInput');
+      if (searchEl) searchEl.value = '';
       renderViewAllCatalog();
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
-      document.getElementById('viewAllCloseBtn')?.focus();
+      searchEl?.focus();
     }
 
     function hideViewAllModal() {
       const modal = document.getElementById('viewAllModal');
       if (!modal) return;
       hideItemViewModal();
+      const searchEl = document.getElementById('viewAllSearchInput');
+      if (searchEl) searchEl.value = '';
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
@@ -640,6 +708,200 @@
       }
       return response.json();
     }
+
+    function priceCellHiddenHtml() {
+      return '<button type="button" class="copy show-price-btn" data-price-action="prompt">Show price</button>';
+    }
+
+    function priceCellPromptHtml() {
+      return `
+        <div class="price-reveal">
+          <input type="password" class="price-reveal-input" placeholder="Password" autocomplete="current-password" aria-label="Password to show unit price">
+          <div class="price-reveal-actions">
+            <button type="button" class="copy" data-price-action="confirm">Show</button>
+            <button type="button" class="copy" data-price-action="cancel">Cancel</button>
+          </div>
+          <div class="price-reveal-error" hidden></div>
+        </div>`;
+    }
+
+    const unlockedPricePasswords = new Map();
+
+    function priceCellShownHtml(priceValue) {
+      const raw = String(priceValue ?? '0.00');
+      return `
+        <div class="price-revealed">
+          <label class="price-edit-label">
+            <span class="price-currency">₱</span>
+            <input type="number" class="price-edit-input" min="0" step="0.01" value="${escapeHtml(raw)}" aria-label="Unit price">
+          </label>
+          <div class="price-reveal-actions">
+            <button type="button" class="copy" data-price-action="save">Save</button>
+            <button type="button" class="copy" data-price-action="hide">Hide</button>
+          </div>
+          <div class="price-reveal-error" hidden></div>
+        </div>`;
+    }
+
+    async function revealItemPrice(itemId, password) {
+      const formData = new FormData();
+      formData.append('action', 'reveal_item_price');
+      formData.append('itemId', itemId);
+      formData.append('password', password);
+      formData.append('csrfmiddlewaretoken', csrfToken);
+      const response = await fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not show price.');
+      }
+      return data;
+    }
+
+    async function saveItemPrice(itemId, password, price) {
+      const formData = new FormData();
+      formData.append('action', 'save_item_price');
+      formData.append('itemId', itemId);
+      formData.append('password', password);
+      formData.append('price', price);
+      formData.append('csrfmiddlewaretoken', csrfToken);
+      const response = await fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not save price.');
+      }
+      return data;
+    }
+
+    function syncInventoryJsonPrice(itemId, price) {
+      const entry = inventory.find((item) => String(item.id) === String(itemId));
+      if (entry) entry.price = Number(price);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(inventory));
+      } catch (_) { /* ignore quota */ }
+    }
+
+    inventoryTableBody?.addEventListener('click', async (e) => {
+      const priceBtn = e.target.closest('[data-price-action]');
+      if (!priceBtn || !inventoryTableBody.contains(priceBtn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const cell = priceBtn.closest('[data-price-cell]');
+      const row = priceBtn.closest('tr[data-id]');
+      const itemId = row?.dataset?.id;
+      if (!cell || !itemId) return;
+      const action = priceBtn.dataset.priceAction;
+
+      if (action === 'prompt') {
+        cell.innerHTML = priceCellPromptHtml();
+        cell.querySelector('.price-reveal-input')?.focus();
+        return;
+      }
+      if (action === 'cancel') {
+        unlockedPricePasswords.delete(String(itemId));
+        cell.innerHTML = priceCellHiddenHtml();
+        return;
+      }
+      if (action === 'hide') {
+        unlockedPricePasswords.delete(String(itemId));
+        cell.innerHTML = priceCellHiddenHtml();
+        return;
+      }
+      if (action === 'confirm') {
+        const input = cell.querySelector('.price-reveal-input');
+        const errorEl = cell.querySelector('.price-reveal-error');
+        const password = (input?.value || '').trim();
+        if (!password) {
+          if (errorEl) {
+            errorEl.textContent = 'Password is required.';
+            errorEl.hidden = false;
+          }
+          return;
+        }
+        priceBtn.disabled = true;
+        try {
+          const data = await revealItemPrice(itemId, password);
+          unlockedPricePasswords.set(String(itemId), password);
+          cell.innerHTML = priceCellShownHtml(data.price || '0.00');
+          cell.querySelector('.price-edit-input')?.focus();
+        } catch (err) {
+          if (errorEl) {
+            errorEl.textContent = err.message || 'Incorrect password.';
+            errorEl.hidden = false;
+          }
+          if (input) {
+            input.value = '';
+            input.focus();
+          }
+          priceBtn.disabled = false;
+        }
+        return;
+      }
+      if (action === 'save') {
+        const priceInput = cell.querySelector('.price-edit-input');
+        const errorEl = cell.querySelector('.price-reveal-error');
+        const password = unlockedPricePasswords.get(String(itemId)) || '';
+        const priceRaw = (priceInput?.value || '').trim();
+        if (!password) {
+          unlockedPricePasswords.delete(String(itemId));
+          cell.innerHTML = priceCellPromptHtml();
+          const err = cell.querySelector('.price-reveal-error');
+          if (err) {
+            err.textContent = 'Enter password again to save.';
+            err.hidden = false;
+          }
+          return;
+        }
+        if (priceRaw === '' || Number.isNaN(Number(priceRaw)) || Number(priceRaw) < 0) {
+          if (errorEl) {
+            errorEl.textContent = 'Enter a valid unit price.';
+            errorEl.hidden = false;
+          }
+          priceInput?.focus();
+          return;
+        }
+        priceBtn.disabled = true;
+        try {
+          const data = await saveItemPrice(itemId, password, priceRaw);
+          syncInventoryJsonPrice(itemId, data.price);
+          cell.innerHTML = priceCellShownHtml(data.price || '0.00');
+          const ok = document.createElement('div');
+          ok.className = 'price-reveal-ok';
+          ok.textContent = 'Saved.';
+          cell.querySelector('.price-revealed')?.appendChild(ok);
+          setTimeout(() => ok.remove(), 1500);
+        } catch (err) {
+          if (errorEl) {
+            errorEl.textContent = err.message || 'Could not save price.';
+            errorEl.hidden = false;
+          }
+          priceBtn.disabled = false;
+        }
+        return;
+      }
+    });
+
+    inventoryTableBody?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const pwdInput = e.target.closest('.price-reveal-input');
+      if (pwdInput && inventoryTableBody.contains(pwdInput)) {
+        e.preventDefault();
+        pwdInput.closest('[data-price-cell]')?.querySelector('[data-price-action="confirm"]')?.click();
+        return;
+      }
+      const priceInput = e.target.closest('.price-edit-input');
+      if (priceInput && inventoryTableBody.contains(priceInput)) {
+        e.preventDefault();
+        priceInput.closest('[data-price-cell]')?.querySelector('[data-price-action="save"]')?.click();
+      }
+    });
 
     async function handleTableClick(e) {
       const button = e.target.closest('[data-action]');
@@ -711,6 +973,7 @@
     const viewAllModal = document.getElementById('viewAllModal');
     document.getElementById('viewAllItemsBtn')?.addEventListener('click', showViewAllModal);
     document.getElementById('viewAllCloseBtn')?.addEventListener('click', hideViewAllModal);
+    document.getElementById('viewAllSearchInput')?.addEventListener('input', renderViewAllCatalog);
     viewAllModal?.addEventListener('click', function (e) {
       if (e.target === this) hideViewAllModal();
       const card = e.target.closest('[data-view-all-id]');
@@ -1145,13 +1408,14 @@
           const description = row.querySelector('[data-ws-description]')?.value.trim() || '';
           const quantity = row.querySelector('[data-ws-quantity]')?.value.trim() || '';
           const unit = row.querySelector('[data-ws-unit]')?.value.trim() || 'UNIT';
-          return { description, quantity, unit };
+          const serial = row.querySelector('[data-ws-serial]')?.value.trim() || '';
+          return { description, quantity, unit, serial };
         }).filter((line) => line.description || line.quantity);
 
         const minRows = 7;
         if (!lines.length) {
           const blanks = Array.from({ length: minRows }, () =>
-            '<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
+            '<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
           ).join('');
           tbody.innerHTML = blanks;
           return;
@@ -1162,10 +1426,11 @@
             <td>${escapeHtml(line.quantity || '—')}</td>
             <td>${escapeHtml(line.unit)}</td>
             <td>${escapeHtml(line.description || '—')}</td>
+            <td>${escapeHtml(line.serial || '')}</td>
           </tr>
         `);
         while (filled.length < minRows) {
-          filled.push('<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>');
+          filled.push('<tr class="ws-blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>');
         }
         tbody.innerHTML = filled.join('');
       }
@@ -1400,6 +1665,7 @@
             <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
             <input type="text" name="ws_item_unit" value="pcs" placeholder="Unit" data-ws-unit aria-label="Unit">
             <input type="text" name="ws_item_description" placeholder="Item description" data-ws-description>
+            <input type="text" name="ws_item_serial" placeholder="Serial No." data-ws-serial aria-label="Serial Number">
             <button type="button" class="action row-remove" data-remove-row aria-label="Remove item">✕</button>
           `;
           list.appendChild(row);
@@ -1568,6 +1834,152 @@
           requestAnimationFrame(() => closePreparedList());
         });
       })();
+    })();
+
+    // ── Stock delivery item combobox ──
+    (function initStockDeliveryItemCombo() {
+      const panel = document.getElementById('deliveriesPanel');
+      if (!panel) return;
+      const combo = panel.querySelector('[data-sd-inventory-combo]');
+      const form = document.getElementById('stockDeliveryForm');
+      if (!combo) return;
+      const hidden = combo.querySelector('[data-sd-inventory]');
+      const search = combo.querySelector('[data-sd-inventory-search]');
+      const itemList = combo.querySelector('[data-sd-inventory-list]');
+      const noMatch = itemList?.querySelector('[data-sd-inventory-no-match]');
+      const description = document.getElementById('sd_description');
+      if (!hidden || !search || !itemList) return;
+
+      let open = false;
+
+      function positionList() {
+        const rect = search.getBoundingClientRect();
+        itemList.style.position = 'fixed';
+        itemList.style.left = `${rect.left}px`;
+        itemList.style.top = `${rect.bottom + 4}px`;
+        itemList.style.width = `${Math.max(rect.width, 280)}px`;
+        itemList.style.zIndex = '4000';
+      }
+
+      function filterList() {
+        const query = search.value.trim().toLowerCase();
+        let visible = 0;
+        itemList.querySelectorAll('.ws-inv-combobox-item').forEach((item) => {
+          const label = (item.dataset.label || item.textContent || '').toLowerCase();
+          const show = !query || label.includes(query);
+          item.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (noMatch) noMatch.hidden = visible > 0 || !query;
+      }
+
+      function closeList() {
+        itemList.classList.remove('is-open');
+        itemList.hidden = true;
+        if (itemList.parentElement !== combo) combo.appendChild(itemList);
+        search.setAttribute('aria-expanded', 'false');
+        open = false;
+      }
+
+      function openList() {
+        filterList();
+        if (itemList.parentElement !== document.body) document.body.appendChild(itemList);
+        positionList();
+        itemList.hidden = false;
+        itemList.classList.add('is-open');
+        search.setAttribute('aria-expanded', 'true');
+        open = true;
+      }
+
+      function selectItem(item) {
+        const id = (item?.dataset.id || '').trim();
+        const name = (item?.dataset.name || '').trim();
+        hidden.value = id;
+        search.value = name;
+        if (description && !(description.value || '').trim()) {
+          description.value = (item?.dataset.description || '').trim();
+        }
+        closeList();
+      }
+
+      search.addEventListener('focus', openList);
+      search.addEventListener('input', () => {
+        hidden.value = '';
+        openList();
+      });
+      search.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeList();
+          search.blur();
+        }
+      });
+      itemList.addEventListener('mousedown', (event) => {
+        const item = event.target.closest('.ws-inv-combobox-item');
+        if (!item || item.hidden) return;
+        event.preventDefault();
+        selectItem(item);
+      });
+      document.addEventListener('click', (event) => {
+        if (!open) return;
+        if (!combo.contains(event.target) && !itemList.contains(event.target)) closeList();
+      });
+      window.addEventListener('resize', () => { if (open) positionList(); });
+      window.addEventListener('scroll', () => { if (open) positionList(); }, true);
+      form?.addEventListener('reset', () => {
+        requestAnimationFrame(() => {
+          hidden.value = '';
+          closeList();
+          resetDeliveryEditMode();
+        });
+      });
+
+      const deliveryIdInput = document.getElementById('sd_delivery_id');
+      const actionInput = document.getElementById('sd_action');
+      const submitBtn = document.getElementById('sd_submit_btn');
+      const cancelEditBtn = document.getElementById('sd_cancel_edit');
+      const heading = panel.querySelector('.panel h2');
+
+      function resetDeliveryEditMode() {
+        if (deliveryIdInput) deliveryIdInput.value = '';
+        if (actionInput) actionInput.value = 'add_delivery';
+        if (submitBtn) submitBtn.textContent = 'Save delivery';
+        if (cancelEditBtn) cancelEditBtn.hidden = true;
+        if (heading) heading.textContent = 'Record Delivery';
+      }
+
+      function startDeliveryEdit(btn) {
+        if (!btn || !form) return;
+        if (deliveryIdInput) deliveryIdInput.value = btn.dataset.id || '';
+        if (actionInput) actionInput.value = 'edit_delivery';
+        const ref = document.getElementById('sd_reference_no');
+        const dateArrived = document.getElementById('sd_date_arrived');
+        const qty = document.getElementById('sd_quantity');
+        const supplier = document.getElementById('sd_supplier');
+        if (ref) ref.value = btn.dataset.reference || '';
+        if (dateArrived) dateArrived.value = btn.dataset.date || '';
+        hidden.value = btn.dataset.itemId || '';
+        search.value = btn.dataset.itemName || '';
+        if (qty) qty.value = btn.dataset.quantity || '1';
+        if (description) description.value = btn.dataset.description || '';
+        if (supplier) supplier.value = btn.dataset.supplier || '';
+        if (submitBtn) submitBtn.textContent = 'Update delivery';
+        if (cancelEditBtn) cancelEditBtn.hidden = false;
+        if (heading) heading.textContent = 'Edit Delivery';
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        search.focus();
+      }
+
+      cancelEditBtn?.addEventListener('click', () => {
+        form.reset();
+        resetDeliveryEditMode();
+      });
+
+      panel.addEventListener('click', (event) => {
+        const btn = event.target.closest('.sd-edit-btn');
+        if (!btn || !panel.contains(btn)) return;
+        event.preventDefault();
+        startDeliveryEdit(btn);
+      });
     })();
 
   })();

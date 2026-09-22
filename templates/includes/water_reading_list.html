@@ -62,6 +62,7 @@
                 data-current="{{ r.current_reading }}"
                 data-unpaid="{{ r.previous_bill_unpaid }}"
                 data-installment="{{ r.installment_balance }}"
+                data-rate="{{ r.customer.water_rate_per_cum }}"
                 data-estimated="{% if r.is_estimated %}1{% endif %}"
                 data-reader="{{ r.reader_name }}"
                 data-remarks="{{ r.remarks }}">Edit</button>

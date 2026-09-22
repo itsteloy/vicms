@@ -826,11 +826,17 @@ table.data tr:hover td { background: #f8fafc; }
   gap: 10px;
   margin-bottom: 16px;
 }
+.aging-grid.receivables-total-grid {
+  grid-template-columns: minmax(220px, 320px);
+}
 .aging-card {
   background: var(--soft);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px 14px;
+}
+.aging-card.receivables-total-card strong {
+  font-size: 1.35rem;
 }
 .aging-card span {
   color: var(--muted);

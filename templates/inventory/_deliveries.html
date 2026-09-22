@@ -1,100 +1,131 @@
-<!-- Deliveries -->
+<!-- Deliveries (stock receive) -->
 <div id="deliveriesPanel" class="tab-panel">
-      <div class="panel">
-        <h2>Delivery Log</h2>
-        <p>Record incoming deliveries with items, carton quantities, and costs.</p>
-        <form id="deliveryForm" method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_delivery">
-
-          <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
-            <div class="field">
-              <label for="delivery_date">Delivery Date</label>
-              <input type="date" id="delivery_date" name="delivery_date" required>
-            </div>
-            <div class="field">
-              <label for="driver">Driver</label>
-              <input type="text" id="driver" name="driver" placeholder="Driver name" required>
-            </div>
-            <div class="field">
-              <label for="delivered_from">Delivered From</label>
-              <input type="text" id="delivered_from" name="delivered_from" placeholder="Supplier or source" required>
-            </div>
-            <div class="field">
-              <label for="delivered_to">Delivered To</label>
-              <input type="text" id="delivered_to" name="delivered_to" placeholder="Location" required>
-            </div>
-          </div>
-
-          <hr style="margin:16px 0;">
-          <h3 style="font-size:1rem;font-weight:700;">Items</h3>
-          <div id="deliveryItemsContainer">
-            <!-- First row (template) -->
-            <div class="delivery-item-row"
-              style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;margin-bottom:8px;align-items:end;">
-              <div class="field"><label>Item Type</label><input type="text" name="item_type[]" placeholder="e.g., ELBOW"
-                  required></div>
-              <div class="field"><label>Cartons</label><input type="number" name="quantity_cartons[]" min="1" value="1"
-                  required></div>
-              <div class="field"><label>Pcs per Carton</label><input type="number" name="pcs_per_carton[]" min="1"
-                  value="1" required></div>
-              <div class="field"><label>Cost per Carton (₱)</label><input type="number" name="cost_per_carton[]" min="0"
-                  step="0.01" value="0.00" required></div>
-              <div style="display:flex;gap:6px;padding-top:22px;">
-                <button type="button" class="remove-item-row"
-                  style="background:transparent;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;cursor:pointer;color:#b42318;">✕</button>
-              </div>
-            </div>
-          </div>
-
-          <button type="button" id="addItemRow"
-            style="margin:8px 0 16px;padding:8px 16px;border:1px dashed #d0d5dd;background:transparent;border-radius:8px;cursor:pointer;">+
-            Add another item</button>
-
-          <div class="actions">
-            <button class="save" type="submit">Record Delivery</button>
-            <button class="clear" type="reset">Reset</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="panel">
-        <h2>Recent Deliveries</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Delivery #</th>
-                <th>Date</th>
-                <th>Driver</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Items</th>
-                <th>Total Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for delivery in deliveries %}
-              <tr>
-                <td>{{ delivery.delivery_number }}</td>
-                <td>{{ delivery.delivery_date|date:"Y-m-d" }}</td>
-                <td>{{ delivery.driver }}</td>
-                <td>{{ delivery.delivered_from }}</td>
-                <td>{{ delivery.delivered_to }}</td>
-                <td>
-                  {% for line in delivery.lines.all %}
-                  {{ line.item_type }} ({{ line.quantity_cartons }} ctn × {{ line.pcs_per_carton }} pcs)<br>
-                  {% endfor %}
-                </td>
-                <td>₱{{ delivery.total_cost|floatformat:2 }}</td>
-              </tr>
+  <div class="panel">
+    <h2>Record Delivery</h2>
+    <p>Receive stock into inventory. Matching item names add to available stock; new names create an inventory item with a product code.</p>
+    <form id="stockDeliveryForm" method="post" action="{% url 'inventory_dashboard' %}?tab=deliveriesPanel">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="sd_action" value="add_delivery">
+      <input type="hidden" name="delivery_id" id="sd_delivery_id" value="">
+      <div class="form-grid stock-delivery-grid">
+        <div class="field">
+          <label for="sd_reference_no">Reference No. *</label>
+          <input id="sd_reference_no" name="reference_no" required maxlength="100" placeholder="Delivery / DR / invoice ref">
+        </div>
+        <div class="field">
+          <label for="sd_date_arrived">Date Arrived *</label>
+          <input id="sd_date_arrived" name="date_arrived" type="date" required>
+        </div>
+        <div class="field full">
+          <label for="sd_item_search">Item *</label>
+          <div class="ws-inv-combobox" data-sd-inventory-combo>
+            <input type="hidden" name="inventory_item_id" id="sd_inventory_item_id" value="" data-sd-inventory>
+            <input
+              type="text"
+              id="sd_item_search"
+              name="item_name"
+              data-sd-inventory-search
+              placeholder="Select existing item or type a new item name"
+              autocomplete="off"
+              required
+              maxlength="200"
+              aria-label="Item"
+              aria-autocomplete="list"
+              aria-expanded="false">
+            <ul class="ws-inv-combobox-list" data-sd-inventory-list hidden>
+              {% for item in inventory_items %}
+              <li
+                class="ws-inv-combobox-item"
+                data-id="{{ item.id }}"
+                data-name="{{ item.name|escape }}"
+                data-description="{{ item.description|default:''|escape }}"
+                data-label="{{ item.name|escape }}{% if item.description %} — {{ item.description|escape }}{% endif %}"
+              >{{ item.name }}{% if item.description %} — {{ item.description }}{% endif %}</li>
               {% empty %}
-              <tr>
-                <td colspan="7" style="text-align:center;color:#667085;">No deliveries recorded yet.</td>
-              </tr>
+              <li class="ws-inv-combobox-empty" data-static="1">No inventory items yet — type a new name to create one.</li>
               {% endfor %}
-            </tbody>
-          </table>
+              <li class="ws-inv-combobox-empty" data-sd-inventory-no-match hidden>No match — will create a new inventory item.</li>
+            </ul>
+          </div>
+          <small class="field-hint">Pick an existing item to add stock, or enter a new name to create one (PRD-###).</small>
+        </div>
+        <div class="field">
+          <label for="sd_quantity">Quantity *</label>
+          <input id="sd_quantity" name="quantity" type="number" min="1" step="1" value="1" required>
+        </div>
+        <div class="field">
+          <label for="sd_supplier">Supplier</label>
+          <input id="sd_supplier" name="supplier" maxlength="200" placeholder="Supplier name">
+        </div>
+        <div class="field full">
+          <label for="sd_description">Description</label>
+          <input id="sd_description" name="description" maxlength="500" placeholder="Optional notes / description">
         </div>
       </div>
+      <div class="form-actions">
+        <button type="button" class="action" id="sd_cancel_edit" hidden>Cancel edit</button>
+        <button type="reset" class="action" id="sd_reset_btn">Clear</button>
+        <button type="submit" class="action primary" id="sd_submit_btn">Save delivery</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Recent Deliveries</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reference No.</th>
+            <th>Date Arrived</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Description</th>
+            <th>Supplier</th>
+            <th>Product Code</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stock_deliveries %}
+          <tr>
+            <td>{{ row.reference_no }}</td>
+            <td>{{ row.date_arrived|date:"M d, Y" }}</td>
+            <td>{{ row.item_name }}</td>
+            <td>{{ row.quantity }}</td>
+            <td>{{ row.description|default:"—" }}</td>
+            <td>{{ row.supplier|default:"—" }}</td>
+            <td>{% if row.inventory_item %}{{ row.inventory_item.product_code|default:"—" }}{% else %}—{% endif %}</td>
+            <td>
+              <div class="action-group">
+                <button
+                  type="button"
+                  class="action sd-edit-btn"
+                  data-id="{{ row.id }}"
+                  data-reference="{{ row.reference_no|escape }}"
+                  data-date="{{ row.date_arrived|date:'Y-m-d' }}"
+                  data-item-id="{% if row.inventory_item %}{{ row.inventory_item_id }}{% endif %}"
+                  data-item-name="{{ row.item_name|escape }}"
+                  data-quantity="{{ row.quantity }}"
+                  data-description="{{ row.description|default:''|escape }}"
+                  data-supplier="{{ row.supplier|default:''|escape }}"
+                >Edit</button>
+                <form method="post" action="{% url 'inventory_dashboard' %}?tab=deliveriesPanel" class="inline-form" onsubmit="return confirm('Delete delivery {{ row.reference_no|escapejs }} ({{ row.item_name|escapejs }} × {{ row.quantity }})? Stock will be deducted from the linked inventory item.');">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_delivery">
+                  <input type="hidden" name="delivery_id" value="{{ row.id }}">
+                  <button type="submit" class="action danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No stock deliveries recorded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+</div>

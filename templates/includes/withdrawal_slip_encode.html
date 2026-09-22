@@ -30,6 +30,10 @@
           <input id="ws_ref_number" name="ref_number">
         </div>
         <div class="field">
+          <label for="ws_po_number">PO #</label>
+          <input id="ws_po_number" name="po_number">
+        </div>
+        <div class="field">
           <label for="ws_status">Status</label>
           <input id="ws_status" name="status">
         </div>
@@ -41,6 +45,7 @@
             <span>Quantity *</span>
             <span>Unit</span>
             <span>Description *</span>
+            <span>Serial Number</span>
             <span></span>
           </div>
           <div class="repeatable-list" id="wsLinesList">
@@ -67,6 +72,7 @@
               <input type="number" name="ws_item_quantity" value="1" min="0" step="0.01" data-ws-quantity aria-label="Quantity">
               <input type="text" name="ws_item_unit" value="UNIT" placeholder="Unit" data-ws-unit aria-label="Unit">
               <input type="text" name="ws_item_description" placeholder="Item description" required data-ws-description>
+              <input type="text" name="ws_item_serial" placeholder="Serial No." data-ws-serial aria-label="Serial Number">
               <button type="button" class="action row-remove" data-remove-row hidden aria-label="Remove item">✕</button>
             </div>
           </div>

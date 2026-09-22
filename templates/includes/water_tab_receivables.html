@@ -1,12 +1,11 @@
 <div class="panel">
   <h2>Accounts receivable</h2>
-  <p class="sub">Outstanding balances and aging buckets. Select up to 6 bills to print on one long bond page.</p>
-  <div class="aging-grid">
-    <div class="aging-card"><span class="label">Current</span><strong>₱{{ aging_buckets.current|floatformat:2 }}</strong></div>
-    <div class="aging-card"><span class="label">1–30 days</span><strong>₱{{ aging_buckets.d1_30|floatformat:2 }}</strong></div>
-    <div class="aging-card"><span class="label">31–60 days</span><strong>₱{{ aging_buckets.d31_60|floatformat:2 }}</strong></div>
-    <div class="aging-card"><span class="label">61–90 days</span><strong>₱{{ aging_buckets.d61_90|floatformat:2 }}</strong></div>
-    <div class="aging-card"><span class="label">90+ days</span><strong>₱{{ aging_buckets.d90_plus|floatformat:2 }}</strong></div>
+  <p class="sub">Total outstanding balances. Select up to 6 bills to print on one long bond page.</p>
+  <div class="aging-grid receivables-total-grid">
+    <div class="aging-card receivables-total-card">
+      <span class="label">Total receivables</span>
+      <strong>₱{{ total_receivables|floatformat:2 }}</strong>
+    </div>
   </div>
   <div class="table-wrap">
     <table class="data">

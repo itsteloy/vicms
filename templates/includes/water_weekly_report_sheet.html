@@ -1,9 +1,18 @@
-<div class="weekly-report-sheet">
+<div class="weekly-report-sheet{% if weekly_overview_remitted %} is-overview-remitted{% endif %}">
   <header class="weekly-report-head">
     <div class="weekly-report-co">VERSATEC INDUSTRIAL CORPORATION</div>
     <div class="weekly-report-city">PANABO CITY, DAVAO DEL NORTE</div>
     <h1>WEEKLY REPORT</h1>
     <p class="weekly-report-range">{{ week_start|date:"F j" }} – {{ week_end|date:"F j, Y" }}</p>
+    {% if weekly_overview_remitted and weekly_report %}
+    <p class="weekly-remitted-badge">
+      Remitted to Overview
+      · {{ weekly_report.overview_remitted_at|date:"M j, Y g:i A" }}
+      {% if weekly_report.overview_remitted_by %}· {{ weekly_report.overview_remitted_by }}{% endif %}
+      · Cash ₱{{ weekly_report.overview_remitted_cash|floatformat:2 }}
+      · GCash ₱{{ weekly_report.overview_remitted_gcash|floatformat:2 }}
+    </p>
+    {% endif %}
   </header>
 
   {% if week_error %}
@@ -11,152 +20,90 @@
   {% endif %}
 
   <div class="weekly-table-wrap">
-    <table class="weekly-table weekly-main">
+    <table class="weekly-table weekly-main" id="weeklyBillingTable">
       <thead>
         <tr>
           <th>NO.</th>
           <th>DATE</th>
           <th>NAME</th>
+          <th>RECEIVED FROM</th>
           <th>REMARKS</th>
-          <th>PAYMENT</th>
+          <th>PAYMENT OF</th>
           <th>AR NO.</th>
           <th class="col-cash-bank">CASH IN BANK</th>
+          <th class="col-gcash">GCASH</th>
+          <th class="col-aid">CASH RECEIVED BY AID</th>
           <th>WATER BILL</th>
           <th>Installation fee</th>
           <th>Reconnection fee</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="weeklyBillingBody">
         {% for row in weekly_rows %}
-        <tr>
+        <tr class="weekly-billing-row{% if row.other_id %} weekly-other-row{% endif %}"
+            {% if row.other_id %}data-other-id="{{ row.other_id }}" data-amount="{{ row.other_amount }}" data-payment-of="{{ row.payment_of|default:'' }}"{% endif %}>
           <td class="num">{{ row.row_no }}</td>
           <td>{{ row.row_date|date:"m-d-Y" }}</td>
           <td class="name">{{ row.name }}</td>
+          <td class="name">{{ row.received_from }}</td>
           <td>{{ row.remarks }}</td>
-          <td class="amt">{% if row.payment %}₱{{ row.payment|floatformat:2 }}{% endif %}</td>
+          <td>{{ row.payment_of }}</td>
           <td>{{ row.ar_number }}</td>
-          <td class="amt col-cash-bank">{% if row.cash_in_bank %}₱{{ row.cash_in_bank|floatformat:2 }}{% endif %}</td>
+          <td class="amt col-cash-bank weekly-row-cash">{% if row.cash_in_bank %}₱{{ row.cash_in_bank|floatformat:2 }}{% endif %}</td>
+          <td class="amt col-gcash">{% if row.gcash %}₱{{ row.gcash|floatformat:2 }}{% endif %}</td>
+          <td class="amt col-aid">
+            {% if row.other_id %}
+              {% if print_mode %}
+                {% if row.cash_received_by_aid is not None %}₱{{ row.cash_received_by_aid|floatformat:2 }}{% endif %}
+              {% else %}
+                <input
+                  name="weekly_other_received-{{ row.other_id }}"
+                  value="{% if row.cash_received_by_aid is not None %}{{ row.cash_received_by_aid }}{% endif %}"
+                  class="weekly-money weekly-other-received"
+                  inputmode="decimal"
+                  aria-label="Cash received by AID for AR {{ row.ar_number }}">
+              {% endif %}
+            {% elif row.cash_received_by_aid %}
+              ₱{{ row.cash_received_by_aid|floatformat:2 }}
+            {% endif %}
+          </td>
           <td class="amt">{% if row.water_bill %}₱{{ row.water_bill|floatformat:2 }}{% endif %}</td>
           <td class="amt">{% if row.installation_fee %}₱{{ row.installation_fee|floatformat:2 }}{% endif %}</td>
           <td class="amt">{% if row.reconnection_fee %}₱{{ row.reconnection_fee|floatformat:2 }}{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="10" class="empty">No cash payments or paid reconnection fees in this date range.</td></tr>
+        <tr><td colspan="13" class="empty">No billing or other payments in this date range.</td></tr>
         {% endfor %}
         <tr class="totals">
-          <td colspan="4">TOTAL</td>
-          <td class="amt">₱{{ weekly_totals.payment|floatformat:2 }}</td>
-          <td></td>
-          <td class="amt col-cash-bank">₱{{ weekly_totals.cash_in_bank|floatformat:2 }}</td>
+          <td colspan="7">TOTAL</td>
+          <td class="amt col-cash-bank" id="weeklyCollectionCashTotal">₱{{ weekly_totals.cash_in_bank|floatformat:2 }}</td>
+          <td class="amt col-gcash" id="weeklyCollectionGcashTotal">₱{{ weekly_totals.gcash|floatformat:2 }}</td>
+          <td class="amt col-aid" id="weeklyCollectionAidTotal">₱{{ weekly_totals.cash_received_by_aid|floatformat:2 }}</td>
           <td class="amt highlight">₱{{ weekly_totals.water_bill|floatformat:2 }}</td>
           <td class="amt highlight">₱{{ weekly_totals.installation_fee|floatformat:2 }}</td>
           <td class="amt highlight">₱{{ weekly_totals.reconnection_fee|floatformat:2 }}</td>
         </tr>
       </tbody>
     </table>
-    <p class="weekly-grand">₱{{ weekly_totals.cash_in_bank|floatformat:2 }}</p>
-  </div>
-
-  <h2 class="weekly-gcash-title">GCash Collection</h2>
-  <div class="weekly-table-wrap">
-    <table class="weekly-table weekly-gcash">
-      <thead>
-        <tr>
-          <th>NO.</th>
-          <th>DATE</th>
-          <th>NAME</th>
-          <th>REMARKS</th>
-          <th>PAYMENT</th>
-          <th>AR NO.</th>
-          <th>GCASH</th>
-          <th>WATER BILL</th>
-          <th>Installation fee</th>
-          <th>Reconnection fee</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in weekly_gcash_rows %}
-        <tr>
-          <td class="num">{{ row.row_no }}</td>
-          <td>{{ row.row_date|date:"m-d-Y" }}</td>
-          <td class="name">{{ row.name }}</td>
-          <td>{{ row.remarks }}</td>
-          <td class="amt">{% if row.payment %}₱{{ row.payment|floatformat:2 }}{% endif %}</td>
-          <td>{{ row.ar_number }}</td>
-          <td class="amt">{% if row.gcash %}₱{{ row.gcash|floatformat:2 }}{% endif %}</td>
-          <td class="amt">{% if row.water_bill %}₱{{ row.water_bill|floatformat:2 }}{% endif %}</td>
-          <td class="amt">{% if row.installation_fee %}₱{{ row.installation_fee|floatformat:2 }}{% endif %}</td>
-          <td class="amt">{% if row.reconnection_fee %}₱{{ row.reconnection_fee|floatformat:2 }}{% endif %}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="10" class="empty">No GCash payments in this date range.</td></tr>
-        {% endfor %}
-        <tr class="totals">
-          <td colspan="4">TOTAL</td>
-          <td class="amt">₱{{ weekly_gcash_totals.payment|floatformat:2 }}</td>
-          <td></td>
-          <td class="amt">₱{{ weekly_gcash_totals.gcash|floatformat:2 }}</td>
-          <td class="amt highlight">₱{{ weekly_gcash_totals.water_bill|floatformat:2 }}</td>
-          <td class="amt highlight">₱{{ weekly_gcash_totals.installation_fee|floatformat:2 }}</td>
-          <td class="amt highlight">₱{{ weekly_gcash_totals.reconnection_fee|floatformat:2 }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="weekly-grand weekly-grand-gcash">₱{{ weekly_gcash_totals.gcash|floatformat:2 }}</p>
-  </div>
-
-  <h2 class="weekly-other-title">Other Payments</h2>
-  <div class="weekly-table-wrap">
-    <table class="weekly-table weekly-other" id="weeklyOtherTable">
-      <thead>
-        <tr>
-          <th>NO.</th>
-          <th>DATE</th>
-          <th>AR NO.</th>
-          <th>RECEIVED FROM</th>
-          <th>ADDRESS</th>
-          <th>CASH ON HAND</th>
-          <th>AMOUNT RECEIVED</th>
-          <th>PAYMENT OF</th>
-          <th>REMARKS</th>
-        </tr>
-      </thead>
-      <tbody id="weeklyOtherBody">
-        {% for row in weekly_other_rows %}
-        <tr class="weekly-other-row" data-other-id="{{ row.id }}" data-amount="{{ row.amount }}">
-          <td class="num">{{ row.row_no }}</td>
-          <td>{{ row.row_date|date:"m-d-Y" }}</td>
-          <td>{{ row.ar_number }}</td>
-          <td class="name">{{ row.received_from }}</td>
-          <td>{{ row.address }}</td>
-          <td class="amt weekly-other-amount">{% if row.amount_received is None and row.amount %}₱{{ row.amount|floatformat:2 }}{% endif %}</td>
-          <td class="amt">
-            {% if print_mode %}
-              {% if row.amount_received is not None %}₱{{ row.amount_received|floatformat:2 }}{% endif %}
-            {% else %}
-              <input
-                name="weekly_other_received-{{ row.id }}"
-                value="{% if row.amount_received is not None %}{{ row.amount_received }}{% endif %}"
-                class="weekly-money weekly-other-received"
-                inputmode="decimal"
-                aria-label="Amount received for AR {{ row.ar_number }}">
-            {% endif %}
-          </td>
-          <td>{{ row.payment_of }}</td>
-          <td>{{ row.remarks }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="9" class="empty">No other payments in this date range.</td></tr>
-        {% endfor %}
-        <tr class="totals">
-          <td colspan="5">TOTAL</td>
-          <td class="amt highlight" id="weeklyOtherAmountTotal">₱{{ weekly_other_total|floatformat:2 }}</td>
-          <td class="amt highlight" id="weeklyOtherReceivedTotal">₱{{ weekly_other_received_total|floatformat:2 }}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="weekly-grand weekly-grand-other" id="weeklyOtherGrand">₱{{ weekly_other_total|floatformat:2 }}</p>
+    <div class="weekly-section-total weekly-section-total-billing">
+      <div class="weekly-section-total-title">Water Billing Collection Total</div>
+      <div class="weekly-section-total-line">
+        <span>Cash in Bank</span>
+        <span id="weeklyBillingCashLine">₱{{ weekly_totals.cash_in_bank|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-section-total-line">
+        <span>+ GCash</span>
+        <span id="weeklyBillingGcashLine">₱{{ weekly_totals.gcash|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-section-total-line">
+        <span>+ Cash Received by AID</span>
+        <span id="weeklyBillingAidLine">₱{{ weekly_totals.cash_received_by_aid|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-section-total-line weekly-section-total-result">
+        <span>Total</span>
+        <span id="weeklyBillingCollectionTotal">₱{{ weekly_billing_collection_total|floatformat:2 }}</span>
+      </div>
+    </div>
   </div>
 
   <h2 class="weekly-refill-title">Refilling Collection</h2>
@@ -197,42 +144,133 @@
         </tr>
       </tfoot>
     </table>
+    <div class="weekly-section-total weekly-section-total-refill">
+      <div class="weekly-section-total-title">Refilling Collection Total</div>
+      <div class="weekly-section-total-line">
+        <span>Cash in Bank</span>
+        <span id="weeklyRefillCashLine">₱{{ weekly_refill_cash_total|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-section-total-line">
+        <span>+ Refilling Collection / Others Payment</span>
+        <span id="weeklyRefillAmountLine">₱{{ weekly_refill_total|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-section-total-line weekly-section-total-result">
+        <span>Total</span>
+        {% with refill_cash=weekly_refill_cash_total|default_if_none:0 refill_amt=weekly_refill_total|default_if_none:0 %}
+        <span id="weeklyRefillCollectionTotal">₱{{ refill_cash|add:refill_amt|floatformat:2 }}</span>
+        {% endwith %}
+      </div>
+    </div>
   </div>
   {% if not print_mode %}
   <p class="no-print"><button type="button" class="action" id="addWeeklyRefillRow">+ Add refill row</button></p>
   {% endif %}
 
   <div class="weekly-cash-remittance" id="weeklyCashRemittanceBlock"
-       data-cash-total="{{ weekly_totals.cash_in_bank|default_if_none:0 }}">
-    <div class="weekly-cash-remittance-label">Total Cash Remittance</div>
-    <div class="weekly-cash-remittance-value" id="weeklyCashRemittanceTotal">₱{{ weekly_cash_remittance|floatformat:2 }}</div>
-    <p class="weekly-cash-remittance-note no-print">Cash + Refilling Collections + Cash on Hand (excludes GCash)</p>
+       data-cash-total="{{ weekly_totals.cash_in_bank|default_if_none:0 }}"
+       data-gcash-total="{{ weekly_gcash_collection|default_if_none:0 }}"
+       data-refill-cash-total="{{ weekly_refill_cash_total|default_if_none:0 }}">
+    <div class="weekly-cash-remittance-formula">
+      <div class="weekly-cash-remittance-line weekly-cash-remittance-gross">
+        <span class="weekly-cash-remittance-label">Gross Sales</span>
+        <span class="weekly-cash-remittance-amount" id="weeklyGrossSalesTotal">₱{{ weekly_gross_sales|floatformat:2 }}</span>
+      </div>
+      <p class="weekly-cash-remittance-hint">Cash in bank + GCash + Cash Received by AID + Refilling cash in bank</p>
+      <div class="weekly-cash-remittance-less-head">Less:</div>
+      <div class="weekly-cash-remittance-line weekly-cash-remittance-deduction">
+        <span class="weekly-cash-remittance-label">GCash Collection</span>
+        <span class="weekly-cash-remittance-amount" id="weeklyGcashCollectionTotal">₱{{ weekly_gcash_collection|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-cash-remittance-line weekly-cash-remittance-deduction">
+        <span class="weekly-cash-remittance-label">Cash Received by AID</span>
+        <span class="weekly-cash-remittance-amount" id="weeklyAidReceivedTotal">₱{{ weekly_other_received_total|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-cash-remittance-line weekly-cash-remittance-deduction">
+        <span class="weekly-cash-remittance-label">Parcel Payment</span>
+        <span class="weekly-cash-remittance-amount" id="weeklyParcelPaymentTotal">₱{{ weekly_parcel_total|floatformat:2 }}</span>
+      </div>
+      <div class="weekly-cash-remittance-line weekly-cash-remittance-result">
+        <span class="weekly-cash-remittance-label">Total Cash Remittance</span>
+        <span class="weekly-cash-remittance-value" id="weeklyCashRemittanceTotal">₱{{ weekly_cash_remittance|floatformat:2 }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<section class="weekly-remittance-page" aria-label="Total Cash Remittance denomination sheet">
+  <div class="weekly-denom-grid">
+    <div class="weekly-denom-panel weekly-denom-billing">
+      <table class="weekly-denom-table" id="weeklyDenomBillingTable">
+        <colgroup>
+          <col class="col-money">
+          <col class="col-qty">
+          <col class="col-total">
+        </colgroup>
+        <thead>
+          <tr>
+            <th colspan="3" class="weekly-denom-title">TOTAL CASH REMITTANCE</th>
+          </tr>
+          <tr>
+            <th>Money</th>
+            <th>Qty</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in weekly_denom_billing_rows %}
+          <tr class="weekly-denom-row" data-money="{{ row.denomination }}">
+            <td class="num">{{ row.denomination }}</td>
+            <td class="qty">
+              {% if print_mode %}
+                {% if row.quantity %}{{ row.quantity }}{% endif %}
+              {% else %}
+                <input
+                  name="weekly_denom-billing-{{ row.denomination }}"
+                  value="{% if row.quantity %}{{ row.quantity }}{% endif %}"
+                  class="weekly-denom-qty"
+                  inputmode="numeric"
+                  aria-label="Billing qty for {{ row.denomination }}">
+              {% endif %}
+            </td>
+            <td class="amt weekly-denom-line-total">{% if row.line_total %}₱{{ row.line_total|floatformat:2 }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="totals">
+            <td colspan="2">TOTAL</td>
+            <td class="amt" id="weeklyDenomBillingTotal">₱{{ weekly_denom_billing_total|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   </div>
 
   <div class="weekly-signoffs">
     <div>
       <label>PREPARED BY:</label>
       {% if print_mode %}
-      <div class="sign-line">{{ weekly_report.prepared_by|default:"" }}</div>
+      <div class="sign-line">{{ weekly_prepared_by }}</div>
       {% else %}
-      <input name="prepared_by" value="{{ weekly_report.prepared_by|default:'' }}">
+      <input name="prepared_by" value="{{ weekly_prepared_by }}">
       {% endif %}
     </div>
     <div>
       <label>AUDITED BY:</label>
       {% if print_mode %}
-      <div class="sign-line">{{ weekly_report.audited_by|default:"" }}</div>
+      <div class="sign-line">{{ weekly_audited_by }}</div>
       {% else %}
-      <input name="audited_by" value="{{ weekly_report.audited_by|default:'' }}">
+      <input name="audited_by" value="{{ weekly_audited_by }}">
       {% endif %}
     </div>
     <div>
       <label>APPROVED BY:</label>
       {% if print_mode %}
-      <div class="sign-line">{{ weekly_report.approved_by|default:"" }}</div>
+      <div class="sign-line">{{ weekly_approved_by }}</div>
       {% else %}
-      <input name="approved_by" value="{{ weekly_report.approved_by|default:'' }}">
+      <input name="approved_by" value="{{ weekly_approved_by }}">
       {% endif %}
     </div>
   </div>
-</div>
+</section>

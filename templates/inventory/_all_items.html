@@ -38,6 +38,7 @@
                 <th>Description</th>
                 <th>Notes</th>
                 <th>Stocks</th>
+                <th>Unit Price</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -59,6 +60,9 @@
                 <td class="item-desc"><span>{{ item.description|default:"-" }}</span></td>
                 <td class="item-notes"><span>{{ item.notes|default:"-" }}</span></td>
                 <td class="item-stock">{{ item.stock_available }}</td>
+                <td class="item-price" data-price-cell>
+                  <button type="button" class="copy show-price-btn" data-price-action="prompt">Show price</button>
+                </td>
                 <td class="item-actions">
                   <div class="actions">
                     <button class="copy" type="button" data-action="view">View</button>
@@ -69,7 +73,7 @@
               </tr>
               {% endfor %}
               <tr data-empty-state>
-                <td colspan="6" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
+                <td colspan="7" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
               </tr>
             </tbody>
           </table>
