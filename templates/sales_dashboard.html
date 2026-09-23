@@ -1498,6 +1498,19 @@
 
                 <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
                     <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Account Rows</legend>
+                    <div class="aa-row-search no-print" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:12px;">
+                        <div class="field" style="flex:1 1 240px; margin:0; min-width:200px;">
+                            <label for="aaSearchInput" style="display:block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Search rows</label>
+                            <input
+                                type="search"
+                                id="aaSearchInput"
+                                placeholder="Customer, PO, agent, BI/SI/CR/CI/AR/DR…"
+                                autocomplete="off"
+                                style="width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:8px;">
+                        </div>
+                        <button type="button" class="action" id="aaSearchClear" style="padding:8px 14px;">Clear</button>
+                        <span id="aaSearchMeta" style="font-size:0.85rem; color:var(--muted); padding-bottom:6px;"></span>
+                    </div>
                     <div style="overflow-x:auto; margin-bottom:12px;">
                         <table class="aa-form-table" aria-label="Ageing of accounts lines">
                             <thead>
@@ -2169,5 +2182,5 @@
   };
 </script>
 <script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=aa-print-rows2"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=aa-search1"></script>
 {% endblock %}

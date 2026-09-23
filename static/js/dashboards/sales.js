@@ -2097,7 +2097,47 @@
                 const lines = data?.lines?.length ? data.lines : [{}];
                 lines.forEach((line) => itemsBody.appendChild(createRow(line)));
                 bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
+                applyAaRowSearch();
                 refreshPreview();
+            }
+
+            function rowSearchText(row) {
+                const parts = [
+                    row.querySelector('.aa-item-date')?.value,
+                    row.querySelector('.aa-item-customer')?.value,
+                    row.querySelector('.aa-item-po')?.value,
+                    row.querySelector('.aa-item-agent')?.value,
+                    row.querySelector('.aa-item-bi')?.value,
+                    row.querySelector('.aa-item-si')?.value,
+                    row.querySelector('.aa-item-cr')?.value,
+                    row.querySelector('.aa-item-ci')?.value,
+                    row.querySelector('.aa-item-ar')?.value,
+                    row.querySelector('.aa-item-dr')?.value,
+                    termsLabel(row.querySelector('.aa-item-terms')?.value),
+                    row.querySelector('.aa-item-amount')?.value,
+                    row.querySelector('.aa-item-paid')?.value,
+                    row.querySelector('.aa-item-paid-items')?.value,
+                ];
+                return parts.join(' ').toLowerCase();
+            }
+
+            function applyAaRowSearch() {
+                const searchInput = document.getElementById('aaSearchInput');
+                const meta = document.getElementById('aaSearchMeta');
+                if (!searchInput) return;
+                const query = searchInput.value.trim().toLowerCase();
+                const rows = Array.from(itemsBody.querySelectorAll('tr'));
+                let visible = 0;
+                rows.forEach((row) => {
+                    const match = !query || rowSearchText(row).includes(query);
+                    row.hidden = !match;
+                    if (match) visible += 1;
+                });
+                if (meta) {
+                    meta.textContent = query
+                        ? `Showing ${visible} of ${rows.length} row${rows.length === 1 ? '' : 's'}`
+                        : (rows.length ? `${rows.length} row${rows.length === 1 ? '' : 's'}` : '');
+                }
             }
 
             async function loadReport(reportId) {
@@ -2201,12 +2241,31 @@
                 document.getElementById('aaPrevTotalPaid').textContent = formatMoney(totals.paid);
             }
 
-            itemsBody.addEventListener('input', refreshPreview);
-            itemsBody.addEventListener('change', refreshPreview);
+            itemsBody.addEventListener('input', () => {
+                applyAaRowSearch();
+                refreshPreview();
+            });
+            itemsBody.addEventListener('change', () => {
+                applyAaRowSearch();
+                refreshPreview();
+            });
             asOfInput.addEventListener('input', refreshPreview);
             asOfInput.addEventListener('change', refreshPreview);
             noteInput.addEventListener('input', refreshPreview);
             bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
+
+            const aaSearchInput = document.getElementById('aaSearchInput');
+            const aaSearchClear = document.getElementById('aaSearchClear');
+            if (aaSearchInput) {
+                aaSearchInput.addEventListener('input', applyAaRowSearch);
+            }
+            if (aaSearchClear) {
+                aaSearchClear.addEventListener('click', () => {
+                    if (aaSearchInput) aaSearchInput.value = '';
+                    applyAaRowSearch();
+                    aaSearchInput?.focus();
+                });
+            }
 
             itemsBody.addEventListener('click', (e) => {
                 const btn = e.target.closest('.aa-row-remove');
@@ -2220,12 +2279,14 @@
                 } else {
                     btn.closest('tr').remove();
                 }
+                applyAaRowSearch();
                 refreshPreview();
             });
 
             document.getElementById('aaAddRow').addEventListener('click', () => {
                 itemsBody.appendChild(createRow());
                 bindMoneyInputs(itemsBody, '.aa-item-amount, .aa-item-paid');
+                applyAaRowSearch();
                 refreshPreview();
             });
 
