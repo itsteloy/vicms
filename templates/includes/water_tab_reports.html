@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="panel">
   <h2>Reports</h2>
   <p class="sub">Generate operational reports and export CSV / print.</p>
@@ -44,8 +45,8 @@
     <div class="weekly-overview-remit-info">
       <strong>Mark as remitted</strong>
       <span>
-        Water billing only — Cash ₱{{ weekly_billing_cash|floatformat:2 }}
-        · GCash ₱{{ weekly_billing_gcash|floatformat:2 }}
+        Water billing only — Cash ₱{{ weekly_billing_cash|floatformat:2|intcomma }}
+        · GCash ₱{{ weekly_billing_gcash|floatformat:2|intcomma }}
         (excludes Other Payments)
       </span>
       {% if weekly_overview_remitted and weekly_report %}
@@ -56,7 +57,7 @@
     </div>
     {% if not weekly_overview_remitted and not week_error %}
     <form method="post" class="weekly-overview-remit-form"
-          onsubmit="return confirm('Mark this week as remitted? Water-billing Cash ₱{{ weekly_billing_cash|floatformat:2 }} and GCash ₱{{ weekly_billing_gcash|floatformat:2 }} will be removed from Overview Collections. Payment records will not be deleted.');">
+          onsubmit="return confirm('Mark this week as remitted? Water-billing Cash ₱{{ weekly_billing_cash|floatformat:2|intcomma }} and GCash ₱{{ weekly_billing_gcash|floatformat:2|intcomma }} will be removed from Overview Collections. Payment records will not be deleted.');">
       {% csrf_token %}
       <input type="hidden" name="action" value="deduct_weekly_overview">
       <input type="hidden" name="week_start" value="{{ week_start|date:'Y-m-d' }}">
@@ -97,21 +98,21 @@
       <thead><tr><th>Receipt</th><th>Date</th><th>Account</th><th>Name</th><th>Bill</th><th>Amount</th><th>Method</th></tr></thead>
       <tbody>
         {% for p in report_rows %}
-        <tr><td>{{ p.receipt_number }}</td><td>{{ p.payment_date }}</td><td>{{ p.customer.account_number }}</td><td>{{ p.customer.display_name }}</td><td>{{ p.bill.bill_number }}</td><td>₱{{ p.amount|floatformat:2 }}</td><td>{{ p.get_payment_method_display }}</td></tr>
+        <tr><td>{{ p.receipt_number }}</td><td>{{ p.payment_date }}</td><td>{{ p.customer.account_number }}</td><td>{{ p.customer.display_name }}</td><td>{{ p.bill.bill_number }}</td><td>₱{{ p.amount|floatformat:2|intcomma }}</td><td>{{ p.get_payment_method_display }}</td></tr>
         {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
       </tbody>
       {% elif report_type == 'disconnection' or report_type == 'reconnection' %}
       <thead><tr><th>Type</th><th>Account</th><th>Name</th><th>Date</th><th>Status</th><th>Reason</th><th>Fee</th></tr></thead>
       <tbody>
         {% for a in report_rows %}
-        <tr><td>{{ a.get_action_type_display }}</td><td>{{ a.customer.account_number }}</td><td>{{ a.customer.display_name }}</td><td>{{ a.action_date }}</td><td>{{ a.status }}</td><td>{{ a.reason }}</td><td>₱{{ a.reconnection_fee|floatformat:2 }}</td></tr>
+        <tr><td>{{ a.get_action_type_display }}</td><td>{{ a.customer.account_number }}</td><td>{{ a.customer.display_name }}</td><td>{{ a.action_date }}</td><td>{{ a.status }}</td><td>{{ a.reason }}</td><td>₱{{ a.reconnection_fee|floatformat:2|intcomma }}</td></tr>
         {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
       </tbody>
       {% else %}
       <thead><tr><th>Bill #</th><th>Account</th><th>Name</th><th>Period</th><th>Consumption</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead>
       <tbody>
         {% for b in report_rows %}
-        <tr><td>{{ b.bill_number }}</td><td>{{ b.customer.account_number }}</td><td>{{ b.customer.display_name }}</td><td>{{ b.billing_period }}</td><td>{{ b.consumption }}</td><td>₱{{ b.total_amount|floatformat:2 }}</td><td>₱{{ b.balance_due|floatformat:2 }}</td><td>{{ b.status }}</td></tr>
+        <tr><td>{{ b.bill_number }}</td><td>{{ b.customer.account_number }}</td><td>{{ b.customer.display_name }}</td><td>{{ b.billing_period }}</td><td>{{ b.consumption }}</td><td>₱{{ b.total_amount|floatformat:2|intcomma }}</td><td>₱{{ b.balance_due|floatformat:2|intcomma }}</td><td>{{ b.status }}</td></tr>
         {% empty %}<tr><td colspan="8" class="empty">No data.</td></tr>{% endfor %}
       </tbody>
       {% endif %}

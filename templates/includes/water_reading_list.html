@@ -1,3 +1,4 @@
+{% load humanize %}
 <div id="readingListWrap">
   <div class="table-wrap">
     <table class="data">
@@ -32,11 +33,11 @@
             <div class="cell-muted"><strong>{{ r.consumption }}</strong> cu.m</div>
           </td>
           <td>
-            <div class="cell-muted">Current ₱{{ r.current_bill|floatformat:2 }}</div>
-            <div class="cell-muted">Unpaid ₱{{ r.previous_bill_unpaid|floatformat:2 }}</div>
-            <div class="cell-muted">Installment ₱{{ r.installment_balance|floatformat:2 }}</div>
+            <div class="cell-muted">Current ₱{{ r.current_bill|floatformat:2|intcomma }}</div>
+            <div class="cell-muted">Unpaid ₱{{ r.previous_bill_unpaid|floatformat:2|intcomma }}</div>
+            <div class="cell-muted">Installment ₱{{ r.installment_balance|floatformat:2|intcomma }}</div>
           </td>
-          <td><strong>₱{% if r.bill %}{{ r.bill.total_amount|floatformat:2 }}{% else %}{{ r.total_bill|floatformat:2 }}{% endif %}</strong></td>
+          <td><strong>₱{% if r.bill %}{{ r.bill.total_amount|floatformat:2|intcomma }}{% else %}{{ r.total_bill|floatformat:2|intcomma }}{% endif %}</strong></td>
           <td>
             {% if r.bill %}
             <span class="badge {{ r.bill.status }}">{{ r.bill.get_status_display }}</span>

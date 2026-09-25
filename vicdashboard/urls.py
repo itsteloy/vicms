@@ -40,6 +40,12 @@ urlpatterns = [
     path('dashboard/sales/petty-cash/import/', views.import_petty_cash_upload, name='import_petty_cash_upload'),
     path('dashboard/sales/petty-cash/<int:report_id>/json/', views.petty_cash_json, name='petty_cash_json'),
     path('dashboard/sales/petty-cash/<int:report_id>/delete/', views.delete_petty_cash, name='delete_petty_cash'),
+    path('dashboard/sales/check-vouchers/save/', views.save_check_voucher, name='save_check_voucher'),
+    path('dashboard/sales/check-vouchers/latest/json/', views.check_voucher_latest_json, name='check_voucher_latest_json'),
+    path('dashboard/sales/check-vouchers/import/', views.import_check_voucher_upload, name='import_check_voucher_upload'),
+    path('dashboard/sales/check-vouchers/<int:voucher_id>/json/', views.check_voucher_json, name='check_voucher_json'),
+    path('dashboard/sales/check-vouchers/<int:voucher_id>/delete/', views.delete_check_voucher, name='delete_check_voucher'),
+    path('dashboard/sales/check-vouchers/monitoring.xlsx', views.check_voucher_monitoring_xlsx, name='check_voucher_monitoring_xlsx'),
     path('dashboard/sales/receipt/<int:order_id>/', views.sales_receipt, name='sales_receipt'),
     path('dashboard/payroll/', views.payroll_dashboard, name='payroll_dashboard'),
     path(

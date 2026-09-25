@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="overview-layout">
   <div class="overview-kpis">
     {% include "includes/water_revenue_breakdown.html" %}
@@ -19,7 +20,7 @@
       </div>
       <div class="kpi-card">
         <div class="label">Outstanding</div>
-        <div class="value">₱{{ stats.outstanding_balance|floatformat:0 }}</div>
+        <div class="value">₱{{ stats.outstanding_balance|floatformat:2|intcomma }}</div>
         <div class="hint">{{ stats.collection_rate }}% collection rate</div>
       </div>
       <div class="kpi-card">

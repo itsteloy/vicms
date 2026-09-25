@@ -1,3 +1,4 @@
+{% load humanize %}
 <div id="otherPaymentListWrap">
   <div class="table-wrap">
     <table class="data">
@@ -21,8 +22,8 @@
           <td>{{ p.ar_number|default:"—" }}</td>
           <td>{{ p.received_from }}</td>
           <td>{{ p.address|default:"—" }}</td>
-          <td class="money">{% if p.amount_received is None %}₱{{ p.amount|floatformat:2 }}{% else %}—{% endif %}</td>
-          <td class="money">{% if p.amount_received is not None %}₱{{ p.amount_received|floatformat:2 }}{% else %}—{% endif %}</td>
+          <td class="money">{% if p.amount_received is None %}₱{{ p.amount|floatformat:2|intcomma }}{% else %}—{% endif %}</td>
+          <td class="money">{% if p.amount_received is not None %}₱{{ p.amount_received|floatformat:2|intcomma }}{% else %}—{% endif %}</td>
           <td>{{ p.payment_of }}</td>
           <td>{{ p.remarks|default:"—" }}</td>
           <td>

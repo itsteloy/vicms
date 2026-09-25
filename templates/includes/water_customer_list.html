@@ -1,3 +1,4 @@
+{% load humanize %}
 <div id="customerListWrap">
   <div class="table-wrap">
     <table class="data">
@@ -20,8 +21,8 @@
           <td>{{ c.display_name }}</td>
           <td>{{ c.zone.name|default:"—" }}</td>
           <td>{{ c.meter_number }}</td>
-          <td class="money">₱{{ c.installment_balance|floatformat:2 }}</td>
-          <td class="money">₱{{ c.annotated_outstanding|floatformat:2 }}</td>
+          <td class="money">₱{{ c.installment_balance|floatformat:2|intcomma }}</td>
+          <td class="money">₱{{ c.annotated_outstanding|floatformat:2|intcomma }}</td>
           <td><span class="badge {{ c.connection_status }}">{{ c.get_connection_status_display }}</span></td>
           <td>
             <div class="action-group">

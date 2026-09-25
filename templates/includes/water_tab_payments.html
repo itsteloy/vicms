@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="payment-views">
   {% include "includes/water_revenue_breakdown.html" %}
 
@@ -76,8 +77,8 @@
                   data-balance="{{ b.water_balance_due }}"
                   data-installment="{{ b.customer.installment_balance|default_if_none:0 }}"
                   data-name="{{ b.customer.display_name }}"
-                  data-label="{{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2 }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2 }})">
-                  {{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2 }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2 }})
+                  data-label="{{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})">
+                  {{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})
                 </li>
                 {% empty %}
                 <li class="bill-combobox-empty" data-static="1">No unpaid bills.</li>
@@ -99,8 +100,8 @@
                   data-id="{{ c.id }}"
                   data-balance="{{ c.installment_balance }}"
                   data-name="{{ c.display_name }}"
-                  data-label="{{ c.account_number }} – {{ c.display_name }} (installment ₱{{ c.installment_balance|floatformat:2 }})">
-                  {{ c.account_number }} – {{ c.display_name }} (installment ₱{{ c.installment_balance|floatformat:2 }})
+                  data-label="{{ c.account_number }} – {{ c.display_name }} (installment ₱{{ c.installment_balance|floatformat:2|intcomma }})">
+                  {{ c.account_number }} – {{ c.display_name }} (installment ₱{{ c.installment_balance|floatformat:2|intcomma }})
                 </li>
                 {% empty %}
                 <li class="bill-combobox-empty" data-static="1">No customers with installation balance due.</li>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}{{ customer.display_name }} – Customer Profile{% endblock %}
 
 {% block extra_css %}
@@ -28,11 +28,11 @@
   </section>
 
   <div class="kpi-grid">
-    <div class="kpi"><div class="label">Outstanding</div><div class="value">₱{{ outstanding_balance|floatformat:2 }}</div></div>
-    <div class="kpi"><div class="label">Total billed</div><div class="value">₱{{ billed_total|floatformat:2 }}</div></div>
-    <div class="kpi"><div class="label">Total paid</div><div class="value">₱{{ paid_total|floatformat:2 }}</div></div>
-    <div class="kpi"><div class="label">Installment bal</div><div class="value">₱{{ customer.installment_balance|floatformat:2 }}</div></div>
-    <div class="kpi"><div class="label">Prev unpaid bal</div><div class="value">₱{{ customer.previous_unpaid_balance|floatformat:2 }}</div></div>
+    <div class="kpi"><div class="label">Outstanding</div><div class="value">₱{{ outstanding_balance|floatformat:2|intcomma }}</div></div>
+    <div class="kpi"><div class="label">Total billed</div><div class="value">₱{{ billed_total|floatformat:2|intcomma }}</div></div>
+    <div class="kpi"><div class="label">Total paid</div><div class="value">₱{{ paid_total|floatformat:2|intcomma }}</div></div>
+    <div class="kpi"><div class="label">Installment bal</div><div class="value">₱{{ customer.installment_balance|floatformat:2|intcomma }}</div></div>
+    <div class="kpi"><div class="label">Prev unpaid bal</div><div class="value">₱{{ customer.previous_unpaid_balance|floatformat:2|intcomma }}</div></div>
   </div>
 
   <section class="panel" id="editCustomer">
@@ -162,12 +162,12 @@
             <td>{{ b.bill_number }}</td>
             <td>{{ b.billing_period }}<div class="muted">Due {{ b.due_date }}</div></td>
             <td>{{ b.consumption }} cu.m</td>
-            <td>₱{{ b.current_bill|floatformat:2 }}</td>
-            <td>₱{{ b.previous_bill_unpaid|floatformat:2 }}</td>
-            <td>₱{{ b.installment_balance|floatformat:2 }}</td>
-            <td><strong>₱{{ b.total_amount|floatformat:2 }}</strong></td>
-            <td>₱{{ b.amount_paid|floatformat:2 }}</td>
-            <td>₱{{ b.balance_due|floatformat:2 }}</td>
+            <td>₱{{ b.current_bill|floatformat:2|intcomma }}</td>
+            <td>₱{{ b.previous_bill_unpaid|floatformat:2|intcomma }}</td>
+            <td>₱{{ b.installment_balance|floatformat:2|intcomma }}</td>
+            <td><strong>₱{{ b.total_amount|floatformat:2|intcomma }}</strong></td>
+            <td>₱{{ b.amount_paid|floatformat:2|intcomma }}</td>
+            <td>₱{{ b.balance_due|floatformat:2|intcomma }}</td>
             <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
             <td><a class="action" href="{% url 'view_water_bill' b.id %}">View</a></td>
           </tr>
@@ -205,8 +205,8 @@
             <td>{{ r.previous_reading }}</td>
             <td>{{ r.current_reading }}</td>
             <td><strong>{{ r.consumption }}</strong> cu.m</td>
-            <td>₱{{ r.current_bill|floatformat:2 }}</td>
-            <td>₱{{ r.total_bill|floatformat:2 }}</td>
+            <td>₱{{ r.current_bill|floatformat:2|intcomma }}</td>
+            <td>₱{{ r.total_bill|floatformat:2|intcomma }}</td>
             <td>{{ r.reader_name|default:"—" }}</td>
             <td>
               {% if r.bill %}
@@ -261,7 +261,7 @@
             <td>{{ p.ar_number|default:"—" }}</td>
             <td>{{ p.payment_date }}</td>
             <td>{{ p.bill.bill_number }}</td>
-            <td><strong>₱{{ p.amount|floatformat:2 }}</strong></td>
+            <td><strong>₱{{ p.amount|floatformat:2|intcomma }}</strong></td>
             <td>{{ p.get_payment_method_display }}</td>
             <td>{{ p.reference_number|default:"—" }}</td>
             <td>{{ p.received_by|default:"—" }}</td>
@@ -297,7 +297,7 @@
             <td>{{ a.action_date }}</td>
             <td><span class="badge {{ a.status }}">{{ a.get_status_display }}</span></td>
             <td>{{ a.reason|default:"—" }}</td>
-            <td>₱{{ a.reconnection_fee|floatformat:2 }}</td>
+            <td>₱{{ a.reconnection_fee|floatformat:2|intcomma }}</td>
             <td>{% if a.fee_paid %}Yes{% else %}No{% endif %}</td>
             <td>{{ a.performed_by|default:"—" }}</td>
           </tr>

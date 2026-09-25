@@ -1,10 +1,11 @@
+{% load humanize %}
 <div class="panel">
   <h2>Accounts receivable</h2>
   <p class="sub">Total outstanding balances. Select up to 6 bills to print on one long bond page.</p>
   <div class="aging-grid receivables-total-grid">
     <div class="aging-card receivables-total-card">
       <span class="label">Total receivables</span>
-      <strong>₱{{ total_receivables|floatformat:2 }}</strong>
+      <strong>₱{{ total_receivables|floatformat:2|intcomma }}</strong>
     </div>
   </div>
   <div class="table-wrap">
@@ -22,8 +23,8 @@
           <td>{{ b.customer.account_number }}</td>
           <td>{{ b.customer.display_name }}</td>
           <td>{{ b.due_date }}</td>
-          <td>₱{{ b.total_amount|floatformat:2 }}</td>
-          <td><strong>₱{{ b.balance_due|floatformat:2 }}</strong></td>
+          <td>₱{{ b.total_amount|floatformat:2|intcomma }}</td>
+          <td><strong>₱{{ b.balance_due|floatformat:2|intcomma }}</strong></td>
           <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
         </tr>
         {% empty %}

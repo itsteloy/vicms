@@ -1,3 +1,4 @@
+{% load humanize %}
 <div id="paymentListWrap">
   <div class="table-wrap">
     <table class="data">
@@ -27,7 +28,7 @@
             <div class="cell-muted">{{ p.bill.bill_number }}{% if p.ar_shared %} · combined AR{% endif %}</div>
             {% endif %}
           </td>
-          <td class="money">₱{{ p.amount|floatformat:2 }}</td>
+          <td class="money">₱{{ p.amount|floatformat:2|intcomma }}</td>
           <td><span class="badge paid">{{ p.get_payment_method_display }}</span></td>
           <td>
             {% if p.purpose == 'installation' %}

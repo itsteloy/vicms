@@ -12,6 +12,7 @@
             'ageing-accounts-tab': document.getElementById('ageing-accounts-tab'),
             'retention-summary-tab': document.getElementById('retention-summary-tab'),
             'petty-cash-tab': document.getElementById('petty-cash-tab'),
+            'check-voucher-tab': document.getElementById('check-voucher-tab'),
             'saved-documents-tab': document.getElementById('saved-documents-tab'),
         };
 
@@ -26,7 +27,7 @@
                     panels[id].classList.toggle('is-active', id === targetId);
                 }
             });
-            const landscapePrint = ['ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab'].includes(targetId);
+            const landscapePrint = ['ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab', 'check-voucher-tab'].includes(targetId);
             document.body.classList.toggle('sales-print-landscape', landscapePrint);
             let pageStyle = document.getElementById('sales-print-page-style');
             if (!pageStyle) {
@@ -3613,6 +3614,450 @@
             loadReport(editId).catch((error) => {
                 console.error(error);
                 populateForm({ report_date: todayISO(), lines: [{}] });
+            });
+        })();
+
+        // CHECK VOUCHER
+        (function initCheckVoucher() {
+            const cfg = window.__SALES_CONFIG__ || {};
+            const linesBody = document.getElementById('cvLinesBody');
+            if (!linesBody) return;
+
+            const fields = {
+                id: document.getElementById('cvVoucherId'),
+                cv_number: document.getElementById('cvNumber'),
+                voucher_date: document.getElementById('cvDate'),
+                payee: document.getElementById('cvPayee'),
+                payment_for: document.getElementById('cvPaymentFor'),
+                bank: document.getElementById('cvBank'),
+                check_number: document.getElementById('cvCheckNumber'),
+                check_date: document.getElementById('cvCheckDate'),
+                received_by: document.getElementById('cvReceivedBy'),
+                signatory_prepared: document.getElementById('cvSignPrepared'),
+                signatory_checked: document.getElementById('cvSignChecked'),
+                signatory_approved: document.getElementById('cvSignApproved'),
+                signatory_approver: document.getElementById('cvSignApprover'),
+                purchases: document.getElementById('cvPurchases'),
+                expenses: document.getElementById('cvExpenses'),
+                commission: document.getElementById('cvCommission'),
+                contributions: document.getElementById('cvContributions'),
+                misc: document.getElementById('cvMisc'),
+                payment: document.getElementById('cvPayment'),
+            };
+            const CV_CATEGORY_KEYS = ['purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'];
+
+            function cvJsonUrl(id) {
+                return (cfg.checkVoucherJsonUrlTemplate || '').replace('/0/', `/${id}/`);
+            }
+
+            function cvDeleteUrl(id) {
+                return (cfg.checkVoucherDeleteUrlTemplate || cvJsonUrl(id).replace('/json/', '/delete/')).replace('/0/', `/${id}/`);
+            }
+
+            function todayISO() {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+
+            function escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function formatLongDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            function createLine(data = {}) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="cv-line-description" value="${escapeHtml(data.description || '')}" placeholder="BILLING NO. 26-1175"></td>
+                    <td><input type="text" class="cv-line-amount cv-money-input" value="${escapeHtml(data.debit_amount || '')}" inputmode="decimal" style="text-align:right;"></td>
+                    <td style="text-align:center;"><button type="button" class="cv-line-remove" style="padding:4px 8px; border:1px solid var(--line); border-radius:4px; color:var(--danger);">x</button></td>
+                `;
+                return tr;
+            }
+
+            function debitTotal() {
+                return Array.from(linesBody.querySelectorAll('.cv-line-amount'))
+                    .reduce((sum, input) => sum + parseMoney(input.value), 0);
+            }
+
+            function collectLines() {
+                return Array.from(linesBody.querySelectorAll('tr')).map((row) => ({
+                    description: row.querySelector('.cv-line-description')?.value.trim() || '',
+                    debit_amount: row.querySelector('.cv-line-amount')?.value.trim() || '',
+                })).filter((line) => line.description || line.debit_amount);
+            }
+
+            function payloadFromForm() {
+                const total = debitTotal();
+                const payload = {
+                    id: fields.id?.value || null,
+                    cv_number: fields.cv_number.value.trim(),
+                    voucher_date: fields.voucher_date.value || todayISO(),
+                    payee: fields.payee.value.trim(),
+                    payment_for: fields.payment_for.value.trim(),
+                    bank: fields.bank.value.trim(),
+                    check_number: fields.check_number.value.trim(),
+                    check_date: fields.check_date.value || '',
+                    received_by: fields.received_by.value.trim(),
+                    signatory_prepared: fields.signatory_prepared.value.trim(),
+                    signatory_checked: fields.signatory_checked.value.trim(),
+                    signatory_approved: fields.signatory_approved.value.trim(),
+                    signatory_approver: fields.signatory_approver.value.trim(),
+                    cash_in_bank: String(total),
+                    check_amount: String(total),
+                    lines: collectLines(),
+                };
+                let categoryTotal = 0;
+                CV_CATEGORY_KEYS.forEach((key) => {
+                    const raw = fields[key]?.value.trim() || '';
+                    payload[key] = raw;
+                    categoryTotal += parseMoney(raw);
+                });
+                if (categoryTotal === 0 && total > 0) {
+                    payload.expenses = String(total);
+                    if (fields.expenses) fields.expenses.value = String(total);
+                }
+                return payload;
+            }
+
+            function populateForm(data = {}) {
+                fields.id.value = data.id ? String(data.id) : '';
+                fields.cv_number.value = data.cv_number || cfg.nextCvNumber || '';
+                fields.voucher_date.value = data.voucher_date || todayISO();
+                fields.payee.value = data.payee || '';
+                fields.payment_for.value = data.payment_for || data.payee || '';
+                fields.bank.value = data.bank || '';
+                fields.check_number.value = data.check_number || '';
+                fields.check_date.value = data.check_date || '';
+                fields.received_by.value = data.received_by || '';
+                fields.signatory_prepared.value = data.signatory_prepared || 'Angel Marie';
+                fields.signatory_checked.value = data.signatory_checked || 'Beverly';
+                fields.signatory_approved.value = data.signatory_approved || 'Christine Joy';
+                fields.signatory_approver.value = data.signatory_approver || 'Engr. Arturo Davis';
+                CV_CATEGORY_KEYS.forEach((key) => {
+                    if (fields[key]) fields[key].value = data[key] || '';
+                });
+                linesBody.innerHTML = '';
+                (data.lines && data.lines.length ? data.lines : [{}, {}]).forEach((line) => linesBody.appendChild(createLine(line)));
+                bindMoneyInputs(linesBody, '.cv-money-input');
+                refreshPreview();
+            }
+
+            function refreshPreview() {
+                const total = debitTotal();
+                document.getElementById('cvDebitTotal').textContent = 'PHP ' + formatMoney(total);
+                document.getElementById('cvCreditTotal').textContent = 'PHP ' + formatMoney(total);
+                document.getElementById('cvPrevNumber').textContent = fields.cv_number.value.trim() || cfg.nextCvNumber || '';
+                document.getElementById('cvPrevDate').textContent = formatLongDate(fields.voucher_date.value);
+                document.getElementById('cvPrevPayee').textContent = (fields.payee.value || '').toUpperCase();
+                document.getElementById('cvPrevCash').textContent = formatMoney(total);
+                document.getElementById('cvPrevDebitTotal').textContent = formatMoney(total);
+                document.getElementById('cvPrevCreditTotal').textContent = formatMoney(total);
+                document.getElementById('cvPrevPaymentFor').textContent = (fields.payment_for.value || fields.payee.value || '\u00a0').toUpperCase();
+                document.getElementById('cvPrevCheckAmount').textContent = formatMoney(total);
+                document.getElementById('cvPrevCheckNumber').textContent = fields.check_number.value || '';
+                document.getElementById('cvPrevBank').textContent = fields.bank.value || '';
+                document.getElementById('cvPrevReceivedBy').textContent = fields.received_by.value || '';
+                document.getElementById('cvPrevSignPrepared').textContent = fields.signatory_prepared.value || 'Angel Marie';
+                document.getElementById('cvPrevSignChecked').textContent = fields.signatory_checked.value || 'Beverly';
+                document.getElementById('cvPrevSignApproved').textContent = fields.signatory_approved.value || 'Christine Joy';
+                document.getElementById('cvPrevSignApprover').textContent = fields.signatory_approver.value || 'Engr. Arturo Davis';
+
+                const preview = document.getElementById('cvPreviewLines');
+                preview.innerHTML = '';
+                const lines = collectLines();
+                const rows = lines.length ? lines : [{}];
+                rows.forEach((line) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td colspan="2" class="cv-desc">${escapeHtml(line.description || '\u00a0').toUpperCase()}</td><td class="cv-money">${line.debit_amount ? formatMoney(parseMoney(line.debit_amount)) : '\u00a0'}</td><td class="cv-money">&nbsp;</td>`;
+                    preview.appendChild(tr);
+                });
+                for (let i = rows.length; i < 6; i += 1) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td colspan="2" class="cv-desc">&nbsp;</td><td class="cv-money">&nbsp;</td><td class="cv-money">&nbsp;</td>';
+                    preview.appendChild(tr);
+                }
+            }
+
+            async function loadVoucher(id) {
+                const url = id ? cvJsonUrl(id) : (cfg.checkVoucherLatestJsonUrl || '');
+                if (!url) throw new Error('Check-voucher URL is not configured.');
+                const response = await fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Session expired or server returned a non-JSON response. Please refresh and log in again.');
+                }
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to load check voucher.');
+                if (!body?.id) {
+                    populateForm({});
+                    return body;
+                }
+                populateForm(body);
+                return body;
+            }
+
+            async function saveVoucherToDb() {
+                const response = await fetch(cfg.saveCheckVoucherUrl || '', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify(payloadFromForm()),
+                });
+                const body = await response.json();
+                if (!response.ok) throw new Error(body?.error || 'Unable to save check voucher.');
+                fields.id.value = String(body.id);
+                return body;
+            }
+
+            async function runVoucherPdf(mode) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'check-voucher-tab');
+                window.history.pushState({}, '', url);
+                activateTab('check-voucher-tab');
+
+                const docEl = document.getElementById('cvDocument');
+                if (!docEl) return;
+                if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
+                    alert('PDF libraries failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                const btn = document.getElementById(mode === 'save' ? 'cvSave' : 'cvPrint');
+                const prevLabel = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = mode === 'save' ? 'Saving...' : 'Preparing...';
+                }
+
+                let holder = null;
+                let savedId = fields.id.value || null;
+                try {
+                    if (mode === 'save') {
+                        const saved = await saveVoucherToDb();
+                        savedId = saved.id;
+                    }
+                    holder = document.createElement('div');
+                    holder.style.cssText = 'position:fixed;left:0;top:0;width:1200px;background:#fff;visibility:hidden;pointer-events:none;z-index:-1;';
+                    const sheet = docEl.cloneNode(true);
+                    sheet.style.width = '1200px';
+                    sheet.style.maxWidth = 'none';
+                    holder.appendChild(sheet);
+                    document.body.appendChild(holder);
+                    const pdfBlob = await landscapePdfFromSheet(sheet, { width: 1200, margin: 8, maxPages: 2, jpegQuality: 0.98 });
+                    holder.remove();
+                    holder = null;
+                    if (mode === 'save') {
+                        const cvno = fields.cv_number.value.trim() || 'check_voucher';
+                        await uploadSalesDocumentPdf({
+                            blob: pdfBlob,
+                            documentType: 'check_voucher',
+                            title: `Check Voucher ${cvno}`,
+                            reference: cvno,
+                            fileName: `check_voucher_${cvno}`,
+                            sourceId: savedId,
+                        });
+                        alert('Check voucher saved to the database and PDF archived.');
+                        goToSavedDocuments();
+                    } else {
+                        printPdfBlob(pdfBlob);
+                    }
+                } catch (error) {
+                    if (holder) holder.remove();
+                    console.error('Check voucher PDF error:', error);
+                    alert(error && error.message ? error.message : 'Could not prepare check voucher PDF.');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = prevLabel;
+                    }
+                }
+            }
+
+            Object.values(fields).forEach((field) => {
+                if (!field) return;
+                field.addEventListener('input', refreshPreview);
+                field.addEventListener('change', refreshPreview);
+            });
+            bindMoneyInputs(document.getElementById('check-voucher-tab'), '#cvPurchases, #cvExpenses, #cvCommission, #cvContributions, #cvMisc, #cvPayment');
+            linesBody.addEventListener('input', refreshPreview);
+            linesBody.addEventListener('change', refreshPreview);
+            linesBody.addEventListener('click', (event) => {
+                const btn = event.target.closest('.cv-line-remove');
+                if (!btn) return;
+                if (linesBody.querySelectorAll('tr').length <= 1) {
+                    linesBody.innerHTML = '';
+                    linesBody.appendChild(createLine());
+                } else {
+                    btn.closest('tr').remove();
+                }
+                refreshPreview();
+            });
+
+            document.getElementById('cvAddRow').addEventListener('click', () => {
+                linesBody.appendChild(createLine());
+                bindMoneyInputs(linesBody, '.cv-money-input');
+                refreshPreview();
+            });
+            function nativePrint(bodyClass) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'check-voucher-tab');
+                window.history.pushState({}, '', url);
+                activateTab('check-voucher-tab');
+                refreshPreview();
+                // Voucher = letter portrait (1/2 crosswise); monitoring = A4 landscape.
+                try {
+                    let pageStyle = document.getElementById('sales-print-page-style');
+                    if (!pageStyle) {
+                        pageStyle = document.createElement('style');
+                        pageStyle.id = 'sales-print-page-style';
+                        document.head.appendChild(pageStyle);
+                    }
+                    pageStyle.textContent = bodyClass === 'cv-print-voucher'
+                        ? '@media print { @page { size: letter portrait; margin: 8mm; } }'
+                        : '@media print { @page { size: A4 landscape; margin: 6mm; } }';
+                } catch (e) { /* ignore page-style errors */ }
+                document.body.classList.add(bodyClass);
+                const done = () => document.body.classList.remove(bodyClass);
+                window.addEventListener('afterprint', done, { once: true });
+                setTimeout(done, 8000);
+                window.print();
+            }
+            document.getElementById('cvReset').addEventListener('click', () => populateForm({ cv_number: cfg.nextCvNumber || '', voucher_date: todayISO() }));
+            document.getElementById('cvPrint').addEventListener('click', () => nativePrint('cv-print-voucher'));
+            document.getElementById('cvSave').addEventListener('click', () => runVoucherPdf('save'));
+            const printMonitoringBtn = document.getElementById('cvPrintMonitoring');
+            if (printMonitoringBtn) {
+                printMonitoringBtn.addEventListener('click', () => nativePrint('cv-print-monitoring'));
+            }
+
+            const importInput = document.getElementById('cvImportFile');
+            if (importInput) {
+                importInput.addEventListener('change', async () => {
+                    const file = importInput.files?.[0];
+                    importInput.value = '';
+                    if (!file) return;
+                    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                        alert('Please choose an .xlsx file.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('xlsx', file);
+                    try {
+                        const response = await fetch(cfg.importCheckVoucherUrl || '', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                            body: formData,
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Import failed.');
+                        populateForm(body);
+                        alert(`Imported ${body.imported_count || 1} check voucher(s) from ${file.name}.`);
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not import Excel file.');
+                    }
+                });
+            }
+
+            document.querySelectorAll('.cv-load-voucher').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const vid = button.dataset.voucherId;
+                    if (!vid) {
+                        alert('Missing voucher id.');
+                        return;
+                    }
+                    const prevLabel = button.textContent;
+                    button.disabled = true;
+                    button.textContent = 'Loading...';
+                    try {
+                        await loadVoucher(vid);
+                        activateTab('check-voucher-tab');
+                        try {
+                            const url = new URL(window.location);
+                            url.searchParams.set('tab', 'check-voucher-tab');
+                            url.searchParams.set('cv_edit', String(vid));
+                            window.history.pushState({}, '', url);
+                        } catch (e) { /* ignore URL errors */ }
+                        const editor = document.getElementById('cvNumber');
+                        if (editor) {
+                            const panel = editor.closest('.panel') || editor;
+                            if (panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            try {
+                                editor.focus({ preventScroll: true });
+                                const flashEl = editor.closest('fieldset') || panel;
+                                const prevOutline = flashEl.style.outline;
+                                const prevTransition = flashEl.style.transition;
+                                flashEl.style.transition = 'outline 0.3s ease';
+                                flashEl.style.outline = '2px solid var(--brand, #0e7490)';
+                                setTimeout(() => {
+                                    flashEl.style.outline = prevOutline;
+                                    flashEl.style.transition = prevTransition;
+                                }, 1200);
+                            } catch (e) { /* ignore focus errors */ }
+                        }
+                    } catch (error) {
+                        console.error('Load voucher failed:', error);
+                        alert(error.message || 'Could not load check voucher.');
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = prevLabel;
+                    }
+                });
+            });
+
+            document.querySelectorAll('.cv-delete-voucher').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const id = button.dataset.voucherId;
+                    if (!id || !confirm('Delete this check voucher? This cannot be undone.')) return;
+                    try {
+                        const response = await fetch(cvDeleteUrl(id), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not delete check voucher.');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.cv-category-cell').forEach((cell) => {
+                const labels = [
+                    ['purchases', 'Purchases'],
+                    ['expenses', 'Expenses'],
+                    ['commission', 'Commission'],
+                    ['contributions', 'Contributions'],
+                    ['misc', 'Misc'],
+                    ['payment', 'Payment'],
+                ];
+                const parts = labels
+                    .map(([key, label]) => [label, parseMoney(cell.dataset[key])])
+                    .filter(([, value]) => value)
+                    .map(([label, value]) => `${label}: ${formatMoney(value)}`);
+                cell.textContent = parts.join(', ') || '-';
+            });
+
+            const editId = new URLSearchParams(window.location.search).get('cv_edit') || cfg.latestCheckVoucherId;
+            loadVoucher(editId).catch((error) => {
+                console.error(error);
+                populateForm({ cv_number: cfg.nextCvNumber || '', voucher_date: todayISO() });
             });
         })();
 

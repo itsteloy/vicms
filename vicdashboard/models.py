@@ -299,6 +299,7 @@ class SalesDocumentArchive(models.Model):
         ('ageing_accounts', 'Ageing of Accounts'),
         ('retention_summary', 'Retention Summary'),
         ('petty_cash', 'Petty Cash / Revolving Fund'),
+        ('check_voucher', 'Check Voucher'),
     ]
 
     document_type = models.CharField(max_length=40, choices=DOCUMENT_TYPES)
@@ -497,6 +498,62 @@ class PettyCashLine(models.Model):
 
     def __str__(self):
         return f'{self.particulars or self.pcv_number or self.pk} ({self.report_id})'
+
+
+class CheckVoucher(models.Model):
+    cv_number = models.CharField(max_length=50, unique=True)
+    voucher_date = models.DateField()
+    payee = models.CharField(max_length=300)
+    payment_for = models.TextField(blank=True, default='')
+    check_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    bank = models.CharField(max_length=120, blank=True, default='')
+    check_number = models.CharField(max_length=60, blank=True, default='')
+    check_date = models.DateField(null=True, blank=True)
+    received_by = models.CharField(max_length=200, blank=True, default='')
+    signatory_prepared = models.CharField(max_length=200, blank=True, default='Angel Marie')
+    signatory_checked = models.CharField(max_length=200, blank=True, default='Beverly')
+    signatory_approved = models.CharField(max_length=200, blank=True, default='Christine Joy')
+    signatory_approver = models.CharField(max_length=200, blank=True, default='Engr. Arturo Davis')
+    purchases = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    commission = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    contributions = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    misc = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    payment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    source_filename = models.CharField(max_length=255, blank=True, default='')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='check_vouchers',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-voucher_date', '-cv_number']
+
+    def __str__(self):
+        return self.cv_number
+
+
+class CheckVoucherLine(models.Model):
+    voucher = models.ForeignKey(
+        CheckVoucher,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    description = models.CharField(max_length=500, blank=True, default='')
+    debit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.description or self.pk} ({self.voucher_id})'
 
 
 class HRDocument(models.Model):
@@ -2728,4 +2785,3 @@ class WaterAuditLog(models.Model):
 
     def __str__(self):
         return f'{self.timestamp:%Y-%m-%d %H:%M} – {self.action}'
-

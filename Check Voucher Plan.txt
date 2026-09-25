@@ -1,0 +1,117 @@
+Check Voucher (Sales)
+
+The Excel workbook is a monthly check-voucher pack: sheet CV MONITORING (register) plus one sheet per voucher (340–380) matching the screenshot (CVNO. 2026-M-380). There is no voucher feature in the app yet. Implement it next to Petty Cash in templates/sales_dashboard.html, following Ageing / Petty Cash (DB + live preview + PDF archive).
+
+Document layout (match screenshot)
+
+Fixed letterhead: METRO DAVAO SUPREME PUMPS INDUSTRIES, INC. / #406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY.
+
+Form fields:
+
+CVNO — 2026-M-380 style; auto-suggest next number (YYYY-M-{n}) from existing records
+
+DATE, PAYEE
+
+Debit lines — description + debit amount (e.g. BILLING NO. 26-1175 / 85,687.38; also PURCHASES, INPUT TAX, MEALS & LODGING, etc.)
+
+CASH IN BANK credit — defaults to debit total
+
+TOTALS — debit = credit
+
+Payment for (text; often payee or purpose)
+
+Received from MDSPII, Check Amount (= total)
+
+Check no. + Bank (BANK: MBTC/RCBC/PBB or similar)
+
+Received by + signature line
+
+Prepared / Checked / Approved labels with default names: Angelmarie M. Dapar, Ms. Beverly Tan, Ms. Christine Joy Ilogon, Engr. Arturo I Davis, PME
+
+
+Typography (copy Excel fonts)
+
+Sheet 380 (the screenshot form) uses Century Gothic only. Apply the same face and sizes on .cv-doc preview, print, and PDF (html2canvas uses the rendered CSS). Encoder inputs can stay dashboard UI fonts.
+
+CSS: font-family: "Century Gothic", CenturyGothic, "AppleGothic", sans-serif on the voucher document. On Windows this matches the workbook; no substitute display font for the preview.
+
+Sizes from xl/styles.xml mapped to sheet 380:
+
+
+
+
+
+Company name: 18pt regular
+
+Address: 11pt regular
+
+CVNO: 22pt bold
+
+DATE / PAYEE / DEBIT / CREDIT labels: 12pt bold
+
+Payee name: 16pt bold
+
+Debit descriptions and amounts: 14pt (bold where Excel is bold)
+
+CASH IN BANK / TOTALS labels: 12pt
+
+Payment for: 12pt bold italic
+
+Received from MDSPII / Check Amount / Check no. / Received by labels: 13pt bold
+
+Check amount figures: 16pt bold
+
+Signatory names row: 12pt
+
+Monitoring register table: Century Gothic 10pt (headers 10pt bold), matching the CV MONITORING sheet (not Comic Sans).
+
+Editor UI: encoder panel (Save / Print / Reset / Import Excel / Add debit row) + live table preview + recent vouchers list (Load / Delete).
+
+
+Data model
+
+New models in vicdashboard/models.py:
+
+CheckVoucher — cv_number (unique), voucher_date, payee, payment_for, check_amount, cash_in_bank, bank, check_number, received_by, signatory name fields, monitoring category amounts (purchases, expenses, commission, contributions, misc, payment), source_filename, created_by, timestamps
+
+CheckVoucherLine — description, debit_amount, sort_order
+
+Migration required. Add ('check_voucher', 'Check Voucher') to SalesDocumentArchive.DOCUMENT_TYPES.
+
+
+Backend
+
+Mirror petty-cash/ageing in vicdashboard/urls.py and vicdashboard/views.py:
+
+save_check_voucher, check_voucher_json, check_voucher_latest_json, delete_check_voucher, import_check_voucher_upload
+
+sales_dashboard: allow check-voucher-tab; pass recent_check_vouchers, latest_check_voucher_id, next_cv_number
+
+Parser vicdashboard/check_voucher_xlsx.py (stdlib zip/XML like other parsers if openpyxl is unused, or openpyxl if already a project dep):
+
+Read CV MONITORING for date, CV no., issued to, payment for, amount, category columns, check date/bank/no.
+
+Read each numbered sheet for debit lines, CASH IN BANK, received by, bank/check labels
+
+Import creates/updates vouchers by cv_number (one workbook → many vouchers)
+
+Reuse existing save_sales_document_pdf for PDF snapshots.
+
+
+Frontend
+
+Sidebar tab after Petty Cash in templates/sales_dashboard.html
+
+Encoder + .cv-doc preview table (grid borders like the Excel form)
+
+Styles in static/css/dashboards/sales.css: grid borders like Excel, Century Gothic and the pt sizes above, print landscape like ageing
+
+JS in static/js/dashboards/sales.js: live preview, debit totals → cash in bank / check amount, save/print via html2canvas+jsPDF (same path as collection/ageing), load/delete/import, tab activation
+
+CV Monitoring list on the same tab: DATE, CV NO, ISSUED TO, PAYMENT FOR, AMOUNT, category, check date/bank/no. — backed by saved CheckVoucher rows (not a second document type).
+
+Out of scope
+
+Do not change water billing or inventory
+Do not import PDFs; Excel + manual entry only
+

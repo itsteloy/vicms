@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Weekly Report – {{ week_start }} to {{ week_end }}{% endblock %}
 
 {% block extra_css %}
@@ -31,7 +31,7 @@
     return Number(String(text || '').replace(/[₱,\s]/g, '')) || 0;
   }
   function peso(value) {
-    return '₱' + Number(value || 0).toFixed(2);
+    return '₱' + Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   const cash = parsePeso(document.getElementById('weeklyBillingCashLine')?.textContent);
   const gcash = parsePeso(document.getElementById('weeklyBillingGcashLine')?.textContent);

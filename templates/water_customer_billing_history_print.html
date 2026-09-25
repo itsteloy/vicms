@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Billing History – {{ customer.display_name }} ({{ history.year }}){% endblock %}
 
 {% block extra_css %}
@@ -31,7 +31,7 @@
         {% if customer.meter_number %} · Meter {{ customer.meter_number }}{% endif %}
         · Year {{ history.year }}
       </p>
-      <p class="meta balance-meta">Balance: ₱{{ account_balance|floatformat:2 }}</p>
+      <p class="meta balance-meta">Balance: ₱{{ account_balance|floatformat:2|intcomma }}</p>
     </header>
 
     <table class="billing-history-table">
@@ -45,46 +45,46 @@
       <tbody>
         <tr>
           <td class="col-label">PREVIOUS BILL IN {{ history.previous_year }}</td>
-          <td class="col-bill amt">{% if history.previous_bill %}₱{{ history.previous_bill|floatformat:2 }}{% endif %}</td>
-          <td class="col-pay amt">{% if history.previous_bill_paid %}₱{{ history.previous_bill_paid|floatformat:2 }}{% endif %}</td>
+          <td class="col-bill amt">{% if history.previous_bill %}₱{{ history.previous_bill|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="col-pay amt">{% if history.previous_bill_paid %}₱{{ history.previous_bill_paid|floatformat:2|intcomma }}{% endif %}</td>
         </tr>
         {% for row in history.month_rows %}
         <tr>
           <td class="col-label">{{ row.label }}</td>
-          <td class="col-bill amt">{% if row.bill_amount %}₱{{ row.bill_amount|floatformat:2 }}{% endif %}</td>
-          <td class="col-pay amt">{% if row.payment_amount %}₱{{ row.payment_amount|floatformat:2 }}{% endif %}</td>
+          <td class="col-bill amt">{% if row.bill_amount %}₱{{ row.bill_amount|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="col-pay amt">{% if row.payment_amount %}₱{{ row.payment_amount|floatformat:2|intcomma }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot>
         <tr class="totals-row">
           <td class="col-label">TOTAL BILL</td>
-          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2 }}</td>
+          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2|intcomma }}</td>
           <td class="col-pay amt"></td>
         </tr>
         <tr class="totals-row">
           <td class="col-label">TOTAL PAYMENT</td>
           <td class="col-bill amt"></td>
-          <td class="col-pay amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
+          <td class="col-pay amt total-red">₱{{ history.total_payment|floatformat:2|intcomma }}</td>
         </tr>
         <tr class="due-calc">
           <td class="col-label">TOTAL BILL</td>
-          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2 }}</td>
+          <td class="col-bill amt total-red">₱{{ history.total_bill|floatformat:2|intcomma }}</td>
           <td class="col-pay amt"></td>
         </tr>
         <tr class="due-calc">
           <td class="col-label">TOTAL PAYMENT</td>
-          <td class="col-bill amt total-red">₱{{ history.total_payment|floatformat:2 }}</td>
+          <td class="col-bill amt total-red">₱{{ history.total_payment|floatformat:2|intcomma }}</td>
           <td class="col-pay amt"></td>
         </tr>
         <tr class="balance-row">
           <td class="col-label"></td>
-          <td class="col-bill amt due-amt">₱{{ account_balance|floatformat:2 }}</td>
+          <td class="col-bill amt due-amt">₱{{ account_balance|floatformat:2|intcomma }}</td>
           <td class="col-pay due-label">BALANCE</td>
         </tr>
         <tr class="due-final">
           <td class="col-label"></td>
-          <td class="col-bill amt due-amt">₱{{ history.amount_due|floatformat:2 }}</td>
+          <td class="col-bill amt due-amt">₱{{ history.amount_due|floatformat:2|intcomma }}</td>
           <td class="col-pay due-label">TOTAL AMOUNT TO PAY</td>
         </tr>
       </tfoot>

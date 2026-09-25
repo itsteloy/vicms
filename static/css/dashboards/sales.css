@@ -1900,3 +1900,437 @@ h1, h2, h3, h4,
           padding: 2px 3px !important;
       }
   }
+
+  /* Check Voucher */
+  #check-voucher-tab .panel,
+  #check-voucher-tab fieldset {
+      max-width: 100%;
+      min-width: 0;
+  }
+
+  .cv-editor-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+  }
+  .cv-editor-grid label,
+  .cv-fieldset legend {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+  }
+  .cv-editor-grid input,
+  .cv-form-table input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-family: inherit;
+      box-sizing: border-box;
+  }
+  .cv-fieldset {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 0 0 18px;
+  }
+  .cv-form-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+  }
+  .cv-form-table th {
+      background: var(--brand);
+      color: #fff !important;
+      padding: 8px;
+      text-align: left;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+  }
+  .cv-form-table td {
+      border-top: 1px solid var(--line);
+      padding: 6px;
+  }
+  .cv-total-strip {
+      display: flex;
+      justify-content: flex-end;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: var(--ink);
+      font-size: 0.92rem;
+      margin-top: 10px;
+  }
+
+  .cv-doc {
+      background: #fff;
+      color: #000;
+      width: min(100%, 980px);
+      margin: 0 auto;
+      padding: 26px 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: "Comic Sans MS", "Comic Sans", cursive;
+      box-sizing: border-box;
+  }
+  .cv-letterhead {
+      text-align: center;
+      line-height: 1.25;
+      margin-bottom: 12px;
+  }
+  .cv-company {
+      font-size: 18pt;
+      font-weight: 400;
+  }
+  .cv-address {
+      font-size: 11pt;
+      font-weight: 400;
+  }
+  .cv-sheet {
+      width: 100%;
+      min-width: 820px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-family: "Comic Sans MS", "Comic Sans", cursive;
+  }
+  .cv-sheet th,
+  .cv-sheet td {
+      border: 1px solid #000;
+      padding: 7px 9px;
+      vertical-align: middle;
+      color: #000;
+      overflow-wrap: anywhere;
+  }
+  .cv-label {
+      font-size: 12pt;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+  }
+  .cv-no {
+      font-size: 22pt;
+      font-weight: 700;
+      text-align: right;
+  }
+  .cv-date-label {
+      font-size: 12pt;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+  }
+  #cvPrevDate {
+      font-size: 12pt;
+  }
+  .cv-payee-label {
+      font-size: 12pt;
+      font-weight: 700;
+      text-transform: uppercase;
+  }
+  .cv-payee {
+      font-size: 16pt;
+      font-weight: 700;
+      text-transform: uppercase;
+  }
+  .cv-colhead {
+      font-size: 12pt;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+  }
+  .cv-desc,
+  .cv-money {
+      font-size: 14pt;
+  }
+  .cv-desc {
+      font-weight: 700;
+      text-transform: uppercase;
+  }
+  .cv-money {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+  }
+  /* Billing (debit) lines at 12px. */
+  #cvPreviewLines .cv-desc,
+  #cvPreviewLines .cv-money {
+      font-size: 12px;
+  }
+  .cv-account {
+      font-size: 12pt;
+      font-weight: 400;
+      text-transform: uppercase;
+  }
+  .cv-total {
+      border-top: 2px solid #000 !important;
+      font-weight: 700;
+  }
+  .cv-blabel {
+      font-size: 12pt;
+      font-weight: 700;
+  }
+  .cv-bhead {
+      font-size: 13pt;
+      font-weight: 700;
+      text-align: center;
+  }
+  .cv-bempty {
+      min-height: 28px;
+  }
+  .cv-bval {
+      font-size: 12pt;
+  }
+  .cv-payfor {
+      font-size: 12pt;
+      font-weight: 700;
+      font-style: italic;
+      text-align: center;
+      text-transform: uppercase;
+      vertical-align: middle !important;
+  }
+  .cv-sigline {
+      vertical-align: bottom !important;
+  }
+  .cv-sign-labels td {
+      font-size: 12pt;
+      height: 30px;
+  }
+  .cv-payment-for {
+      height: 52px;
+      font-size: 12pt;
+      font-weight: 700;
+      font-style: italic;
+      text-transform: uppercase;
+  }
+  .cv-remit-label {
+      font-size: 13pt;
+      font-weight: 700;
+  }
+  .cv-check-amount {
+      font-size: 16pt;
+      font-weight: 700;
+      text-align: right;
+  }
+  .cv-sign-line {
+      height: 44px;
+      font-size: 13pt;
+      font-weight: 700;
+      text-align: center;
+      vertical-align: bottom !important;
+  }
+  .cv-signatures td {
+      height: 78px;
+      text-align: center;
+      vertical-align: bottom;
+      font-size: 12pt;
+  }
+  .cv-sign-name {
+      font-size: 12pt;
+      font-weight: 400;
+      text-align: center;
+      text-transform: uppercase;
+      vertical-align: middle !important;
+  }
+  .cv-monitoring-table {
+      font-family: "Comic Sans MS", "Comic Sans", cursive;
+      font-size: 10pt;
+      border-collapse: collapse;
+      min-width: 1900px;
+      width: 100%;
+  }
+  .cv-monitoring-table th,
+  .cv-monitoring-table td {
+      border: 1px solid var(--line);
+      padding: 7px 8px;
+      white-space: nowrap;
+  }
+  .cv-monitoring-table th {
+      font-size: 10pt;
+      font-weight: 700;
+      background: #f2f4f7;
+      color: #111 !important;
+      text-transform: uppercase;
+  }
+  /* All breakdown columns visible on screen — scroll sideways to see them. */
+  .cv-monitoring-table .cv-breakdown-col {
+      display: table-cell;
+  }
+  #cvMonitoringWrap {
+      overflow-x: auto !important;
+      max-width: 100%;
+  }
+
+  @media (max-width: 900px) {
+      .cv-editor-grid {
+          grid-template-columns: repeat(2, minmax(150px, 1fr));
+      }
+  }
+
+  @media print {
+      .cv-doc {
+          width: 100% !important;
+          max-width: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          display: block !important;
+          visibility: visible !important;
+      }
+      .cv-sheet {
+          min-width: 0 !important;
+      }
+      /* ── Isolated voucher print: letter portrait, 1/2 crosswise ── */
+      body.cv-print-voucher .sidebar,
+      body.cv-print-voucher .topbar,
+      body.cv-print-voucher .messages,
+      body.cv-print-voucher .tab-panel:not(.is-active),
+      body.cv-print-voucher #check-voucher-tab > .panel:not(.cv-print-panel) {
+          display: none !important;
+      }
+      body.cv-print-voucher .cv-print-panel {
+          display: block !important;
+          border: none !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+      }
+      body.cv-print-voucher .cv-print-panel > h2 {
+          display: none !important;
+      }
+      /* Fit the voucher content in the top half of a letter portrait
+         sheet (1/2 crosswise): compact type + tight rows, one page. */
+      body.cv-print-voucher .cv-doc {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+      }
+      body.cv-print-voucher .cv-sheet {
+          table-layout: fixed !important;
+      }
+      body.cv-print-voucher .cv-letterhead {
+          margin-bottom: 6px !important;
+      }
+      body.cv-print-voucher .cv-sheet th,
+      body.cv-print-voucher .cv-sheet td {
+          padding: 2px 4px !important;
+      }
+      body.cv-print-voucher .cv-company {
+          font-size: 12pt !important;
+      }
+      body.cv-print-voucher .cv-address {
+          font-size: 8pt !important;
+      }
+      body.cv-print-voucher .cv-no {
+          font-size: 14pt !important;
+      }
+      body.cv-print-voucher .cv-date-label,
+      body.cv-print-voucher .cv-payee-label,
+      body.cv-print-voucher .cv-colhead {
+          font-size: 9pt !important;
+      }
+      body.cv-print-voucher .cv-payee {
+          font-size: 11pt !important;
+      }
+      body.cv-print-voucher .cv-check-amount {
+          font-size: 11pt !important;
+      }
+      body.cv-print-voucher #cvPreviewLines .cv-desc,
+      body.cv-print-voucher #cvPreviewLines .cv-money {
+          font-size: 12px !important;
+      }
+      body.cv-print-voucher .cv-account,
+      body.cv-print-voucher .cv-total {
+          font-size: 9pt !important;
+      }
+      body.cv-print-voucher .cv-blabel,
+      body.cv-print-voucher .cv-bhead {
+          font-size: 10pt !important;
+      }
+      body.cv-print-voucher .cv-bval,
+      body.cv-print-voucher .cv-payfor {
+          font-size: 9pt !important;
+      }
+      body.cv-print-voucher .cv-sign-labels td {
+          font-size: 9pt !important;
+          height: 20px !important;
+      }
+      body.cv-print-voucher .cv-signatures td {
+          height: 32px !important;
+      }
+      body.cv-print-voucher .cv-sign-name {
+          font-size: 9pt !important;
+      }
+      /* ── Isolated monitoring-report print: only the report table ── */
+      body.cv-print-monitoring .sidebar,
+      body.cv-print-monitoring .topbar,
+      body.cv-print-monitoring .messages,
+      body.cv-print-monitoring .tab-panel:not(.is-active),
+      body.cv-print-monitoring #check-voucher-tab > .panel:not(.cv-report-panel) {
+          display: none !important;
+      }
+      body.cv-print-monitoring .cv-report-panel {
+          display: block !important;
+          border: none !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+      }
+      body.cv-print-monitoring .cv-filter-form,
+      body.cv-print-monitoring .cv-report-blurb,
+      body.cv-print-monitoring .cv-report-summary,
+      body.cv-print-monitoring .cv-actions-col,
+      body.cv-print-monitoring .cv-category-col {
+          display: none !important;
+      }
+      body.cv-print-monitoring #cvMonitoringWrap,
+      body.cv-print-monitoring .cv-report-panel .table-wrap {
+          overflow: visible !important;
+          border: none !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+      }
+      body.cv-print-monitoring .cv-report-panel h2 {
+          font-size: 12pt !important;
+          margin: 0 0 4px !important;
+          color: #000 !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table {
+          min-width: 0 !important;
+          width: 100% !important;
+          table-layout: fixed !important;
+          font-size: 7pt !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table .cv-breakdown-col {
+          display: table-cell !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table th,
+      body.cv-print-monitoring .cv-monitoring-table td {
+          color: #000 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          font-size: 7pt !important;
+          padding: 3px 4px !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table th {
+          text-align: center !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table thead {
+          display: table-header-group !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table tfoot {
+          display: table-footer-group !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+      }
+  }

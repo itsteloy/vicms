@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Water Billing Dashboard{% endblock %}
 
 {% block extra_css %}
@@ -45,7 +45,7 @@
     <div class="sidebar-stats">
       <div class="stat-row"><span>Customers</span><strong>{{ stats.total_customers }}</strong></div>
       <div class="stat-row"><span>Active</span><strong>{{ stats.active_connections }}</strong></div>
-      <div class="stat-row"><span>Outstanding</span><strong>₱{{ stats.outstanding_balance|floatformat:0 }}</strong></div>
+      <div class="stat-row"><span>Outstanding</span><strong>₱{{ stats.outstanding_balance|floatformat:2|intcomma }}</strong></div>
     </div>
   </aside>
   <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
@@ -109,5 +109,5 @@
   };
 </script>
 <script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
-<script src="{% static 'js/dashboards/water_billing.js' %}?v=rate35"></script>
+<script src="{% static 'js/dashboards/water_billing.js' %}?v=currency1"></script>
 {% endblock %}

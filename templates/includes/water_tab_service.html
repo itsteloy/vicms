@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="split">
   <div class="panel">
     <h2>Schedule disconnection / reconnection</h2>
@@ -86,7 +87,7 @@
             <td>{{ c.account_number }}</td>
             <td>{{ c.display_name }}</td>
             <td>{{ c.computed_months_unpaid }}</td>
-            <td>₱{{ c.annotated_outstanding|floatformat:2 }}</td>
+            <td>₱{{ c.annotated_outstanding|floatformat:2|intcomma }}</td>
             <td><span class="badge for_disconnection">{{ c.computed_monitor }}</span></td>
           </tr>
           {% empty %}

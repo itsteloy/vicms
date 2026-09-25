@@ -1,3 +1,4 @@
+{% load humanize %}
 <div class="revenue-breakdown" data-revenue-period="{{ revenue_period }}">
   <div class="revenue-breakdown-head">
     <div>
@@ -13,17 +14,17 @@
   <div class="kpi-grid revenue-breakdown-grid">
     <div class="kpi-card">
       <div class="label">Cash</div>
-      <div class="value">₱{{ revenue_cash|floatformat:2 }}</div>
+      <div class="value">₱{{ revenue_cash|floatformat:2|intcomma }}</div>
       <div class="hint">{{ revenue_period_label }}</div>
     </div>
     <div class="kpi-card">
       <div class="label">GCash</div>
-      <div class="value">₱{{ revenue_gcash|floatformat:2 }}</div>
+      <div class="value">₱{{ revenue_gcash|floatformat:2|intcomma }}</div>
       <div class="hint">{{ revenue_period_label }}</div>
     </div>
     <div class="kpi-card">
       <div class="label">Total</div>
-      <div class="value">₱{{ revenue_collected|floatformat:2 }}</div>
+      <div class="value">₱{{ revenue_collected|floatformat:2|intcomma }}</div>
       <div class="hint">Cash + GCash</div>
     </div>
   </div>

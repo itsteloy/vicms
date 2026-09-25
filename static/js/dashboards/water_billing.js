@@ -11,6 +11,12 @@
   const MIN_CHARGE_MAX_CUM = 5;
   let activeReadingRate = DEFAULT_RATE_PER_CUM;
   let activeEditReadingRate = DEFAULT_RATE_PER_CUM;
+  function fmtMoney(value) {
+    return Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtPeso(value) {
+    return '\u20b1' + fmtMoney(value);
+  }
   const batchPrintUrl = (window.__WATER_CONFIG__ && window.__WATER_CONFIG__.batchPrintUrl) || '';
   const pageRoot = document.querySelector('.water-billing-page');
   const fragmentBase = (pageRoot && pageRoot.dataset.fragmentUrl) || window.location.pathname;
@@ -447,18 +453,18 @@
     const installment = Number(installmentBalance?.value || 0);
     const total = currentBill + unpaid + installment;
     if (readingConsumption) readingConsumption.value = String(consumption);
-    if (readingCurrentBill) readingCurrentBill.value = currentBill.toFixed(2);
-    if (readingTotalBill) readingTotalBill.value = total.toFixed(2);
+    if (readingCurrentBill) readingCurrentBill.value = fmtMoney(currentBill);
+    if (readingTotalBill) readingTotalBill.value = fmtMoney(total);
     const stripConsumption = document.getElementById('stripConsumption');
     const stripCurrent = document.getElementById('stripCurrent');
       const stripUnpaid = document.getElementById('stripUnpaid');
       const stripInstallment = document.getElementById('stripInstallment');
     const stripTotal = document.getElementById('stripTotal');
     if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
-    if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
-      if (stripUnpaid) stripUnpaid.textContent = `₱${unpaid.toFixed(2)}`;
-      if (stripInstallment) stripInstallment.textContent = `₱${installment.toFixed(2)}`;
-    if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
+    if (stripCurrent) stripCurrent.textContent = fmtPeso(currentBill);
+      if (stripUnpaid) stripUnpaid.textContent = fmtPeso(unpaid);
+      if (stripInstallment) stripInstallment.textContent = fmtPeso(installment);
+    if (stripTotal) stripTotal.textContent = fmtPeso(total);
   }
 
     function updateEditReadingTotals() {
@@ -473,18 +479,18 @@
       const installment = Number(editInstallmentBalance?.value || 0);
       const total = currentBill + unpaid + installment;
       if (editReadingConsumption) editReadingConsumption.value = String(consumption);
-      if (editReadingCurrentBill) editReadingCurrentBill.value = currentBill.toFixed(2);
-      if (editReadingTotalBill) editReadingTotalBill.value = total.toFixed(2);
+      if (editReadingCurrentBill) editReadingCurrentBill.value = fmtMoney(currentBill);
+      if (editReadingTotalBill) editReadingTotalBill.value = fmtMoney(total);
       const stripConsumption = document.getElementById('editStripConsumption');
       const stripCurrent = document.getElementById('editStripCurrent');
       const stripUnpaid = document.getElementById('editStripUnpaid');
       const stripInstallment = document.getElementById('editStripInstallment');
       const stripTotal = document.getElementById('editStripTotal');
       if (stripConsumption) stripConsumption.textContent = `${consumption} cu.m`;
-      if (stripCurrent) stripCurrent.textContent = `₱${currentBill.toFixed(2)}`;
-      if (stripUnpaid) stripUnpaid.textContent = `₱${unpaid.toFixed(2)}`;
-      if (stripInstallment) stripInstallment.textContent = `₱${installment.toFixed(2)}`;
-      if (stripTotal) stripTotal.textContent = `₱${total.toFixed(2)}`;
+      if (stripCurrent) stripCurrent.textContent = fmtPeso(currentBill);
+      if (stripUnpaid) stripUnpaid.textContent = fmtPeso(unpaid);
+      if (stripInstallment) stripInstallment.textContent = fmtPeso(installment);
+      if (stripTotal) stripTotal.textContent = fmtPeso(total);
     }
 
     function closeEditReadingModal() {
@@ -825,8 +831,7 @@
       return paymentPurpose() === 'other';
     }
     function formatPeso(value) {
-      const num = Number(value || 0);
-      return `₱${num.toFixed(2)}`;
+      return fmtPeso(value);
     }
     function selectedBalance() {
       if (isInstallPurpose()) {
@@ -935,7 +940,7 @@
           paymentInstallCustomer.dataset.balance = String(installment);
         }
         if (paymentInstallSearch) {
-          paymentInstallSearch.value = `${item.dataset.label || ''} · installment ₱${installment.toFixed(2)}`;
+          paymentInstallSearch.value = `${item.dataset.label || ''} · installment ` + fmtPeso(installment);
           paymentInstallSearch.setCustomValidity('');
         }
       }
@@ -1800,22 +1805,22 @@
     const grossSales = cashTotal + gcashTotal + aidReceived + refillCashTotal;
     const remittance = grossSales - gcashTotal - aidReceived - parcelPayment;
 
-    if (grossEl) grossEl.textContent = `₱${grossSales.toFixed(2)}`;
-    if (gcashEl) gcashEl.textContent = `₱${gcashTotal.toFixed(2)}`;
-    if (aidEl) aidEl.textContent = `₱${aidReceived.toFixed(2)}`;
-    if (parcelEl) parcelEl.textContent = `₱${parcelPayment.toFixed(2)}`;
-    valueEl.textContent = `₱${remittance.toFixed(2)}`;
+    if (grossEl) grossEl.textContent = fmtPeso(grossSales);
+    if (gcashEl) gcashEl.textContent = fmtPeso(gcashTotal);
+    if (aidEl) aidEl.textContent = fmtPeso(aidReceived);
+    if (parcelEl) parcelEl.textContent = fmtPeso(parcelPayment);
+    valueEl.textContent = fmtPeso(remittance);
 
     const cashLine = document.getElementById('weeklyBillingCashLine');
     const aidLine = document.getElementById('weeklyBillingAidLine');
     const collectionTotal = document.getElementById('weeklyBillingCollectionTotal');
     const cashFooter = document.getElementById('weeklyCollectionCashTotal');
     const aidFooter = document.getElementById('weeklyCollectionAidTotal');
-    if (cashLine) cashLine.textContent = `₱${cashTotal.toFixed(2)}`;
-    if (aidLine) aidLine.textContent = `₱${aidReceived.toFixed(2)}`;
-    if (cashFooter) cashFooter.textContent = `₱${cashTotal.toFixed(2)}`;
-    if (aidFooter) aidFooter.textContent = `₱${aidReceived.toFixed(2)}`;
-    if (collectionTotal) collectionTotal.textContent = `₱${(cashTotal + gcashTotal + aidReceived).toFixed(2)}`;
+    if (cashLine) cashLine.textContent = fmtPeso(cashTotal);
+    if (aidLine) aidLine.textContent = fmtPeso(aidReceived);
+    if (cashFooter) cashFooter.textContent = fmtPeso(cashTotal);
+    if (aidFooter) aidFooter.textContent = fmtPeso(aidReceived);
+    if (collectionTotal) collectionTotal.textContent = fmtPeso((cashTotal + gcashTotal + aidReceived));
     if (block) block.dataset.cashTotal = String(cashTotal);
   }
 
@@ -1823,7 +1828,7 @@
     const wrap = document.querySelector('.weekly-denom-grid');
     if (!wrap) return;
     function formatPeso(value) {
-      return `₱${Number(value || 0).toFixed(2)}`;
+      return fmtPeso(Number(value || 0));
     }
     function sumTable(table, totalId) {
       if (!table) return;
@@ -1853,7 +1858,7 @@
     const body = document.getElementById('weeklyBillingBody');
     if (!body) return;
     function formatPeso(value) {
-      return `₱${Number(value || 0).toFixed(2)}`;
+      return fmtPeso(Number(value || 0));
     }
     function syncOtherRowCash(row) {
       if (!row?.dataset.otherId) return;
@@ -1917,7 +1922,7 @@
       const cashLine = document.getElementById('weeklyRefillCashLine');
       const amountLine = document.getElementById('weeklyRefillAmountLine');
       const collectionTotal = document.getElementById('weeklyRefillCollectionTotal');
-      const peso = (value) => `₱${Number(value || 0).toFixed(2)}`;
+      const peso = (value) => fmtPeso(Number(value || 0));
       if (cashTotal) cashTotal.textContent = peso(cash);
       if (amtTotal) amtTotal.textContent = peso(amount);
       if (cashLine) cashLine.textContent = peso(cash);

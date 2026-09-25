@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -10,6 +10,7 @@ from .attendance_sheet_metrics import annotate_attendance_sheet
 from .ageing_accounts_xlsx import parse_ageing_accounts_xlsx
 from .retention_summary_xlsx import parse_retention_summary_xlsx
 from .petty_cash_xlsx import parse_petty_cash_xlsx
+from .check_voucher_xlsx import parse_check_voucher_xlsx
 from .inventory_product_code import generate_inventory_product_code, next_product_codes_by_category
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -1136,6 +1137,7 @@ def sales_dashboard(request):
         'category-performance-tab',
         'product-quotation-tab', 'service-quotation-tab', 'collection-form-tab',
         'ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab',
+        'check-voucher-tab',
         'saved-documents-tab',
     }
     if tab_param in valid_sales_tabs:
@@ -1151,6 +1153,52 @@ def sales_dashboard(request):
     latest_retention_report = recent_retention_reports[0] if recent_retention_reports else None
     recent_petty_cash_reports = PettyCashReport.objects.prefetch_related('lines').all()[:8]
     latest_petty_cash_report = recent_petty_cash_reports[0] if recent_petty_cash_reports else None
+    recent_check_vouchers_qs = CheckVoucher.objects.prefetch_related('lines').all()
+    latest_check_voucher = recent_check_vouchers_qs.first()
+    # ── CV Monitoring report filters ──
+    cv_year = (request.GET.get('cv_year') or '').strip()
+    cv_month = (request.GET.get('cv_month') or '').strip()
+    cv_search = (request.GET.get('cv_search') or '').strip()
+    cv_category = (request.GET.get('cv_category') or 'all').strip()
+    cv_report_qs = CheckVoucher.objects.prefetch_related('lines').all()
+    if cv_year.isdigit():
+        cv_report_qs = cv_report_qs.filter(voucher_date__year=int(cv_year))
+    if cv_month.isdigit() and 1 <= int(cv_month) <= 12:
+        cv_report_qs = cv_report_qs.filter(voucher_date__month=int(cv_month))
+    if cv_search:
+        cv_report_qs = cv_report_qs.filter(
+            Q(cv_number__icontains=cv_search)
+            | Q(payee__icontains=cv_search)
+            | Q(payment_for__icontains=cv_search)
+            | Q(check_number__icontains=cv_search)
+            | Q(bank__icontains=cv_search),
+        )
+    if cv_category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'):
+        cv_report_qs = cv_report_qs.filter(**{f'{cv_category}__gt': 0})
+    cv_totals = cv_report_qs.aggregate(
+        count=Count('id'),
+        total_amount=Sum('check_amount'),
+        total_purchases=Sum('purchases'),
+        total_expenses=Sum('expenses'),
+        total_commission=Sum('commission'),
+        total_contributions=Sum('contributions'),
+        total_misc=Sum('misc'),
+        total_payment=Sum('payment'),
+    )
+    recent_check_vouchers = list(cv_report_qs[:200])
+    cv_years = sorted(
+        {d.year for d in CheckVoucher.objects.dates('voucher_date', 'year')},
+        reverse=True,
+    )
+    if tab_param == 'check-voucher-tab' and any([cv_year, cv_month, cv_search, cv_category != 'all']):
+        active_tab = 'check-voucher-tab'
+    current_year = date.today().year
+    highest_cv_suffix = 0
+    for cv_number in CheckVoucher.objects.filter(cv_number__startswith=f'{current_year}-M-').values_list('cv_number', flat=True):
+        match = re.search(r'-(\d+)$', cv_number or '')
+        if match:
+            highest_cv_suffix = max(highest_cv_suffix, int(match.group(1)))
+    next_cv_number = f'{current_year}-M-{highest_cv_suffix + 1}'
 
     doc_type_filter = (request.GET.get('doc_type') or 'all').strip()
     saved_documents_qs = SalesDocumentArchive.objects.select_related('created_by').all()
@@ -1200,6 +1248,18 @@ def sales_dashboard(request):
             'latest_retention_report_id': latest_retention_report.id if latest_retention_report else None,
             'recent_petty_cash_reports': recent_petty_cash_reports,
             'latest_petty_cash_report_id': latest_petty_cash_report.id if latest_petty_cash_report else None,
+            'recent_check_vouchers': recent_check_vouchers,
+            'latest_check_voucher_id': latest_check_voucher.id if latest_check_voucher else None,
+            'next_cv_number': next_cv_number,
+            'cv_filters': {
+                'year': cv_year,
+                'month': cv_month,
+                'search': cv_search,
+                'category': cv_category,
+            },
+            'cv_years': cv_years,
+            'cv_totals': cv_totals,
+            'cv_result_count': cv_totals.get('count') or 0,
         },
     )
 
@@ -2292,6 +2352,316 @@ def delete_petty_cash(request, report_id):
     report = get_object_or_404(PettyCashReport, pk=report_id)
     report.delete()
     return JsonResponse({'ok': True})
+
+
+_CHECK_VOUCHER_MONEY_FIELDS = (
+    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment',
+)
+
+
+def _check_voucher_line_to_dict(line):
+    return {
+        'description': line.description or '',
+        'debit_amount': str(line.debit_amount) if line.debit_amount is not None else '',
+        'sort_order': line.sort_order,
+    }
+
+
+def _check_voucher_to_payload(voucher):
+    return {
+        'id': voucher.id,
+        'cv_number': voucher.cv_number,
+        'voucher_date': voucher.voucher_date.isoformat(),
+        'payee': voucher.payee,
+        'payment_for': voucher.payment_for,
+        'check_amount': str(voucher.check_amount),
+        'cash_in_bank': str(voucher.cash_in_bank),
+        'bank': voucher.bank,
+        'check_number': voucher.check_number,
+        'check_date': voucher.check_date.isoformat() if voucher.check_date else '',
+        'received_by': voucher.received_by,
+        'signatory_prepared': voucher.signatory_prepared,
+        'signatory_checked': voucher.signatory_checked,
+        'signatory_approved': voucher.signatory_approved,
+        'signatory_approver': voucher.signatory_approver,
+        'source_filename': voucher.source_filename,
+        'created_at': voucher.created_at.isoformat(),
+        'updated_at': voucher.updated_at.isoformat(),
+        'lines': [_check_voucher_line_to_dict(line) for line in voucher.lines.all()],
+        **{field: str(getattr(voucher, field) or Decimal('0')) for field in _CHECK_VOUCHER_MONEY_FIELDS},
+    }
+
+
+def _replace_check_voucher_lines(voucher, items):
+    voucher.lines.all().delete()
+    lines = []
+    for index, item in enumerate(items or []):
+        description = (item.get('description') or '').strip()
+        debit_amount = _parse_ageing_decimal(item.get('debit_amount'))
+        if not (description or debit_amount):
+            continue
+        lines.append(CheckVoucherLine(
+            voucher=voucher,
+            description=description,
+            debit_amount=debit_amount,
+            sort_order=index,
+        ))
+    if lines:
+        CheckVoucherLine.objects.bulk_create(lines)
+    return len(lines)
+
+
+def _check_voucher_fields_from_payload(payload, request_user=None):
+    total_debit = sum(
+        (_parse_ageing_decimal(line.get('debit_amount')) or Decimal('0'))
+        for line in (payload.get('lines') or [])
+    ).quantize(Decimal('0.01'))
+    cash_in_bank = _parse_ageing_decimal(payload.get('cash_in_bank')) or total_debit
+    check_amount = _parse_ageing_decimal(payload.get('check_amount')) or total_debit
+    fields = {
+        'cv_number': (payload.get('cv_number') or '').strip()[:50],
+        'voucher_date': _parse_iso_date(payload.get('voucher_date')),
+        'payee': (payload.get('payee') or '').strip()[:300],
+        'payment_for': (payload.get('payment_for') or '').strip(),
+        'check_amount': check_amount,
+        'cash_in_bank': cash_in_bank,
+        'bank': (payload.get('bank') or '').strip()[:120],
+        'check_number': (payload.get('check_number') or '').strip()[:60],
+        'check_date': _parse_iso_date(payload.get('check_date')),
+        'received_by': (payload.get('received_by') or '').strip()[:200],
+        'signatory_prepared': (payload.get('signatory_prepared') or '').strip()[:200] or 'Angel Marie',
+        'signatory_checked': (payload.get('signatory_checked') or '').strip()[:200] or 'Beverly',
+        'signatory_approved': (payload.get('signatory_approved') or '').strip()[:200] or 'Christine Joy',
+        'signatory_approver': (payload.get('signatory_approver') or '').strip()[:200] or 'Engr. Arturo Davis',
+        'source_filename': (payload.get('source_filename') or '').strip()[:255],
+    }
+    for field in _CHECK_VOUCHER_MONEY_FIELDS:
+        fields[field] = _parse_ageing_decimal(payload.get(field)) or Decimal('0')
+    if all(fields[field] == Decimal('0') for field in _CHECK_VOUCHER_MONEY_FIELDS):
+        # Manual entry without a breakdown: default the total to expenses so the
+        # CV Monitoring report still attributes the amount to a category.
+        fields['expenses'] = check_amount
+    if request_user is not None and getattr(request_user, 'is_authenticated', False):
+        fields['created_by'] = request_user
+    return fields
+
+
+@login_required
+@require_POST
+def save_check_voucher(request):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    fields = _check_voucher_fields_from_payload(payload)
+    if not fields['cv_number']:
+        return JsonResponse({'error': 'CV number is required.'}, status=400)
+    if not fields['voucher_date']:
+        return JsonResponse({'error': 'Date is required.'}, status=400)
+    if not fields['payee']:
+        return JsonResponse({'error': 'Payee is required.'}, status=400)
+    if not payload.get('lines'):
+        return JsonResponse({'error': 'At least one debit line is required.'}, status=400)
+
+    try:
+        with transaction.atomic():
+            voucher_id = payload.get('id')
+            if voucher_id not in (None, '', 0, '0'):
+                voucher = get_object_or_404(CheckVoucher, pk=int(voucher_id))
+                for key, value in fields.items():
+                    if key != 'created_by':
+                        setattr(voucher, key, value)
+                voucher.save()
+            else:
+                fields['created_by'] = request.user if request.user.is_authenticated else None
+                voucher = CheckVoucher.objects.create(**fields)
+            line_count = _replace_check_voucher_lines(voucher, payload.get('lines') or [])
+            if not line_count:
+                return JsonResponse({'error': 'At least one debit line with content is required.'}, status=400)
+        return JsonResponse({
+            'ok': True,
+            **_check_voucher_to_payload(CheckVoucher.objects.prefetch_related('lines').get(pk=voucher.id)),
+        })
+    except Exception:
+        logger.exception('save_check_voucher error')
+        return JsonResponse({'error': 'Could not save check voucher.'}, status=500)
+
+
+@login_required
+def check_voucher_json(request, voucher_id):
+    voucher = get_object_or_404(CheckVoucher.objects.prefetch_related('lines'), pk=voucher_id)
+    return JsonResponse(_check_voucher_to_payload(voucher))
+
+
+@login_required
+def check_voucher_latest_json(request):
+    voucher = CheckVoucher.objects.prefetch_related('lines').first()
+    if not voucher:
+        return JsonResponse({'id': None, 'lines': []})
+    return JsonResponse(_check_voucher_to_payload(voucher))
+
+
+@login_required
+@require_POST
+def import_check_voucher_upload(request):
+    upload = request.FILES.get('xlsx')
+    if not upload:
+        return JsonResponse({'error': 'Excel file is required.'}, status=400)
+    if not str(upload.name).lower().endswith('.xlsx'):
+        return JsonResponse({'error': 'Please upload an .xlsx file.'}, status=400)
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+        parsed = parse_check_voucher_xlsx(Path(tmp_path))
+        vouchers = parsed.get('vouchers') or []
+        if not vouchers:
+            return JsonResponse({'error': 'No check vouchers found in the workbook.'}, status=400)
+
+        saved = []
+        with transaction.atomic():
+            for item in vouchers:
+                fields = _check_voucher_fields_from_payload(item)
+                if not fields['cv_number'] or not fields['voucher_date'] or not fields['payee']:
+                    continue
+                fields['source_filename'] = parsed.get('source_filename') or upload.name
+                voucher, _created = CheckVoucher.objects.update_or_create(
+                    cv_number=fields.pop('cv_number'),
+                    defaults={
+                        **fields,
+                        'created_by': request.user if request.user.is_authenticated else None,
+                    },
+                )
+                _replace_check_voucher_lines(voucher, item.get('lines') or [])
+                saved.append(voucher.id)
+        if not saved:
+            return JsonResponse({'error': 'No complete check vouchers found in the workbook.'}, status=400)
+        latest = CheckVoucher.objects.prefetch_related('lines').get(pk=saved[-1])
+        return JsonResponse({
+            'ok': True,
+            'imported_count': len(saved),
+            **_check_voucher_to_payload(latest),
+        })
+    except Exception:
+        logger.exception('import_check_voucher_upload error')
+        return JsonResponse({'error': 'Could not import check voucher workbook.'}, status=500)
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required
+@require_POST
+def delete_check_voucher(request, voucher_id):
+    voucher = get_object_or_404(CheckVoucher, pk=voucher_id)
+    voucher.delete()
+    return JsonResponse({'ok': True})
+
+
+def _filtered_check_vouchers(request):
+    qs = CheckVoucher.objects.prefetch_related('lines').all()
+    year = (request.GET.get('cv_year') or '').strip()
+    month = (request.GET.get('cv_month') or '').strip()
+    search = (request.GET.get('cv_search') or '').strip()
+    category = (request.GET.get('cv_category') or 'all').strip()
+    if year.isdigit():
+        qs = qs.filter(voucher_date__year=int(year))
+    if month.isdigit() and 1 <= int(month) <= 12:
+        qs = qs.filter(voucher_date__month=int(month))
+    if search:
+        qs = qs.filter(
+            Q(cv_number__icontains=search)
+            | Q(payee__icontains=search)
+            | Q(payment_for__icontains=search)
+            | Q(check_number__icontains=search)
+            | Q(bank__icontains=search),
+        )
+    if category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'):
+        qs = qs.filter(**{f'{category}__gt': 0})
+    return qs
+
+
+@login_required
+def check_voucher_monitoring_xlsx(request):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    except ImportError:
+        return HttpResponse('openpyxl is not installed.', status=500)
+    qs = list(_filtered_check_vouchers(request)[:2000])
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'CV MONITORING'
+    headers = [
+        'DATE', 'CV NO:', 'ISSUED TO:', 'PAYMENT FOR', 'AMOUNT',
+        'PURCHASES', 'EXPENSES', 'COMMISSION', 'CONTRIBUTIONS',
+        'MISC', 'PAYMENT', 'CHECK DATE', 'BANK', 'CHECK NO.',
+    ]
+    header_fill = PatternFill('solid', fgColor='1F4E78')
+    header_font = Font(bold=True, color='FFFFFF', size=9)
+    thin = Side(style='thin', color='B0B0B0')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+    money_fmt = '#,##0.00'
+    for row_idx, voucher in enumerate(qs, start=2):
+        values = [
+            voucher.voucher_date,
+            voucher.cv_number,
+            voucher.payee,
+            voucher.payment_for,
+            float(voucher.check_amount or 0),
+            float(voucher.purchases or 0) or None,
+            float(voucher.expenses or 0) or None,
+            float(voucher.commission or 0) or None,
+            float(voucher.contributions or 0) or None,
+            float(voucher.misc or 0) or None,
+            float(voucher.payment or 0) or None,
+            voucher.check_date,
+            voucher.bank,
+            voucher.check_number,
+        ]
+        for col_idx, value in enumerate(values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.border = border
+            cell.alignment = Alignment(vertical='center', wrap_text=True)
+            if col_idx in (1, 12):
+                cell.number_format = 'YYYY-MM-DD'
+            if col_idx in (5, 6, 7, 8, 9, 10, 11) and isinstance(value, (int, float)):
+                cell.number_format = money_fmt
+    total_row = len(qs) + 2
+    ws.cell(row=total_row, column=4, value='TOTAL').font = Font(bold=True)
+    for col_idx, field in ((5, 'check_amount'), (6, 'purchases'), (7, 'expenses'), (8, 'commission'), (9, 'contributions'), (10, 'misc'), (11, 'payment')):
+        total = sum(float(getattr(v, field) or 0) for v in qs)
+        cell = ws.cell(row=total_row, column=col_idx, value=total if total else None)
+        cell.font = Font(bold=True)
+        cell.number_format = money_fmt
+        cell.border = border
+    widths = [12, 14, 30, 45, 14, 13, 13, 13, 15, 12, 13, 12, 12, 12]
+    for idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[ws.cell(row=1, column=idx).column_letter].width = width
+    ws.freeze_panes = 'A2'
+    ws.auto_filter.ref = f'A1:N{max(total_row - 1, 1)}'
+    ws.sheet_properties.pageSetUpPr = None
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    year = (request.GET.get('cv_year') or '').strip() or 'all'
+    month = (request.GET.get('cv_month') or '').strip() or 'all'
+    response['Content-Disposition'] = f'attachment; filename="cv_monitoring_{year}_{month}.xlsx"'
+    wb.save(response)
+    return response
 
 
 def _sales_document_pdf_response(archive, inline=False):

@@ -94,6 +94,11 @@
                 data-tab-target="petty-cash-tab">
                 <span class="tab-icon">💵</span> <span class="tab-label">Petty Cash</span>
             </button>
+            <button class="tab-button" type="button" role="tab" title="Check Voucher"
+                aria-selected="{% if active_tab == 'check-voucher-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="check-voucher-tab">
+                <span class="tab-icon">CV</span> <span class="tab-label">Check Voucher</span>
+            </button>
             <button class="tab-button" type="button" role="tab" title="Saved Documents"
                 aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="saved-documents-tab">
@@ -2064,6 +2069,232 @@
         </div>
 
 
+        <!-- CHECK VOUCHER -->
+        <div id="check-voucher-tab" class="tab-panel {% if active_tab == 'check-voucher-tab' %}is-active{% endif %}">
+            <div class="panel no-print" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">Check Voucher</h1>
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+                    <button class="action brand-link" type="button" id="cvSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" type="button" id="cvPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" type="button" id="cvReset" style="padding:10px 16px;">Reset</button>
+                    <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
+                        Import Excel
+                        <input type="file" id="cvImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                    </label>
+                    <input type="hidden" id="cvVoucherId" value="">
+                </div>
+
+                <div class="cv-editor-grid">
+                    <div><label>CVNO</label><input type="text" id="cvNumber" value="{{ next_cv_number }}" placeholder="2026-M-380"></div>
+                    <div><label>Date</label><input type="date" id="cvDate"></div>
+                    <div><label>Payee</label><input type="text" id="cvPayee"></div>
+                    <div><label>Payment for</label><input type="text" id="cvPaymentFor"></div>
+                    <div><label>Bank</label><input type="text" id="cvBank" placeholder="PBB"></div>
+                    <div><label>Check no.</label><input type="text" id="cvCheckNumber"></div>
+                    <div><label>Check date</label><input type="date" id="cvCheckDate"></div>
+                    <div><label>Received by</label><input type="text" id="cvReceivedBy"></div>
+                </div>
+
+                <fieldset class="cv-fieldset">
+                    <legend>Monitoring categories (matches CV MONITORING columns)</legend>
+                    <div class="cv-editor-grid">
+                        <div><label>Purchases</label><input type="text" id="cvPurchases" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                        <div><label>Expenses</label><input type="text" id="cvExpenses" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                        <div><label>Commission</label><input type="text" id="cvCommission" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                        <div><label>Contributions</label><input type="text" id="cvContributions" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                        <div><label>Misc</label><input type="text" id="cvMisc" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                        <div><label>Payment</label><input type="text" id="cvPayment" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                    </div>
+                    <p style="margin:8px 0 0;color:var(--muted);font-size:0.8rem;">Leave all zero to auto-assign the voucher total to the dominant category on save. Imported workbooks already carry these breakdowns.</p>
+                </fieldset>
+
+                <fieldset class="cv-fieldset">
+                    <legend>Debit Lines</legend>
+                    <div class="table-wrap">
+                        <table class="cv-form-table" aria-label="Check voucher debit lines">
+                            <thead><tr><th>Description</th><th style="text-align:right;">Debit</th><th></th></tr></thead>
+                            <tbody id="cvLinesBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin:8px 0;">
+                        <button class="action" type="button" id="cvAddRow" style="padding:8px 14px;">Add debit row</button>
+                    </div>
+                    <div class="cv-total-strip">
+                        <span>Total debit: <strong id="cvDebitTotal">PHP 0.00</strong></span>
+                        <span>Cash in bank / check amount: <strong id="cvCreditTotal">PHP 0.00</strong></span>
+                    </div>
+                </fieldset>
+
+                <div class="cv-editor-grid cv-sign-grid">
+                    <div><label>Prepared</label><input type="text" id="cvSignPrepared" value="Angel Marie"></div>
+                    <div><label>Checked</label><input type="text" id="cvSignChecked" value="Beverly"></div>
+                    <div><label>Checked</label><input type="text" id="cvSignApproved" value="Christine Joy"></div>
+                    <div><label>Approved</label><input type="text" id="cvSignApprover" value="Engr. Arturo Davis"></div>
+                </div>
+            </div>
+
+            <div class="panel cv-print-panel">
+                <h2 style="margin-top:0;">Document Preview</h2>
+                <article class="cv-doc" id="cvDocument" aria-label="Check voucher preview">
+                    <div class="cv-letterhead">
+                        <div class="cv-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                        <div class="cv-address">#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                    </div>
+                    <table class="cv-sheet">
+                        <colgroup>
+                            <col style="width:16%">
+                            <col style="width:34%">
+                            <col style="width:25%">
+                            <col style="width:25%">
+                        </colgroup>
+                        <tbody>
+                            <tr><td></td><td></td><td colspan="2" class="cv-no">CVNO. <span id="cvPrevNumber"></span></td></tr>
+                            <tr><td colspan="2"></td><td class="cv-date-label">DATE:</td><td id="cvPrevDate"></td></tr>
+                            <tr><td class="cv-payee-label">PAYEE:</td><td colspan="3" class="cv-payee" id="cvPrevPayee"></td></tr>
+                            <tr><td colspan="2"></td><td class="cv-colhead">DEBIT</td><td class="cv-colhead">CREDIT</td></tr>
+                        </tbody>
+                        <tbody id="cvPreviewLines"></tbody>
+                        <tbody>
+                            <tr><td></td><td class="cv-account">CASH IN BANK</td><td class="cv-money"></td><td class="cv-money" id="cvPrevCash">0.00</td></tr>
+                            <tr><td></td><td class="cv-account">TOTALS</td><td class="cv-money cv-total" id="cvPrevDebitTotal">0.00</td><td class="cv-money cv-total" id="cvPrevCreditTotal">0.00</td></tr>
+                            <tr><td class="cv-blabel">Payment for:</td><td class="cv-bhead">Received from MDSPII</td><td colspan="2" class="cv-bempty"></td></tr>
+                            <tr><td rowspan="3" class="cv-payfor" id="cvPrevPaymentFor">&nbsp;</td><td class="cv-bhead">Check Amount:</td><td colspan="2" class="cv-check-amount" id="cvPrevCheckAmount">0.00</td></tr>
+                            <tr><td class="cv-bhead">Check no.</td><td class="cv-bval">BANK: <span id="cvPrevBank"></span></td><td class="cv-bval" id="cvPrevCheckNumber"></td></tr>
+                            <tr><td class="cv-bhead">Received by:</td><td class="cv-bval" id="cvPrevReceivedBy"></td><td class="cv-sigline"></td></tr>
+                            <tr class="cv-sign-labels">
+                                <td>Prepared by:</td>
+                                <td colspan="2" style="text-align:center;">Checked by:</td>
+                                <td>Approved by:</td>
+                            </tr>
+                            <tr class="cv-signatures">
+                                <td class="cv-sign-name" id="cvPrevSignPrepared">Angel Marie</td>
+                                <td class="cv-sign-name" id="cvPrevSignChecked">Beverly</td>
+                                <td class="cv-sign-name" id="cvPrevSignApproved">Christine Joy</td>
+                                <td class="cv-sign-name" id="cvPrevSignApprover">Engr. Arturo Davis</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+            </div>
+
+            <div class="panel cv-report-panel" style="margin-top:20px;">
+                <h2 style="margin:0 0 8px; font-size:1rem;">CV Monitoring Report</h2>
+                <p class="cv-report-blurb" style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Mirrors the <strong>CV MONITORING</strong> sheet in the monthly workbook. Filter by month, search payee / CV no., then export to Excel.</p>
+                <form method="get" class="cv-filter-form" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px;">
+                    <input type="hidden" name="tab" value="check-voucher-tab">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Year</label>
+                        <select name="cv_year" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:110px;">
+                            <option value="">All years</option>
+                            {% for y in cv_years %}
+                            <option value="{{ y }}" {% if cv_filters.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Month</label>
+                        <select name="cv_month" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:130px;">
+                            <option value="">All months</option>
+                            <option value="1" {% if cv_filters.month == "1" %}selected{% endif %}>January</option>
+                            <option value="2" {% if cv_filters.month == "2" %}selected{% endif %}>February</option>
+                            <option value="3" {% if cv_filters.month == "3" %}selected{% endif %}>March</option>
+                            <option value="4" {% if cv_filters.month == "4" %}selected{% endif %}>April</option>
+                            <option value="5" {% if cv_filters.month == "5" %}selected{% endif %}>May</option>
+                            <option value="6" {% if cv_filters.month == "6" %}selected{% endif %}>June</option>
+                            <option value="7" {% if cv_filters.month == "7" %}selected{% endif %}>July</option>
+                            <option value="8" {% if cv_filters.month == "8" %}selected{% endif %}>August</option>
+                            <option value="9" {% if cv_filters.month == "9" %}selected{% endif %}>September</option>
+                            <option value="10" {% if cv_filters.month == "10" %}selected{% endif %}>October</option>
+                            <option value="11" {% if cv_filters.month == "11" %}selected{% endif %}>November</option>
+                            <option value="12" {% if cv_filters.month == "12" %}selected{% endif %}>December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Category</label>
+                        <select name="cv_category" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:150px;">
+                            <option value="all" {% if cv_filters.category == "all" %}selected{% endif %}>All categories</option>
+                            <option value="purchases" {% if cv_filters.category == "purchases" %}selected{% endif %}>Purchases</option>
+                            <option value="expenses" {% if cv_filters.category == "expenses" %}selected{% endif %}>Expenses</option>
+                            <option value="commission" {% if cv_filters.category == "commission" %}selected{% endif %}>Commission</option>
+                            <option value="contributions" {% if cv_filters.category == "contributions" %}selected{% endif %}>Contributions</option>
+                            <option value="misc" {% if cv_filters.category == "misc" %}selected{% endif %}>Misc</option>
+                            <option value="payment" {% if cv_filters.category == "payment" %}selected{% endif %}>Payment</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Search</label>
+                        <input type="text" name="cv_search" value="{{ cv_filters.search }}" placeholder="Payee, CV no., check no." style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:220px;">
+                    </div>
+                    <button type="submit" class="action" style="padding:8px 16px;">Apply</button>
+                    <a href="?tab=check-voucher-tab" class="action" style="padding:8px 16px;">Clear</a>
+                    <a href="{% url 'check_voucher_monitoring_xlsx' %}?cv_year={{ cv_filters.year }}&cv_month={{ cv_filters.month }}&cv_category={{ cv_filters.category }}&cv_search={{ cv_filters.search|urlencode }}" class="action brand-link" style="padding:8px 16px;">Export Excel</a>
+                    <button type="button" class="action" id="cvPrintMonitoring" style="padding:8px 16px;">Print report</button>
+                </form>
+                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; font-size:0.85rem;" class="cv-report-summary">
+                    <span><strong>{{ cv_result_count }}</strong> voucher{{ cv_result_count|pluralize }}</span>
+                    <span>Total: <strong>PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</strong></span>
+                    <span>Purchases: PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</span>
+                    <span>Expenses: PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</span>
+                    <span>Commission: PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</span>
+                    <span>Contributions: PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</span>
+                    <span>Misc: PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</span>
+                    <span>Payment: PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</span>
+                </div>
+                <div class="table-wrap" id="cvMonitoringWrap">
+                    <table class="cv-monitoring-table" aria-label="CV Monitoring">
+                        <thead>
+                            <tr><th>Date</th><th>CV No</th><th>Issued To</th><th>Payment For</th><th>Amount</th><th class="cv-category-col">Category</th><th class="cv-breakdown-col">Purchases</th><th class="cv-breakdown-col">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col">Payment</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for voucher in recent_check_vouchers %}
+                            <tr>
+                                <td>{{ voucher.voucher_date|date:"M d, Y" }}</td>
+                                <td>{{ voucher.cv_number }}</td>
+                                <td>{{ voucher.payee }}</td>
+                                <td>{{ voucher.payment_for|default:"-" }}</td>
+                                <td>PHP {{ voucher.check_amount|floatformat:2 }}</td>
+                                <td class="cv-category-col cv-category-cell" data-purchases="{{ voucher.purchases }}" data-expenses="{{ voucher.expenses }}" data-commission="{{ voucher.commission }}" data-contributions="{{ voucher.contributions }}" data-misc="{{ voucher.misc }}" data-payment="{{ voucher.payment }}"></td>
+                                <td class="cv-breakdown-col">{% if voucher.purchases %}PHP {{ voucher.purchases|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td class="cv-breakdown-col">{% if voucher.expenses %}PHP {{ voucher.expenses|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td class="cv-breakdown-col">{% if voucher.commission %}PHP {{ voucher.commission|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td class="cv-breakdown-col">{% if voucher.contributions %}PHP {{ voucher.contributions|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td class="cv-breakdown-col">{% if voucher.misc %}PHP {{ voucher.misc|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td class="cv-breakdown-col">{% if voucher.payment %}PHP {{ voucher.payment|floatformat:2 }}{% else %}-{% endif %}</td>
+                                <td>{{ voucher.check_date|date:"M d, Y"|default:"-" }}</td>
+                                <td>{{ voucher.bank|default:"-" }}</td>
+                                <td>{{ voucher.check_number|default:"-" }}</td>
+                                <td class="cv-actions-col" style="text-align:right; white-space:nowrap;">
+                                    <button type="button" class="action cv-load-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
+                                    <button type="button" class="action cv-delete-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="16" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if recent_check_vouchers %}
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" style="text-align:right;font-weight:700;">TOTAL ({{ cv_result_count }})</td>
+                                <td style="font-weight:700;">PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</td>
+                                <td class="cv-category-col"></td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</td>
+                                <td colspan="3"></td>
+                                <td class="cv-actions-col"></td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
         <!-- ─── SAVED DOCUMENTS ─── -->
         <div id="saved-documents-tab" class="tab-panel {% if active_tab == 'saved-documents-tab' %}is-active{% endif %}">
             <div class="panel-header">
@@ -2178,7 +2409,15 @@
     pettyCashJsonUrlTemplate: "{% url 'petty_cash_json' 0 %}",
     pettyCashDeleteUrlTemplate: "{% url 'delete_petty_cash' 0 %}",
     importPettyCashUrl: "{% url 'import_petty_cash_upload' %}",
-    latestPettyCashReportId: {% if latest_petty_cash_report_id %}{{ latest_petty_cash_report_id }}{% else %}null{% endif %}
+    latestPettyCashReportId: {% if latest_petty_cash_report_id %}{{ latest_petty_cash_report_id }}{% else %}null{% endif %},
+    saveCheckVoucherUrl: "{% url 'save_check_voucher' %}",
+    checkVoucherLatestJsonUrl: "{% url 'check_voucher_latest_json' %}",
+    checkVoucherJsonUrlTemplate: "{% url 'check_voucher_json' 0 %}",
+    checkVoucherDeleteUrlTemplate: "{% url 'delete_check_voucher' 0 %}",
+    importCheckVoucherUrl: "{% url 'import_check_voucher_upload' %}",
+    checkVoucherMonitoringXlsxUrl: "{% url 'check_voucher_monitoring_xlsx' %}",
+    latestCheckVoucherId: {% if latest_check_voucher_id %}{{ latest_check_voucher_id }}{% else %}null{% endif %},
+    nextCvNumber: "{{ next_cv_number|escapejs }}"
   };
 </script>
 <script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
