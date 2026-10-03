@@ -1,3 +1,4 @@
+/* NOTE: sidebar/header (.sidebar/.topbar) + brand tokens live in chrome.css (base #0284c7). */
 /* Inventory page-specific styles (chrome in common.css) */
 .category-manager {
   margin-bottom: 18px;
@@ -399,11 +400,56 @@
 .save {
   background: var(--brand);
   color: #fff;
-  border-color: var(--brand);
+  border: 1px solid var(--brand);
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .save:hover {
   background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
+
+/* Add Category — aligned with inputs, plus affordance */
+.category-form-grid .save {
+  min-height: 42px;
+  width: 100%;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 16px -8px var(--brand-glow, rgba(2, 132, 199, 0.5));
+}
+
+.category-form-grid .save::before {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.category-form-grid .save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -8px var(--brand-glow, rgba(2, 132, 199, 0.55));
+}
+
+.category-form-grid .save:active {
+  transform: translateY(0);
 }
 
 .clear {
@@ -725,6 +771,46 @@ table {
 .view-all-search {
   width: min(280px, 42vw);
   min-width: 160px;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field, #fff) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px center / 16px 16px;
+  padding: 10px 14px 10px 36px;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.view-all-search::placeholder {
+  color: var(--muted);
+}
+.view-all-search:focus {
+  outline: none;
+  border-color: var(--brand, #0284c7);
+  box-shadow: 0 0 0 3px var(--brand-glow, rgba(2, 132, 199, 0.18));
+}
+.view-all-search::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+#viewAllCloseBtn {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field, #fff);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#viewAllCloseBtn:hover {
+  background: var(--hover, var(--soft, #f8fafc));
+  border-color: var(--brand, #0284c7);
 }
 .view-all-header h2 {
   margin: 0;
@@ -1031,6 +1117,88 @@ thead {
 }
 .price-revealed .price-value {
   font-size: 0.95rem;
+}
+
+/* ── Single column price toggle (header) ── */
+.th-price {
+  white-space: nowrap;
+}
+.th-price-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+#priceHeaderControl {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0;
+}
+.price-toggle-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line, #d0d5dd);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--brand, #0f766e);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.price-toggle-btn:hover {
+  background: #f9fafb;
+  border-color: #99c7c2;
+}
+.price-toggle-btn:active {
+  background: #f3f4f6;
+}
+.price-toggle-btn:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}
+.price-toggle-btn.is-active {
+  background: #fff;
+  color: #0f766e;
+  border-color: #d0d5dd;
+}
+.price-toggle-btn.is-active:hover {
+  background: #f9fafb;
+  border-color: #99c7c2;
+}
+.price-toggle-btn--sm {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+}
+.price-toggle-btn--ghost {
+  background: #fff;
+  color: #475467;
+  border-color: #d0d5dd;
+  box-shadow: none;
+}
+.price-toggle-btn--ghost:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #98a2b3;
+  box-shadow: none;
+}
+.price-reveal--header {
+  background: #fff;
+  border: 1px solid #99f6e4;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.15);
+  min-width: 170px;
 }
 
 th,
@@ -2045,4 +2213,68 @@ table.po-items .col-unit input {
   #deliveriesPanel .stock-delivery-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── dark mode (theme.css covers most inventory chrome; this fills the gaps.
+   PO paper (.po-print-area and children) stays light. */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .cat-picker-chevron,
+[data-theme="dark"] .cat-menu-arrow {
+  border-left-color: #9aa4b2;
+}
+[data-theme="dark"] .cat-menu-arrow {
+  border-top-color: #9aa4b2;
+}
+
+[data-theme="dark"] .existing-images-toggle {
+  background: var(--panel, #161d27);
+  border-color: var(--line, #2a3441);
+}
+[data-theme="dark"] .reuse-image-btn {
+  background: #1c2532;
+  border-color: var(--line, #2a3441);
+}
+
+[data-theme="dark"] .item-view-code {
+  color: var(--muted, #9aa4b2);
+}
+[data-theme="dark"] .item-view-block h4 {
+  color: #b6bfcc;
+}
+
+[data-theme="dark"] .view-all-card-stock {
+  color: #7dd3fc;
+}
+[data-theme="dark"] .view-all-card-stock.is-low {
+  color: #f97066;
+}
+
+[data-theme="dark"] .notice {
+  color: var(--ink, #e6eaf0);
+}
+
+[data-theme="dark"] .price-reveal-error {
+  color: #f97066;
+}
+[data-theme="dark"] .price-reveal-ok {
+  color: #32d583;
+}
+[data-theme="dark"] .price-currency {
+  color: var(--muted, #9aa4b2);
+}
+[data-theme="dark"] .price-toggle-btn--ghost {
+  color: var(--muted, #9aa4b2);
+}
+[data-theme="dark"] .price-reveal--header {
+  background: var(--panel, #161d27);
+  border-color: var(--line, #2a3441);
+}
+
+[data-theme="dark"] #deliveriesPanel .action.danger {
+  color: #f97066;
+  border-color: rgba(249, 112, 102, 0.4);
+  background: #1c2532;
 }

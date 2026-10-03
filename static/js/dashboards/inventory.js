@@ -470,6 +470,7 @@
         if (inventoryPrevPage) inventoryPrevPage.disabled = inventoryPage <= 1 || !items.length;
         if (inventoryNextPage) inventoryNextPage.disabled = inventoryPage >= totalPages || !items.length;
       }
+      if (typeof applyPricesToVisibleRows === 'function') applyPricesToVisibleRows();
     }
 
     function resetForm() {
@@ -709,23 +710,40 @@
       return response.json();
     }
 
-    function priceCellHiddenHtml() {
-      return '<button type="button" class="copy show-price-btn" data-price-action="prompt">Show price</button>';
+    // ── Single "Show price" button for the whole Unit Price column ──
+    const priceHeaderControl = document.getElementById('priceHeaderControl');
+    let pricesVisible = false;
+    let unlockedPricePassword = '';
+    const priceCache = new Map();
+
+    function priceCellMaskedHtml() {
+      return '<span class="price-masked" style="color:#667085;">—</span>';
     }
 
-    function priceCellPromptHtml() {
+    function priceHeaderShowHtml() {
+      return '<button type="button" class="price-toggle-btn" data-price-action="show-all">Show price</button>';
+    }
+
+    function priceHeaderHideHtml() {
+      return '<button type="button" class="price-toggle-btn is-active" data-price-action="hide-all">Hide prices</button>';
+    }
+
+    function priceHeaderPromptHtml() {
       return `
-        <div class="price-reveal">
-          <input type="password" class="price-reveal-input" placeholder="Password" autocomplete="current-password" aria-label="Password to show unit price">
+        <div class="price-reveal price-reveal--header">
+          <input type="password" class="price-reveal-input" placeholder="Password" autocomplete="current-password" aria-label="Password to show unit prices">
           <div class="price-reveal-actions">
-            <button type="button" class="copy" data-price-action="confirm">Show</button>
-            <button type="button" class="copy" data-price-action="cancel">Cancel</button>
+            <button type="button" class="price-toggle-btn price-toggle-btn--sm" data-price-action="confirm-all">Show</button>
+            <button type="button" class="price-toggle-btn price-toggle-btn--sm price-toggle-btn--ghost" data-price-action="cancel-all">Cancel</button>
           </div>
           <div class="price-reveal-error" hidden></div>
         </div>`;
     }
 
-    const unlockedPricePasswords = new Map();
+    function renderPriceHeader() {
+      if (!priceHeaderControl) return;
+      priceHeaderControl.innerHTML = pricesVisible ? priceHeaderHideHtml() : priceHeaderShowHtml();
+    }
 
     function priceCellShownHtml(priceValue) {
       const raw = String(priceValue ?? '0.00');
@@ -737,7 +755,6 @@
           </label>
           <div class="price-reveal-actions">
             <button type="button" class="copy" data-price-action="save">Save</button>
-            <button type="button" class="copy" data-price-action="hide">Hide</button>
           </div>
           <div class="price-reveal-error" hidden></div>
         </div>`;
@@ -759,6 +776,31 @@
         throw new Error(data.error || 'Could not show price.');
       }
       return data;
+    }
+
+    async function revealAllPrices(password) {
+      const formData = new FormData();
+      formData.append('action', 'reveal_all_prices');
+      formData.append('password', password);
+      formData.append('csrfmiddlewaretoken', csrfToken);
+      const response = await fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not show prices.');
+      }
+      if (data && data.prices && typeof data.prices === 'object') return data.prices;
+      // Fallback for backends without the bulk endpoint: fetch visible rows one by one.
+      const ids = Array.from(inventoryTableBody?.querySelectorAll('tr[data-id]') || []).map(r => r.dataset.id).filter(Boolean);
+      const out = {};
+      await Promise.all(ids.map(async (id) => {
+        const single = await revealItemPrice(id, password);
+        out[String(id)] = single.price || '0.00';
+      }));
+      return out;
     }
 
     async function saveItemPrice(itemId, password, price) {
@@ -788,35 +830,62 @@
       } catch (_) { /* ignore quota */ }
     }
 
-    inventoryTableBody?.addEventListener('click', async (e) => {
-      const priceBtn = e.target.closest('[data-price-action]');
-      if (!priceBtn || !inventoryTableBody.contains(priceBtn)) return;
+    function applyPriceVisibility() {
+      if (!inventoryTableBody) return;
+      inventoryTableBody.querySelectorAll('tr[data-id]').forEach((row) => {
+        const cell = row.querySelector('[data-price-cell]');
+        if (!cell) return;
+        if (!pricesVisible) {
+          cell.innerHTML = priceCellMaskedHtml();
+          return;
+        }
+        const cached = priceCache.get(String(row.dataset.id));
+        cell.innerHTML = priceCellShownHtml(cached ?? '0.00');
+      });
+    }
+
+    function applyPricesToVisibleRows() {
+      // Keep revealed prices in sync when paging/filtering while unlocked.
+      if (!pricesVisible || !inventoryTableBody) return;
+      inventoryTableBody.querySelectorAll('tr[data-id]').forEach((row) => {
+        if (row.style.display === 'none') return;
+        const cell = row.querySelector('[data-price-cell]');
+        if (!cell || cell.querySelector('.price-edit-input')) return;
+        cell.innerHTML = priceCellShownHtml(priceCache.get(String(row.dataset.id)) ?? '0.00');
+      });
+    }
+
+    function hideAllPrices() {
+      pricesVisible = false;
+      unlockedPricePassword = '';
+      priceCache.clear();
+      renderPriceHeader();
+      applyPriceVisibility();
+    }
+
+    priceHeaderControl?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-price-action]');
+      if (!btn || !priceHeaderControl.contains(btn)) return;
       e.preventDefault();
       e.stopPropagation();
-      const cell = priceBtn.closest('[data-price-cell]');
-      const row = priceBtn.closest('tr[data-id]');
-      const itemId = row?.dataset?.id;
-      if (!cell || !itemId) return;
-      const action = priceBtn.dataset.priceAction;
+      const action = btn.dataset.priceAction;
 
-      if (action === 'prompt') {
-        cell.innerHTML = priceCellPromptHtml();
-        cell.querySelector('.price-reveal-input')?.focus();
+      if (action === 'show-all') {
+        priceHeaderControl.innerHTML = priceHeaderPromptHtml();
+        priceHeaderControl.querySelector('.price-reveal-input')?.focus();
         return;
       }
-      if (action === 'cancel') {
-        unlockedPricePasswords.delete(String(itemId));
-        cell.innerHTML = priceCellHiddenHtml();
+      if (action === 'cancel-all') {
+        renderPriceHeader();
         return;
       }
-      if (action === 'hide') {
-        unlockedPricePasswords.delete(String(itemId));
-        cell.innerHTML = priceCellHiddenHtml();
+      if (action === 'hide-all') {
+        hideAllPrices();
         return;
       }
-      if (action === 'confirm') {
-        const input = cell.querySelector('.price-reveal-input');
-        const errorEl = cell.querySelector('.price-reveal-error');
+      if (action === 'confirm-all') {
+        const input = priceHeaderControl.querySelector('.price-reveal-input');
+        const errorEl = priceHeaderControl.querySelector('.price-reveal-error');
         const password = (input?.value || '').trim();
         if (!password) {
           if (errorEl) {
@@ -825,12 +894,14 @@
           }
           return;
         }
-        priceBtn.disabled = true;
+        btn.disabled = true;
         try {
-          const data = await revealItemPrice(itemId, password);
-          unlockedPricePasswords.set(String(itemId), password);
-          cell.innerHTML = priceCellShownHtml(data.price || '0.00');
-          cell.querySelector('.price-edit-input')?.focus();
+          const prices = await revealAllPrices(password);
+          Object.entries(prices).forEach(([id, val]) => priceCache.set(String(id), String(val)));
+          unlockedPricePassword = password;
+          pricesVisible = true;
+          renderPriceHeader();
+          applyPriceVisibility();
         } catch (err) {
           if (errorEl) {
             errorEl.textContent = err.message || 'Incorrect password.';
@@ -840,62 +911,65 @@
             input.value = '';
             input.focus();
           }
-          priceBtn.disabled = false;
+          btn.disabled = false;
         }
+      }
+    });
+
+    priceHeaderControl?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (e.target.closest('.price-reveal-input')) {
+        e.preventDefault();
+        priceHeaderControl.querySelector('[data-price-action="confirm-all"]')?.click();
+      }
+    });
+
+    inventoryTableBody?.addEventListener('click', async (e) => {
+      const priceBtn = e.target.closest('[data-price-action="save"]');
+      if (!priceBtn || !inventoryTableBody.contains(priceBtn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const cell = priceBtn.closest('[data-price-cell]');
+      const row = priceBtn.closest('tr[data-id]');
+      const itemId = row?.dataset?.id;
+      if (!cell || !itemId) return;
+      const priceInput = cell.querySelector('.price-edit-input');
+      const errorEl = cell.querySelector('.price-reveal-error');
+      const priceRaw = (priceInput?.value || '').trim();
+      if (!unlockedPricePassword) {
+        hideAllPrices();
         return;
       }
-      if (action === 'save') {
-        const priceInput = cell.querySelector('.price-edit-input');
-        const errorEl = cell.querySelector('.price-reveal-error');
-        const password = unlockedPricePasswords.get(String(itemId)) || '';
-        const priceRaw = (priceInput?.value || '').trim();
-        if (!password) {
-          unlockedPricePasswords.delete(String(itemId));
-          cell.innerHTML = priceCellPromptHtml();
-          const err = cell.querySelector('.price-reveal-error');
-          if (err) {
-            err.textContent = 'Enter password again to save.';
-            err.hidden = false;
-          }
-          return;
+      if (priceRaw === '' || Number.isNaN(Number(priceRaw)) || Number(priceRaw) < 0) {
+        if (errorEl) {
+          errorEl.textContent = 'Enter a valid unit price.';
+          errorEl.hidden = false;
         }
-        if (priceRaw === '' || Number.isNaN(Number(priceRaw)) || Number(priceRaw) < 0) {
-          if (errorEl) {
-            errorEl.textContent = 'Enter a valid unit price.';
-            errorEl.hidden = false;
-          }
-          priceInput?.focus();
-          return;
-        }
-        priceBtn.disabled = true;
-        try {
-          const data = await saveItemPrice(itemId, password, priceRaw);
-          syncInventoryJsonPrice(itemId, data.price);
-          cell.innerHTML = priceCellShownHtml(data.price || '0.00');
-          const ok = document.createElement('div');
-          ok.className = 'price-reveal-ok';
-          ok.textContent = 'Saved.';
-          cell.querySelector('.price-revealed')?.appendChild(ok);
-          setTimeout(() => ok.remove(), 1500);
-        } catch (err) {
-          if (errorEl) {
-            errorEl.textContent = err.message || 'Could not save price.';
-            errorEl.hidden = false;
-          }
-          priceBtn.disabled = false;
-        }
+        priceInput?.focus();
         return;
+      }
+      priceBtn.disabled = true;
+      try {
+        const data = await saveItemPrice(itemId, unlockedPricePassword, priceRaw);
+        priceCache.set(String(itemId), String(data.price || '0.00'));
+        syncInventoryJsonPrice(itemId, data.price);
+        cell.innerHTML = priceCellShownHtml(data.price || '0.00');
+        const ok = document.createElement('div');
+        ok.className = 'price-reveal-ok';
+        ok.textContent = 'Saved.';
+        cell.querySelector('.price-revealed')?.appendChild(ok);
+        setTimeout(() => ok.remove(), 1500);
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = err.message || 'Could not save price.';
+          errorEl.hidden = false;
+        }
+        priceBtn.disabled = false;
       }
     });
 
     inventoryTableBody?.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
-      const pwdInput = e.target.closest('.price-reveal-input');
-      if (pwdInput && inventoryTableBody.contains(pwdInput)) {
-        e.preventDefault();
-        pwdInput.closest('[data-price-cell]')?.querySelector('[data-price-action="confirm"]')?.click();
-        return;
-      }
       const priceInput = e.target.closest('.price-edit-input');
       if (priceInput && inventoryTableBody.contains(priceInput)) {
         e.preventDefault();
@@ -1042,6 +1116,7 @@
 
     initCatPickers();
     loadInventory();
+    if (typeof renderPriceHeader === 'function') renderPriceHeader();
     renderInventory();
 
     // ── Purchase Order tab ──

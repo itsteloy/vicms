@@ -1,0 +1,328 @@
+/* ── VICMS light/dark theme ──
+   Surface tokens only. Brand (#0284c7 family) is owned by chrome.css.
+   Loaded AFTER common.css / per-dashboard CSS. Print stays light. */
+
+:root,
+[data-theme="light"] {
+  --page: #f2f4f7;
+  --field: #ffffff;
+  --field-readonly: #eef2f6;
+  --hover: #f8fafc;
+  --label: #475467;
+  --table-head: #475467;
+  --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
+}
+
+[data-theme="dark"] {
+  --ink: #e6eaf0;
+  --muted: #9aa4b2;
+  --line: #2a3441;
+  --panel: #161d27;
+  --soft: #1c2532;
+  --page: #0e141c;
+  --field: #1c2532;
+  --field-readonly: #232e3d;
+  --hover: #1f2a38;
+  --label: #b6bfcc;
+  --table-head: #b6bfcc;
+  --danger: #f97066;
+  --success: #32d583;
+  --accent-btn: #e6eaf0;
+  --accent-text: #7dd3fc;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+/* ── sidebar stays green gradient in both themes (darker in dark) ── */
+[data-theme="dark"] .sidebar {
+  background: linear-gradient(180deg, #0369a1 0%, #0c4a6e 100%);
+  color: #fff;
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── toggle button (matches .top-actions links) ── */
+.theme-toggle {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--field, #fff);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  line-height: 1.2;
+}
+.theme-toggle:hover {
+  background: var(--hover, var(--soft));
+}
+
+/* ── dark surface remaps (inventory pilot) ── */
+[data-theme="dark"] body,
+[data-theme="dark"] .main-content {
+  background: var(--page);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .topbar {
+  border-bottom-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .topbar .top-actions a {
+  background: var(--field);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .topbar .top-actions a:hover {
+  background: var(--hover);
+}
+[data-theme="dark"] .topbar .top-actions .brand-link {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+[data-theme="dark"] .hero-stats .stat-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .category-manager,
+[data-theme="dark"] .table-wrap,
+[data-theme="dark"] .view-all-panel,
+[data-theme="dark"] .view-all-card,
+[data-theme="dark"] .item-view-card {
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="dark"] .category-manager summary,
+[data-theme="dark"] thead,
+[data-theme="dark"] .view-all-body {
+  background: var(--soft);
+}
+
+[data-theme="dark"] .view-all-body {
+  background: linear-gradient(180deg, #111927 0%, #131c28 40%, #161d27 100%);
+}
+
+[data-theme="dark"] .view-all-header {
+  background: var(--panel);
+  border-bottom-color: var(--line);
+}
+
+[data-theme="dark"] th {
+  color: var(--table-head);
+}
+
+[data-theme="dark"] th,
+[data-theme="dark"] td {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="dark"] tbody tr:hover {
+  background: var(--hover);
+}
+
+/* forms */
+[data-theme="dark"] .field label,
+[data-theme="dark"] .toolbar-field label,
+[data-theme="dark"] .toolbar-field-spacer {
+  color: var(--label);
+}
+[data-theme="dark"] .field input,
+[data-theme="dark"] .field select,
+[data-theme="dark"] .field textarea,
+[data-theme="dark"] .toolbar input.toolbar-control,
+[data-theme="dark"] .toolbar select.toolbar-control,
+[data-theme="dark"] .toolbar button.toolbar-control,
+[data-theme="dark"] .cat-picker-trigger,
+[data-theme="dark"] .price-reveal-input,
+[data-theme="dark"] .price-edit-input {
+  background: var(--field);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .field-readonly {
+  background: var(--field-readonly);
+  color: var(--ink);
+}
+[data-theme="dark"] .clear,
+[data-theme="dark"] .copy,
+[data-theme="dark"] .action,
+[data-theme="dark"] .price-toggle-btn {
+  background: var(--field);
+  border-color: var(--line);
+  color: var(--accent-btn);
+}
+[data-theme="dark"] .action:hover {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+[data-theme="dark"] .field input:focus,
+[data-theme="dark"] .field select:focus,
+[data-theme="dark"] .field textarea:focus,
+[data-theme="dark"] .cat-picker.is-open .cat-picker-trigger,
+[data-theme="dark"] .cat-picker-trigger:focus {
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18);
+  outline: none;
+}
+[data-theme="dark"] .clear:hover,
+[data-theme="dark"] .copy:hover,
+[data-theme="dark"] .action:hover,
+[data-theme="dark"] .toolbar button.toolbar-control:hover {
+  background: var(--hover);
+}
+[data-theme="dark"] .save,
+[data-theme="dark"] .toolbar button.toolbar-control--primary,
+[data-theme="dark"] .item-price [data-price-action="save"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+[data-theme="dark"] .save:hover {
+  background: var(--brand-dark);
+}
+
+/* dropdowns / menus */
+[data-theme="dark"] .cat-picker-menu,
+[data-theme="dark"] .cat-menu-submenu {
+  background: #1c2532;
+  border-color: #2a3441;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .cat-menu-row {
+  color: var(--ink);
+}
+[data-theme="dark"] .cat-menu-row:hover,
+[data-theme="dark"] .cat-menu-item.is-active > .cat-menu-row,
+[data-theme="dark"] .cat-menu-item.is-open > .cat-menu-row {
+  background: #2a3648;
+}
+[data-theme="dark"] .cat-menu-submenu {
+  background: #1c2532;
+}
+@media (max-width: 768px) {
+  [data-theme="dark"] .cat-menu-submenu {
+    background: #232e3d;
+  }
+}
+
+/* misc cards / text */
+[data-theme="dark"] .notice {
+  background: var(--soft);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .card p,
+[data-theme="dark"] .panel p,
+[data-theme="dark"] .view-all-card-desc,
+[data-theme="dark"] .item-view-category,
+[data-theme="dark"] .mobile-nav-toggle {
+  color: var(--muted);
+}
+[data-theme="dark"] .mobile-nav-toggle {
+  background: var(--field);
+  border-color: var(--line);
+}
+[data-theme="dark"] .mobile-nav-bars,
+[data-theme="dark"] .mobile-nav-bars::before,
+[data-theme="dark"] .mobile-nav-bars::after {
+  background: var(--ink);
+}
+[data-theme="dark"] .view-all-card-name,
+[data-theme="dark"] .item-view-block p {
+  color: var(--ink);
+}
+[data-theme="dark"] .flash-messages .success {
+  background: rgba(50, 213, 131, 0.12);
+  border-color: rgba(50, 213, 131, 0.4);
+  color: var(--success);
+}
+[data-theme="dark"] .flash-messages .error {
+  background: rgba(249, 112, 102, 0.12);
+  border-color: rgba(249, 112, 102, 0.4);
+  color: var(--danger);
+}
+[data-theme="dark"] .item-view-media {
+  background: var(--soft);
+  color: var(--muted);
+}
+
+/* ── logout confirmation modal (site-wide) ── */
+.logout-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(16, 24, 40, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.logout-confirm-overlay[hidden] {
+  display: none;
+}
+.logout-confirm-card {
+  width: min(380px, 100%);
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #d0d5dd);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  padding: 24px;
+}
+.logout-confirm-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: var(--ink, #101828);
+}
+.logout-confirm-card p {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: var(--muted, #667085);
+  line-height: 1.5;
+}
+.logout-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.logout-confirm-actions button {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--line, #d0d5dd);
+}
+.logout-confirm-cancel {
+  background: var(--field, #fff);
+  color: var(--ink, #101828);
+}
+.logout-confirm-cancel:hover {
+  background: var(--hover, #f8fafc);
+}
+.logout-confirm-ok {
+  background: var(--brand, #0284c7);
+  border-color: var(--brand, #0284c7);
+  color: #fff;
+}
+.logout-confirm-ok:hover {
+  background: var(--brand-dark, #0369a1);
+  border-color: var(--brand-dark, #0369a1);
+}
+
+/* ── PRINT: always light paper ── */
+@media print {
+  [data-theme="dark"] body,
+  [data-theme="dark"] .po-print-area,
+  [data-theme="dark"] .po-print-area * {
+    background: #fff !important;
+    color: #1d2939 !important;
+    border-color: #d0d5dd !important;
+    box-shadow: none !important;
+  }
+}

@@ -82,6 +82,8 @@
       url.searchParams.delete('reading_zone');
       url.searchParams.delete('reading_q');
       url.searchParams.delete('reading_view');
+      url.searchParams.delete('reading_printed');
+      url.searchParams.delete('reading_paid');
     }
     if (tabId !== 'reportsTab') {
       url.searchParams.delete('report');
@@ -91,11 +93,14 @@
     if (extra && extra.page != null) url.searchParams.set('page', String(extra.page));
     else if (!extra || extra.keepPage !== true) url.searchParams.delete('page');
     if (extra) {
-      ['customer_q', 'customer_zone', 'customer_status', 'customer_view', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'reading_view', 'payment_q', 'payment_view', 'week_start', 'week_end'].forEach((key) => {
+      ['customer_q', 'customer_zone', 'customer_status', 'customer_view', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'reading_view', 'reading_printed', 'reading_paid', 'payment_q', 'payment_view', 'week_start', 'week_end'].forEach((key) => {
         if (extra[key] == null) return;
         if (extra[key] === '') url.searchParams.delete(key);
         else url.searchParams.set(key, extra[key]);
       });
+      // 'show' is the default printed visibility, 'hide' the default paid visibility — keep URLs clean.
+      if ((extra.reading_printed || '') === 'show') url.searchParams.delete('reading_printed');
+      if ((extra.reading_paid || '') === 'hide') url.searchParams.delete('reading_paid');
     }
     window.history.replaceState({}, '', url);
   }
@@ -146,9 +151,13 @@
           const readingZone = loc.searchParams.get('reading_zone');
           const readingQ = loc.searchParams.get('reading_q');
           const readingView = loc.searchParams.get('reading_view');
+          const readingPrinted = loc.searchParams.get('reading_printed');
+          const readingPaid = loc.searchParams.get('reading_paid');
           if (readingZone) url.searchParams.set('reading_zone', readingZone);
           if (readingQ) url.searchParams.set('reading_q', readingQ);
           if (readingView) url.searchParams.set('reading_view', readingView);
+          if (readingPrinted) url.searchParams.set('reading_printed', readingPrinted);
+          if (readingPaid) url.searchParams.set('reading_paid', readingPaid);
         }
         if (tabId === 'paymentsTab') {
           const paymentQ = loc.searchParams.get('payment_q');
@@ -675,11 +684,23 @@
     const readingZoneFilter = document.getElementById('readingZoneFilter');
     const readingSearch = document.getElementById('readingSearch');
     const readingFilterForm = document.getElementById('readingFilterForm');
+    const readingPrintedFilter = document.getElementById('readingPrintedFilter');
+    const readingPaidFilter = document.getElementById('readingPaidFilter');
     let readingSearchTimer = null;
+    function currentReadingPrinted() {
+      const value = (readingPrintedFilter?.value || '').trim().toLowerCase();
+      return value === 'hide' || value === 'only' ? value : 'show';
+    }
+    function currentReadingPaid() {
+      const value = (readingPaidFilter?.value || '').trim().toLowerCase();
+      return value === 'show' || value === 'only' ? value : 'hide';
+    }
     function currentReadingParams() {
       return {
         reading_q: readingSearch?.value.trim() || '',
         reading_zone: readingZoneFilter?.value || '',
+        reading_printed: currentReadingPrinted(),
+        reading_paid: currentReadingPaid(),
       };
     }
     function setReadingView(view) {
@@ -717,6 +738,8 @@
       url.searchParams.set('page', String(page || 1));
       if (params.reading_q) url.searchParams.set('reading_q', params.reading_q);
       if (params.reading_zone) url.searchParams.set('reading_zone', params.reading_zone);
+      if (params.reading_printed && params.reading_printed !== 'show') url.searchParams.set('reading_printed', params.reading_printed);
+      if (params.reading_paid && params.reading_paid !== 'hide') url.searchParams.set('reading_paid', params.reading_paid);
       wrap.setAttribute('aria-busy', 'true');
       fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then((res) => {
@@ -748,6 +771,8 @@
     const openHistory = readingViewParam === 'history'
       || Boolean(readingLoc.searchParams.get('reading_q'))
       || Boolean(readingLoc.searchParams.get('reading_zone'))
+      || Boolean(readingLoc.searchParams.get('reading_printed'))
+      || Boolean(readingLoc.searchParams.get('reading_paid'))
       || (readingPageParam && readingPageParam !== '1');
     setReadingView(openHistory ? 'history' : 'new');
     if (readingSearch) {
@@ -757,6 +782,8 @@
       });
     }
     readingZoneFilter?.addEventListener('change', () => fetchReadingList(1));
+    readingPrintedFilter?.addEventListener('change', () => fetchReadingList(1));
+    readingPaidFilter?.addEventListener('change', () => fetchReadingList(1));
     readingFilterForm?.addEventListener('submit', (event) => {
       event.preventDefault();
       fetchReadingList(1);
@@ -1114,7 +1141,9 @@
       let visible = 0;
       paymentBillList.querySelectorAll('.bill-combobox-item').forEach((item) => {
         const name = (item.dataset.name || '').toLowerCase();
-        const match = !query || name.includes(query);
+        const period = (item.dataset.period || '').toLowerCase();
+        const label = (item.dataset.label || '').toLowerCase();
+        const match = !query || name.includes(query) || period.includes(query) || label.includes(query);
         item.hidden = !match;
         if (match) visible += 1;
       });
@@ -2029,6 +2058,8 @@
           updateTabUrl('readingsBillingTab', {
             reading_q: url.searchParams.get('reading_q') || '',
             reading_zone: url.searchParams.get('reading_zone') || '',
+            reading_printed: url.searchParams.get('reading_printed') || '',
+            reading_paid: url.searchParams.get('reading_paid') || '',
             reading_view: 'history',
             page,
           });
@@ -2099,6 +2130,12 @@
         ids.forEach((id) => params.append('bill_ids', id));
         window.location.href = `${batchPrintUrl}?${params.toString()}`;
     }
+  });
+
+  // Prevent mouse-wheel from changing number values (e.g. Present reading).
+  // Blurring on wheel keeps page scroll working without bumping the value.
+  document.querySelectorAll('input[type="number"]').forEach((el) => {
+    el.addEventListener('wheel', () => { el.blur(); }, { passive: true });
   });
 
   let initial = normalizeTab(new URLSearchParams(window.location.search).get('tab') || 'overviewTab');

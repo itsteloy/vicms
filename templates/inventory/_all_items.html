@@ -38,7 +38,14 @@
                 <th>Description</th>
                 <th>Notes</th>
                 <th>Stocks</th>
-                <th>Unit Price</th>
+                <th class="th-price">
+                  <span class="th-price-inner">
+                    <span>Unit Price</span>
+                    <span id="priceHeaderControl">
+                      <button type="button" class="price-toggle-btn" data-price-action="show-all">Show price</button>
+                    </span>
+                  </span>
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -61,7 +68,7 @@
                 <td class="item-notes"><span>{{ item.notes|default:"-" }}</span></td>
                 <td class="item-stock">{{ item.stock_available }}</td>
                 <td class="item-price" data-price-cell>
-                  <button type="button" class="copy show-price-btn" data-price-action="prompt">Show price</button>
+                  <span class="price-masked" style="color:#667085;">—</span>
                 </td>
                 <td class="item-actions">
                   <div class="actions">

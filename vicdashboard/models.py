@@ -507,6 +507,8 @@ class CheckVoucher(models.Model):
     payment_for = models.TextField(blank=True, default='')
     check_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    withholding_tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    withholding_label = models.CharField(max_length=120, blank=True, default='WITHHOLDING TAX')
     bank = models.CharField(max_length=120, blank=True, default='')
     check_number = models.CharField(max_length=60, blank=True, default='')
     check_date = models.DateField(null=True, blank=True)
@@ -2156,6 +2158,136 @@ class WaterZone(models.Model):
         super().save(*args, **kwargs)
 
 
+def net_water_bill_outstanding(bills, seed=None, signed=False):
+    """Net collectible across a customer's non-cancelled bills.
+
+    Later statements embed a frozen ``previous_bill_unpaid`` snapshot of older
+    debt, so summing live balances double-counts the carried amount. Walk
+    oldest-first; each bill's snapshot duplicates at most the still-open older
+    balances, and only that overlap is subtracted.
+
+    signed=False floors per-bill balances and the result (display rollups);
+    signed=True preserves advance/overpayment credit (prefill flows).
+    Settled (zero-balance) bills are skipped: they carry nothing open, and
+    their own snapshot is reconciled through the reading refresh flow.
+    """
+    zero = Decimal('0.00')
+    rows = []
+    for bill in bills:
+        raw = (bill.total_amount or zero) - (bill.amount_paid or zero)
+        if raw == 0 or (not signed and raw < 0):
+            continue
+        rows.append((bill, raw))
+    rows.sort(key=lambda item: ((item[0].bill_date or date.min).isoformat(), item[0].pk or 0))
+    balances = [raw if signed else max(raw, zero) for _bill, raw in rows]
+    dup = zero
+    for index, (bill, _raw) in enumerate(rows):
+        prev = max(bill.previous_bill_unpaid or zero, zero)
+        if prev <= 0:
+            continue
+        older_open = sum(balances[:index], zero)
+        if older_open < zero:
+            older_open = zero
+        dup += min(prev, older_open)
+    net = sum(balances, zero) - dup + (seed or zero)
+    if not signed:
+        net = max(net, zero)
+    return net
+
+
+def net_water_only_outstanding(bills, seed=None, signed=False):
+    """Net WATER-ONLY collectible (excludes installation installment).
+
+    Same carry de-duplication as net_water_bill_outstanding, but each bill
+    contributes water-only (unfloored total − installment − paid) instead of
+    total − paid. Use for previous_bill_unpaid so the installment column
+    is not duplicated when it is added again on the next statement.
+    Unfloored components preserve advance/overpayment credit when signed.
+    """
+    zero = Decimal('0.00')
+    rows = []
+    for bill in bills:
+        raw = (
+            (bill.consumption_charge or zero)
+            + (bill.previous_bill_unpaid or zero)
+            + (bill.fixed_charge or zero)
+            + (bill.environmental_fee or zero)
+            + (bill.maintenance_fee or zero)
+            + (bill.tax or zero)
+            + (bill.penalty or zero)
+            - (bill.discount or zero)
+            - (bill.amount_paid or zero)
+        )
+        if raw == 0 or (not signed and raw < 0):
+            continue
+        rows.append((bill, raw))
+    rows.sort(key=lambda item: ((item[0].bill_date or date.min).isoformat(), item[0].pk or 0))
+    balances = [raw if signed else max(raw, zero) for _bill, raw in rows]
+    dup = zero
+    for index, (bill, _raw) in enumerate(rows):
+        prev = max(bill.previous_bill_unpaid or zero, zero)
+        if prev <= 0:
+            continue
+        older_open = sum(balances[:index], zero)
+        if older_open < zero:
+            older_open = zero
+        dup += min(prev, older_open)
+    net = sum(balances, zero) - dup + (seed or zero)
+    if not signed:
+        net = max(net, zero)
+    return net
+
+
+def water_bill_carry_flags(bills):
+    """Split one customer's OPEN water bills into payable vs already-carried.
+
+    Later statements embed a frozen ``previous_bill_unpaid`` snapshot of older
+    debt, so an older partial bill can be fully covered by the current bill's
+    total. Walk oldest-first, allocating each bill's carried overlap to the
+    oldest still-uncovered balances.
+
+    Returns {bill_pk: {'carried_in': Decimal, 'superseded_by': WaterBill|None}}.
+    carried_in: portion of this bill's water balance duplicating still-open
+      older bills (already added into this bill's total).
+    superseded_by: newest later bill whose carried overlap fully covers this
+      bill's balance — collect on that bill instead (None = independently
+      payable). The newest open bill is never superseded.
+    """
+    zero = Decimal('0.00')
+    ordered = sorted(
+        bills, key=lambda b: ((b.bill_date or date.min).isoformat(), b.pk or 0),
+    )
+    balances = [max(b.water_balance_due or zero, zero) for b in ordered]
+    overlaps = []
+    for index, bill in enumerate(ordered):
+        prev = max(bill.previous_bill_unpaid or zero, zero)
+        older_open = sum(balances[:index], zero)
+        overlaps.append(min(prev, older_open) if older_open > 0 else zero)
+    uncovered = list(balances)
+    coverer = [None] * len(ordered)
+    for later in range(len(ordered)):
+        left = overlaps[later]
+        for earlier in range(later):
+            if left <= 0:
+                break
+            take = min(left, uncovered[earlier])
+            if take > 0:
+                uncovered[earlier] -= take
+                left -= take
+                coverer[earlier] = ordered[later]
+    flags = {}
+    for index, bill in enumerate(ordered):
+        flags[bill.pk] = {
+            'carried_in': overlaps[index],
+            'superseded_by': (
+                coverer[index]
+                if balances[index] > 0 and uncovered[index] <= 0
+                else None
+            ),
+        }
+    return flags
+
+
 class WaterCustomer(models.Model):
     account_number = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=100)
@@ -2230,10 +2362,9 @@ class WaterCustomer(models.Model):
 
     @property
     def outstanding_balance(self):
-        total = Decimal('0.00')
-        for bill in self.bills.exclude(status='cancelled'):
-            total += bill.balance_due
-        return total
+        """True collectible: water-only net (no installment duplication) + one installment."""
+        water = net_water_only_outstanding(self.bills.exclude(status='cancelled'))
+        return max(water + (self.installment_balance or Decimal('0.00')), Decimal('0.00'))
 
     @property
     def oldest_unpaid_due_date(self):
@@ -2401,6 +2532,8 @@ class WaterBill(models.Model):
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=WATER_BILL_STATUS, default='unpaid')
+    print_count = models.PositiveIntegerField(default=0)
+    last_printed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -2410,6 +2543,10 @@ class WaterBill(models.Model):
     def __str__(self):
         return self.bill_number
 
+    @property
+    def is_printed(self):
+        return (self.print_count or 0) > 0
+
     @classmethod
     def generate_bill_number(cls):
         return _next_sequential_number(cls, 'bill_number', f'WB-{date.today().year}-')
@@ -2417,6 +2554,25 @@ class WaterBill(models.Model):
     @property
     def current_bill(self):
         return self.consumption_charge
+
+    @property
+    def billing_month_label(self):
+        """Short month identifier for dropdowns, e.g. 'Sep 2026' from '2026-09'."""
+        period = (self.billing_period or '').strip()
+        if len(period) >= 7 and period[4] == '-' and period[:4].isdigit() and period[5:7].isdigit():
+            try:
+                month = int(period[5:7])
+                year = period[:4]
+                if 1 <= month <= 12:
+                    from calendar import month_abbr
+                    return f'{month_abbr[month]} {year}'
+            except (ValueError, IndexError):
+                pass
+            return period[:7]
+        if self.bill_date:
+            from calendar import month_abbr
+            return f'{month_abbr[self.bill_date.month]} {self.bill_date.year}'
+        return period or '—'
 
     @property
     def balance_due(self):

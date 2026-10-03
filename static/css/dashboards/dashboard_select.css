@@ -11,15 +11,15 @@
   --muted: #5e6f8d;
   --muted-light: #8a9bb8;
   --line: #e2e8f0;
-  --panel: #ffffff;
-  --brand: #0d9488;
-  --brand-dark: #0f766e;
-  --brand-light: #ccfbf1;
-  --brand-glow: rgba(13, 148, 136, 0.20);
+  --panel: #f7f7f7;
+  --brand: #0284c7;
+  --brand-dark: #0369a1;
+  --brand-light: #e0f2fe;
+  --brand-glow: rgba(2, 132, 199, 0.2);
   --gold: #f59e0b;
   --radius: 16px;
   --radius-sm: 10px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.248);
   --shadow-md: 0 10px 40px -12px rgba(0, 0, 0, 0.15);
   --shadow-lg: 0 20px 60px -16px rgba(0, 0, 0, 0.20);
   --transition: 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -68,8 +68,8 @@ h1, h2, h3, h4,
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse at 80% 0%, rgba(13, 148, 136, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 20% 100%, rgba(13, 148, 136, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 0%, rgba(2, 132, 199, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 100%, rgba(2, 132, 199, 0.03) 0%, transparent 50%),
     #f6f8fc;
 }
 
@@ -194,6 +194,17 @@ h1, h2, h3, h4,
 .topbar-actions .logout-btn .icon {
   font-size: 1rem;
   line-height: 1;
+}
+
+.topbar-actions .theme-toggle-btn {
+  font: inherit;
+  cursor: pointer;
+}
+
+.topbar-actions .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
 }
 
 body {
@@ -354,10 +365,10 @@ button.dashboard-card {
 .credential-hint {
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: #f0fdfa;
-  border: 1px solid #99f6e4;
+  background: #f0fafd;
+  border: 1px solid #99c1f6;
   font-size: 0.82rem;
-  color: #115e59;
+  color: #1e2f44;
   line-height: 1.5;
 }
 
@@ -496,7 +507,7 @@ button.dashboard-card {
 }
 
 .intro h1 .highlight {
-  background: linear-gradient(135deg, var(--brand) 0%, #14b8a6 100%);
+  background: linear-gradient(135deg, var(--brand) 0%, #0369a1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -566,20 +577,6 @@ button.dashboard-card {
   gap: 6px;
 }
 
-.dashboard-card .card-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  font-size: 1.4rem;
-  background: var(--brand-light);
-  color: var(--brand-dark);
-  margin-bottom: 4px;
-  transition: var(--transition);
-}
-
 .dashboard-card:hover .card-icon {
   transform: scale(1.05) rotate(-2deg);
   background: var(--brand);
@@ -607,7 +604,7 @@ button.dashboard-card {
 .workspace-note {
   margin: 0 0 24px;
   padding: 14px 16px;
-  border: 1px solid #99f6e4;
+  border: 1px solid #7dd3fc;
   background: #f0fdfa;
   border-radius: var(--radius-sm);
   color: #115e59;
@@ -616,7 +613,7 @@ button.dashboard-card {
 }
 
 .workspace-note strong {
-  color: #0f766e;
+  color: #0369a1;
 }
 
 .dashboard-card h2 {
@@ -925,4 +922,91 @@ button.dashboard-card {
   .dashboard-card .open-label {
     font-size: 0.70rem;
   }
+}
+
+/* ── dark mode (must come after :root above to win the cascade) ── */
+[data-theme="dark"] {
+  --ink: #e6eaf0;
+  --ink-light: #c6cfdb;
+  --muted: #9aa4b2;
+  --muted-light: #7d8898;
+  --line: #2a3441;
+  --panel: #161d27;
+  --brand-light: #1c2b22;
+  --gold: #fbbf24;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 10px 40px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 60px -16px rgba(0, 0, 0, 0.65);
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+  background: #0e141c;
+}
+
+[data-theme="dark"] .shell {
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(2, 132, 199, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 100%, rgba(2, 132, 199, 0.05) 0%, transparent 50%),
+    #0e141c;
+}
+
+[data-theme="dark"] .login-modal {
+  background: var(--panel);
+}
+
+[data-theme="dark"] .modal-close {
+  background: var(--panel);
+}
+
+[data-theme="dark"] .modal-close:hover {
+  background: #1f2a38;
+}
+
+[data-theme="dark"] .credential-hint {
+  background: rgba(125, 211, 252, 0.08);
+  border-color: #2a4a5f;
+  color: var(--ink);
+}
+
+[data-theme="dark"] .credential-hint code {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .login-field label {
+  color: #b6bfcc;
+}
+
+[data-theme="dark"] .login-field input {
+  background: #1c2532;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .dashboard-card.is-locked {
+  background: #131c28;
+}
+
+[data-theme="dark"] .workspace-note {
+  background: rgba(2, 132, 199, 0.1);
+  border-color: rgba(2, 132, 199, 0.4);
+  color: #a7f3d0;
+}
+
+[data-theme="dark"] .workspace-note strong {
+  color: #7dd3fc;
+}
+
+[data-theme="dark"] .login-error,
+[data-theme="dark"] .flash.error,
+[data-theme="dark"] .flash-danger {
+  background: rgba(249, 112, 102, 0.12);
+  border-color: rgba(249, 112, 102, 0.4);
+  color: #f97066;
+}
+
+[data-theme="dark"] .flash.success {
+  background: rgba(50, 213, 131, 0.12);
+  border-color: rgba(50, 213, 131, 0.4);
+  color: #32d583;
 }

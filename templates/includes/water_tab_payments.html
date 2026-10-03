@@ -77,8 +77,9 @@
                   data-balance="{{ b.water_balance_due }}"
                   data-installment="{{ b.customer.installment_balance|default_if_none:0 }}"
                   data-name="{{ b.customer.display_name }}"
-                  data-label="{{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})">
-                  {{ b.customer.account_number }} – {{ b.customer.display_name }} · {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})
+                  data-period="{{ b.billing_period }} {{ b.billing_month_label }} {{ b.payment_month_long|default:b.billing_month_label }}"
+                  data-label="{{ b.customer.account_number }} – {{ b.customer.display_name }} ({{ b.payment_month_long|default:b.billing_month_label }}) {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}{% if b.carried_in %} · incl. ₱{{ b.carried_in|floatformat:2|intcomma }} prev. balance{% endif %}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})">
+                  {{ b.customer.account_number }} – {{ b.customer.display_name }} ({{ b.payment_month_long|default:b.billing_month_label }}) {{ b.bill_number }} (waterbill ₱{{ b.water_balance_due|floatformat:2|intcomma }}{% if b.carried_in %} · incl. ₱{{ b.carried_in|floatformat:2|intcomma }} prev. balance{% endif %}) | (installment ₱{{ b.customer.installment_balance|default_if_none:0|floatformat:2|intcomma }})
                 </li>
                 {% empty %}
                 <li class="bill-combobox-empty" data-static="1">No unpaid bills.</li>
@@ -221,6 +222,15 @@
         <div class="field grow">
           <label for="paymentSearch">Search</label>
           <input id="paymentSearch" name="payment_q" value="{{ payment_q }}" placeholder="Name, receipt, AR, account, or bill…" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="paymentMonthFilter">Bill month</label>
+          <select name="payment_month" id="paymentMonthFilter" onchange="this.form.submit()" title="Filter by bill month">
+            <option value="">All months</option>
+            {% for m in payment_months %}
+            <option value="{{ m.value }}" {% if payment_month == m.value %}selected{% endif %}>{{ m.label }}</option>
+            {% endfor %}
+          </select>
         </div>
       </form>
       <h3 class="payment-history-heading">Water bill &amp; installation</h3>

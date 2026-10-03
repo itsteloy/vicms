@@ -145,6 +145,9 @@
         </tr>
       </tfoot>
     </table>
+    {% if not print_mode %}
+    <p class="no-print"><button type="button" class="action" id="addWeeklyRefillRow">+ Add refill row</button></p>
+    {% endif %}
     <div class="weekly-section-total weekly-section-total-refill">
       <div class="weekly-section-total-title">Refilling Collection Total</div>
       <div class="weekly-section-total-line">
@@ -163,9 +166,6 @@
       </div>
     </div>
   </div>
-  {% if not print_mode %}
-  <p class="no-print"><button type="button" class="action" id="addWeeklyRefillRow">+ Add refill row</button></p>
-  {% endif %}
 
   <div class="weekly-cash-remittance" id="weeklyCashRemittanceBlock"
        data-cash-total="{{ weekly_totals.cash_in_bank|default_if_none:0 }}"
@@ -249,7 +249,7 @@
   </div>
 
   <div class="weekly-signoffs">
-    <div>
+    <div class="weekly-signoff">
       <label>PREPARED BY:</label>
       {% if print_mode %}
       <div class="sign-line">{{ weekly_prepared_by }}</div>
@@ -257,7 +257,7 @@
       <input name="prepared_by" value="{{ weekly_prepared_by }}">
       {% endif %}
     </div>
-    <div>
+    <div class="weekly-signoff">
       <label>AUDITED BY:</label>
       {% if print_mode %}
       <div class="sign-line">{{ weekly_audited_by }}</div>
@@ -265,7 +265,7 @@
       <input name="audited_by" value="{{ weekly_audited_by }}">
       {% endif %}
     </div>
-    <div>
+    <div class="weekly-signoff weekly-signoff-approved">
       <label>APPROVED BY:</label>
       {% if print_mode %}
       <div class="sign-line">{{ weekly_approved_by }}</div>

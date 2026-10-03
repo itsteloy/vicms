@@ -6,8 +6,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=aa-print-rows2">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
 <script>
   try {
     if (localStorage.getItem('salesSidebarCollapsed') === '1') {
@@ -22,111 +23,7 @@
 <div class="sales-page dashboard-wrapper" data-sidebar-key="salesSidebarCollapsed">
 
     <!-- ─── SIDEBAR ─── -->
-    <aside class="sidebar" id="salesSidebar" role="navigation" aria-label="Sales dashboard navigation">
-        <div class="sidebar-brand">
-            <div class="logo">
-                <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon"
-                    style="width:38px;height:38px;object-fit:contain;border-radius:10px;">
-                <span class="logo-text">VERSATEC <small>Management System</small></span>
-            </div>
-            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="salesSidebar" aria-expanded="true" title="Collapse sidebar">
-                <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
-                <span class="sr-only">Collapse sidebar</span>
-            </button>
-        </div>
-
-        <nav class="sidebar-nav" aria-label="Sales sections">
-            <div class="nav-label">Sales</div>
-            <button class="tab-button" type="button" role="tab" title="Record Sale"
-                aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="sales-tab">
-                <span class="tab-icon">🛒</span> <span class="tab-label">Record Sale</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Sales History"
-                aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="history-tab">
-                <span class="tab-icon">📜</span> <span class="tab-label">Sales History</span>
-                <span class="tab-badge">{{ sales_orders|length }}</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Refund History"
-                aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="refund-tab">
-                <span class="tab-icon">↩️</span> <span class="tab-label">Refund History</span>
-                <span class="tab-badge">{{ refund_history|length }}</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Reporting & Analytics"
-                aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="analytics-tab">
-                <span class="tab-icon">📈</span> <span class="tab-label">Reporting & Analytics</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Category Performance"
-                aria-selected="{% if active_tab == 'category-performance-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="category-performance-tab">
-                <span class="tab-icon">🏷️</span> <span class="tab-label">Category Performance</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Product Quotation"
-                aria-selected="{% if active_tab == 'product-quotation-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="product-quotation-tab">
-                <span class="tab-icon">📦</span> <span class="tab-label">Product Quotation</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Service Quotation"
-                aria-selected="{% if active_tab == 'service-quotation-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="service-quotation-tab">
-                <span class="tab-icon">🛠️</span> <span class="tab-label">Service Quotation</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Collection Form"
-                aria-selected="{% if active_tab == 'collection-form-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="collection-form-tab">
-                <span class="tab-icon">📄</span> <span class="tab-label">Collection Form</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Ageing of Accounts"
-                aria-selected="{% if active_tab == 'ageing-accounts-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="ageing-accounts-tab">
-                <span class="tab-icon">📊</span> <span class="tab-label">Ageing of Accounts</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Retention Summary"
-                aria-selected="{% if active_tab == 'retention-summary-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="retention-summary-tab">
-                <span class="tab-icon">📋</span> <span class="tab-label">Retention Summary</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Petty Cash"
-                aria-selected="{% if active_tab == 'petty-cash-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="petty-cash-tab">
-                <span class="tab-icon">💵</span> <span class="tab-label">Petty Cash</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Check Voucher"
-                aria-selected="{% if active_tab == 'check-voucher-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="check-voucher-tab">
-                <span class="tab-icon">CV</span> <span class="tab-label">Check Voucher</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Saved Documents"
-                aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="saved-documents-tab">
-                <span class="tab-icon">🗂️</span> <span class="tab-label">Saved Documents</span>
-            </button>
-        </nav>
-    </aside>
-    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
-
-    <!-- ─── MAIN CONTENT ─── -->
-    <main class="main-content">
-
-        <!-- Topbar -->
-        <header class="topbar">
-            <div class="topbar-leading">
-                <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="salesSidebar" aria-expanded="false" title="Open menu">
-                    <span class="mobile-nav-bars" aria-hidden="true"></span>
-                    <span class="sr-only">Open menu</span>
-                </button>
-                <div class="greeting">
-                    <h2>Sales Dashboard</h2>
-                    <p>Record sales from shared inventory items. Stock levels update automatically.</p>
-                </div>
-            </div>
-            <div class="top-actions">
-                <a href="{% url 'logout' %}">🚪 Logout</a>
-            </div>
-        </header>
+    {% include "includes/_app_chrome.html" with chrome_nav_template="includes/chrome_nav_sales.html" sidebar_id="salesSidebar" sidebar_key="salesSidebarCollapsed" chrome_title="Sales Dashboard" chrome_subtitle="Record sales from shared inventory items. Stock levels update automatically." %}
 
         <!-- Stats -->
         <div class="hero-stats">
@@ -2119,17 +2016,22 @@
                     <div style="display:flex;justify-content:flex-end;margin:8px 0;">
                         <button class="action" type="button" id="cvAddRow" style="padding:8px 14px;">Add debit row</button>
                     </div>
+                    <div class="cv-editor-grid" style="margin-bottom:8px;">
+                        <div><label>Withholding label</label><input type="text" id="cvWithholdingLabel" value="WITHHOLDING TAX" placeholder="WITHHOLDING TAX 1%"></div>
+                        <div><label>Withholding tax (credit)</label><input type="text" id="cvWithholdingTax" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                    </div>
                     <div class="cv-total-strip">
                         <span>Total debit: <strong id="cvDebitTotal">PHP 0.00</strong></span>
+                        <span>Withholding tax: <strong id="cvWithholdingTotal">PHP 0.00</strong></span>
                         <span>Cash in bank / check amount: <strong id="cvCreditTotal">PHP 0.00</strong></span>
                     </div>
                 </fieldset>
 
                 <div class="cv-editor-grid cv-sign-grid">
-                    <div><label>Prepared</label><input type="text" id="cvSignPrepared" value="Angel Marie"></div>
-                    <div><label>Checked</label><input type="text" id="cvSignChecked" value="Beverly"></div>
-                    <div><label>Checked</label><input type="text" id="cvSignApproved" value="Christine Joy"></div>
-                    <div><label>Approved</label><input type="text" id="cvSignApprover" value="Engr. Arturo Davis"></div>
+                    <div><label>Prepared</label><input type="text" id="cvSignPrepared" value="ANGELMARIE M. DAPAR"></div>
+                    <div><label>Checked</label><input type="text" id="cvSignChecked" value="Ms. BEVERLY TAN"></div>
+                    <div><label>Checked</label><input type="text" id="cvSignApproved" value="CHRISTINE JOY ILOGON"></div>
+                    <div><label>Approved</label><input type="text" id="cvSignApprover" value="ENGR. ARTURO I DAVIS, PME"></div>
                 </div>
             </div>
 
@@ -2147,30 +2049,36 @@
                             <col style="width:25%">
                             <col style="width:25%">
                         </colgroup>
-                        <tbody>
-                            <tr><td></td><td></td><td colspan="2" class="cv-no">CVNO. <span id="cvPrevNumber"></span></td></tr>
-                            <tr><td colspan="2"></td><td class="cv-date-label">DATE:</td><td id="cvPrevDate"></td></tr>
-                            <tr><td class="cv-payee-label">PAYEE:</td><td colspan="3" class="cv-payee" id="cvPrevPayee"></td></tr>
-                            <tr><td colspan="2"></td><td class="cv-colhead">DEBIT</td><td class="cv-colhead">CREDIT</td></tr>
+                        <tbody class="cv-top">
+                            <tr class="cv-no-row"><td colspan="2" class="cv-noborder"></td><td colspan="2" class="cv-no">CVNO. <span id="cvPrevNumber"></span></td></tr>
+                            <tr class="cv-date-row"><td colspan="2" class="cv-noborder"></td><td class="cv-date-label">DATE:</td><td class="cv-date-val" id="cvPrevDate"></td></tr>
+                            <tr class="cv-payee-row"><td class="cv-payee-label">PAYEE:</td><td colspan="3" class="cv-payee" id="cvPrevPayee"></td></tr>
+                            <tr class="cv-head-row"><td colspan="2" class="cv-noborder"></td><td class="cv-colhead">DEBIT</td><td class="cv-colhead">CREDIT</td></tr>
                         </tbody>
-                        <tbody id="cvPreviewLines"></tbody>
-                        <tbody>
-                            <tr><td></td><td class="cv-account">CASH IN BANK</td><td class="cv-money"></td><td class="cv-money" id="cvPrevCash">0.00</td></tr>
-                            <tr><td></td><td class="cv-account">TOTALS</td><td class="cv-money cv-total" id="cvPrevDebitTotal">0.00</td><td class="cv-money cv-total" id="cvPrevCreditTotal">0.00</td></tr>
-                            <tr><td class="cv-blabel">Payment for:</td><td class="cv-bhead">Received from MDSPII</td><td colspan="2" class="cv-bempty"></td></tr>
-                            <tr><td rowspan="3" class="cv-payfor" id="cvPrevPaymentFor">&nbsp;</td><td class="cv-bhead">Check Amount:</td><td colspan="2" class="cv-check-amount" id="cvPrevCheckAmount">0.00</td></tr>
-                            <tr><td class="cv-bhead">Check no.</td><td class="cv-bval">BANK: <span id="cvPrevBank"></span></td><td class="cv-bval" id="cvPrevCheckNumber"></td></tr>
-                            <tr><td class="cv-bhead">Received by:</td><td class="cv-bval" id="cvPrevReceivedBy"></td><td class="cv-sigline"></td></tr>
+                        <tbody id="cvPreviewLines" class="cv-lines"></tbody>
+                        <tbody class="cv-totals-block">
+                            <tr class="cv-cash-row" id="cvPrevWithholdingRow"><td class="cv-noborder"></td><td class="cv-account" id="cvPrevWithholdingLabel">WITHHOLDING TAX</td><td class="cv-money cv-debit-cell"></td><td class="cv-money cv-credit-cell" id="cvPrevWithholding">0.00</td></tr>
+                            <tr class="cv-cash-row"><td class="cv-noborder"></td><td class="cv-account">CASH IN BANK</td><td class="cv-money cv-debit-cell"></td><td class="cv-money cv-credit-cell" id="cvPrevCash">0.00</td></tr>
+                            <tr class="cv-totals-row"><td class="cv-noborder"></td><td class="cv-account">TOTALS</td><td class="cv-money cv-total" id="cvPrevDebitTotal">0.00</td><td class="cv-money cv-total" id="cvPrevCreditTotal">0.00</td></tr>
+                        </tbody>
+                        <tbody class="cv-box">
+                            <tr class="cv-box-row"><td class="cv-blabel">Payment for:</td><td class="cv-bhead" colspan="3">Received from MDSPII</td></tr>
+                            <tr class="cv-box-row"><td rowspan="4" class="cv-payfor" id="cvPrevPaymentFor">&nbsp;</td><td class="cv-bhead" colspan="2">Check Amount:</td><td class="cv-check-amount" id="cvPrevCheckAmount">0.00</td></tr>
+                            <tr class="cv-box-row"><td class="cv-bhead">BANK:</td><td class="cv-bval" colspan="2" id="cvPrevBank"></td></tr>
+                            <tr class="cv-box-row"><td class="cv-bhead">CHEQUE NO:</td><td class="cv-bval" colspan="2" id="cvPrevCheckNumber"></td></tr>
+                            <tr class="cv-box-row"><td class="cv-bhead">Received by:</td><td class="cv-bval" id="cvPrevReceivedBy"></td><td class="cv-sigline"></td></tr>
+                        </tbody>
+                        <tbody class="cv-signoff">
                             <tr class="cv-sign-labels">
                                 <td>Prepared by:</td>
                                 <td colspan="2" style="text-align:center;">Checked by:</td>
                                 <td>Approved by:</td>
                             </tr>
                             <tr class="cv-signatures">
-                                <td class="cv-sign-name" id="cvPrevSignPrepared">Angel Marie</td>
-                                <td class="cv-sign-name" id="cvPrevSignChecked">Beverly</td>
-                                <td class="cv-sign-name" id="cvPrevSignApproved">Christine Joy</td>
-                                <td class="cv-sign-name" id="cvPrevSignApprover">Engr. Arturo Davis</td>
+                                <td class="cv-sign-name" id="cvPrevSignPrepared">ANGELMARIE M. DAPAR</td>
+                                <td class="cv-sign-name" id="cvPrevSignChecked">Ms. BEVERLY TAN</td>
+                                <td class="cv-sign-name" id="cvPrevSignApproved">CHRISTINE JOY ILOGON</td>
+                                <td class="cv-sign-name" id="cvPrevSignApprover">ENGR. ARTURO I DAVIS, PME</td>
                             </tr>
                         </tbody>
                     </table>
@@ -2243,47 +2151,45 @@
                 <div class="table-wrap" id="cvMonitoringWrap">
                     <table class="cv-monitoring-table" aria-label="CV Monitoring">
                         <thead>
-                            <tr><th>Date</th><th>CV No</th><th>Issued To</th><th>Payment For</th><th>Amount</th><th class="cv-category-col">Category</th><th class="cv-breakdown-col">Purchases</th><th class="cv-breakdown-col">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col">Payment</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
+                            <tr><th>Date</th><th>CV No</th><th>Issued To</th><th>Payment For</th><th>Amount</th><th class="cv-breakdown-col">Purchases</th><th class="cv-breakdown-col">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col">Payment</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for voucher in recent_check_vouchers %}
-                            <tr>
-                                <td>{{ voucher.voucher_date|date:"M d, Y" }}</td>
-                                <td>{{ voucher.cv_number }}</td>
-                                <td>{{ voucher.payee }}</td>
-                                <td>{{ voucher.payment_for|default:"-" }}</td>
-                                <td>PHP {{ voucher.check_amount|floatformat:2 }}</td>
-                                <td class="cv-category-col cv-category-cell" data-purchases="{{ voucher.purchases }}" data-expenses="{{ voucher.expenses }}" data-commission="{{ voucher.commission }}" data-contributions="{{ voucher.contributions }}" data-misc="{{ voucher.misc }}" data-payment="{{ voucher.payment }}"></td>
-                                <td class="cv-breakdown-col">{% if voucher.purchases %}PHP {{ voucher.purchases|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td class="cv-breakdown-col">{% if voucher.expenses %}PHP {{ voucher.expenses|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td class="cv-breakdown-col">{% if voucher.commission %}PHP {{ voucher.commission|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td class="cv-breakdown-col">{% if voucher.contributions %}PHP {{ voucher.contributions|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td class="cv-breakdown-col">{% if voucher.misc %}PHP {{ voucher.misc|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td class="cv-breakdown-col">{% if voucher.payment %}PHP {{ voucher.payment|floatformat:2 }}{% else %}-{% endif %}</td>
-                                <td>{{ voucher.check_date|date:"M d, Y"|default:"-" }}</td>
-                                <td>{{ voucher.bank|default:"-" }}</td>
-                                <td>{{ voucher.check_number|default:"-" }}</td>
+                            <tr data-cv-row="{{ voucher.id }}">
+                                <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="voucher_date" value="{{ voucher.voucher_date|date:'Y-m-d' }}"></td>
+                                <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="cv_number" value="{{ voucher.cv_number }}"></td>
+                                <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payee" value="{{ voucher.payee }}"></td>
+                                <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payment_for" value="{{ voucher.payment_for|default:'' }}" placeholder="-"></td>
+                                <td><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="check_amount" data-money-col="check_amount" value="{{ voucher.check_amount|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="purchases" data-money-col="purchases" value="{{ voucher.purchases|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="expenses" data-money-col="expenses" value="{{ voucher.expenses|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="commission" data-money-col="commission" value="{{ voucher.commission|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="contributions" data-money-col="contributions" value="{{ voucher.contributions|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="misc" data-money-col="misc" value="{{ voucher.misc|floatformat:2 }}"></td>
+                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="payment" data-money-col="payment" value="{{ voucher.payment|floatformat:2 }}"></td>
+                                <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_date" value="{{ voucher.check_date|date:'Y-m-d'|default:'' }}"></td>
+                                <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="bank" value="{{ voucher.bank|default:'' }}" placeholder="-"></td>
+                                <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_number" value="{{ voucher.check_number|default:'' }}" placeholder="-"></td>
                                 <td class="cv-actions-col" style="text-align:right; white-space:nowrap;">
                                     <button type="button" class="action cv-load-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
                                     <button type="button" class="action cv-delete-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="16" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
+                            <tr><td colspan="15" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
                             {% endfor %}
                         </tbody>
                         {% if recent_check_vouchers %}
                         <tfoot>
                             <tr>
                                 <td colspan="4" style="text-align:right;font-weight:700;">TOTAL ({{ cv_result_count }})</td>
-                                <td style="font-weight:700;">PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</td>
-                                <td class="cv-category-col"></td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;">PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</td>
+                                <td style="font-weight:700;" data-money-total="check_amount">PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="purchases">PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="expenses">PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="commission">PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="contributions">PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="misc">PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="payment">PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</td>
                                 <td colspan="3"></td>
                                 <td class="cv-actions-col"></td>
                             </tr>
@@ -2344,7 +2250,9 @@
                                     <a class="action" href="{% url 'view_sales_document_pdf' doc.id %}" target="_blank" rel="noopener"
                                         style="font-size:0.75rem;padding:4px 12px; margin-right:6px;">View</a>
                                     <a class="action brand-link" href="{% url 'download_sales_document_pdf' doc.id %}"
-                                        style="font-size:0.75rem;padding:4px 12px;">Download</a>
+                                        style="font-size:0.75rem;padding:4px 12px; margin-right:6px;">Download</a>
+                                    <button type="button" class="action sd-delete-doc" data-document-id="{{ doc.id }}"
+                                        style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
                                 </td>
                             </tr>
                             {% empty %}
@@ -2386,6 +2294,7 @@
 <script>
   window.__SALES_CONFIG__ = {
     savePdfUrl: "{% url 'save_sales_document_pdf' %}",
+    savedDocumentDeleteUrlTemplate: "{% url 'delete_sales_document_pdf' 0 %}",
     dashboardUrl: "{% url 'sales_dashboard' %}",
     activeTab: "{{ active_tab|default:'sales-tab' }}",
     saveQuotationUrl: "{% url 'save_quotation' %}",
@@ -2413,6 +2322,7 @@
     saveCheckVoucherUrl: "{% url 'save_check_voucher' %}",
     checkVoucherLatestJsonUrl: "{% url 'check_voucher_latest_json' %}",
     checkVoucherJsonUrlTemplate: "{% url 'check_voucher_json' 0 %}",
+    checkVoucherCellUrlTemplate: "{% url 'update_check_voucher_cell' 0 %}",
     checkVoucherDeleteUrlTemplate: "{% url 'delete_check_voucher' 0 %}",
     importCheckVoucherUrl: "{% url 'import_check_voucher_upload' %}",
     checkVoucherMonitoringXlsxUrl: "{% url 'check_voucher_monitoring_xlsx' %}",

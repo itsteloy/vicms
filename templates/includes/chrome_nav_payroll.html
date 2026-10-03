@@ -1,0 +1,19 @@
+    <nav class="sidebar-nav" aria-label="Payroll sections">
+      <div class="nav-label">Payroll</div>
+      <button class="tab-button" type="button" role="tab" title="Pay Runs" aria-selected="true" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> <span class="tab-label">Pay Runs</span>
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Deductions" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> <span class="tab-label">Deductions</span>
+        <span class="tab-badge">{{ deduction_configs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Approvals" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> <span class="tab-label">Approvals</span>
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Total payroll (this month)</span><strong>₱{{ runs.0.total_net|default:"0"|floatformat:2 }}</strong></div>
+      <div class="stat-row"><span>Pending approvals</span><strong>{{ runs|length }}</strong></div>
+    </div>

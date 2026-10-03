@@ -29,7 +29,6 @@
 
   <div class="kpi-grid">
     <div class="kpi"><div class="label">Outstanding</div><div class="value">₱{{ outstanding_balance|floatformat:2|intcomma }}</div></div>
-    <div class="kpi"><div class="label">Total billed</div><div class="value">₱{{ billed_total|floatformat:2|intcomma }}</div></div>
     <div class="kpi"><div class="label">Total paid</div><div class="value">₱{{ paid_total|floatformat:2|intcomma }}</div></div>
     <div class="kpi"><div class="label">Installment bal</div><div class="value">₱{{ customer.installment_balance|floatformat:2|intcomma }}</div></div>
     <div class="kpi"><div class="label">Prev unpaid bal</div><div class="value">₱{{ customer.previous_unpaid_balance|floatformat:2|intcomma }}</div></div>

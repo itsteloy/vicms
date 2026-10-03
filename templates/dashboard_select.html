@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/dashboard_select.css' %}?v=pw1">
+<link rel="stylesheet" href="{% static 'css/dashboards/dashboard_select.css' %}?v=sky1">
 {% endblock %}
 
 {% block content %}
@@ -25,6 +25,7 @@
       </a>
     </div>
     <div class="topbar-actions">
+      <button type="button" class="logout-btn theme-toggle-btn" data-theme-toggle aria-pressed="false" title="Toggle dark mode"><span data-theme-toggle-icon aria-hidden="true">🌙</span> <span data-theme-toggle-label>Dark</span></button>
       {% if is_authenticated %}
       <span class="user-badge">
         <span class="avatar">
@@ -82,13 +83,13 @@
       {% endif %}
         <div class="card-top">
           <span class="card-icon">
-            {% if module.name == "HR" %}👥
-            {% elif module.name == "Inventory" %}📦
-            {% elif module.name == "Sales" %}📈
-            {% elif module.name == "Payroll" %}💰
-            {% elif module.name == "Accounting" %}🧾
-            {% elif module.name == "Services" %}🔧
-            {% elif module.name == "Water Billing" %}💧
+            {% if module.name == "HR" %}
+            {% elif module.name == "Inventory" %}
+            {% elif module.name == "Sales" %}
+            {% elif module.name == "Payroll" %}
+            {% elif module.name == "Accounting" %}
+            {% elif module.name == "Services" %}
+            {% elif module.name == "Water Billing" %}
             {% else %}⚙️
             {% endif %}
           </span>
@@ -103,7 +104,6 @@
           </span>
           <span class="open-label">
             {% if module.can_access %}Open{% else %}Sign in{% endif %}
-            <span class="open-arrow">{% if module.can_access %}→{% else %}🔐{% endif %}</span>
           </span>
         </div>
       {% if module.can_access %}

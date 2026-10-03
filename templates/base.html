@@ -7,7 +7,18 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232563eb'/%3E%3Cpath d='M18 20h28v24H18z' fill='white'/%3E%3Cpath d='M24 26h16v4H24zM24 34h10v4H24z' fill='%232563eb'/%3E%3C/svg%3E">
   {% load static %}
   {% block extra_meta %}{% endblock %}
+  <script>
+    /* VICMS theme: set data-theme before first paint to avoid flash. Defaults to light, remembers last choice. */
+    try {
+      var _t = localStorage.getItem('vic-theme');
+      document.documentElement.dataset.theme = (_t === 'dark' || _t === 'light') ? _t : 'light';
+    } catch (e) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  </script>
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboards/theme.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
   {% block extra_css %}{% endblock %}
   <link rel="stylesheet" href="{% static 'css/flash_messages.css' %}?v=2">
   {% block extra_head %}{% endblock %}
@@ -15,6 +26,11 @@
 <body>
   {% block content %}{% endblock %}
   {% include "includes/flash_messages_modal.html" %}
+  <script>
+    window.__LOGOUT_URL__ = "{% url 'logout' %}";
+  </script>
+  <script src="{% static 'js/theme.js' %}?v=1" defer></script>
+  <script src="{% static 'js/logout_confirm.js' %}?v=1" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,56 @@
+    <nav class="sidebar-nav" aria-label="HR sections">
+      <div class="nav-label">Human Resources</div>
+      <button class="tab-button" type="button" role="tab" title="Employee Records" aria-selected="true" data-tab-target="employeesTab">
+        <span class="tab-icon">👤</span> <span class="tab-label">Employee Records</span>
+        <span class="tab-badge">{{ employee_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Attendance Sheets" aria-selected="false" data-tab-target="attendanceSheetsTab">
+        <span class="tab-icon">📊</span> <span class="tab-label">Attendance Sheets</span>
+        <span class="tab-badge">{{ punch_sheets|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Requests" aria-selected="false" data-tab-target="requestsTab">
+        <span class="tab-icon">📋</span> <span class="tab-label">Requests</span>
+        <span class="tab-badge">{{ pending_leave_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Documents" aria-selected="false" data-tab-target="documentsTab">
+        <span class="tab-icon">📄</span> <span class="tab-label">Documents</span>
+        <span class="tab-badge">2</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Job Orders" aria-selected="false" data-tab-target="jobOrderTab">
+        <span class="tab-icon">🧾</span> <span class="tab-label">Job Orders</span>
+        <span class="tab-badge">{{ job_order_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Idle Days" aria-selected="false" data-tab-target="idleDaysTab">
+        <span class="tab-icon">⏸</span> <span class="tab-label">Idle Days</span>
+        <span class="tab-badge">{{ idle_jobs_affected }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Official Business" aria-selected="false" data-tab-target="officialBusinessTab">
+        <span class="tab-icon">🧳</span> <span class="tab-label">Official Business</span>
+        <span class="tab-badge">{{ official_business_count }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Travel Order" aria-selected="false" data-tab-target="travelOrderTab">
+        <span class="tab-icon">🚗</span> <span class="tab-label">Travel Order</span>
+        <span class="tab-badge">{{ travel_order_count }}</span>
+      </button>
+      <div class="nav-label" style="margin-top:14px;">Payroll</div>
+      <button class="tab-button" type="button" role="tab" title="Pay Runs" aria-selected="false" data-tab-target="payrunsTab">
+        <span class="tab-icon">💰</span> <span class="tab-label">Pay Runs</span>
+        <span class="tab-badge">{{ runs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Deductions" aria-selected="false" data-tab-target="deductionsTab">
+        <span class="tab-icon">📉</span> <span class="tab-label">Deductions</span>
+        <span class="tab-badge">{{ deduction_configs|length }}</span>
+      </button>
+      <button class="tab-button" type="button" role="tab" title="Approvals" aria-selected="false" data-tab-target="approvalsTab">
+        <span class="tab-icon">✅</span> <span class="tab-label">Approvals</span>
+      </button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Total employees</span><strong>{{ employee_count }}</strong></div>
+      <div class="stat-row"><span>Active</span><strong>{{ active_employee_count }}</strong></div>
+      <div class="stat-row"><span>Companies</span><strong>{{ companies|length }}</strong></div>
+      <div class="stat-row"><span>Job orders</span><strong>{{ job_order_count }}</strong></div>
+      <div class="stat-row"><span>Official business</span><strong>{{ official_business_count }}</strong></div>
+      <div class="stat-row"><span>Travel orders</span><strong>{{ travel_order_count }}</strong></div>
+      <div class="stat-row"><span>Payroll runs</span><strong>{{ runs|length }}</strong></div>
+    </div>

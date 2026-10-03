@@ -5,7 +5,7 @@
   <div class="month-line">BILL FOR THE MONTH OF <span class="fill">{{ month_name|default:"________" }}</span></div>
 
   <div class="party">
-    <div><span class="label">NAME:</span> {{ customer.display_name|upper }}</div>
+    <div><span class="label">NAME:</span> <span class="party-name">{{ customer.display_name|upper }}</span></div>
     <div><span class="label">ADDRESS:</span> {{ customer.service_address|upper }}</div>
     <div><span class="label">METER NO.:</span> {{ customer.meter_number|upper }}</div>
     <div><span class="label">BILLING START:</span> {{ billing_start_label|default:"JUNE 29, 2026" }}</div>

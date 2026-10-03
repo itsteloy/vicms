@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer, net_water_bill_outstanding, net_water_only_outstanding, water_bill_carry_flags
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -18,7 +18,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -32,7 +32,7 @@ from .po_pdf import build_purchase_order_pdf
 from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, WithdrawalSlipForm, ServiceInvoiceForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper
+from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper, Prefetch
 from django.db.models.functions import Coalesce, Greatest
 import traceback
 import json
@@ -1160,7 +1160,7 @@ def sales_dashboard(request):
     cv_month = (request.GET.get('cv_month') or '').strip()
     cv_search = (request.GET.get('cv_search') or '').strip()
     cv_category = (request.GET.get('cv_category') or 'all').strip()
-    cv_report_qs = CheckVoucher.objects.prefetch_related('lines').all()
+    cv_report_qs = CheckVoucher.objects.prefetch_related('lines').order_by('cv_number')
     if cv_year.isdigit():
         cv_report_qs = cv_report_qs.filter(voucher_date__year=int(cv_year))
     if cv_month.isdigit() and 1 <= int(cv_month) <= 12:
@@ -2376,6 +2376,8 @@ def _check_voucher_to_payload(voucher):
         'payment_for': voucher.payment_for,
         'check_amount': str(voucher.check_amount),
         'cash_in_bank': str(voucher.cash_in_bank),
+        'withholding_tax': str(getattr(voucher, 'withholding_tax', 0) or Decimal('0')),
+        'withholding_label': getattr(voucher, 'withholding_label', '') or 'WITHHOLDING TAX',
         'bank': voucher.bank,
         'check_number': voucher.check_number,
         'check_date': voucher.check_date.isoformat() if voucher.check_date else '',
@@ -2416,8 +2418,19 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
         (_parse_ageing_decimal(line.get('debit_amount')) or Decimal('0'))
         for line in (payload.get('lines') or [])
     ).quantize(Decimal('0.01'))
-    cash_in_bank = _parse_ageing_decimal(payload.get('cash_in_bank')) or total_debit
-    check_amount = _parse_ageing_decimal(payload.get('check_amount')) or total_debit
+    withholding_tax = _parse_ageing_decimal(payload.get('withholding_tax')) or Decimal('0')
+    if withholding_tax < Decimal('0'):
+        withholding_tax = Decimal('0')
+    if withholding_tax > total_debit:
+        withholding_tax = total_debit
+    withholding_label = (payload.get('withholding_label') or 'WITHHOLDING TAX').strip()[:120] or 'WITHHOLDING TAX'
+    if withholding_tax > Decimal('0'):
+        # total debit - withholding tax = CASH IN BANK; check follows cash.
+        cash_in_bank = (total_debit - withholding_tax).quantize(Decimal('0.01'))
+        check_amount = cash_in_bank
+    else:
+        cash_in_bank = _parse_ageing_decimal(payload.get('cash_in_bank')) or total_debit
+        check_amount = _parse_ageing_decimal(payload.get('check_amount')) or total_debit
     fields = {
         'cv_number': (payload.get('cv_number') or '').strip()[:50],
         'voucher_date': _parse_iso_date(payload.get('voucher_date')),
@@ -2425,6 +2438,8 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
         'payment_for': (payload.get('payment_for') or '').strip(),
         'check_amount': check_amount,
         'cash_in_bank': cash_in_bank,
+        'withholding_tax': withholding_tax,
+        'withholding_label': withholding_label,
         'bank': (payload.get('bank') or '').strip()[:120],
         'check_number': (payload.get('check_number') or '').strip()[:60],
         'check_date': _parse_iso_date(payload.get('check_date')),
@@ -2440,7 +2455,8 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
     if all(fields[field] == Decimal('0') for field in _CHECK_VOUCHER_MONEY_FIELDS):
         # Manual entry without a breakdown: default the total to expenses so the
         # CV Monitoring report still attributes the amount to a category.
-        fields['expenses'] = check_amount
+        # Use the debit total (cash + withholding) since categories live on the debit side.
+        fields['expenses'] = total_debit if total_debit > Decimal('0') else check_amount
     if request_user is not None and getattr(request_user, 'is_authenticated', False):
         fields['created_by'] = request_user
     return fields
@@ -2467,15 +2483,45 @@ def save_check_voucher(request):
     try:
         with transaction.atomic():
             voucher_id = payload.get('id')
+            new_cv_number = (fields.get('cv_number') or '').strip()
+            voucher = None
             if voucher_id not in (None, '', 0, '0'):
-                voucher = get_object_or_404(CheckVoucher, pk=int(voucher_id))
-                for key, value in fields.items():
-                    if key != 'created_by':
-                        setattr(voucher, key, value)
-                voucher.save()
+                try:
+                    loaded = CheckVoucher.objects.get(pk=int(voucher_id))
+                except (CheckVoucher.DoesNotExist, ValueError, TypeError):
+                    loaded = None
+                if loaded is not None and loaded.cv_number == new_cv_number:
+                    # Same CV number → update the loaded voucher in place.
+                    voucher = loaded
+                    for key, value in fields.items():
+                        if key != 'created_by':
+                            setattr(voucher, key, value)
+                    voucher.save()
+                else:
+                    # New CV number (or stale id) → ADD a new row, never
+                    # rename/replace the loaded voucher.
+                    if CheckVoucher.objects.filter(cv_number=new_cv_number).exists():
+                        return JsonResponse(
+                            {'error': f'CV number {new_cv_number} already exists.'},
+                            status=400,
+                        )
+                    try:
+                        fields['created_by'] = request.user if request.user.is_authenticated else None
+                        voucher = CheckVoucher.objects.create(**fields)
+                    except IntegrityError:
+                        return JsonResponse(
+                            {'error': f'CV number {new_cv_number} already exists.'},
+                            status=400,
+                        )
             else:
-                fields['created_by'] = request.user if request.user.is_authenticated else None
-                voucher = CheckVoucher.objects.create(**fields)
+                try:
+                    fields['created_by'] = request.user if request.user.is_authenticated else None
+                    voucher = CheckVoucher.objects.create(**fields)
+                except IntegrityError:
+                    return JsonResponse(
+                        {'error': f'CV number {new_cv_number} already exists.'},
+                        status=400,
+                    )
             line_count = _replace_check_voucher_lines(voucher, payload.get('lines') or [])
             if not line_count:
                 return JsonResponse({'error': 'At least one debit line with content is required.'}, status=400)
@@ -2565,8 +2611,82 @@ def delete_check_voucher(request, voucher_id):
     return JsonResponse({'ok': True})
 
 
+_CV_CELL_TEXT_FIELDS = {
+    'cv_number': 50,
+    'payee': 300,
+    'payment_for': None,
+    'bank': 120,
+    'check_number': 60,
+}
+_CV_CELL_MONEY_FIELDS = (
+    'check_amount',
+    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment',
+)
+_CV_CELL_DATE_FIELDS = ('voucher_date', 'check_date')
+
+
+@login_required
+@require_POST
+def update_check_voucher_cell(request, voucher_id):
+    """Inline edit one CV Monitoring cell (monitoring table inputs)."""
+    voucher = get_object_or_404(CheckVoucher, pk=voucher_id)
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+    field = (payload.get('field') or '').strip()
+    raw_value = payload.get('value', '')
+    if isinstance(raw_value, str):
+        raw_value = raw_value.strip()
+    try:
+        if field in _CV_CELL_MONEY_FIELDS:
+            value = _parse_ageing_decimal(raw_value) or Decimal('0')
+            if value < 0:
+                return JsonResponse({'error': 'Amount cannot be negative.'}, status=400)
+            setattr(voucher, field, value)
+        elif field in _CV_CELL_DATE_FIELDS:
+            if raw_value in (None, ''):
+                if field == 'voucher_date':
+                    return JsonResponse({'error': 'Date is required.'}, status=400)
+                setattr(voucher, field, None)
+            else:
+                parsed = _parse_iso_date(raw_value)
+                if not parsed:
+                    return JsonResponse({'error': 'Invalid date.'}, status=400)
+                setattr(voucher, field, parsed)
+        elif field in _CV_CELL_TEXT_FIELDS:
+            text = '' if raw_value is None else str(raw_value)
+            if field == 'cv_number' and not text.strip():
+                return JsonResponse({'error': 'CV number is required.'}, status=400)
+            if field == 'payee' and not text.strip():
+                return JsonResponse({'error': 'Issued To is required.'}, status=400)
+            max_len = _CV_CELL_TEXT_FIELDS[field]
+            if max_len:
+                text = text.strip()[:max_len]
+            setattr(voucher, field, text)
+        else:
+            return JsonResponse({'error': 'Field is not editable.'}, status=400)
+        voucher.save()
+    except Exception as exc:
+        if 'unique' in str(exc).lower() or 'cv_number' in str(exc).lower():
+            return JsonResponse({'error': 'CV number already exists.'}, status=400)
+        return JsonResponse({'error': 'Could not save change.'}, status=400)
+    return JsonResponse({
+        'ok': True,
+        'id': voucher.id,
+        'field': field,
+        'check_amount': str(voucher.check_amount or Decimal('0')),
+        'purchases': str(voucher.purchases or Decimal('0')),
+        'expenses': str(voucher.expenses or Decimal('0')),
+        'commission': str(voucher.commission or Decimal('0')),
+        'contributions': str(voucher.contributions or Decimal('0')),
+        'misc': str(voucher.misc or Decimal('0')),
+        'payment': str(voucher.payment or Decimal('0')),
+    })
+
+
 def _filtered_check_vouchers(request):
-    qs = CheckVoucher.objects.prefetch_related('lines').all()
+    qs = CheckVoucher.objects.prefetch_related('lines').order_by('cv_number')
     year = (request.GET.get('cv_year') or '').strip()
     month = (request.GET.get('cv_month') or '').strip()
     search = (request.GET.get('cv_search') or '').strip()
@@ -2701,6 +2821,19 @@ def download_sales_document_pdf(request, document_id):
     return _sales_document_pdf_response(archive, inline=False)
 
 
+@login_required
+@require_POST
+def delete_sales_document_pdf(request, document_id):
+    archive = get_object_or_404(SalesDocumentArchive, pk=document_id)
+    if archive.pdf:
+        try:
+            archive.pdf.delete(save=False)
+        except Exception:
+            pass
+    archive.delete()
+    return JsonResponse({'ok': True})
+
+
 def _inventory_resolve_delivery_item(inventory_item_id, item_name, description, quantity, apply_qty=True):
     """
     Find or create the InventoryItem for a stock delivery.
@@ -2813,6 +2946,20 @@ def inventory_dashboard(request):
                 return JsonResponse({'deleted': bool(deleted_count)})
             messages.success(request, "Item deleted successfully.")
             return redirect('inventory_dashboard')
+
+        if action == 'reveal_all_prices':
+            if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+                return redirect('inventory_dashboard')
+            password = request.POST.get('password', '')
+            if not password:
+                return JsonResponse({'error': 'Password is required to show the price.'}, status=400)
+            if not _inventory_delete_password_ok(request.user, password):
+                return JsonResponse({'error': 'Incorrect password.'}, status=400)
+            prices = {}
+            for item in InventoryItem.objects.all().only('id', 'price'):
+                price = (item.price or Decimal('0')).quantize(Decimal('0.01'))
+                prices[str(item.pk)] = f'{price:.2f}'
+            return JsonResponse({'ok': True, 'prices': prices})
 
         if action == 'reveal_item_price':
             if request.headers.get('x-requested-with') != 'XMLHttpRequest':
@@ -3315,7 +3462,7 @@ def inventory_dashboard(request):
             'stock_deliveries': stock_deliveries,
             'total_stock': sum(item.stock_available for item in inventory_items),
             'low_stock_count': sum(1 for item in inventory_items if item.stock_available < 10),
-            'withdrawal_slips': WithdrawalSlip.objects.prefetch_related('lines').all()[:8],
+            'withdrawal_slips': WithdrawalSlip.objects.prefetch_related('lines').order_by('-created_at')[:20],
             'withdrawal_slip_count': WithdrawalSlip.objects.count(),
             'next_slip_number': WithdrawalSlip.generate_slip_number(),
             'ws_report_year': ws_report_year,
@@ -5743,48 +5890,131 @@ def _water_open_bills():
     )
 
 
-def _water_annotate_outstanding(qs):
-    """Outstanding = signed bill balances (negative = advance) + Account Information seed."""
-    money = DecimalField(max_digits=14, decimal_places=2)
-    outstanding_sq = (
-        WaterBill.objects.filter(customer_id=OuterRef('pk'))
+def _water_payment_bill_options():
+    """Dropdown options: all open bills so the user can pick the month.
+
+    Shows every unpaid / partial bill (e.g. GALENDEZ, ALMERA (AUGUST 2026)
+    and GALENDEZ, ALMERA (SEPTEMBER 2026)). ``carried_in`` is kept for the
+    label so collectors can see how much of the total duplicates older debt.
+    Paying an older month auto-adjusts the next month's Previous Bill
+    (Unpaid) via _water_adjust_downstream_bills.
+    """
+    bills = list(
+        _water_open_bills().select_related('customer').order_by('customer_id', 'bill_date', 'pk')
+    )
+    by_customer = defaultdict(list)
+    for bill in bills:
+        by_customer[bill.customer_id].append(bill)
+    options = []
+    for rows in by_customer.values():
+        flags = water_bill_carry_flags(rows)
+        for bill in rows:
+            flag = flags.get(bill.pk) or {}
+            bill.carried_in = flag.get('carried_in', Decimal('0.00'))
+            try:
+                period = (bill.billing_period or '')[:7]
+                if len(period) == 7:
+                    bill.payment_month_long = (
+                        f'{_water_bill_month_name(bill.billing_period)} {period[:4]}'
+                    ).strip()
+                else:
+                    bill.payment_month_long = bill.billing_month_label
+            except Exception:
+                bill.payment_month_long = bill.billing_month_label
+            options.append(bill)
+    options.sort(
+        key=lambda b: (
+            (b.customer.account_number or ''),
+            (b.bill_date or date.min).isoformat(),
+            b.pk or 0,
+        )
+    )
+    return options
+
+
+def _water_bill_carry_cover(bill):
+    """Newest later bill fully covering this bill's balance, or None.
+
+    Guards payment POSTs against superseded bills (e.g. resubmitted forms).
+    """
+    rows = list(
+        WaterBill.objects.filter(customer_id=bill.customer_id)
         .exclude(status='cancelled')
-        .values('customer_id')
-        .annotate(
-            total=Sum(
-                ExpressionWrapper(
-                    F('total_amount') - F('amount_paid'),
-                    output_field=money,
-                )
-            )
-        )
-        .values('total')[:1]
+        .order_by('bill_date', 'pk')
     )
-    return qs.annotate(
-        annotated_outstanding=ExpressionWrapper(
-            Coalesce(Subquery(outstanding_sq, output_field=money), Value(Decimal('0.00')), output_field=money)
-            + Coalesce(F('previous_unpaid_balance'), Value(Decimal('0.00')), output_field=money),
-            output_field=money,
+    open_rows = [
+        b for b in rows if (b.water_balance_due or Decimal('0.00')) > 0
+    ]
+    flags = water_bill_carry_flags(open_rows)
+    flag = flags.get(bill.pk) or {}
+    return flag.get('superseded_by')
+
+
+def _water_annotate_outstanding(qs):
+    """Attach net outstanding per customer (evaluates the queryset).
+
+    Must be applied LAST in each caller, after all filters/ordering: bills are
+    prefetched once and ``annotated_outstanding`` is computed in Python as net
+    bill balances (carried snapshots de-duplicated) + Account Information seed.
+    """
+    qs = qs.prefetch_related(
+        Prefetch(
+            'bills',
+            queryset=WaterBill.objects.exclude(status='cancelled').order_by('bill_date', 'pk'),
+            to_attr='outstanding_bills',
         )
     )
+    for customer in qs:
+        bills = getattr(customer, 'outstanding_bills', None)
+        if bills is None:
+            bills = list(customer.bills.exclude(status='cancelled').order_by('bill_date', 'pk'))
+        customer.annotated_water_unpaid = net_water_only_outstanding(
+            bills,
+            seed=customer.previous_unpaid_balance or Decimal('0.00'),
+            signed=True,
+        )
+        customer.annotated_outstanding = customer.annotated_water_unpaid + (
+            customer.installment_balance or Decimal('0.00')
+        )
+    return qs
 
 
 def _water_signed_bill_balance(customer):
-    """Sum of (total - amount_paid) for non-cancelled bills; negative means advance credit."""
-    money = DecimalField(max_digits=14, decimal_places=2)
-    total = (
-        WaterBill.objects.filter(customer=customer)
-        .exclude(status='cancelled')
-        .aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F('total_amount') - F('amount_paid'),
-                    output_field=money,
-                )
-            )
-        )['total']
+    """Net (total - amount_paid) for non-cancelled bills, de-duplicating carried snapshots; negative means advance credit."""
+    bills = list(WaterBill.objects.filter(customer=customer).exclude(status='cancelled'))
+    return net_water_bill_outstanding(bills, signed=True)
+
+
+def _water_signed_water_balance(customer):
+    """Net WATER-ONLY (total − installment − paid) for previous_bill_unpaid.
+
+    Installment is billed again via its own column on the next statement,
+    so it must not be folded into previous unpaid or it duplicates.
+    """
+    bills = list(WaterBill.objects.filter(customer=customer).exclude(status='cancelled'))
+    return net_water_only_outstanding(bills, signed=True)
+
+
+def _water_net_outstanding_total(bills):
+    """Sum of per-customer true collectible (floored, seedless) for bill rows.
+
+    Later statements embed a frozen previous_bill_unpaid snapshot of older
+    debt, so a plain sum of balances double-counts the carried amount.
+    Installment snapshots repeat per bill, so count water-only net plus the
+    customer's current installment once.
+    """
+    by_customer = defaultdict(list)
+    for bill in bills:
+        by_customer[bill.customer_id].append(bill)
+    customer_ids = list(by_customer.keys())
+    installs = dict(
+        WaterCustomer.objects.filter(pk__in=customer_ids).values_list('pk', 'installment_balance')
     )
-    return total or Decimal('0.00')
+    total = Decimal('0.00')
+    for cid, rows in by_customer.items():
+        water = net_water_only_outstanding(rows)
+        total += water + (installs.get(cid) or Decimal('0.00'))
+    return max(total, Decimal('0.00'))
 
 
 def _water_backfill_overpayment_amount_paid():
@@ -5909,23 +6139,12 @@ def _water_overview_stats():
     )
     bills_generated = WaterBill.objects.filter(bill_date__gte=month_start).exclude(status='cancelled').count()
     open_bills = WaterBill.objects.exclude(status='cancelled')
-    totals = open_bills.aggregate(
+    billed_total = open_bills.aggregate(
         billed=Coalesce(Sum('total_amount'), Value(0), output_field=money),
-        outstanding=Coalesce(
-            Sum(
-                Greatest(
-                    F('total_amount') - F('amount_paid'),
-                    Value(Decimal('0.00')),
-                ),
-                output_field=money,
-            ),
-            Value(0),
-            output_field=money,
-        ),
-    )
-    billed_total = totals['billed'] or Decimal('0.00')
-    # Per-bill balance due — do not net overpayments across bills.
-    outstanding = totals['outstanding'] or Decimal('0.00')
+    )['billed'] or Decimal('0.00')
+    # Net collectible — later statements embed a frozen previous_bill_unpaid
+    # snapshot of older debt, so a plain sum of balances double-counts it.
+    outstanding = _water_net_outstanding_total(list(open_bills))
     collection_rate = Decimal('0.00')
     if billed_total > 0:
         collected = max(billed_total - outstanding, Decimal('0.00'))
@@ -6013,7 +6232,7 @@ def _water_filtered_customers(request):
     customer_q = request.GET.get('customer_q', '').strip()
     customer_zone = request.GET.get('customer_zone', '').strip()
     customer_status = request.GET.get('customer_status', '').strip()
-    customers_qs = _water_annotate_outstanding(WaterCustomer.objects.select_related('zone'))
+    customers_qs = WaterCustomer.objects.select_related('zone')
     if customer_q:
         customers_qs = customers_qs.filter(
             Q(account_number__icontains=customer_q)
@@ -6027,12 +6246,63 @@ def _water_filtered_customers(request):
         customers_qs = customers_qs.filter(zone_id=customer_zone)
     if customer_status:
         customers_qs = customers_qs.filter(connection_status=customer_status)
+    customers_qs = _water_annotate_outstanding(customers_qs)
     return customers_qs, customer_q, customer_zone, customer_status
+
+
+def _water_billing_month_options():
+    """Distinct bill months (YYYY-MM) for history filters, newest first."""
+    periods = set()
+    try:
+        for row in WaterMeterReading.objects.exclude(billing_period='').values_list('billing_period', flat=True).distinct():
+            value = (row or '')[:7]
+            if len(value) == 7 and value[4] == '-' and value[:4].isdigit() and value[5:7].isdigit():
+                periods.add(value)
+    except Exception:
+        pass
+    try:
+        for row in WaterBill.objects.exclude(billing_period='').values_list('billing_period', flat=True).distinct():
+            value = (row or '')[:7]
+            if len(value) == 7 and value[4] == '-' and value[:4].isdigit() and value[5:7].isdigit():
+                periods.add(value)
+    except Exception:
+        pass
+    options = []
+    for value in sorted(periods, reverse=True):
+        try:
+            label = f'{_water_bill_month_name(value)} {value[:4]}'
+        except Exception:
+            label = value
+        options.append({'value': value, 'label': label.strip() or value})
+    return options
+
+
+def _water_valid_billing_month(value):
+    value = (value or '').strip()[:7]
+    if len(value) == 7 and value[4] == '-' and value[:4].isdigit() and value[5:7].isdigit():
+        try:
+            month = int(value[5:7])
+            if 1 <= month <= 12:
+                return value
+        except ValueError:
+            pass
+    return ''
 
 
 def _water_filtered_readings(request):
     reading_q = request.GET.get('reading_q', '').strip()
     reading_zone = request.GET.get('reading_zone', '').strip()
+    reading_month = _water_valid_billing_month(request.GET.get('reading_month', ''))
+    reading_printed = (request.GET.get('reading_printed', '') or '').strip().lower()
+    if reading_printed not in ('hide', 'only', 'show', 'all', ''):
+        reading_printed = 'show'
+    if reading_printed in ('', 'all'):
+        reading_printed = 'show'
+    reading_paid = (request.GET.get('reading_paid', '') or '').strip().lower()
+    if reading_paid not in ('hide', 'only', 'show', 'all', ''):
+        reading_paid = 'hide'
+    if reading_paid in ('', 'all'):
+        reading_paid = 'hide'
     readings_qs = WaterMeterReading.objects.select_related(
         'customer', 'customer__zone', 'bill'
     ).prefetch_related('bill__payments')
@@ -6046,11 +6316,14 @@ def _water_filtered_readings(request):
         ).distinct()
     if reading_zone.isdigit():
         readings_qs = readings_qs.filter(customer__zone_id=reading_zone)
-    return readings_qs, reading_q, reading_zone
+    if reading_month:
+        readings_qs = readings_qs.filter(billing_period__startswith=reading_month)
+    return readings_qs, reading_q, reading_zone, reading_printed, reading_paid, reading_month
 
 
 def _water_filtered_payments(request):
     payment_q = request.GET.get('payment_q', '').strip()
+    payment_month = _water_valid_billing_month(request.GET.get('payment_month', ''))
     payments_qs = WaterPayment.objects.select_related('customer', 'bill')
     if payment_q:
         payments_qs = payments_qs.filter(
@@ -6063,7 +6336,9 @@ def _water_filtered_payments(request):
             | Q(customer__last_name__icontains=payment_q)
             | Q(bill__bill_number__icontains=payment_q)
         ).distinct()
-    return payments_qs, payment_q
+    if payment_month:
+        payments_qs = payments_qs.filter(bill__billing_period__startswith=payment_month)
+    return payments_qs, payment_q, payment_month
 
 
 def _water_all_customers_qs():
@@ -6078,8 +6353,8 @@ def _water_all_customers_qs():
                 'bills__due_date',
                 filter=~Q(bills__status__in=['paid', 'cancelled']),
             ),
-        )
-    ).order_by('account_number')
+        ).order_by('account_number')
+    )
 
 
 def _water_aging_buckets(unpaid_bills):
@@ -6113,8 +6388,8 @@ def _water_disconnect_candidates():
                 'bills__due_date',
                 filter=~Q(bills__status__in=['paid', 'cancelled']) & Q(bills__total_amount__gt=F('bills__amount_paid')),
             ),
-        )
-    ).order_by('account_number')
+        ).order_by('account_number')
+    )
     candidates = []
     for customer in qs:
         months = _water_months_unpaid_from_date(getattr(customer, 'oldest_unpaid', None))
@@ -6179,19 +6454,45 @@ def _water_tab_context(request, tab):
         })
     elif tab == 'readingsBillingTab':
         _water_backfill_overpayment_amount_paid()
-        readings_qs, reading_q, reading_zone = _water_filtered_readings(request)
-        page_obj = _water_paginate(readings_qs, request)
+        readings_qs, reading_q, reading_zone, reading_printed, reading_paid, reading_month = _water_filtered_readings(request)
+        # History defaults to unpaid work: readings with no bill yet plus
+        # generated bills that are unpaid (including printed ones). Paid and
+        # partially paid bills stay in the database but are hidden unless the
+        # Paid filter unhides them (they remain visible in AR, Payments, Reports).
+        unprinted_qs = readings_qs
+        # Hide/Unhide paid bills toggle. Reading-only rows (no bill yet) always
+        # stay visible except in 'only' (paid bills only) mode.
+        if reading_paid == 'hide':
+            unprinted_qs = unprinted_qs.exclude(
+                Q(bill__status='paid') | Q(bill__status='partial')
+            )
+        elif reading_paid == 'only':
+            unprinted_qs = unprinted_qs.filter(
+                Q(bill__status='paid') | Q(bill__status='partial')
+            )
+        # Hide/Unhide printed billings toggle. Reading-only rows (no bill yet)
+        # always stay visible; 'hide' drops bills already printed at least once,
+        # 'only' shows just the printed ones.
+        if reading_printed == 'hide':
+            unprinted_qs = unprinted_qs.exclude(bill__print_count__gt=0)
+        elif reading_printed == 'only':
+            unprinted_qs = unprinted_qs.filter(bill__print_count__gt=0)
+        page_obj = _water_paginate(unprinted_qs, request)
         ctx.update({
             'all_customers': _water_all_customers_qs(),
             'readings': page_obj,
             'page_obj': page_obj,
             'reading_q': reading_q,
             'reading_zone': reading_zone,
+            'reading_printed': reading_printed,
+            'reading_paid': reading_paid,
+            'reading_month': reading_month,
+            'reading_months': _water_billing_month_options(),
             'water_zones': _water_zones_qs(),
             'next_bill_number': WaterBill.generate_bill_number(),
         })
     elif tab == 'paymentsTab':
-        payments_qs, payment_q = _water_filtered_payments(request)
+        payments_qs, payment_q, payment_month = _water_filtered_payments(request)
         page_obj = _water_paginate(payments_qs, request)
         shared_ars = set(
             WaterPayment.objects.exclude(ar_number__isnull=True)
@@ -6204,6 +6505,14 @@ def _water_tab_context(request, tab):
         for payment in page_obj.object_list:
             payment.ar_shared = bool(payment.ar_number and payment.ar_number in shared_ars)
         other_qs = WaterOtherPayment.objects.all()
+        if payment_month:
+            try:
+                other_qs = other_qs.filter(
+                    payment_date__year=int(payment_month[:4]),
+                    payment_date__month=int(payment_month[5:7]),
+                )
+            except (ValueError, TypeError):
+                pass
         if payment_q:
             other_qs = other_qs.filter(
                 Q(ar_number__icontains=payment_q)
@@ -6216,8 +6525,10 @@ def _water_tab_context(request, tab):
             'payments': page_obj,
             'page_obj': page_obj,
             'payment_q': payment_q,
+            'payment_month': payment_month,
+            'payment_months': _water_billing_month_options(),
             'other_payments': other_qs[:100],
-            'open_bills_for_payment': _water_open_bills(),
+            'open_bills_for_payment': _water_payment_bill_options(),
             'installment_customers': WaterCustomer.objects.filter(
                 installment_balance__gt=0,
             ).select_related('zone').order_by('last_name', 'first_name'),
@@ -6227,10 +6538,7 @@ def _water_tab_context(request, tab):
     elif tab == 'arTab':
         open_bills = list(_water_open_bills())
         page_obj = _water_paginate(open_bills, request)
-        total_receivables = sum(
-            (bill.balance_due for bill in open_bills),
-            Decimal('0.00'),
-        )
+        total_receivables = _water_net_outstanding_total(open_bills)
         ctx.update({
             'unpaid_bills': page_obj,
             'page_obj': page_obj,
@@ -6982,7 +7290,9 @@ def _water_create_reading(request):
             raise ValueError('Previous reading cannot be negative.')
         current = int(current_raw)
         parsed_reading_date = _water_parse_date(reading_date, required=True)
-        outstanding = _water_signed_bill_balance(customer)
+        # Water-only: installment is added again via its own column, so it
+        # must not be folded into previous unpaid (avoids double-count).
+        outstanding = _water_signed_water_balance(customer)
         old_seed = customer.previous_unpaid_balance or Decimal('0.00')
         default_unpaid = outstanding + old_seed
         unpaid_raw = request.POST.get('previous_bill_unpaid', '').strip()
@@ -7408,7 +7718,7 @@ def print_water_bills_batch(request):
 
     if not bill_ids:
         messages.error(request, 'Select at least one bill to print.')
-        return redirect(f"{reverse('water_billing_dashboard')}?tab=readingsBillingTab")
+        return redirect(f"{reverse('water_billing_dashboard')}?tab=readingsBillingTab&reading_view=history")
 
     truncated = False
     if len(bill_ids) > 6:
@@ -7426,7 +7736,18 @@ def print_water_bills_batch(request):
 
     if not ordered_bills:
         messages.error(request, 'No printable bills found for the selected IDs.')
-        return redirect(f"{reverse('water_billing_dashboard')}?tab=readingsBillingTab")
+        return redirect(f"{reverse('water_billing_dashboard')}?tab=readingsBillingTab&reading_view=history")
+
+    # ── Printed tracking: record this print run before rendering ──
+    now = timezone.now()
+    previous_counts = {b.id: (b.print_count or 0) for b in ordered_bills}
+    WaterBill.objects.filter(pk__in=[b.id for b in ordered_bills]).update(
+        print_count=F('print_count') + 1,
+        last_printed_at=now,
+    )
+    for bill in ordered_bills:
+        bill.print_count = previous_counts.get(bill.id, 0) + 1
+        bill.last_printed_at = now
 
     receipt_items = [_water_bill_statement_context(bill) for bill in ordered_bills]
     return render(request, 'water_bills_batch_print.html', {
@@ -7561,6 +7882,61 @@ def _water_bill_payment_split(bill, payment_amount, prior_applied):
     return applied, overpay
 
 
+def _water_adjust_downstream_bills(customer, paid_bill, applied_amount):
+    """Auto-adjust the next month(s) after paying an older month.
+
+    Later statements embed a frozen ``previous_bill_unpaid`` snapshot of
+    older debt. When the user explicitly pays AUGUST while SEPTEMBER is
+    open, SEPTEMBER's snapshot must drop by the amount just covered,
+    otherwise the same pesos stay due twice. Walks bills newer than
+    ``paid_bill`` oldest-first, reducing ``previous_bill_unpaid`` (floored
+    at zero) and recomputing totals. Linked readings are kept in sync.
+    Returns the number of downstream bills updated.
+    """
+    try:
+        applied = applied_amount or Decimal('0.00')
+    except Exception:
+        applied = Decimal('0.00')
+    if applied <= 0:
+        return 0
+    rows = list(
+        WaterBill.objects.filter(customer=customer)
+        .exclude(status='cancelled')
+        .select_related('meter_reading')
+        .order_by('bill_date', 'pk')
+    )
+    try:
+        start = next(
+            i for i, b in enumerate(rows) if b.pk == paid_bill.pk
+        )
+    except StopIteration:
+        return 0
+    remaining = applied
+    updated = 0
+    for later in rows[start + 1:]:
+        if remaining <= 0:
+            break
+        prev = later.previous_bill_unpaid or Decimal('0.00')
+        if prev <= 0:
+            continue
+        reduce_by = min(prev, remaining)
+        later.previous_bill_unpaid = (prev - reduce_by).quantize(Decimal('0.01'))
+        later.recompute_totals()
+        later.save(update_fields=[
+            'previous_bill_unpaid', 'total_amount', 'status', 'updated_at',
+        ])
+        try:
+            reading = later.meter_reading
+            if reading is not None and str(getattr(reading, 'customer_id', '')) == str(customer.pk):
+                reading.previous_bill_unpaid = later.previous_bill_unpaid
+                reading.save(update_fields=['previous_bill_unpaid'])
+        except Exception:
+            pass
+        remaining -= reduce_by
+        updated += 1
+    return updated
+
+
 def _water_create_payment(request):
     payment_purpose = request.POST.get('payment_purpose', WaterPayment.PURPOSE_BILL).strip().lower()
     if payment_purpose not in (
@@ -7650,6 +8026,8 @@ def _water_create_payment(request):
         if bill.status == 'cancelled':
             messages.error(request, 'Cannot pay a cancelled bill.')
             return _water_redirect('paymentsTab')
+        # Older months are payable by explicit month pick; downstream
+        # Previous Bill (Unpaid) auto-adjusts after save.
         customer = bill.customer
         install_balance = customer.installment_balance or Decimal('0.00')
         if install_balance <= 0:
@@ -7685,6 +8063,7 @@ def _water_create_payment(request):
                 bill.amount_paid = paid_before + bill_amount
                 bill.refresh_status()
                 bill.save(update_fields=['amount_paid', 'status', 'updated_at'])
+                _water_adjust_downstream_bills(customer, bill, _applied)
 
                 install_receipt = WaterPayment.generate_receipt_number()
                 install_payment = WaterPayment.objects.create(
@@ -7749,11 +8128,14 @@ def _water_create_payment(request):
         if bill.status == 'cancelled':
             messages.error(request, 'Cannot pay a cancelled bill.')
             return _water_redirect('paymentsTab')
+        # Older months are payable by explicit month pick; downstream
+        # Previous Bill (Unpaid) auto-adjusts after save.
         customer = bill.customer
 
     try:
         with transaction.atomic():
             advance_credit = Decimal('0.00')
+            downstream_updated = 0
             if payment_purpose == WaterPayment.PURPOSE_INSTALLATION:
                 payment = WaterPayment.objects.create(
                     receipt_number=receipt_number,
@@ -7797,16 +8179,24 @@ def _water_create_payment(request):
                 bill.amount_paid = paid_before + amount
                 bill.refresh_status()
                 bill.save(update_fields=['amount_paid', 'status', 'updated_at'])
+                downstream_updated = _water_adjust_downstream_bills(customer, bill, _applied)
                 audit_detail = (
                     f'{bill.bill_number} amount={amount} method={payment.payment_method}'
                 )
                 if advance_credit > 0:
                     audit_detail += f' advance={advance_credit}'
+                if downstream_updated:
+                    audit_detail += f' downstream_adjusted={downstream_updated}'
                 _water_audit(
                     request, 'Recorded payment', 'WaterPayment', payment.receipt_number,
                     audit_detail,
                 )
-        if advance_credit > 0:
+        if downstream_updated:
+            messages.success(
+                request,
+                f'Payment {payment.receipt_number} recorded and next month adjusted.',
+            )
+        elif advance_credit > 0:
             messages.success(
                 request,
                 f'Payment {payment.receipt_number} recorded. '

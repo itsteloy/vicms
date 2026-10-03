@@ -1,0 +1,45 @@
+{% load static %}
+{# Single shared sidebar + header. Per-dashboard nav tabs via chrome_nav_template. #}
+{# Params: sidebar_id, sidebar_key, chrome_title, chrome_subtitle, chrome_nav_template #}
+<aside class="sidebar" id="{{ sidebar_id|default:'appSidebar' }}" role="navigation" aria-label="{{ chrome_title|default:'Dashboard' }} navigation">
+  <div class="sidebar-brand">
+    <span class="logo">
+      <img src="{% static 'viclogo_white.png' %}" alt="VERSATEC logo" class="logo-icon">
+      <span class="logo-text">VERSATEC <small>Management System</small></span>
+    </span>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-controls="{{ sidebar_id|default:'appSidebar' }}" aria-expanded="true" title="Collapse sidebar">
+      <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+      <span class="sr-only">Collapse sidebar</span>
+    </button>
+  </div>
+  {% if chrome_nav_template %}{% include chrome_nav_template %}{% endif %}
+  <div class="sidebar-foot">
+    <button type="button" class="theme-toggle--sidebar" data-theme-toggle aria-pressed="false" title="Toggle dark mode"><span data-theme-toggle-icon aria-hidden="true">🌙</span> <span data-theme-toggle-label>Dark</span></button>
+    <a href="{% url 'logout' %}">🚪 Logout</a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-leading">
+      <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-controls="{{ sidebar_id|default:'appSidebar' }}" aria-expanded="false" title="Open menu">
+        <span class="mobile-nav-bars" aria-hidden="true"></span>
+        <span class="sr-only">Open menu</span>
+      </button>
+      <div class="greeting">
+        <h2>{{ chrome_title|default:'Dashboard' }}</h2>
+        {% if chrome_subtitle %}<p>{{ chrome_subtitle }}</p>{% endif %}
+      </div>
+    </div>
+  </header>
+  <script>
+    (function () {
+      try {
+        var root = document.currentScript.closest('.dashboard-wrapper');
+        if (root && !root.querySelector('.sidebar-nav .tab-button')) {
+          root.classList.add('no-sidebar-tabs');
+          root.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.add('is-active'); });
+        }
+      } catch (e) {}
+    })();
+  </script>

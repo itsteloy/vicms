@@ -1,3 +1,4 @@
+/* NOTE: sidebar/header (.sidebar/.topbar) + brand tokens live in chrome.css (base #0284c7). */
 /* ── reset / base ── */
 *,
 *::before,
@@ -8,14 +9,10 @@
   --ink: #101828;
   --muted: #667085;
   --line: #d0d5dd;
-  --brand: #0f766e;
-  --brand-dark: #134e4a;
-  --brand-light: #ecfdf3;
   --panel: #ffffff;
   --soft: #f8fafc;
   --danger: #b42318;
   --success: #027a48;
-  --sidebar-width: 300px;
   --radius: 14px;
   --shadow: 0 18px 42px rgba(16, 24, 40, 0.07);
 }
@@ -40,202 +37,7 @@ h1, h2, h3, h4,
   font-family: Manrope, sans-serif;
 }
 
-.dashboard-wrapper {
-  display: flex;
-  min-height: 100vh;
-}
-
-/* ── sidebar ── */
-.sidebar {
-  position: sticky;
-  top: 0;
-  flex: 0 0 var(--sidebar-width);
-  width: var(--sidebar-width);
-  height: 100vh;
-  overflow-x: hidden;
-  overflow-y: auto;
-  background: var(--brand);
-  color: #e6f0f0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  z-index: 100;
-  transition: width 0.2s ease, flex-basis 0.2s ease;
-}
-.sidebar-brand {
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.sidebar-brand .logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: #fff;
-  min-width: 0;
-  flex: 1;
-}
-.sidebar-brand .logo-icon {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-.sidebar-brand .logo-text {
-  font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-.sidebar-brand .logo-text small {
-  display: block;
-  font-weight: 400;
-  font-size: 0.7rem;
-  opacity: 0.6;
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-}
-.sidebar-nav {
-  padding: 20px 16px 12px;
-  flex-shrink: 0;
-}
-.sidebar-nav .nav-label {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.4;
-  padding: 0 12px 10px;
-  font-weight: 700;
-}
-.sidebar-nav .tab-button {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.836);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-  position: relative;
-}
-.sidebar-nav .tab-button .tab-icon {
-  font-size: 1.2rem;
-  width: 24px;
-  text-align: center;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-.sidebar-nav .tab-button:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-}
-.sidebar-nav .tab-button[aria-selected="true"] {
-  background: var(--brand-dark);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(3, 255, 255, 0.3);
-}
-.sidebar-nav .tab-button[aria-selected="true"] .tab-icon {
-  opacity: 1;
-}
-.sidebar-nav .tab-button .tab-badge {
-  margin-left: auto;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
-}
-.sidebar-nav .tab-button[aria-selected="true"] .tab-badge {
-  background: rgba(15, 118, 110, 0.4);
-  color: #fff;
-}
-
-.sidebar-stats {
-  padding: 16px 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  margin-top: 4px;
-  flex-shrink: 0;
-}
-.sidebar-stats .stat-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-.sidebar-stats .stat-row strong {
-  color: #fff;
-  font-weight: 600;
-}
-
-/* ── main content ── */
-.main-content {
-  flex: 1;
-  min-width: 0;
-  padding: 0 32px 40px;
-  background: #f2f4f7;
-  overflow-x: hidden;
-}
-
-/* topbar */
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 18px;
-  padding: 18px 0 16px;
-  border-bottom: 1px solid #eaecf0;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  background: transparent;
-  color: var(--ink);
-}
-.topbar .greeting h2 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.topbar .greeting p {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-.topbar .top-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.topbar .top-actions a {
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.82rem;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink);
-  transition: 0.2s;
-}
-.topbar .top-actions a:hover {
-  background: var(--soft);
-}
+/* Chrome (.sidebar/.topbar/.main-content) moved to chrome.css (base #0284c7). */
 
 /* hero stats */
 .hero-stats {
@@ -1313,4 +1115,163 @@ font: inherit;
   #deductionsTab .assign-deduction-submit {
     width: 100%;
   }
+}
+
+/* ── dark mode (must come after :root above to win the cascade;
+   theme.css property overrides then resolve to dark values.
+   Paper previews (.jo-document, travel tables, signatures) stay light. */
+[data-theme="dark"] {
+  --ink: #e6eaf0;
+  --muted: #9aa4b2;
+  --line: #2a3441;
+  --panel: #161d27;
+  --soft: #1c2532;
+  --danger: #f97066;
+  --success: #32d583;
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+  background: #0e141c;
+}
+
+[data-theme="dark"] .payroll-run-menu-panel {
+  background: var(--panel);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .payroll-run-menu-item {
+  color: #7dd3fc;
+}
+[data-theme="dark"] .payroll-run-menu-item:hover {
+  background: #1f2a38;
+}
+
+[data-theme="dark"] .field-input {
+  background: #1c2532;
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .field-input:focus {
+  border-color: var(--brand, #0284c7);
+  box-shadow: 0 0 0 3px var(--brand-glow, rgba(2, 132, 199, 0.22));
+}
+
+[data-theme="dark"] .form-field label,
+[data-theme="dark"] #deductionsTab .assign-deduction-label {
+  color: #b6bfcc;
+}
+
+[data-theme="dark"] #jobOrderTab .field-readonly,
+[data-theme="dark"] #officialBusinessTab .field-readonly,
+[data-theme="dark"] #travelOrderTab .field-readonly {
+  color: var(--muted);
+}
+
+[data-theme="dark"] #jobOrderTab .section-heading,
+[data-theme="dark"] #officialBusinessTab .section-heading,
+[data-theme="dark"] #travelOrderTab .section-heading {
+  color: #7dd3fc;
+  border-bottom-color: var(--line);
+}
+[data-theme="dark"] #travelOrderTab .form-actions {
+  border-top-color: var(--line);
+}
+
+[data-theme="dark"] .status-active {
+  background: rgba(50, 213, 131, 0.16);
+  color: #32d583;
+}
+[data-theme="dark"] .status-terminated,
+[data-theme="dark"] .status-rejected {
+  background: rgba(249, 112, 102, 0.16);
+  color: #f97066;
+}
+
+[data-theme="dark"] .badge-draft {
+  background: #232e3d;
+  color: #b6bfcc;
+}
+[data-theme="dark"] .badge-computed {
+  background: rgba(50, 213, 131, 0.16);
+  color: #32d583;
+}
+[data-theme="dark"] .badge-approved {
+  background: rgba(125, 211, 252, 0.14);
+  color: #7dd3fc;
+}
+[data-theme="dark"] .badge-disbursed {
+  background: rgba(249, 112, 102, 0.16);
+  color: #f97066;
+}
+[data-theme="dark"] .run-details {
+  background: var(--soft);
+}
+
+[data-theme="dark"] .message.success {
+  background: rgba(50, 213, 131, 0.12);
+  border-color: rgba(50, 213, 131, 0.4);
+  color: var(--success);
+}
+[data-theme="dark"] .message.error {
+  background: rgba(249, 112, 102, 0.12);
+  border-color: rgba(249, 112, 102, 0.4);
+  color: var(--danger);
+}
+[data-theme="dark"] .message.warning {
+  background: rgba(253, 176, 34, 0.12);
+  border-color: rgba(253, 176, 34, 0.4);
+  color: #fdb022;
+}
+
+[data-theme="dark"] .ot-hours-input {
+  background: #232e3d;
+  border-color: #2a3441;
+  color: var(--ink);
+}
+
+/* punch sheet editor (screen UI, not paper) */
+[data-theme="dark"] .punch-employee-block {
+  background: var(--panel);
+}
+[data-theme="dark"] .punch-employee-header {
+  background: var(--soft);
+}
+[data-theme="dark"] .punch-employee-header .field-readonly {
+  background: #232e3d;
+}
+[data-theme="dark"] .punch-grid th,
+[data-theme="dark"] .punch-grid td {
+  border-color: var(--line);
+}
+[data-theme="dark"] .punch-grid thead th {
+  background: var(--soft);
+  color: #b6bfcc;
+}
+[data-theme="dark"] .punch-grid .punch-date-col,
+[data-theme="dark"] .punch-grid .punch-metric-col {
+  background: var(--soft);
+}
+[data-theme="dark"] .punch-grid td input {
+  background: #1c2532;
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .punch-grid td input:focus {
+  background: #1c2532;
+  border-color: var(--brand, #0284c7);
+}
+[data-theme="dark"] .punch-slot-legend {
+  background: var(--soft);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] #deductionsTab .assign-scope-option,
+[data-theme="dark"] #deductionsTab .assign-picker-item {
+  color: var(--ink);
+}
+[data-theme="dark"] #deductionsTab .assign-picker {
+  background: var(--panel);
+}
+[data-theme="dark"] #deductionsTab .assign-picker-item:hover {
+  background: #1f2a38;
 }

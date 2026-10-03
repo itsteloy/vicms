@@ -9,7 +9,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: #0b1f2a;
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: Arial, Helvetica, sans-serif !important;
   background:
     radial-gradient(900px 380px at 10% -10%, rgba(14, 116, 144, 0.16), transparent 55%),
     radial-gradient(700px 320px at 100% 0%, rgba(8, 145, 178, 0.10), transparent 50%),
@@ -157,7 +157,7 @@ body {
   }
 
   .batch-grid {
-    gap: 0.125in 0;
+    gap: 0.1in 0;
   }
 
   .batch-slot.empty {

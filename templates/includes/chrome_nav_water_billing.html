@@ -1,0 +1,17 @@
+{% load humanize %}
+    <nav class="sidebar-nav" aria-label="Water billing sections">
+      <div class="nav-label">Water Billing</div>
+      <button class="tab-button" type="button" role="tab" title="Overview" aria-selected="{% if active_tab == 'overviewTab' %}true{% else %}false{% endif %}" data-tab-target="overviewTab"><span class="tab-icon">📊</span><span class="tab-label">Overview</span></button>
+      <button class="tab-button" type="button" role="tab" title="Customers" aria-selected="{% if active_tab == 'customersTab' %}true{% else %}false{% endif %}" data-tab-target="customersTab"><span class="tab-icon">👤</span><span class="tab-label">Customers</span></button>
+      <button class="tab-button" type="button" role="tab" title="Readings &amp; Billing" aria-selected="{% if active_tab == 'readingsBillingTab' %}true{% else %}false{% endif %}" data-tab-target="readingsBillingTab"><span class="tab-icon">📋</span><span class="tab-label">Readings &amp; Billing</span></button>
+      <button class="tab-button" type="button" role="tab" title="Payments" aria-selected="{% if active_tab == 'paymentsTab' %}true{% else %}false{% endif %}" data-tab-target="paymentsTab"><span class="tab-icon">💵</span><span class="tab-label">Payments</span></button>
+      <button class="tab-button" type="button" role="tab" title="Receivables" aria-selected="{% if active_tab == 'arTab' %}true{% else %}false{% endif %}" data-tab-target="arTab"><span class="tab-icon">📈</span><span class="tab-label">Receivables</span></button>
+      <button class="tab-button" type="button" role="tab" title="Service Status" aria-selected="{% if active_tab == 'disconnectTab' %}true{% else %}false{% endif %}" data-tab-target="disconnectTab"><span class="tab-icon">🔌</span><span class="tab-label">Service Status</span></button>
+      <button class="tab-button" type="button" role="tab" title="Reports" aria-selected="{% if active_tab == 'reportsTab' %}true{% else %}false{% endif %}" data-tab-target="reportsTab"><span class="tab-icon">📄</span><span class="tab-label">Reports</span></button>
+      <button class="tab-button" type="button" role="tab" title="Audit" aria-selected="{% if active_tab == 'auditTab' %}true{% else %}false{% endif %}" data-tab-target="auditTab"><span class="tab-icon">🛡️</span><span class="tab-label">Audit</span></button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Customers</span><strong>{{ stats.total_customers }}</strong></div>
+      <div class="stat-row"><span>Active</span><strong>{{ stats.active_connections }}</strong></div>
+      <div class="stat-row"><span>Outstanding</span><strong>₱{{ stats.outstanding_balance|floatformat:2|intcomma }}</strong></div>
+    </div>

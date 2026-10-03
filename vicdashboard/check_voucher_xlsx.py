@@ -45,6 +45,10 @@ HEADER_ALIASES = {
     'check no': 'check_number',
     'check no:': 'check_number',
     'check no.': 'check_number',
+    'withholding tax': 'withholding_tax',
+    'withholding tax:': 'withholding_tax',
+    'less withholding tax': 'withholding_tax',
+    'withholding': 'withholding_tax',
 }
 
 
@@ -256,6 +260,7 @@ _LABEL_WORDS = (
     'payee', 'debit', 'credit', 'totals', 'cash in bank', 'payment for',
     'received from', 'received by', 'check amount', 'check no', 'cheque no',
     'bank', 'prepared by', 'checked by', 'approved by',
+    'withholding', 'withheld', 'w/tax', 'wtax', 'ewt',
 )
 
 
@@ -378,8 +383,17 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
     debit_label = _find_label(rows_by_col, 'DEBIT')
     cash_bank_label = _find_label(rows_by_col, 'CASH IN BANK')
     totals_label = _find_label(rows_by_col, 'TOTALS')
+    withholding_label_pos = (
+        _find_label(rows_by_col, 'WITHHOLDING')
+        or _find_label(rows_by_col, 'WITHHELD')
+        or _find_label(rows_by_col, 'W/TAX')
+        or _find_label(rows_by_col, 'EWT')
+    )
     lines: list[dict[str, Any]] = []
-    debit_end = cash_bank_label[0] if cash_bank_label else (totals_label[0] if totals_label else 0)
+    candidates = [
+        pos[0] for pos in (withholding_label_pos, cash_bank_label, totals_label) if pos
+    ]
+    debit_end = min(candidates) if candidates else 0
     if debit_label and debit_end and debit_end > debit_label[0]:
         for row_idx in range(debit_label[0] + 1, debit_end):
             cells = rows_by_col.get(row_idx, {})
@@ -439,6 +453,31 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
         if len(numeric_after) > 1:
             totals_credit = Decimal(numeric_after[1][1]).quantize(Decimal('0.01'))
 
+    withholding_tax = Decimal('0')
+    withholding_label_text = 'WITHHOLDING TAX'
+    if withholding_label_pos:
+        raw_label = str(
+            rows_by_col.get(withholding_label_pos[0], {}).get(withholding_label_pos[1], '')
+        ).strip()
+        if raw_label:
+            withholding_label_text = re.sub(r'\s+', ' ', raw_label).upper()[:120]
+        found = _numeric_on_same_row(rows_by_col, withholding_label_pos[0], withholding_label_pos[1])
+        if not found:
+            found = _first_numeric_after(rows_by_col, withholding_label_pos[0], withholding_label_pos[1])
+            # Avoid picking up CASH IN BANK / TOTALS figures when scanning down.
+            if found and found[0] != withholding_label_pos[0]:
+                cash_row = cash_bank_label[0] if cash_bank_label else None
+                totals_row = totals_label[0] if totals_label else None
+                if (cash_row is not None and found[0] >= cash_row) or (
+                    totals_row is not None and found[0] >= totals_row
+                ):
+                    found = None
+        if found:
+            try:
+                withholding_tax = Decimal(str(found[2]).replace(',', '')).quantize(Decimal('0.01'))
+            except Exception:
+                withholding_tax = Decimal('0')
+
     cash_in_bank = Decimal('0')
     if cash_bank_label:
         found = _numeric_on_same_row(rows_by_col, cash_bank_label[0], cash_bank_label[1])
@@ -449,8 +488,11 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
                 cash_in_bank = Decimal(str(found[2]).replace(',', '')).quantize(Decimal('0.01'))
             except Exception:
                 cash_in_bank = Decimal('0')
-    if cash_in_bank == Decimal('0') and totals_credit:
+    if cash_in_bank == Decimal('0') and totals_credit and withholding_tax == Decimal('0'):
         cash_in_bank = totals_credit
+    if cash_in_bank == Decimal('0') and totals_debit and withholding_tax:
+        # total debit - withholding tax = CASH IN BANK
+        cash_in_bank = (totals_debit - withholding_tax).quantize(Decimal('0.01'))
 
     payment_for = ''
     payment_label = _find_label(rows_by_col, 'PAYMENT FOR')
@@ -482,6 +524,10 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
         check_amount = totals_credit
     if check_amount == Decimal('0'):
         check_amount = cash_in_bank
+    if withholding_tax > Decimal('0') and cash_in_bank > Decimal('0'):
+        # Check Amount follows CASH IN BANK (net of withholding), not the debit total.
+        if check_amount == totals_credit or check_amount == totals_debit:
+            check_amount = cash_in_bank
 
     check_number = ''
     check_no_label = _find_label(rows_by_col, 'CHECK NO') or _find_label(rows_by_col, 'CHEQUE NO')
@@ -548,6 +594,8 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
         'payment_for': payment_for,
         'check_amount': str(check_amount),
         'cash_in_bank': str(cash_in_bank),
+        'withholding_tax': str(withholding_tax),
+        'withholding_label': withholding_label_text,
         'bank': bank,
         'check_number': check_number,
         'received_by': received_by,
@@ -595,6 +643,8 @@ def _parse_monitoring_sheet(rows: list[list[Any]], source_filename: str) -> list
             'payment_for': '',
             'check_amount': '',
             'cash_in_bank': '',
+            'withholding_tax': '',
+            'withholding_label': '',
             'bank': '',
             'check_number': '',
             'received_by': '',
@@ -613,7 +663,7 @@ def _parse_monitoring_sheet(rows: list[list[Any]], source_filename: str) -> list
         }
         for col_idx, field in col_map.items():
             value = row[col_idx] if col_idx < len(row) else ''
-            if field in MONEY_FIELDS or field in {'check_amount', 'cash_in_bank'}:
+            if field in MONEY_FIELDS or field in {'check_amount', 'cash_in_bank', 'withholding_tax'}:
                 parsed, _ = _parse_amount_value(value)
                 record[field] = str(parsed.quantize(Decimal('0.01'))) if parsed is not None else ''
                 continue
@@ -662,7 +712,7 @@ def parse_check_voucher_xlsx(path: Path) -> dict[str, Any]:
                     # Voucher sheets supply debit lines + signatories.
                     if key in {'bank', 'check_number', 'received_by', 'payee', 'payment_for'}:
                         voucher[key] = value
-                    elif key in MONEY_FIELDS or key in {'check_amount', 'cash_in_bank', 'voucher_date', 'check_date', 'source_filename'}:
+                    elif key in MONEY_FIELDS or key in {'check_amount', 'cash_in_bank', 'withholding_tax', 'withholding_label', 'voucher_date', 'check_date', 'source_filename'}:
                         voucher[key] = value
                     elif not voucher.get(key):
                         voucher[key] = value

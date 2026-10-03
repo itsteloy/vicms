@@ -3643,6 +3643,8 @@
                 contributions: document.getElementById('cvContributions'),
                 misc: document.getElementById('cvMisc'),
                 payment: document.getElementById('cvPayment'),
+                withholding_tax: document.getElementById('cvWithholdingTax'),
+                withholding_label: document.getElementById('cvWithholdingLabel'),
             };
             const CV_CATEGORY_KEYS = ['purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'];
 
@@ -3652,6 +3654,10 @@
 
             function cvDeleteUrl(id) {
                 return (cfg.checkVoucherDeleteUrlTemplate || cvJsonUrl(id).replace('/json/', '/delete/')).replace('/0/', `/${id}/`);
+            }
+
+            function cvCellUrl(id) {
+                return (cfg.checkVoucherCellUrlTemplate || cvJsonUrl(id).replace('/json/', '/cell/')).replace('/0/', `/${id}/`);
             }
 
             function todayISO() {
@@ -3689,6 +3695,19 @@
                     .reduce((sum, input) => sum + parseMoney(input.value), 0);
             }
 
+            function withholdingTotal() {
+                const raw = parseMoney(fields.withholding_tax?.value || '');
+                if (!raw || raw < 0) return 0;
+                const total = debitTotal();
+                return Math.min(raw, total);
+            }
+
+            function cashTotal() {
+                const total = debitTotal();
+                const withholding = withholdingTotal();
+                return Math.max(0, total - withholding);
+            }
+
             function collectLines() {
                 return Array.from(linesBody.querySelectorAll('tr')).map((row) => ({
                     description: row.querySelector('.cv-line-description')?.value.trim() || '',
@@ -3698,6 +3717,8 @@
 
             function payloadFromForm() {
                 const total = debitTotal();
+                const withholding = withholdingTotal();
+                const cash = cashTotal();
                 const payload = {
                     id: fields.id?.value || null,
                     cv_number: fields.cv_number.value.trim(),
@@ -3712,8 +3733,10 @@
                     signatory_checked: fields.signatory_checked.value.trim(),
                     signatory_approved: fields.signatory_approved.value.trim(),
                     signatory_approver: fields.signatory_approver.value.trim(),
-                    cash_in_bank: String(total),
-                    check_amount: String(total),
+                    withholding_tax: String(withholding),
+                    withholding_label: (fields.withholding_label?.value.trim() || 'WITHHOLDING TAX'),
+                    cash_in_bank: String(cash),
+                    check_amount: String(cash),
                     lines: collectLines(),
                 };
                 let categoryTotal = 0;
@@ -3739,10 +3762,12 @@
                 fields.check_number.value = data.check_number || '';
                 fields.check_date.value = data.check_date || '';
                 fields.received_by.value = data.received_by || '';
-                fields.signatory_prepared.value = data.signatory_prepared || 'Angel Marie';
-                fields.signatory_checked.value = data.signatory_checked || 'Beverly';
-                fields.signatory_approved.value = data.signatory_approved || 'Christine Joy';
-                fields.signatory_approver.value = data.signatory_approver || 'Engr. Arturo Davis';
+                fields.signatory_prepared.value = data.signatory_prepared || 'ANGELMARIE M. DAPAR';
+                fields.signatory_checked.value = data.signatory_checked || 'Ms. BEVERLY TAN';
+                fields.signatory_approved.value = data.signatory_approved || 'CHRISTINE JOY ILOGON';
+                fields.signatory_approver.value = data.signatory_approver || 'ENGR. ARTURO I DAVIS, PME';
+                if (fields.withholding_tax) fields.withholding_tax.value = data.withholding_tax || '';
+                if (fields.withholding_label) fields.withholding_label.value = data.withholding_label || 'WITHHOLDING TAX';
                 CV_CATEGORY_KEYS.forEach((key) => {
                     if (fields[key]) fields[key].value = data[key] || '';
                 });
@@ -3754,23 +3779,33 @@
 
             function refreshPreview() {
                 const total = debitTotal();
+                const withholding = withholdingTotal();
+                const cash = cashTotal();
+                const creditTotal = cash + withholding;
+                const withholdingLabel = (fields.withholding_label?.value.trim() || 'WITHHOLDING TAX').toUpperCase();
                 document.getElementById('cvDebitTotal').textContent = 'PHP ' + formatMoney(total);
-                document.getElementById('cvCreditTotal').textContent = 'PHP ' + formatMoney(total);
+                const withholdingTotalEl = document.getElementById('cvWithholdingTotal');
+                if (withholdingTotalEl) withholdingTotalEl.textContent = 'PHP ' + formatMoney(withholding);
+                document.getElementById('cvCreditTotal').textContent = 'PHP ' + formatMoney(cash);
                 document.getElementById('cvPrevNumber').textContent = fields.cv_number.value.trim() || cfg.nextCvNumber || '';
                 document.getElementById('cvPrevDate').textContent = formatLongDate(fields.voucher_date.value);
                 document.getElementById('cvPrevPayee').textContent = (fields.payee.value || '').toUpperCase();
-                document.getElementById('cvPrevCash').textContent = formatMoney(total);
+                document.getElementById('cvPrevWithholdingLabel').textContent = withholdingLabel;
+                document.getElementById('cvPrevWithholding').textContent = formatMoney(withholding);
+                const withholdingRow = document.getElementById('cvPrevWithholdingRow');
+                if (withholdingRow) withholdingRow.style.display = withholding > 0 ? '' : 'none';
+                document.getElementById('cvPrevCash').textContent = formatMoney(cash);
                 document.getElementById('cvPrevDebitTotal').textContent = formatMoney(total);
-                document.getElementById('cvPrevCreditTotal').textContent = formatMoney(total);
+                document.getElementById('cvPrevCreditTotal').textContent = formatMoney(creditTotal);
                 document.getElementById('cvPrevPaymentFor').textContent = (fields.payment_for.value || fields.payee.value || '\u00a0').toUpperCase();
-                document.getElementById('cvPrevCheckAmount').textContent = formatMoney(total);
+                document.getElementById('cvPrevCheckAmount').textContent = formatMoney(cash);
                 document.getElementById('cvPrevCheckNumber').textContent = fields.check_number.value || '';
                 document.getElementById('cvPrevBank').textContent = fields.bank.value || '';
                 document.getElementById('cvPrevReceivedBy').textContent = fields.received_by.value || '';
-                document.getElementById('cvPrevSignPrepared').textContent = fields.signatory_prepared.value || 'Angel Marie';
-                document.getElementById('cvPrevSignChecked').textContent = fields.signatory_checked.value || 'Beverly';
-                document.getElementById('cvPrevSignApproved').textContent = fields.signatory_approved.value || 'Christine Joy';
-                document.getElementById('cvPrevSignApprover').textContent = fields.signatory_approver.value || 'Engr. Arturo Davis';
+                document.getElementById('cvPrevSignPrepared').textContent = fields.signatory_prepared.value || 'ANGELMARIE M. DAPAR';
+                document.getElementById('cvPrevSignChecked').textContent = fields.signatory_checked.value || 'Ms. BEVERLY TAN';
+                document.getElementById('cvPrevSignApproved').textContent = fields.signatory_approved.value || 'CHRISTINE JOY ILOGON';
+                document.getElementById('cvPrevSignApprover').textContent = fields.signatory_approver.value || 'ENGR. ARTURO I DAVIS, PME';
 
                 const preview = document.getElementById('cvPreviewLines');
                 preview.innerHTML = '';
@@ -3891,7 +3926,7 @@
                 field.addEventListener('input', refreshPreview);
                 field.addEventListener('change', refreshPreview);
             });
-            bindMoneyInputs(document.getElementById('check-voucher-tab'), '#cvPurchases, #cvExpenses, #cvCommission, #cvContributions, #cvMisc, #cvPayment');
+            bindMoneyInputs(document.getElementById('check-voucher-tab'), '#cvPurchases, #cvExpenses, #cvCommission, #cvContributions, #cvMisc, #cvPayment, #cvWithholdingTax');
             linesBody.addEventListener('input', refreshPreview);
             linesBody.addEventListener('change', refreshPreview);
             linesBody.addEventListener('click', (event) => {
@@ -4038,26 +4073,93 @@
                 });
             });
 
-            document.querySelectorAll('.cv-category-cell').forEach((cell) => {
-                const labels = [
-                    ['purchases', 'Purchases'],
-                    ['expenses', 'Expenses'],
-                    ['commission', 'Commission'],
-                    ['contributions', 'Contributions'],
-                    ['misc', 'Misc'],
-                    ['payment', 'Payment'],
-                ];
-                const parts = labels
-                    .map(([key, label]) => [label, parseMoney(cell.dataset[key])])
-                    .filter(([, value]) => value)
-                    .map(([label, value]) => `${label}: ${formatMoney(value)}`);
-                cell.textContent = parts.join(', ') || '-';
+            document.querySelectorAll('#cvMonitoringWrap .cv-cell-input').forEach((input) => {
+                input.dataset.initial = input.value;
+                input.addEventListener('change', async () => {
+                    const vid = input.dataset.voucherId;
+                    const field = input.dataset.field;
+                    if (!vid || !field) return;
+                    if (input.value === input.dataset.initial) return;
+                    const moneyCol = input.dataset.moneyCol || '';
+                    const oldNum = Number(input.dataset.initial || 0) || 0;
+                    input.classList.remove('is-saved', 'is-error');
+                    input.classList.add('is-saving');
+                    try {
+                        const response = await fetch(cvCellUrl(vid), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            body: JSON.stringify({ field, value: input.value }),
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Save failed.');
+                        input.dataset.initial = input.value;
+                        if (input.type === 'number') {
+                            const num = Number(input.value || 0) || 0;
+                            input.value = num.toFixed(2);
+                            input.dataset.initial = input.value;
+                        }
+                        input.classList.remove('is-saving');
+                        input.classList.add('is-saved');
+                        setTimeout(() => input.classList.remove('is-saved'), 1200);
+                        if (moneyCol) {
+                            const newNum = Number(input.value || 0) || 0;
+                            const totalEl = document.querySelector(`[data-money-total="${moneyCol}"]`);
+                            if (totalEl) {
+                                const current = parseMoney(totalEl.textContent) || 0;
+                                totalEl.textContent = `PHP ${formatMoney(current - oldNum + newNum)}`;
+                            }
+                            const summaryEl = document.querySelector('.cv-report-summary');
+                            if (summaryEl) {
+                                const label = moneyCol === 'check_amount' ? 'Total' : moneyCol.charAt(0).toUpperCase() + moneyCol.slice(1);
+                                summaryEl.innerHTML = summaryEl.innerHTML.replace(
+                                    new RegExp(`${label}: PHP [\\d,.-]+`),
+                                    `${label}: PHP ${formatMoney((() => { let t = 0; document.querySelectorAll(`.cv-cell-input[data-money-col="${moneyCol}"]`).forEach((el) => { t += Number(el.value || 0) || 0; }); return t; })())}`
+                                );
+                            }
+                        }
+                    } catch (error) {
+                        input.classList.remove('is-saving');
+                        input.classList.add('is-error');
+                        alert(error.message || 'Could not save change.');
+                        setTimeout(() => input.classList.remove('is-error'), 1500);
+                    }
+                });
             });
 
             const editId = new URLSearchParams(window.location.search).get('cv_edit') || cfg.latestCheckVoucherId;
             loadVoucher(editId).catch((error) => {
                 console.error(error);
                 populateForm({ cv_number: cfg.nextCvNumber || '', voucher_date: todayISO() });
+            });
+        })();
+
+        // ── Saved Documents delete ──
+        (function initSavedDocumentsDelete() {
+            const cfg = window.__SALES_CONFIG__ || {};
+            function savedDocDeleteUrl(id) {
+                return (cfg.savedDocumentDeleteUrlTemplate || '').replace('/0/', `/${id}/`);
+            }
+            document.querySelectorAll('.sd-delete-doc').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const id = button.dataset.documentId;
+                    if (!id || !confirm('Delete this saved document? This cannot be undone.')) return;
+                    try {
+                        const response = await fetch(savedDocDeleteUrl(id), {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=saved-documents-tab`;
+                    } catch (error) {
+                        alert(error.message || 'Could not delete saved document.');
+                    }
+                });
             });
         })();
 

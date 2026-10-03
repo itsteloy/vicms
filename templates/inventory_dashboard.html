@@ -6,9 +6,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=drawerfix1">
-<link rel="stylesheet" href="{% static 'css/dashboards/inventory.css' %}?v=price-btn1">
-<link rel="stylesheet" href="{% static 'css/dashboards/withdrawal_slip.css' %}?v=ws-po1-sd-report3">
+<link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/inventory.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/withdrawal_slip.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/theme.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
 <script>
   try {
     if (localStorage.getItem('inventorySidebarCollapsed') === '1') {
@@ -20,11 +22,7 @@
 
 {% block content %}
 <div class="inventory-page dashboard-wrapper" data-sidebar-key="inventorySidebarCollapsed" data-po-pdf-url="{% url 'purchase_order_pdf' %}">
-  {% include "inventory/_sidebar.html" %}
-
-  <!-- MAIN CONTENT -->
-  <main class="main-content">
-    {% include "inventory/_top_chrome.html" %}
+  {% include "includes/_app_chrome.html" with chrome_nav_template="includes/chrome_nav_inventory.html" sidebar_id="inventorySidebar" sidebar_key="inventorySidebarCollapsed" chrome_title="Inventory Dashboard" chrome_subtitle="Track products, stock, categories, and item images." %}
 
     <!-- TAB PANELS -->
     {% include "inventory/_manage_form.html" %}

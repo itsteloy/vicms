@@ -717,3 +717,65 @@
     min-width: 0;
   }
 }
+
+/* ── dark mode (screen UI; printed slip stays light via @media print) ── */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] #withdrawalSlipPanel .section-heading {
+  border-bottom-color: var(--line, #2a3441);
+}
+[data-theme="dark"] #withdrawalSlipPanel .field label {
+  color: #b6bfcc;
+}
+[data-theme="dark"] #withdrawalSlipPanel .field input,
+[data-theme="dark"] #withdrawalSlipPanel .field select,
+[data-theme="dark"] #withdrawalSlipPanel .field textarea {
+  background: #1c2532;
+  border-color: var(--line, #2a3441);
+  color: var(--ink, #e6eaf0);
+}
+[data-theme="dark"] #withdrawalSlipPanel .field input.field-readonly {
+  background: #232e3d;
+  color: var(--muted, #9aa4b2);
+}
+[data-theme="dark"] #withdrawalSlipPanel .action.danger {
+  background: #1c2532;
+  border-color: rgba(249, 112, 102, 0.4);
+  color: #f97066;
+}
+
+[data-theme="dark"] .ws-lines-head {
+  color: var(--muted, #9aa4b2);
+}
+[data-theme="dark"] .ws-line-row select,
+[data-theme="dark"] .ws-line-row input {
+  background: #1c2532;
+  border-color: var(--line, #2a3441);
+  color: var(--ink, #e6eaf0);
+}
+[data-theme="dark"] .ws-inv-combobox-list {
+  background: #1c2532;
+  border-color: #2a3441;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .ws-inv-combobox-item:hover,
+[data-theme="dark"] .ws-inv-combobox-item.is-active {
+  background: #2a3648;
+  color: #7dd3fc;
+}
+
+[data-theme="dark"] .ws-report-tab {
+  background: #1c2532;
+  border-color: var(--line, #2a3441);
+  color: var(--ink, #e6eaf0);
+}
+[data-theme="dark"] .ws-report-tab:hover {
+  background: #232e3d;
+}
+[data-theme="dark"] .ws-report-tab[aria-selected="true"] {
+  background: var(--brand, #0284c7);
+  border-color: var(--brand, #0284c7);
+  color: #fff;
+}

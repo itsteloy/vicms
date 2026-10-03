@@ -36,7 +36,7 @@ dialog.flash-modal::backdrop {
   line-height: 1;
 }
 
-.flash-modal-icon.success { background: #ecfdf3; color: #027a48; }
+.flash-modal-icon.success { background: #ecfdf3; color: #0284c7; }
 .flash-modal-icon.error,
 .flash-modal-icon.danger { background: #fef3f2; color: #b42318; }
 .flash-modal-icon.warning { background: #fffaeb; color: #b54708; }
@@ -50,7 +50,7 @@ dialog.flash-modal::backdrop {
   font-family: Manrope, "IBM Plex Sans", sans-serif;
 }
 
-.flash-modal-title.success { color: #027a48; }
+.flash-modal-title.success { color: #0284c7; }
 .flash-modal-title.error,
 .flash-modal-title.danger { color: #b42318; }
 .flash-modal-title.warning { color: #b54708; }
@@ -84,7 +84,7 @@ dialog.flash-modal .flash-modal-ok {
   padding: 8px 18px;
   border: none;
   border-radius: 8px;
-  background: #027a48;
+  background: #0284c7;
   color: #fff;
   font: inherit;
   font-weight: 600;
@@ -100,7 +100,7 @@ dialog.flash-modal .flash-modal-title.debug ~ form .flash-modal-ok { background:
 dialog.flash-modal .flash-modal-ok:hover {
   filter: brightness(0.95);
   color: #fff;
-  background: #02603a;
+  background: #0077b3;
   border: none;
 }
 
