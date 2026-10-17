@@ -24,7 +24,7 @@
     <div class="batch-grid">
       {% for item in receipt_items %}
       <div class="batch-slot">
-        {% include "includes/water_bill_receipt_sheet.html" with bill=item.bill reading=item.reading customer=item.customer month_name=item.month_name location_header=item.location_header is_preview=item.is_preview billing_start_label=item.billing_start_label billing_end_label=item.billing_end_label %}
+        {% include "includes/water_bill_receipt_sheet.html" with bill=item.bill reading=item.reading customer=item.customer month_name=item.month_name location_header=item.location_header is_preview=item.is_preview billing_start_label=item.billing_start_label billing_end_label=item.billing_end_label stmt=item.stmt %}
       </div>
       {% endfor %}
       {% for i in "123456" %}

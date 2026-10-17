@@ -1,101 +1,147 @@
 <!-- Manage Item -->
 <div id="managePanel" class="tab-panel is-active">
-      <div class="panel">
-        <details class="category-manager"{% if messages %} open{% endif %}>
-          <summary>Manage categories &amp; subcategories</summary>
-          <div class="category-manager-body">
-            <p>Add a top-level category or nest under any existing one. New entries appear in the item dropdown on reload.</p>
-            <form method="post" id="categoryForm">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="create_category">
-              <div class="category-form-grid">
-                <div class="field">
-                  <label for="category_parent_trigger">Parent (optional)</label>
-                  {% include "partials/inventory_category_picker.html" with picker_id="category_parent" picker_name="category_parent" picker_placeholder="Top-level category" picker_allow_empty=True picker_required=False picker_value="" %}
-                </div>
-                <div class="field">
-                  <label for="category_name">New category name</label>
-                  <input id="category_name" name="category_name" type="text" required placeholder="e.g. Steel, 4-inch">
-                </div>
-                <div class="field">
-                  <label>&nbsp;</label>
-                  <button class="save" type="submit">Add Category</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </details>
-
+  <div class="manage-head">
+    <div class="manage-head-text">
+      <p class="manage-eyebrow">Manage Item</p>
+      <div class="manage-title-row">
         <h2 id="formTitle">Add Inventory Item</h2>
-        <p>Create or update an inventory record.</p>
-        <form id="inventoryForm" method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          <input type="hidden" id="itemId" name="itemId" value="">
+        <span class="manage-mode" id="formModeBadge" aria-live="polite">New</span>
+      </div>
+      <p class="manage-sub">Create or update an inventory record. Fields marked with an asterisk are required.</p>
+    </div>
+  </div>
 
-          <div class="form-grid">
-            <div class="field field-stack">
-              <label for="categoryId_trigger">Item category</label>
-              <div class="field-control-slot">
-                {% include "partials/inventory_category_picker.html" with picker_id="categoryId" picker_name="categoryId" picker_placeholder="Select category / subcategory" picker_allow_empty=False picker_required=True picker_value="" %}
-              </div>
-              <p class="field-hint field-hint--spacer">Assigned automatically when you save (e.g. COUPLING-001).</p>
-            </div>
-            <div class="field field-stack">
-              <label for="productCode">Product Code</label>
-              <div class="field-control-slot">
-                <input id="productCode" type="text" class="field-readonly field-control" value="" placeholder="Select category first" readonly title="Auto-generated from category">
-              </div>
-              <p class="field-hint">Assigned automatically when you save (e.g. COUPLING-001).</p>
-            </div>
-            <div class="field field-stack">
-              <label for="picture">Upload Image</label>
-              <div class="field-control-slot">
-                <input id="picture" name="picture" type="file" accept="image/*" class="field-control">
-              </div>
-              <p class="field-hint">Or pick an existing image below so the file is stored once.</p>
-            </div>
-            <input type="hidden" id="reusePicture" name="reuse_picture" value="">
-            <div class="field full">
-              <details class="existing-images-toggle">
-                <summary>
-                  <span>Existing images{% if inventory_existing_images %} ({{ inventory_existing_images|length }}){% endif %}</span>
-                </summary>
-                <div class="reuse-image-grid" id="reuseImageGrid">
-                  {% for img in inventory_existing_images %}
-                  <button type="button" class="reuse-image-btn" data-name="{{ img.name }}" data-url="{{ img.url }}" title="{{ img.name }}">
-                    <img src="{{ img.url }}" alt="">
-                  </button>
-                  {% empty %}
-                  <p class="field-hint" style="margin:0;">No images in the catalog yet. Upload one above.</p>
-                  {% endfor %}
-                </div>
-              </details>
-            </div>
-            <div class="field">
-              <label for="stockAvailable">Stocks available</label>
-              <input id="stockAvailable" name="stockAvailable" type="number" min="0" value="0" required>
-            </div>
-            <div class="field full">
-              <label for="description">Description</label>
-              <textarea id="description" name="description"
-                placeholder="What this item is, e.g. 4-inch galvanized coupling"></textarea>
-            </div>
-            <div class="field full">
-              <label for="notes">Notes</label>
-              <textarea id="notes" name="notes"
-                placeholder="Additional details, location or supplier"></textarea>
-            </div>
-            <div class="field full">
-              <label>Image preview</label>
-              <div id="picturePreview" style="min-height:84px;color:#667085;">No image</div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="save" type="submit">Save Item</button>
-            <button class="clear" id="resetBtn" type="button">Reset</button>
-            <button class="copy" id="viewItemsBtn" type="button">View All Items</button>
-          </div>
-        </form>
+  <section class="manage-card category-card" aria-labelledby="categoryCardTitle">
+    <div class="manage-card-head">
+      <span class="manage-card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/></svg>
+      </span>
+      <div>
+        <h3 id="categoryCardTitle">Categories &amp; subcategories</h3>
+        <p>Add a top-level category or nest under any existing one. New entries appear in the item dropdown on reload.</p>
       </div>
     </div>
+    <form method="post" id="categoryForm" class="category-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_category">
+      <div class="category-form-grid">
+        <div class="field">
+          <label for="category_parent_trigger">Parent <span class="opt">(optional)</span></label>
+          {% include "partials/inventory_category_picker.html" with picker_id="category_parent" picker_name="category_parent" picker_placeholder="Top-level category" picker_allow_empty=True picker_required=False picker_value="" %}
+        </div>
+        <div class="field">
+          <label for="category_name">New category name</label>
+          <input id="category_name" name="category_name" type="text" required placeholder="e.g. Steel, 4-inch" autocomplete="off">
+        </div>
+        <div class="field field-action">
+          <label aria-hidden="true">&nbsp;</label>
+          <button class="save" type="submit">Add Category</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <form id="inventoryForm" method="post" enctype="multipart/form-data" class="manage-card item-card">
+    {% csrf_token %}
+    <input type="hidden" id="itemId" name="itemId" value="">
+    <input type="hidden" id="reusePicture" name="reuse_picture" value="">
+
+    <fieldset class="manage-section">
+      <legend>
+        <span class="section-num" aria-hidden="true">1</span>
+        Basic info
+      </legend>
+      <div class="manage-grid cols-2">
+        <div class="field field-stack">
+          <label for="categoryId_trigger">Item category *</label>
+          <div class="field-control-slot">
+            {% include "partials/inventory_category_picker.html" with picker_id="categoryId" picker_name="categoryId" picker_placeholder="Select category / subcategory" picker_allow_empty=False picker_required=True picker_value="" %}
+          </div>
+          <p class="field-hint">Choose the most specific subcategory for accurate coding.</p>
+        </div>
+        <div class="field field-stack">
+          <label for="productCode">Product code</label>
+          <div class="field-control-slot">
+            <input id="productCode" type="text" class="field-readonly field-control" value="" placeholder="Select category first" readonly title="Auto-generated from category" tabindex="-1">
+          </div>
+          <p class="field-hint">Assigned automatically when you save (e.g. COUPLING-001).</p>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="manage-section">
+      <legend>
+        <span class="section-num" aria-hidden="true">2</span>
+        Stock &amp; details
+      </legend>
+      <div class="manage-grid cols-2">
+        <div class="field">
+          <label for="stockAvailable">Stocks available *</label>
+          <input id="stockAvailable" name="stockAvailable" type="number" min="0" step="1" value="0" required inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="description">Short description</label>
+          <input id="description" name="description" type="text" placeholder="e.g. 4-inch galvanized coupling" autocomplete="off">
+        </div>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3" placeholder="Additional details, location or supplier"></textarea>
+      </div>
+    </fieldset>
+
+    <fieldset class="manage-section">
+      <legend>
+        <span class="section-num" aria-hidden="true">3</span>
+        Item image
+      </legend>
+      <div class="image-layout">
+        <div class="field field-stack">
+          <label for="picture">Upload image</label>
+          <label class="dropzone" id="pictureDropzone" for="picture">
+            <span class="dropzone-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0 4 4m-4-4-4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+            </span>
+            <span class="dropzone-text"><strong>Drop image here or click to browse</strong><small>PNG, JPG or WEBP · stored once, reused anywhere</small></span>
+            <input id="picture" name="picture" type="file" accept="image/*" class="dropzone-input">
+          </label>
+          <p class="field-hint">Or pick an existing image below so the file is stored once.</p>
+        </div>
+        <div class="field field-stack">
+          <span class="field-label" id="previewLabel">Live preview</span>
+          <div class="preview-card" role="status" aria-labelledby="previewLabel">
+            <div id="picturePreview" class="preview-frame" aria-live="polite"><span class="preview-empty">No image</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="field full">
+        <details class="existing-images-toggle">
+          <summary>
+            <span>Existing images{% if inventory_existing_images %} ({{ inventory_existing_images|length }}){% endif %}</span>
+          </summary>
+          <div class="reuse-image-grid" id="reuseImageGrid">
+            {% for img in inventory_existing_images %}
+            <button type="button" class="reuse-image-btn" data-name="{{ img.name }}" data-url="{{ img.url }}" title="{{ img.name }}">
+              <img src="{{ img.url }}" alt="" loading="lazy">
+            </button>
+            {% empty %}
+            <p class="field-hint" style="margin:0;">No images in the catalog yet. Upload one above.</p>
+            {% endfor %}
+          </div>
+        </details>
+      </div>
+    </fieldset>
+
+    <div class="manage-footer">
+      <p class="manage-footer-hint">Review details before saving — product code is generated on save.</p>
+      <div class="actions manage-actions">
+        <button class="save" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+          Save Item
+        </button>
+        <button class="clear" id="resetBtn" type="button">Reset</button>
+        <button class="copy" id="viewItemsBtn" type="button">View All Items</button>
+      </div>
+    </div>
+  </form>
+</div>

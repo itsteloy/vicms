@@ -1,94 +1,116 @@
 <!-- All Items -->
-    <div id="allItemsPanel" class="tab-panel">
-      <div class="panel">
-        <h2>All Items</h2>
-        <p>View every inventory item and filter by category, code, description, or notes.</p>
-        <div class="toolbar">
-          <div class="toolbar-field">
-            <label for="categoryFilter_trigger">Category</label>
-            <div class="toolbar-control-slot">
-              {% include "partials/inventory_category_picker.html" with picker_id="categoryFilter" picker_name="" picker_placeholder="All categories" picker_allow_empty=True picker_required=False picker_value="" %}
-            </div>
-          </div>
-          <div class="toolbar-field toolbar-field--grow">
-            <label for="searchInput">Search</label>
-            <div class="toolbar-control-slot">
-              <input id="searchInput" type="search" class="toolbar-control" placeholder="Search all items" aria-label="Search inventory">
-            </div>
-          </div>
-          <div class="toolbar-field toolbar-field--action">
-            <span class="toolbar-field-spacer">Search</span>
-            <div class="toolbar-control-slot toolbar-control-slot--actions">
-              <button id="viewAllItemsBtn" type="button" class="toolbar-control toolbar-control--primary">View All</button>
-              <button id="clearSearchBtn" type="button" class="toolbar-control">Clear</button>
-            </div>
-          </div>
-        </div>
+<div id="allItemsPanel" class="tab-panel">
+  <div class="all-head manage-head">
+    <div class="manage-head-text">
+      <p class="manage-eyebrow">All Items</p>
+      <div class="manage-title-row">
+        <h2>Inventory catalog</h2>
+        <span class="manage-mode" id="allItemsCount" aria-live="polite">{{ inventory_items|length }} item{{ inventory_items|length|pluralize }}</span>
+      </div>
+      <p class="manage-sub">View every inventory item and filter by category, code, description, or notes.</p>
+    </div>
+  </div>
 
-        <div class="notice" id="emptyNotice">
-          <strong>No inventory yet.</strong> Use the Manage Item tab to add the first record.
+  <section class="manage-card all-toolbar-card" aria-label="Filter inventory">
+    <div class="toolbar all-toolbar">
+      <div class="toolbar-field">
+        <label for="categoryFilter_trigger">Category</label>
+        <div class="toolbar-control-slot">
+          {% include "partials/inventory_category_picker.html" with picker_id="categoryFilter" picker_name="" picker_placeholder="All categories" picker_allow_empty=True picker_required=False picker_value="" %}
         </div>
-
-        <div class="table-wrap">
-          <table aria-label="Inventory items">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Picture</th>
-                <th>Description</th>
-                <th>Notes</th>
-                <th>Stocks</th>
-                <th class="th-price">
-                  <span class="th-price-inner">
-                    <span>Unit Price</span>
-                    <span id="priceHeaderControl">
-                      <button type="button" class="price-toggle-btn" data-price-action="show-all">Show price</button>
-                    </span>
-                  </span>
-                </th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="inventoryTableBody">
-              {% for item in inventory_items %}
-              <tr data-id="{{ item.id }}">
-                <td class="item-code">
-                  <span style="display:block;color:#667085;font-size:.86rem;font-weight:700;">{{ item.product_code|default:"-" }}</span>
-                  <strong>{{ item.name }}</strong>
-                </td>
-                <td class="item-picture">
-                  {% if item.picture %}
-                  <img src="{{ item.picture.url }}" alt="{{ item.name }}"
-                    style="width:72px;height:72px;object-fit:cover;border:1px solid #eaecf0;border-radius:6px;">
-                  {% else %}
-                  <span style="color:#667085;font-size:.88rem;">No image</span>
-                  {% endif %}
-                </td>
-                <td class="item-desc"><span>{{ item.description|default:"-" }}</span></td>
-                <td class="item-notes"><span>{{ item.notes|default:"-" }}</span></td>
-                <td class="item-stock">{{ item.stock_available }}</td>
-                <td class="item-price" data-price-cell>
-                  <span class="price-masked" style="color:#667085;">—</span>
-                </td>
-                <td class="item-actions">
-                  <div class="actions">
-                    <button class="copy" type="button" data-action="view">View</button>
-                    <button class="copy" type="button" data-action="edit">Edit</button>
-                    <button class="delete" type="button" data-action="delete">Delete</button>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-              <tr data-empty-state>
-                <td colspan="7" style="padding:24px;text-align:center;color:#667085;">No matching inventory items.</td>
-              </tr>
-            </tbody>
-          </table>
+      </div>
+      <div class="toolbar-field toolbar-field--grow">
+        <label for="searchInput">Search</label>
+        <div class="toolbar-control-slot search-slot">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="searchInput" type="search" class="toolbar-control" placeholder="Search code, name, description…" aria-label="Search inventory" autocomplete="off">
         </div>
-        <nav class="inventory-pager" id="inventoryPager" aria-label="All items pagination" hidden>
-          <button type="button" class="action" id="inventoryPrevPage">Prev</button>
-          <span class="pager-info" id="inventoryPagerInfo">Page 1 of 1</span>
-          <button type="button" class="action" id="inventoryNextPage">Next</button>
-        </nav>
+      </div>
+      <div class="toolbar-field toolbar-field--action">
+        <span class="toolbar-field-spacer">Search</span>
+        <div class="toolbar-control-slot toolbar-control-slot--actions">
+          <button id="viewAllItemsBtn" type="button" class="toolbar-control toolbar-control--primary">View All</button>
+          <button id="clearSearchBtn" type="button" class="toolbar-control">Clear</button>
+        </div>
       </div>
     </div>
+  </section>
+
+  <div class="notice empty-state" id="emptyNotice">
+    <span class="empty-state-icon" aria-hidden="true">📦</span>
+    <div>
+      <strong>No inventory yet.</strong>
+      <span>Use the Manage Item tab to add the first record.</span>
+    </div>
+  </div>
+
+  <section class="manage-card all-table-card" aria-label="Inventory items">
+    <div class="table-wrap all-table-wrap">
+      <table aria-label="Inventory items">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col">Picture</th>
+            <th scope="col">Description</th>
+            <th scope="col">Notes</th>
+            <th scope="col" class="col-stock">Stocks</th>
+            <th scope="col" class="th-price">
+              <span class="th-price-inner">
+                <span>Unit Price</span>
+                <span id="priceHeaderControl">
+                  <button type="button" class="price-toggle-btn" data-price-action="show-all">Show price</button>
+                </span>
+              </span>
+            </th>
+            <th scope="col" class="col-actions"><span class="sr-only">Actions</span>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryTableBody">
+          {% for item in inventory_items %}
+          <tr data-id="{{ item.id }}">
+            <td class="item-code" data-label="Item">
+              <span class="item-code-pill">{{ item.product_code|default:"-" }}</span>
+              <strong class="item-name">{{ item.name }}</strong>
+            </td>
+            <td class="item-picture" data-label="Picture">
+              {% if item.picture %}
+              <span class="item-thumb"><img src="{{ item.picture.url }}" alt="{{ item.name }}" loading="lazy"></span>
+              {% else %}
+              <span class="item-thumb is-empty" aria-label="No image">—</span>
+              {% endif %}
+            </td>
+            <td class="item-desc" data-label="Description"><span>{{ item.description|default:"-" }}</span></td>
+            <td class="item-notes" data-label="Notes"><span>{{ item.notes|default:"-" }}</span></td>
+            <td class="item-stock" data-label="Stocks">
+              <span class="stock-pill{% if item.stock_available <= 0 %} is-out{% elif item.stock_available <= 5 %} is-low{% endif %}">{{ item.stock_available }}</span>
+            </td>
+            <td class="item-price" data-label="Unit Price" data-price-cell>
+              <span class="price-masked">—</span>
+            </td>
+            <td class="item-actions" data-label="Actions">
+              <div class="actions row-actions">
+                <button class="row-btn" type="button" data-action="view" title="View {{ item.name }}" aria-label="View {{ item.name }}">View</button>
+                <button class="row-btn" type="button" data-action="edit" title="Edit {{ item.name }}" aria-label="Edit {{ item.name }}">Edit</button>
+                <button class="row-btn danger" type="button" data-action="delete" title="Delete {{ item.name }}" aria-label="Delete {{ item.name }}">Delete</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          <tr data-empty-state>
+            <td colspan="7" class="empty-cell">
+              <div class="empty-mini">
+                <strong>No matching inventory items.</strong>
+                <p>Try clearing the search or choosing a different category.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="inventory-pager" id="inventoryPager" aria-label="All items pagination" hidden>
+      <button type="button" class="action" id="inventoryPrevPage">← Prev</button>
+      <span class="pager-info" id="inventoryPagerInfo">Page 1 of 1</span>
+      <button type="button" class="action" id="inventoryNextPage">Next →</button>
+    </nav>
+  </section>
+</div>

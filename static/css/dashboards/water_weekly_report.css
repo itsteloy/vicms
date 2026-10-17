@@ -243,6 +243,70 @@
 .weekly-cash-remittance-deduction {
   padding-left: 14px;
 }
+.weekly-cash-remittance-custom {
+  align-items: center;
+}
+.weekly-other-deduction-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1f2937;
+  background: #fff;
+}
+.weekly-cash-remittance-custom-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.weekly-cash-remittance-custom-amount .weekly-peso-sign {
+  color: #344054;
+  font-size: 0.92rem;
+}
+.weekly-other-deduction-amount {
+  width: 110px;
+  padding: 6px 8px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: right;
+  color: #344054;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+#weeklyDeductionRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.weekly-deduction-remove {
+  margin-left: 4px;
+  padding: 2px 8px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: #fff;
+  color: #b42318;
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.weekly-deduction-remove:hover {
+  background: #fef3f2;
+  border-color: #b42318;
+}
+#addWeeklyDeductionRow {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+}
 .weekly-cash-remittance-deduction .weekly-cash-remittance-label::before {
   content: "− ";
   color: #b42318;

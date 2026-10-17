@@ -190,6 +190,44 @@
         <span class="weekly-cash-remittance-label">Parcel Payment</span>
         <span class="weekly-cash-remittance-amount" id="weeklyParcelPaymentTotal">₱{{ weekly_parcel_total|floatformat:2|intcomma }}</span>
       </div>
+      <div id="weeklyDeductionRows">
+        {% if print_mode %}
+          {% for line in weekly_deduction_lines %}
+            {% if line.amount %}
+        <div class="weekly-cash-remittance-line weekly-cash-remittance-deduction">
+          <span class="weekly-cash-remittance-label">{{ line.label|default:"Other Deduction" }}</span>
+          <span class="weekly-cash-remittance-amount">₱{{ line.amount|floatformat:2|intcomma }}</span>
+        </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          {% for line in weekly_deduction_lines %}
+        <div class="weekly-cash-remittance-line weekly-cash-remittance-deduction weekly-cash-remittance-custom weekly-deduction-row">
+          <input
+            name="weekly_deduction-{{ forloop.counter0 }}-label"
+            value="{{ line.label }}"
+            placeholder="Other deduction (e.g. Bank charge)"
+            aria-label="Other deduction label"
+            class="weekly-other-deduction-label">
+          <span class="weekly-cash-remittance-custom-amount">
+            <span class="weekly-peso-sign">₱</span>
+            <input
+              name="weekly_deduction-{{ forloop.counter0 }}-amount"
+              value="{% if line.amount %}{{ line.amount }}{% endif %}"
+              placeholder="0.00"
+              inputmode="decimal"
+              aria-label="Other deduction amount"
+              class="weekly-money weekly-other-deduction-amount">
+            <button type="button" class="weekly-deduction-remove no-print" data-remove-deduction aria-label="Remove deduction" title="Remove">×</button>
+          </span>
+        </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% if not print_mode %}
+      <input type="hidden" name="weekly_deduction_count" id="weeklyDeductionCount" value="{{ weekly_deduction_lines|length }}">
+      <p class="no-print" style="margin:4px 0 0;padding-left:14px;"><button type="button" class="action" id="addWeeklyDeductionRow">+ Add deduction</button></p>
+      {% endif %}
       <div class="weekly-cash-remittance-line weekly-cash-remittance-result">
         <span class="weekly-cash-remittance-label">Total Cash Remittance</span>
         <span class="weekly-cash-remittance-value" id="weeklyCashRemittanceTotal">₱{{ weekly_cash_remittance|floatformat:2|intcomma }}</span>

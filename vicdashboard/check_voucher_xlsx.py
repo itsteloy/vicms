@@ -21,6 +21,7 @@ MONEY_FIELDS = (
     'contributions',
     'misc',
     'payment',
+    'salaries',
 )
 
 HEADER_ALIASES = {
@@ -39,12 +40,16 @@ HEADER_ALIASES = {
     'contributions': 'contributions',
     'misc': 'misc',
     'payment': 'payment',
+    'salaries': 'salaries',
+    'salaries and wages': 'salaries',
     'check date': 'check_date',
     'check date:': 'check_date',
     'bank': 'bank',
     'check no': 'check_number',
     'check no:': 'check_number',
     'check no.': 'check_number',
+    'company': 'company',
+    'company:': 'company',
     'withholding tax': 'withholding_tax',
     'withholding tax:': 'withholding_tax',
     'less withholding tax': 'withholding_tax',
@@ -100,7 +105,8 @@ def _parse_date_value(value: Any) -> tuple[date | None, str]:
             return _excel_serial_to_date(serial), ''
     except (TypeError, ValueError):
         pass
-    for fmt in ('%m/%d/%Y', '%m/%d/%y', '%Y-%m-%d', '%d/%m/%Y'):
+    for fmt in ('%m/%d/%Y', '%m/%d/%y', '%Y-%m-%d', '%d/%m/%Y',
+                '%A, %B %d, %Y', '%A, %b %d, %Y', '%B %d, %Y', '%b %d, %Y'):
         try:
             return datetime.strptime(text, fmt).date(), ''
         except ValueError:
@@ -119,6 +125,19 @@ def _parse_amount_value(value: Any) -> tuple[Decimal | None, str]:
         return Decimal(cleaned), ''
     except (InvalidOperation, ValueError):
         return None, text
+
+
+def _normalize_company(value: Any) -> str:
+    text = re.sub(r'\s+', ' ', str(value or '').strip().lower())
+    if 'versatec' in text:
+        return 'versatec'
+    if 'mdtcii' in text or ('trade' in text and 'construction' in text):
+        return 'mdtcii'
+    if 'metro' in text or 'mdspii' in text or 'supreme' in text or 'davao' in text:
+        return 'mdspii'
+    if text in ('mdspii', 'versatec', 'mdtcii'):
+        return text
+    return ''
 
 
 def _cell_text(value: Any) -> str:
@@ -346,6 +365,73 @@ def _extract_cv_number(text: str) -> str:
     return match.group(1) if match else ''
 
 
+_WITHHOLDING_WORDS = ('withholding', 'withheld', 'w/tax', 'wtax', 'ewt')
+
+
+def _is_withholding_description(description: str) -> bool:
+    lowered = (description or '').strip().lower()
+    return any(word in lowered for word in _WITHHOLDING_WORDS)
+
+
+def _quantize_amount(value: str) -> str | None:
+    try:
+        return str(Decimal(str(value).replace(',', '')).quantize(Decimal('0.01')))
+    except Exception:
+        return None
+
+
+def _collect_voucher_body_row(cells, text_cells, lines, credit_lines, debit_col, credit_col, last_side):
+    """Attribute one body-row amount to the DEBIT or CREDIT column.
+
+    Rows whose description is a sheet label (TOTALS, CASH IN BANK, …) or a
+    withholding row are skipped — the withholding detector handles those.
+    Returns the side written ('debit'/'credit') or the unchanged last_side
+    when nothing was written.
+    """
+    if not text_cells:
+        return last_side
+    _desc_col, description = max(text_cells, key=lambda item: item[0])
+    if _looks_like_label(description) or _is_withholding_description(description):
+        return last_side
+    debit_raw = cells.get(debit_col, '')
+    credit_raw = cells.get(credit_col, '')
+    debit_value = _quantize_amount(debit_raw) if _is_number(debit_raw) else None
+    credit_value = _quantize_amount(credit_raw) if _is_number(credit_raw) else None
+    if debit_value is None and credit_value is None:
+        # Amount not aligned under either header (merged/offset cells):
+        # fall back to the legacy rule so the amount is never dropped.
+        legacy_cells = [
+            (col, str(cells[col]).strip())
+            for col in sorted(cells)
+            if col in (3, 4, 5, 6) and _is_number(cells[col])
+        ]
+        legacy_pick = next(
+            (cell for cell in legacy_cells if cell[0] > _desc_col),
+            legacy_cells[0] if legacy_cells else None,
+        )
+        if legacy_pick is not None:
+            legacy_value = _quantize_amount(legacy_pick[1])
+            if legacy_value is not None:
+                lines.append({'description': description, 'debit_amount': legacy_value})
+                return 'debit'
+        # Continuation line (e.g. "BAROBO PROJECT" under cash advance):
+        # fold into the most recently written side instead of creating
+        # an empty-amount row.
+        target = credit_lines if last_side == 'credit' and credit_lines else (lines or credit_lines)
+        if description and target:
+            prev = target[-1]
+            if prev.get('description') and description not in prev['description']:
+                prev['description'] = f"{prev['description']} ({description})"
+        return last_side
+    if debit_value is not None:
+        lines.append({'description': description, 'debit_amount': debit_value})
+        last_side = 'debit'
+    if credit_value is not None:
+        credit_lines.append({'description': description, 'credit_amount': credit_value})
+        last_side = 'credit'
+    return last_side
+
+
 def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any]:
     rows_by_col = _rows_by_col(rows)
 
@@ -363,10 +449,17 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
     date_value = ''
     if date_label:
         found = _numeric_on_same_row(rows_by_col, date_label[0], date_label[1])
-        if not found:
-            found = _first_numeric_after(rows_by_col, date_label[0], date_label[1])
         if found:
             date_value = str(found[2])
+        else:
+            # Text-formatted dates (e.g. "Wednesday, January 14, 2026").
+            text_found = _text_on_same_row(rows_by_col, date_label[0], date_label[1])
+            if text_found and _parse_date_value(str(text_found[2]))[0] is not None:
+                date_value = str(text_found[2])
+            else:
+                scanned = _first_numeric_after(rows_by_col, date_label[0], date_label[1])
+                if scanned:
+                    date_value = str(scanned[2])
     voucher_date, _ = _parse_date_value(date_value)
 
     payee_label = _find_label(rows_by_col, 'PAYEE')
@@ -381,6 +474,11 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
                 payee = candidate
 
     debit_label = _find_label(rows_by_col, 'DEBIT')
+    credit_label = _find_label(rows_by_col, 'CREDIT')
+    if credit_label and (not debit_label or credit_label[0] != debit_label[0]):
+        # Only trust a CREDIT header sitting on the same header row as DEBIT;
+        # otherwise fall back to debit-only parsing to avoid misclassification.
+        credit_label = None
     cash_bank_label = _find_label(rows_by_col, 'CASH IN BANK')
     totals_label = _find_label(rows_by_col, 'TOTALS')
     withholding_label_pos = (
@@ -390,11 +488,15 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
         or _find_label(rows_by_col, 'EWT')
     )
     lines: list[dict[str, Any]] = []
+    credit_lines: list[dict[str, Any]] = []
     candidates = [
         pos[0] for pos in (withholding_label_pos, cash_bank_label, totals_label) if pos
     ]
     debit_end = min(candidates) if candidates else 0
     if debit_label and debit_end and debit_end > debit_label[0]:
+        debit_col = debit_label[1]
+        credit_col = credit_label[1] if credit_label else None
+        last_side = 'debit'
         for row_idx in range(debit_label[0] + 1, debit_end):
             cells = rows_by_col.get(row_idx, {})
             if not cells:
@@ -406,6 +508,12 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
                 for col, value in cells.items()
                 if col <= 2 and not _is_number(value) and str(value).strip()
             ]
+            if credit_col is not None:
+                last_side = _collect_voucher_body_row(
+                    cells, text_cells, lines, credit_lines,
+                    debit_col, credit_col, last_side,
+                )
+                continue
             numeric_cells = [
                 (col, str(value).strip())
                 for col, value in cells.items()
@@ -589,6 +697,7 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
 
     return {
         'cv_number': cv_number or cvno,
+        'company': 'mdspii',
         'voucher_date': voucher_date.isoformat() if voucher_date else '',
         'payee': payee,
         'payment_for': payment_for,
@@ -604,12 +713,14 @@ def _parse_voucher_sheet(rows: list[list[Any]], cv_number: str) -> dict[str, Any
         'signatory_approved': signatories[2],
         'signatory_approver': signatories[3],
         'lines': lines,
+        'credit_lines': credit_lines,
         'purchases': '',
         'expenses': '',
         'commission': '',
         'contributions': '',
         'misc': '',
         'payment': '',
+        'salaries': '',
     }
 
 
@@ -638,6 +749,7 @@ def _parse_monitoring_sheet(rows: list[list[Any]], source_filename: str) -> list
 
         record: dict[str, Any] = {
             'cv_number': cv_number,
+            'company': 'mdspii',
             'voucher_date': '',
             'payee': '',
             'payment_for': '',
@@ -659,10 +771,15 @@ def _parse_monitoring_sheet(rows: list[list[Any]], source_filename: str) -> list
             'contributions': '',
             'misc': '',
             'payment': '',
+            'salaries': '',
             'source_filename': source_filename,
         }
         for col_idx, field in col_map.items():
             value = row[col_idx] if col_idx < len(row) else ''
+            if field == 'company':
+                normalized = _normalize_company(value)
+                record['company'] = normalized or 'mdspii'
+                continue
             if field in MONEY_FIELDS or field in {'check_amount', 'cash_in_bank', 'withholding_tax'}:
                 parsed, _ = _parse_amount_value(value)
                 record[field] = str(parsed.quantize(Decimal('0.01'))) if parsed is not None else ''
@@ -710,7 +827,9 @@ def parse_check_voucher_xlsx(path: Path) -> dict[str, Any]:
                 if value not in (None, ''):
                     # Monitoring is authoritative for header/category fields.
                     # Voucher sheets supply debit lines + signatories.
-                    if key in {'bank', 'check_number', 'received_by', 'payee', 'payment_for'}:
+                    if key == 'company':
+                        voucher[key] = _normalize_company(value) or voucher.get(key) or 'mdspii'
+                    elif key in {'bank', 'check_number', 'received_by', 'payee', 'payment_for'}:
                         voucher[key] = value
                     elif key in MONEY_FIELDS or key in {'check_amount', 'cash_in_bank', 'withholding_tax', 'withholding_label', 'voucher_date', 'check_date', 'source_filename'}:
                         voucher[key] = value
@@ -725,6 +844,7 @@ def parse_check_voucher_xlsx(path: Path) -> dict[str, Any]:
             voucher.setdefault('source_filename', path.name)
         for field in MONEY_FIELDS:
             voucher.setdefault(field, '')
+        voucher.setdefault('company', 'mdspii')
         voucher.setdefault('check_date', '')
         voucher.setdefault('source_filename', path.name)
         vouchers.append(voucher)

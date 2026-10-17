@@ -501,6 +501,47 @@ class PettyCashLine(models.Model):
 
 
 class CheckVoucher(models.Model):
+    COMPANY_MDSPII = 'mdspii'
+    COMPANY_VERSATEC = 'versatec'
+    COMPANY_MDTCII = 'mdtcii'
+    COMPANY_CHOICES = [
+        (COMPANY_MDSPII, 'METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.'),
+        (COMPANY_VERSATEC, 'VERSATEC INDUSTRIAL CORPORATION'),
+        (COMPANY_MDTCII, 'METRO DAVAO TRADE & CONSTRUCTION INDUSTRIES, INC.'),
+    ]
+    # Extensible registry: add a new key + choice above to support more
+    # companies. `header_kind` drives the printed letterhead (text vs image).
+    COMPANY_PROFILES = {
+        COMPANY_MDSPII: {
+            'name': 'METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.',
+            'short_label': 'MDSPII',
+            'received_from': 'Received from MDSPII',
+            'header_kind': 'text',
+            'address': '#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY',
+        },
+        COMPANY_VERSATEC: {
+            'name': 'VERSATEC INDUSTRIAL CORPORATION',
+            'short_label': 'VERSATEC',
+            'received_from': 'Received from VERSATEC',
+            'header_kind': 'image',
+            'header_image': 'versatec_header.jpg',
+            'address': 'Lot 30-B, Prk. Batong, Brgy. Nanyo, Panabo City, Davao del Norte 8105',
+        },
+        COMPANY_MDTCII: {
+            'name': 'METRO DAVAO TRADE & CONSTRUCTION INDUSTRIES, INC.',
+            'short_label': 'MDTCII',
+            'received_from': 'Received from MDTCII',
+            'header_kind': 'text',
+            'address': '#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY',
+        },
+    }
+
+    company = models.CharField(
+        max_length=20,
+        choices=COMPANY_CHOICES,
+        default=COMPANY_MDSPII,
+        db_index=True,
+    )
     cv_number = models.CharField(max_length=50, unique=True)
     voucher_date = models.DateField()
     payee = models.CharField(max_length=300)
@@ -523,6 +564,7 @@ class CheckVoucher(models.Model):
     contributions = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     misc = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     payment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    salaries = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     source_filename = models.CharField(max_length=255, blank=True, default='')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -549,6 +591,23 @@ class CheckVoucherLine(models.Model):
     )
     description = models.CharField(max_length=500, blank=True, default='')
     debit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.description or self.pk} ({self.voucher_id})'
+
+
+class CheckVoucherCreditLine(models.Model):
+    voucher = models.ForeignKey(
+        CheckVoucher,
+        on_delete=models.CASCADE,
+        related_name='credit_lines',
+    )
+    description = models.CharField(max_length=500, blank=True, default='')
+    credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -2590,6 +2649,10 @@ class WaterBill(models.Model):
         self.consumption_charge = water_consumption_charge(self.consumption, self.rate_per_cum)
         # Statement of Account format:
         # TOTAL BILL = CURRENT BILL + PREVIOUS BILL (UNPAID) + WATER INSTALLMENT BAL
+        # NOTE: Do NOT floor negative totals to 0. A negative previous_bill_unpaid
+        # is an advance/overpayment credit, e.g. 560.00 + (-1,000.00) = -440.00.
+        # Flooring to 0.00 would silently discard the remaining 440.00 credit.
+        # Amount-due display is handled by balance_due (max(total - paid, 0)).
         self.total_amount = (
             self.consumption_charge
             + (self.previous_bill_unpaid or Decimal('0'))
@@ -2601,18 +2664,18 @@ class WaterBill(models.Model):
             + self.penalty
             - self.discount
         ).quantize(Decimal('0.01'))
-        if self.total_amount < 0:
-            self.total_amount = Decimal('0.00')
         self.refresh_status()
 
     def refresh_status(self):
         if self.status == 'cancelled':
             return
         # Keep amount_paid as recorded (may exceed total_amount for advance / overpayment).
-        if self.amount_paid <= 0:
-            self.status = 'overdue' if self.due_date < date.today() else 'unpaid'
-        elif self.amount_paid >= self.total_amount:
+        # Check paid first so credit bills (e.g. total -440.00, paid 0.00) read as
+        # paid instead of overdue — there is nothing due.
+        if self.amount_paid >= self.total_amount:
             self.status = 'paid'
+        elif self.amount_paid <= 0:
+            self.status = 'overdue' if self.due_date < date.today() else 'unpaid'
         else:
             self.status = 'partial'
 
@@ -2891,6 +2954,20 @@ class WaterWeeklyRefillLine(models.Model):
 
     def __str__(self):
         return f'Refill line {self.line_no}'
+
+
+class WaterWeeklyDeductionLine(models.Model):
+    """Extra user-defined LESS deductions for a weekly report (multi-line)."""
+    report = models.ForeignKey(WaterWeeklyReport, on_delete=models.CASCADE, related_name='deduction_lines')
+    line_no = models.PositiveIntegerField(default=1)
+    label = models.CharField(max_length=120, blank=True, default='')
+    amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ['line_no', 'id']
+
+    def __str__(self):
+        return f'Deduction line {self.line_no}'
 
 
 WATER_WEEKLY_DENOMS = (1000, 500, 200, 100, 50, 20, 10, 5, 1)

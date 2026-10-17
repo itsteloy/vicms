@@ -1748,6 +1748,13 @@ h1, h2, h3, h4,
       line-height: 1.25;
       margin-bottom: 12px;
   }
+  #cvImageLetterhead {
+      display: block;
+      width: 100%;
+      max-height: 130px;
+      object-fit: contain;
+      margin: 0 auto;
+  }
   .cv-company {
       font-size: 18pt;
       font-weight: 400;
@@ -1993,6 +2000,66 @@ h1, h2, h3, h4,
       font-variant-numeric: tabular-nums;
       min-width: 110px;
   }
+  .cv-monitoring-table .cv-peso-wrap {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+  }
+  .cv-monitoring-table .cv-peso-sign {
+      color: inherit;
+      opacity: 0.7;
+      font-size: 0.9em;
+      user-select: none;
+      pointer-events: none;
+  }
+  .cv-monitoring-table .cv-peso-wrap .cv-cell-input.cv-money-input {
+      min-width: 0;
+      flex: 1;
+  }
+  .cv-monitoring-table .cv-cell-input[data-field="cv_number"] {
+      font-weight: 700;
+  }
+  /* Highlight key money columns: Amount, Purchases, Expenses, Payment. */
+  .cv-monitoring-table th.cv-hl {
+      background: #fde68a;
+      color: #111 !important;
+  }
+  .cv-monitoring-table td.cv-hl {
+      background: #fffaeb;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+  }
+  .cv-monitoring-table tfoot td.cv-hl {
+      background: #fef0c7;
+  }
+  .cv-monitoring-table td.cv-hl .cv-cell-input {
+      background: transparent;
+  }
+  .cv-monitoring-table td.cv-hl .cv-cell-input:hover {
+      background: #fff;
+  }
+  .cv-monitoring-table td.cv-hl .cv-cell-input:focus {
+      background: #fff;
+  }
+  dialog.flash-modal .flash-modal-actions {
+      gap: 10px;
+  }
+  dialog.flash-modal .flash-modal-cancel {
+      min-width: 7rem;
+      display: inline-flex;
+      justify-content: center;
+      padding: 8px 18px;
+      border: 1px solid var(--line, #d0d5dd);
+      border-radius: 8px;
+      background: #fff;
+      color: #344054;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+  }
+  dialog.flash-modal .flash-modal-cancel:hover {
+      background: #f2f4f7;
+  }
   .cv-monitoring-table .cv-cell-input.is-saving {
       background: #fef9c3;
   }
@@ -2004,8 +2071,16 @@ h1, h2, h3, h4,
       border-color: var(--danger, #dc2626);
   }
   #cvMonitoringWrap {
-      overflow-x: auto !important;
+      overflow: auto !important;
       max-width: 100%;
+      max-height: 65vh;
+  }
+  /* Sticky table header: stays visible while scrolling rows vertically. */
+  .cv-monitoring-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      box-shadow: inset 0 -1px 0 var(--line);
   }
 
   @media (max-width: 900px) {
@@ -2060,6 +2135,9 @@ h1, h2, h3, h4,
       }
       body.cv-print-voucher .cv-letterhead {
           margin-bottom: 6px !important;
+      }
+      body.cv-print-voucher #cvImageLetterhead {
+          max-height: 90px !important;
       }
       body.cv-print-voucher .cv-sheet th,
       body.cv-print-voucher .cv-sheet td {
@@ -2137,6 +2215,7 @@ h1, h2, h3, h4,
       body.cv-print-monitoring #cvMonitoringWrap,
       body.cv-print-monitoring .cv-report-panel .table-wrap {
           overflow: visible !important;
+          max-height: none !important;
           border: none !important;
           border-radius: 0 !important;
           background: #fff !important;
@@ -2168,6 +2247,8 @@ h1, h2, h3, h4,
       }
       body.cv-print-monitoring .cv-monitoring-table th {
           text-align: center !important;
+          position: static !important;
+          box-shadow: none !important;
       }
       body.cv-print-monitoring .cv-monitoring-table thead {
           display: table-header-group !important;
@@ -2288,4 +2369,74 @@ h1, h2, h3, h4,
 
 [data-theme="dark"] .cv-monitoring-table th {
   background: var(--soft);
+  color: var(--ink) !important;
+}
+[data-theme="dark"] .cv-monitoring-table th.cv-hl {
+  background: #3a2f14;
+  color: #fde68a !important;
+}
+[data-theme="dark"] .cv-monitoring-table td {
+  color: var(--ink);
+}
+[data-theme="dark"] .cv-monitoring-table td.cv-hl {
+  background: rgba(253, 230, 138, 0.08);
+  color: var(--ink);
+}
+[data-theme="dark"] .cv-monitoring-table tfoot td.cv-hl {
+  background: rgba(253, 230, 138, 0.14);
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input {
+  color: var(--ink);
+  color-scheme: dark;
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input:hover {
+  border-color: var(--line);
+  background: #273142;
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input:focus {
+  background: #273142;
+}
+[data-theme="dark"] .cv-monitoring-table td.cv-hl .cv-cell-input:hover,
+[data-theme="dark"] .cv-monitoring-table td.cv-hl .cv-cell-input:focus {
+  background: #273142;
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input.is-saving {
+  background: #3a2f14;
+  color: #fde68a;
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input.is-saved {
+  background: #123a26;
+  color: #a7f3d0;
+}
+[data-theme="dark"] .cv-monitoring-table .cv-cell-input.is-error {
+  background: #43161a;
+  border-color: var(--danger, #dc2626);
+  color: #fecaca;
+}
+
+/* Monitoring-category selector: follow the theme instead of fixed white. */
+.cv-category-select,
+.cv-category-amount {
+  color-scheme: light;
+}
+[data-theme="dark"] .cv-category-select,
+[data-theme="dark"] .cv-category-amount {
+  color-scheme: dark;
+}
+[data-theme="dark"] .cv-category-select {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .cv-category-select option {
+  background: var(--panel);
+  color: var(--ink);
+}
+[data-theme="dark"] .cv-category-amount {
+  background: var(--soft);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="dark"] .cv-category-amount::placeholder {
+  color: var(--muted);
 }

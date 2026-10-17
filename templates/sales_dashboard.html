@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}Sales Dashboard{% endblock %}
 
 {% block extra_css %}
@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sky1">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sky3">
 <link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
 <script>
   try {
@@ -1982,6 +1982,13 @@
                 </div>
 
                 <div class="cv-editor-grid">
+                    <div><label for="cvCompany">Company (voucher header)</label>
+                        <select id="cvCompany" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;width:100%;background:var(--panel,#fff);color:var(--ink,#101828);">
+                            <option value="mdspii" selected>METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</option>
+                            <option value="versatec">VERSATEC INDUSTRIAL CORPORATION</option>
+                            <option value="mdtcii">METRO DAVAO TRADE &amp; CONSTRUCTION INDUSTRIES, INC.</option>
+                        </select>
+                    </div>
                     <div><label>CVNO</label><input type="text" id="cvNumber" value="{{ next_cv_number }}" placeholder="2026-M-380"></div>
                     <div><label>Date</label><input type="date" id="cvDate"></div>
                     <div><label>Payee</label><input type="text" id="cvPayee"></div>
@@ -1993,16 +2000,26 @@
                 </div>
 
                 <fieldset class="cv-fieldset">
-                    <legend>Monitoring categories (matches CV MONITORING columns)</legend>
-                    <div class="cv-editor-grid">
-                        <div><label>Purchases</label><input type="text" id="cvPurchases" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
-                        <div><label>Expenses</label><input type="text" id="cvExpenses" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
-                        <div><label>Commission</label><input type="text" id="cvCommission" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
-                        <div><label>Contributions</label><input type="text" id="cvContributions" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
-                        <div><label>Misc</label><input type="text" id="cvMisc" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
-                        <div><label>Payment</label><input type="text" id="cvPayment" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
+                    <legend>Monitoring category (assigns the full check amount on save)</legend>
+                    <div class="cv-editor-grid" style="grid-template-columns:1fr 1fr;">
+                        <div>
+                            <label for="cvCategory">Category for this check amount</label>
+                            <select id="cvCategory" class="cv-category-select" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;width:100%;background:var(--panel,#fff);color:var(--ink,#101828);">
+                                <option value="purchases">Purchases</option>
+                                <option value="expenses" selected>Expenses</option>
+                                <option value="commission">Commission</option>
+                                <option value="contributions">Contributions</option>
+                                <option value="misc">Misc</option>
+                                <option value="payment">Payment</option>
+                                <option value="salaries">Salaries and Wages</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="cvCategoryAmount">Amount to assign (auto from debit total)</label>
+                            <input type="text" id="cvCategoryAmount" class="cv-category-amount" readonly tabindex="-1" placeholder="PHP 0.00" style="background:var(--soft,#f8fafc);color:var(--ink,#101828);">
+                        </div>
                     </div>
-                    <p style="margin:8px 0 0;color:var(--muted);font-size:0.8rem;">Leave all zero to auto-assign the voucher total to the dominant category on save. Imported workbooks already carry these breakdowns.</p>
+                    <p id="cvCategoryHint" style="margin:8px 0 0;color:var(--muted);font-size:0.8rem;">The full check amount will be saved to the selected category. Imported workbooks keep their breakdowns; split breakdowns can still be fine-tuned in the CV Monitoring table below.</p>
                 </fieldset>
 
                 <fieldset class="cv-fieldset">
@@ -2016,12 +2033,28 @@
                     <div style="display:flex;justify-content:flex-end;margin:8px 0;">
                         <button class="action" type="button" id="cvAddRow" style="padding:8px 14px;">Add debit row</button>
                     </div>
+                    <div class="cv-total-strip">
+                        <span>Total debit: <strong id="cvDebitTotal">PHP 0.00</strong></span>
+                    </div>
+                </fieldset>
+
+                <fieldset class="cv-fieldset">
+                    <legend>Credit Lines</legend>
+                    <div class="table-wrap">
+                        <table class="cv-form-table" aria-label="Check voucher credit lines">
+                            <thead><tr><th>Description</th><th style="text-align:right;">Credit</th><th></th></tr></thead>
+                            <tbody id="cvCreditLinesBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin:8px 0;">
+                        <button class="action" type="button" id="cvAddCreditRow" style="padding:8px 14px;">Add credit row</button>
+                    </div>
                     <div class="cv-editor-grid" style="margin-bottom:8px;">
                         <div><label>Withholding label</label><input type="text" id="cvWithholdingLabel" value="WITHHOLDING TAX" placeholder="WITHHOLDING TAX 1%"></div>
                         <div><label>Withholding tax (credit)</label><input type="text" id="cvWithholdingTax" class="cv-money-input" inputmode="decimal" placeholder="0.00"></div>
                     </div>
                     <div class="cv-total-strip">
-                        <span>Total debit: <strong id="cvDebitTotal">PHP 0.00</strong></span>
+                        <span>Total credit: <strong id="cvCreditLinesTotal">PHP 0.00</strong></span>
                         <span>Withholding tax: <strong id="cvWithholdingTotal">PHP 0.00</strong></span>
                         <span>Cash in bank / check amount: <strong id="cvCreditTotal">PHP 0.00</strong></span>
                     </div>
@@ -2039,8 +2072,11 @@
                 <h2 style="margin-top:0;">Document Preview</h2>
                 <article class="cv-doc" id="cvDocument" aria-label="Check voucher preview">
                     <div class="cv-letterhead">
-                        <div class="cv-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
-                        <div class="cv-address">#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                        <div id="cvTextLetterhead">
+                            <div class="cv-company" id="cvPrevCompany">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                            <div class="cv-address" id="cvPrevCompanyAddress">#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                        </div>
+                        <img id="cvImageLetterhead" src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation header" style="display:none;" />
                     </div>
                     <table class="cv-sheet">
                         <colgroup>
@@ -2062,7 +2098,7 @@
                             <tr class="cv-totals-row"><td class="cv-noborder"></td><td class="cv-account">TOTALS</td><td class="cv-money cv-total" id="cvPrevDebitTotal">0.00</td><td class="cv-money cv-total" id="cvPrevCreditTotal">0.00</td></tr>
                         </tbody>
                         <tbody class="cv-box">
-                            <tr class="cv-box-row"><td class="cv-blabel">Payment for:</td><td class="cv-bhead" colspan="3">Received from MDSPII</td></tr>
+                            <tr class="cv-box-row"><td class="cv-blabel">Payment for:</td><td class="cv-bhead" colspan="3" id="cvReceivedFromLabel">Received from MDSPII</td></tr>
                             <tr class="cv-box-row"><td rowspan="4" class="cv-payfor" id="cvPrevPaymentFor">&nbsp;</td><td class="cv-bhead" colspan="2">Check Amount:</td><td class="cv-check-amount" id="cvPrevCheckAmount">0.00</td></tr>
                             <tr class="cv-box-row"><td class="cv-bhead">BANK:</td><td class="cv-bval" colspan="2" id="cvPrevBank"></td></tr>
                             <tr class="cv-box-row"><td class="cv-bhead">CHEQUE NO:</td><td class="cv-bval" colspan="2" id="cvPrevCheckNumber"></td></tr>
@@ -2127,6 +2163,16 @@
                             <option value="contributions" {% if cv_filters.category == "contributions" %}selected{% endif %}>Contributions</option>
                             <option value="misc" {% if cv_filters.category == "misc" %}selected{% endif %}>Misc</option>
                             <option value="payment" {% if cv_filters.category == "payment" %}selected{% endif %}>Payment</option>
+                            <option value="salaries" {% if cv_filters.category == "salaries" %}selected{% endif %}>Salaries and Wages</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Company</label>
+                        <select name="cv_company" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:150px;">
+                            <option value="all" {% if cv_filters.company == "all" %}selected{% endif %}>All companies</option>
+                            {% for value, label in cv_company_choices %}
+                            <option value="{{ value }}" {% if cv_filters.company == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
@@ -2135,38 +2181,45 @@
                     </div>
                     <button type="submit" class="action" style="padding:8px 16px;">Apply</button>
                     <a href="?tab=check-voucher-tab" class="action" style="padding:8px 16px;">Clear</a>
-                    <a href="{% url 'check_voucher_monitoring_xlsx' %}?cv_year={{ cv_filters.year }}&cv_month={{ cv_filters.month }}&cv_category={{ cv_filters.category }}&cv_search={{ cv_filters.search|urlencode }}" class="action brand-link" style="padding:8px 16px;">Export Excel</a>
+                    <a href="{% url 'check_voucher_monitoring_xlsx' %}?cv_year={{ cv_filters.year }}&cv_month={{ cv_filters.month }}&cv_category={{ cv_filters.category }}&cv_company={{ cv_filters.company }}&cv_search={{ cv_filters.search|urlencode }}" class="action brand-link" style="padding:8px 16px;">Export Excel</a>
                     <button type="button" class="action" id="cvPrintMonitoring" style="padding:8px 16px;">Print report</button>
                 </form>
                 <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; font-size:0.85rem;" class="cv-report-summary">
                     <span><strong>{{ cv_result_count }}</strong> voucher{{ cv_result_count|pluralize }}</span>
-                    <span>Total: <strong>PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</strong></span>
-                    <span>Purchases: PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</span>
-                    <span>Expenses: PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</span>
-                    <span>Commission: PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</span>
-                    <span>Contributions: PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</span>
-                    <span>Misc: PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</span>
-                    <span>Payment: PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</span>
+                    <span>Total: <strong>₱{{ cv_totals.total_amount|default:0|floatformat:2|intcomma }}</strong></span>
+                    <span>Purchases: ₱{{ cv_totals.total_purchases|default:0|floatformat:2|intcomma }}</span>
+                    <span>Expenses: ₱{{ cv_totals.total_expenses|default:0|floatformat:2|intcomma }}</span>
+                    <span>Commission: ₱{{ cv_totals.total_commission|default:0|floatformat:2|intcomma }}</span>
+                    <span>Contributions: ₱{{ cv_totals.total_contributions|default:0|floatformat:2|intcomma }}</span>
+                    <span>Misc: ₱{{ cv_totals.total_misc|default:0|floatformat:2|intcomma }}</span>
+                    <span>Payment: ₱{{ cv_totals.total_payment|default:0|floatformat:2|intcomma }}</span>
+                    <span>Salaries and Wages: ₱{{ cv_totals.total_salaries|default:0|floatformat:2|intcomma }}</span>
                 </div>
                 <div class="table-wrap" id="cvMonitoringWrap">
                     <table class="cv-monitoring-table" aria-label="CV Monitoring">
                         <thead>
-                            <tr><th>Date</th><th>CV No</th><th>Issued To</th><th>Payment For</th><th>Amount</th><th class="cv-breakdown-col">Purchases</th><th class="cv-breakdown-col">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col">Payment</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
+                            <tr><th>Date</th><th>CV No</th><th>Company</th><th>Issued To</th><th>Payment For</th><th class="cv-hl">Amount</th><th class="cv-breakdown-col cv-hl">Purchases</th><th class="cv-breakdown-col cv-hl">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col cv-hl">Payment</th><th class="cv-breakdown-col">Salaries</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for voucher in recent_check_vouchers %}
                             <tr data-cv-row="{{ voucher.id }}">
                                 <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="voucher_date" value="{{ voucher.voucher_date|date:'Y-m-d' }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="cv_number" value="{{ voucher.cv_number }}"></td>
+                                <td><select class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="company" style="padding:6px 8px;min-width:110px;">
+                                    {% for value, label in cv_company_choices %}
+                                    <option value="{{ value }}" {% if voucher.company == value %}selected{% endif %}>{{ label|truncatechars:24 }}</option>
+                                    {% endfor %}
+                                </select></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payee" value="{{ voucher.payee }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payment_for" value="{{ voucher.payment_for|default:'' }}" placeholder="-"></td>
-                                <td><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="check_amount" data-money-col="check_amount" value="{{ voucher.check_amount|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="purchases" data-money-col="purchases" value="{{ voucher.purchases|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="expenses" data-money-col="expenses" value="{{ voucher.expenses|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="commission" data-money-col="commission" value="{{ voucher.commission|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="contributions" data-money-col="contributions" value="{{ voucher.contributions|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="misc" data-money-col="misc" value="{{ voucher.misc|floatformat:2 }}"></td>
-                                <td class="cv-breakdown-col"><input type="number" step="0.01" min="0" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="payment" data-money-col="payment" value="{{ voucher.payment|floatformat:2 }}"></td>
+                                <td class="cv-hl"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="check_amount" data-money-col="check_amount" value="{{ voucher.check_amount|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col cv-hl"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="purchases" data-money-col="purchases" value="{{ voucher.purchases|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col cv-hl"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="expenses" data-money-col="expenses" value="{{ voucher.expenses|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="commission" data-money-col="commission" value="{{ voucher.commission|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="contributions" data-money-col="contributions" value="{{ voucher.contributions|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="misc" data-money-col="misc" value="{{ voucher.misc|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col cv-hl"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="payment" data-money-col="payment" value="{{ voucher.payment|floatformat:2|intcomma }}"></div></td>
+                                <td class="cv-breakdown-col"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="salaries" data-money-col="salaries" value="{{ voucher.salaries|floatformat:2|intcomma }}"></div></td>
                                 <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_date" value="{{ voucher.check_date|date:'Y-m-d'|default:'' }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="bank" value="{{ voucher.bank|default:'' }}" placeholder="-"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_number" value="{{ voucher.check_number|default:'' }}" placeholder="-"></td>
@@ -2176,20 +2229,21 @@
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="15" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
+                            <tr><td colspan="17" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
                             {% endfor %}
                         </tbody>
                         {% if recent_check_vouchers %}
                         <tfoot>
                             <tr>
-                                <td colspan="4" style="text-align:right;font-weight:700;">TOTAL ({{ cv_result_count }})</td>
-                                <td style="font-weight:700;" data-money-total="check_amount">PHP {{ cv_totals.total_amount|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="purchases">PHP {{ cv_totals.total_purchases|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="expenses">PHP {{ cv_totals.total_expenses|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="commission">PHP {{ cv_totals.total_commission|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="contributions">PHP {{ cv_totals.total_contributions|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="misc">PHP {{ cv_totals.total_misc|default:0|floatformat:2 }}</td>
-                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="payment">PHP {{ cv_totals.total_payment|default:0|floatformat:2 }}</td>
+                                <td colspan="5" style="text-align:right;font-weight:700;">TOTAL ({{ cv_result_count }})</td>
+                                <td class="cv-hl" style="font-weight:700;" data-money-total="check_amount">₱{{ cv_totals.total_amount|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col cv-hl" style="font-weight:700;" data-money-total="purchases">₱{{ cv_totals.total_purchases|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col cv-hl" style="font-weight:700;" data-money-total="expenses">₱{{ cv_totals.total_expenses|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="commission">₱{{ cv_totals.total_commission|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="contributions">₱{{ cv_totals.total_contributions|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="misc">₱{{ cv_totals.total_misc|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col cv-hl" style="font-weight:700;" data-money-total="payment">₱{{ cv_totals.total_payment|default:0|floatformat:2|intcomma }}</td>
+                                <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="salaries">₱{{ cv_totals.total_salaries|default:0|floatformat:2|intcomma }}</td>
                                 <td colspan="3"></td>
                                 <td class="cv-actions-col"></td>
                             </tr>
@@ -2331,5 +2385,5 @@
   };
 </script>
 <script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=aa-search1"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=cv-live6"></script>
 {% endblock %}

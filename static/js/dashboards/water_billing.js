@@ -1782,7 +1782,68 @@
     initWeeklyRefillForm();
     initWeeklyOtherReceived();
     initWeeklyDenominationTables();
+    initWeeklyOtherDeduction();
     updateWeeklyCashRemittance();
+  }
+
+  function initWeeklyOtherDeduction() {
+    const wrap = document.getElementById('weeklyDeductionRows');
+    const countInput = document.getElementById('weeklyDeductionCount');
+    const addBtn = document.getElementById('addWeeklyDeductionRow');
+    if (!wrap) return;
+    function reindex() {
+      const rows = [...wrap.querySelectorAll('.weekly-deduction-row')];
+      rows.forEach((row, index) => {
+        row.querySelectorAll('input[name^="weekly_deduction-"]').forEach((input) => {
+          input.name = input.name.replace(/weekly_deduction-\d+-/, `weekly_deduction-${index}-`);
+        });
+      });
+      if (countInput) countInput.value = String(rows.length);
+      updateWeeklyCashRemittance();
+    }
+    if (!wrap.dataset.bound) {
+      wrap.dataset.bound = '1';
+      wrap.addEventListener('input', (event) => {
+        if (event.target.classList.contains('weekly-other-deduction-amount')) updateWeeklyCashRemittance();
+      });
+      wrap.addEventListener('change', (event) => {
+        if (event.target.classList.contains('weekly-other-deduction-amount')) updateWeeklyCashRemittance();
+      });
+      wrap.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-remove-deduction]');
+        if (!btn) return;
+        const rows = wrap.querySelectorAll('.weekly-deduction-row');
+        if (rows.length <= 1) {
+          const row = rows[0];
+          if (row) {
+            row.querySelector('.weekly-other-deduction-label').value = '';
+            row.querySelector('.weekly-other-deduction-amount').value = '';
+          }
+        } else {
+          btn.closest('.weekly-deduction-row')?.remove();
+        }
+        reindex();
+      });
+    }
+    if (addBtn && !addBtn.dataset.bound) {
+      addBtn.dataset.bound = '1';
+      addBtn.addEventListener('click', () => {
+        const index = wrap.querySelectorAll('.weekly-deduction-row').length;
+        const row = document.createElement('div');
+        row.className = 'weekly-cash-remittance-line weekly-cash-remittance-deduction weekly-cash-remittance-custom weekly-deduction-row';
+        row.innerHTML = `
+          <input name="weekly_deduction-${index}-label" placeholder="Other deduction (e.g. Bank charge)" aria-label="Other deduction label" class="weekly-other-deduction-label">
+          <span class="weekly-cash-remittance-custom-amount">
+            <span class="weekly-peso-sign">₱</span>
+            <input name="weekly_deduction-${index}-amount" placeholder="0.00" inputmode="decimal" aria-label="Other deduction amount" class="weekly-money weekly-other-deduction-amount">
+            <button type="button" class="weekly-deduction-remove no-print" data-remove-deduction aria-label="Remove deduction" title="Remove">×</button>
+          </span>`;
+        wrap.appendChild(row);
+        reindex();
+        row.querySelector('.weekly-other-deduction-label')?.focus();
+      });
+    }
+    reindex();
   }
 
   function parseWeeklyPesoText(text) {
@@ -1829,10 +1890,16 @@
       }
     });
 
+    let otherDeduction = 0;
+    document.querySelectorAll('.weekly-other-deduction-amount').forEach((input) => {
+      const value = Number(input.value || 0);
+      if (Number.isFinite(value) && value > 0) otherDeduction += value;
+    });
+
     // Include non-other cash already in footer if body empty of billing cash cells —
     // cashTotal from rows is authoritative when rows exist.
     const grossSales = cashTotal + gcashTotal + aidReceived + refillCashTotal;
-    const remittance = grossSales - gcashTotal - aidReceived - parcelPayment;
+    const remittance = grossSales - gcashTotal - aidReceived - parcelPayment - otherDeduction;
 
     if (grossEl) grossEl.textContent = fmtPeso(grossSales);
     if (gcashEl) gcashEl.textContent = fmtPeso(gcashTotal);

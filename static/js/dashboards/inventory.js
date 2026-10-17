@@ -420,9 +420,18 @@
     }
 
     function renderPicturePreview(src) {
+      if (!picturePreview) return;
       picturePreview.innerHTML = isRenderablePicture(src)
-        ? `<img src="${src}" alt="Preview" style="width:100%;max-width:180px;border:1px solid #eaecf0;object-fit:cover;border-radius:6px;">`
-        : '<span style="color:#667085;">No image</span>';
+        ? `<img src="${src}" alt="Item preview">`
+        : '<span class="preview-empty">No image</span>';
+    }
+
+    function syncFormModeBadge(isEditing) {
+      const badge = document.getElementById('formModeBadge');
+      if (formTitle) formTitle.textContent = isEditing ? 'Edit Inventory Item' : 'Add Inventory Item';
+      if (!badge) return;
+      badge.textContent = isEditing ? 'Editing' : 'New';
+      badge.classList.toggle('is-edit', Boolean(isEditing));
     }
 
     function getFilteredInventory() {
@@ -460,6 +469,12 @@
       });
       if (noResultsRow) noResultsRow.style.display = items.length ? 'none' : '';
       emptyNotice.style.display = inventory.length ? 'none' : 'block';
+      const allItemsCount = document.getElementById('allItemsCount');
+      if (allItemsCount) {
+        allItemsCount.textContent = items.length
+          ? `${items.length} item${items.length === 1 ? '' : 's'}`
+          : 'No matches';
+      }
       if (inventoryPager) {
         inventoryPager.hidden = inventory.length === 0;
         if (inventoryPagerInfo) {
@@ -481,7 +496,7 @@
       if (fields.reusePicture) fields.reusePicture.value = '';
       highlightReuseImage('');
       renderPicturePreview('');
-      formTitle.textContent = 'Add Inventory Item';
+      syncFormModeBadge(false);
       fields.stockAvailable.value = 0;
       savedCategoryId = '';
       savedProductCode = '';
@@ -504,7 +519,7 @@
       fields.description.value = item.description || '';
       if (fields.notes) fields.notes.value = item.notes || '';
       editingId = item.id;
-      formTitle.textContent = 'Edit Inventory Item';
+      syncFormModeBadge(true);
       activateTab('managePanel');
     }
 
@@ -535,6 +550,32 @@
       renderPicturePreview(currentPictureData);
     });
 
+    // ── Modern dropzone: drag & drop + keyboard-friendly highlight ──
+    const pictureDropzone = document.getElementById('pictureDropzone');
+    if (pictureDropzone && fields.picture) {
+      ['dragenter', 'dragover'].forEach((evt) => {
+        pictureDropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          pictureDropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach((evt) => {
+        pictureDropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          if (evt === 'dragleave' && pictureDropzone.contains(e.relatedTarget)) return;
+          pictureDropzone.classList.remove('is-dragover');
+        });
+      });
+      pictureDropzone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer?.files?.[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        fields.picture.files = transfer.files;
+        handlePictureChange();
+      });
+    }
+
     let pendingDeleteId = null;
 
     function showDeleteModal(itemId) {
@@ -563,6 +604,12 @@
       document.getElementById('itemViewTitle').textContent = item.name || 'Inventory item';
       document.getElementById('itemViewCategory').textContent = item.categoryPath || '-';
       document.getElementById('itemViewStock').textContent = item.stockAvailable ?? '0';
+      const stockPill = document.getElementById('itemViewStockPill');
+      if (stockPill) {
+        const stockNum = Number(item.stockAvailable ?? 0);
+        stockPill.classList.toggle('is-out', stockNum <= 0);
+        stockPill.classList.toggle('is-low', stockNum > 0 && stockNum <= 5);
+      }
       document.getElementById('itemViewDescription').textContent = (item.description || '').trim() || '-';
       document.getElementById('itemViewNotes').textContent = notes;
       notesWrap.style.display = notes ? '' : 'none';
@@ -1040,6 +1087,7 @@
 
     const itemViewModal = document.getElementById('itemViewModal');
     document.getElementById('itemViewCloseBtn')?.addEventListener('click', hideItemViewModal);
+    itemViewModal?.querySelector('[data-close-item-view]')?.addEventListener('click', hideItemViewModal);
     itemViewModal?.addEventListener('click', function (e) {
       if (e.target === this) hideItemViewModal();
     });
@@ -1118,6 +1166,8 @@
     loadInventory();
     if (typeof renderPriceHeader === 'function') renderPriceHeader();
     renderInventory();
+    syncFormModeBadge(false);
+    renderPicturePreview(currentPictureData || '');
 
     // ── Purchase Order tab ──
     (function () {

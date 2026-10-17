@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer, net_water_bill_outstanding, net_water_only_outstanding, water_bill_carry_flags
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, CheckVoucherCreditLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDeductionLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer, net_water_bill_outstanding, net_water_only_outstanding, water_bill_carry_flags
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -1160,6 +1160,7 @@ def sales_dashboard(request):
     cv_month = (request.GET.get('cv_month') or '').strip()
     cv_search = (request.GET.get('cv_search') or '').strip()
     cv_category = (request.GET.get('cv_category') or 'all').strip()
+    cv_company = (request.GET.get('cv_company') or 'all').strip().lower()
     cv_report_qs = CheckVoucher.objects.prefetch_related('lines').order_by('cv_number')
     if cv_year.isdigit():
         cv_report_qs = cv_report_qs.filter(voucher_date__year=int(cv_year))
@@ -1173,8 +1174,10 @@ def sales_dashboard(request):
             | Q(check_number__icontains=cv_search)
             | Q(bank__icontains=cv_search),
         )
-    if cv_category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'):
+    if cv_category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment', 'salaries'):
         cv_report_qs = cv_report_qs.filter(**{f'{cv_category}__gt': 0})
+    if cv_company in _CHECK_VOUCHER_COMPANY_KEYS:
+        cv_report_qs = cv_report_qs.filter(company=cv_company)
     cv_totals = cv_report_qs.aggregate(
         count=Count('id'),
         total_amount=Sum('check_amount'),
@@ -1184,13 +1187,14 @@ def sales_dashboard(request):
         total_contributions=Sum('contributions'),
         total_misc=Sum('misc'),
         total_payment=Sum('payment'),
+        total_salaries=Sum('salaries'),
     )
     recent_check_vouchers = list(cv_report_qs[:200])
     cv_years = sorted(
         {d.year for d in CheckVoucher.objects.dates('voucher_date', 'year')},
         reverse=True,
     )
-    if tab_param == 'check-voucher-tab' and any([cv_year, cv_month, cv_search, cv_category != 'all']):
+    if tab_param == 'check-voucher-tab' and any([cv_year, cv_month, cv_search, cv_category != 'all', cv_company != 'all']):
         active_tab = 'check-voucher-tab'
     current_year = date.today().year
     highest_cv_suffix = 0
@@ -1256,7 +1260,9 @@ def sales_dashboard(request):
                 'month': cv_month,
                 'search': cv_search,
                 'category': cv_category,
+                'company': cv_company,
             },
+            'cv_company_choices': CheckVoucher.COMPANY_CHOICES,
             'cv_years': cv_years,
             'cv_totals': cv_totals,
             'cv_result_count': cv_totals.get('count') or 0,
@@ -1719,7 +1725,8 @@ def _parse_ageing_decimal(value):
     if value in (None, ''):
         return None
     try:
-        return Decimal(str(value).replace(',', ''))
+        cleaned = str(value).replace(',', '').replace('₱', '').replace('PHP', '').replace('php', '').strip()
+        return Decimal(cleaned)
     except (InvalidOperation, TypeError, ValueError):
         return None
 
@@ -2355,8 +2362,9 @@ def delete_petty_cash(request, report_id):
 
 
 _CHECK_VOUCHER_MONEY_FIELDS = (
-    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment',
+    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment', 'salaries',
 )
+_CHECK_VOUCHER_COMPANY_KEYS = tuple(key for key, _label in CheckVoucher.COMPANY_CHOICES)
 
 
 def _check_voucher_line_to_dict(line):
@@ -2367,9 +2375,41 @@ def _check_voucher_line_to_dict(line):
     }
 
 
+def _check_voucher_credit_line_to_dict(line):
+    return {
+        'description': line.description or '',
+        'credit_amount': str(line.credit_amount) if line.credit_amount is not None else '',
+        'sort_order': line.sort_order,
+    }
+
+
+def _check_voucher_dominant_category(voucher):
+    """Return the single category holding the voucher total (dominant on splits)."""
+    best = 'expenses'
+    best_value = Decimal('0')
+    for field in _CHECK_VOUCHER_MONEY_FIELDS:
+        try:
+            value = getattr(voucher, field) or Decimal('0')
+        except Exception:
+            value = Decimal('0')
+        if value > best_value:
+            best_value = value
+            best = field
+    return best
+
+
+def _check_voucher_company_from_payload(payload):
+    company = (payload.get('company') or 'mdspii').strip().lower()
+    if company not in _CHECK_VOUCHER_COMPANY_KEYS:
+        return 'mdspii'
+    return company
+
+
 def _check_voucher_to_payload(voucher):
+    breakdown = {field: str(getattr(voucher, field) or Decimal('0')) for field in _CHECK_VOUCHER_MONEY_FIELDS}
     return {
         'id': voucher.id,
+        'company': getattr(voucher, 'company', 'mdspii') or 'mdspii',
         'cv_number': voucher.cv_number,
         'voucher_date': voucher.voucher_date.isoformat(),
         'payee': voucher.payee,
@@ -2390,7 +2430,9 @@ def _check_voucher_to_payload(voucher):
         'created_at': voucher.created_at.isoformat(),
         'updated_at': voucher.updated_at.isoformat(),
         'lines': [_check_voucher_line_to_dict(line) for line in voucher.lines.all()],
-        **{field: str(getattr(voucher, field) or Decimal('0')) for field in _CHECK_VOUCHER_MONEY_FIELDS},
+        'credit_lines': [_check_voucher_credit_line_to_dict(line) for line in voucher.credit_lines.all()],
+        'category': _check_voucher_dominant_category(voucher),
+        **breakdown,
     }
 
 
@@ -2413,25 +2455,59 @@ def _replace_check_voucher_lines(voucher, items):
     return len(lines)
 
 
+def _replace_check_voucher_credit_lines(voucher, items):
+    voucher.credit_lines.all().delete()
+    lines = []
+    for index, item in enumerate(items or []):
+        description = (item.get('description') or '').strip()
+        credit_amount = _parse_ageing_decimal(item.get('credit_amount'))
+        if not (description or credit_amount):
+            continue
+        lines.append(CheckVoucherCreditLine(
+            voucher=voucher,
+            description=description,
+            credit_amount=credit_amount,
+            sort_order=index,
+        ))
+    if lines:
+        CheckVoucherCreditLine.objects.bulk_create(lines)
+    return len(lines)
+
+
 def _check_voucher_fields_from_payload(payload, request_user=None):
     total_debit = sum(
-        (_parse_ageing_decimal(line.get('debit_amount')) or Decimal('0'))
-        for line in (payload.get('lines') or [])
+        [
+            (_parse_ageing_decimal(line.get('debit_amount')) or Decimal('0'))
+            for line in (payload.get('lines') or [])
+        ],
+        Decimal('0'),
     ).quantize(Decimal('0.01'))
+    total_credits = sum(
+        [
+            (_parse_ageing_decimal(line.get('credit_amount')) or Decimal('0'))
+            for line in (payload.get('credit_lines') or [])
+        ],
+        Decimal('0'),
+    ).quantize(Decimal('0.01'))
+    if total_credits < Decimal('0'):
+        total_credits = Decimal('0')
     withholding_tax = _parse_ageing_decimal(payload.get('withholding_tax')) or Decimal('0')
     if withholding_tax < Decimal('0'):
         withholding_tax = Decimal('0')
-    if withholding_tax > total_debit:
-        withholding_tax = total_debit
+    max_withholding = max(Decimal('0'), total_debit - total_credits)
+    if withholding_tax > max_withholding:
+        withholding_tax = max_withholding
     withholding_label = (payload.get('withholding_label') or 'WITHHOLDING TAX').strip()[:120] or 'WITHHOLDING TAX'
-    if withholding_tax > Decimal('0'):
-        # total debit - withholding tax = CASH IN BANK; check follows cash.
-        cash_in_bank = (total_debit - withholding_tax).quantize(Decimal('0.01'))
+    if withholding_tax > Decimal('0') or total_credits > Decimal('0'):
+        # total debit - credit lines - withholding tax = CASH IN BANK;
+        # check follows cash.
+        cash_in_bank = max(Decimal('0'), total_debit - total_credits - withholding_tax).quantize(Decimal('0.01'))
         check_amount = cash_in_bank
     else:
         cash_in_bank = _parse_ageing_decimal(payload.get('cash_in_bank')) or total_debit
         check_amount = _parse_ageing_decimal(payload.get('check_amount')) or total_debit
     fields = {
+        'company': _check_voucher_company_from_payload(payload),
         'cv_number': (payload.get('cv_number') or '').strip()[:50],
         'voucher_date': _parse_iso_date(payload.get('voucher_date')),
         'payee': (payload.get('payee') or '').strip()[:300],
@@ -2452,11 +2528,22 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
     }
     for field in _CHECK_VOUCHER_MONEY_FIELDS:
         fields[field] = _parse_ageing_decimal(payload.get(field)) or Decimal('0')
-    if all(fields[field] == Decimal('0') for field in _CHECK_VOUCHER_MONEY_FIELDS):
-        # Manual entry without a breakdown: default the total to expenses so the
-        # CV Monitoring report still attributes the amount to a category.
-        # Use the debit total (cash + withholding) since categories live on the debit side.
-        fields['expenses'] = total_debit if total_debit > Decimal('0') else check_amount
+    explicit_nonzero = [field for field in _CHECK_VOUCHER_MONEY_FIELDS if fields[field] > Decimal('0')]
+    selected_category = (payload.get('category') or '').strip().lower()
+    if selected_category in _CHECK_VOUCHER_MONEY_FIELDS:
+        # Selector mode: assign the whole check amount to the chosen category.
+        # Preserve genuine splits (e.g. imported workbooks / monitoring edits)
+        # that already carry more than one non-zero breakdown column.
+        if len(explicit_nonzero) > 1:
+            pass
+        else:
+            for field in _CHECK_VOUCHER_MONEY_FIELDS:
+                fields[field] = Decimal('0')
+            fields[selected_category] = check_amount if check_amount > Decimal('0') else total_debit
+    elif all(fields[field] == Decimal('0') for field in _CHECK_VOUCHER_MONEY_FIELDS):
+        # Legacy manual entry without a breakdown: default the check amount
+        # to expenses so the CV Monitoring breakdown reconciles.
+        fields['expenses'] = check_amount if check_amount > Decimal('0') else total_debit
     if request_user is not None and getattr(request_user, 'is_authenticated', False):
         fields['created_by'] = request_user
     return fields
@@ -2525,9 +2612,10 @@ def save_check_voucher(request):
             line_count = _replace_check_voucher_lines(voucher, payload.get('lines') or [])
             if not line_count:
                 return JsonResponse({'error': 'At least one debit line with content is required.'}, status=400)
+            _replace_check_voucher_credit_lines(voucher, payload.get('credit_lines') or [])
         return JsonResponse({
             'ok': True,
-            **_check_voucher_to_payload(CheckVoucher.objects.prefetch_related('lines').get(pk=voucher.id)),
+            **_check_voucher_to_payload(CheckVoucher.objects.prefetch_related('lines', 'credit_lines').get(pk=voucher.id)),
         })
     except Exception:
         logger.exception('save_check_voucher error')
@@ -2536,15 +2624,15 @@ def save_check_voucher(request):
 
 @login_required
 def check_voucher_json(request, voucher_id):
-    voucher = get_object_or_404(CheckVoucher.objects.prefetch_related('lines'), pk=voucher_id)
+    voucher = get_object_or_404(CheckVoucher.objects.prefetch_related('lines', 'credit_lines'), pk=voucher_id)
     return JsonResponse(_check_voucher_to_payload(voucher))
 
 
 @login_required
 def check_voucher_latest_json(request):
-    voucher = CheckVoucher.objects.prefetch_related('lines').first()
+    voucher = CheckVoucher.objects.prefetch_related('lines', 'credit_lines').first()
     if not voucher:
-        return JsonResponse({'id': None, 'lines': []})
+        return JsonResponse({'id': None, 'lines': [], 'credit_lines': []})
     return JsonResponse(_check_voucher_to_payload(voucher))
 
 
@@ -2583,10 +2671,11 @@ def import_check_voucher_upload(request):
                     },
                 )
                 _replace_check_voucher_lines(voucher, item.get('lines') or [])
+                _replace_check_voucher_credit_lines(voucher, item.get('credit_lines') or [])
                 saved.append(voucher.id)
         if not saved:
             return JsonResponse({'error': 'No complete check vouchers found in the workbook.'}, status=400)
-        latest = CheckVoucher.objects.prefetch_related('lines').get(pk=saved[-1])
+        latest = CheckVoucher.objects.prefetch_related('lines', 'credit_lines').get(pk=saved[-1])
         return JsonResponse({
             'ok': True,
             'imported_count': len(saved),
@@ -2620,7 +2709,7 @@ _CV_CELL_TEXT_FIELDS = {
 }
 _CV_CELL_MONEY_FIELDS = (
     'check_amount',
-    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment',
+    'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment', 'salaries',
 )
 _CV_CELL_DATE_FIELDS = ('voucher_date', 'check_date')
 
@@ -2654,6 +2743,11 @@ def update_check_voucher_cell(request, voucher_id):
                 if not parsed:
                     return JsonResponse({'error': 'Invalid date.'}, status=400)
                 setattr(voucher, field, parsed)
+        elif field == 'company':
+            company = str(raw_value or '').strip().lower()
+            if company not in _CHECK_VOUCHER_COMPANY_KEYS:
+                return JsonResponse({'error': 'Invalid company.'}, status=400)
+            voucher.company = company
         elif field in _CV_CELL_TEXT_FIELDS:
             text = '' if raw_value is None else str(raw_value)
             if field == 'cv_number' and not text.strip():
@@ -2682,6 +2776,7 @@ def update_check_voucher_cell(request, voucher_id):
         'contributions': str(voucher.contributions or Decimal('0')),
         'misc': str(voucher.misc or Decimal('0')),
         'payment': str(voucher.payment or Decimal('0')),
+        'salaries': str(voucher.salaries or Decimal('0')),
     })
 
 
@@ -2691,6 +2786,7 @@ def _filtered_check_vouchers(request):
     month = (request.GET.get('cv_month') or '').strip()
     search = (request.GET.get('cv_search') or '').strip()
     category = (request.GET.get('cv_category') or 'all').strip()
+    company = (request.GET.get('cv_company') or 'all').strip().lower()
     if year.isdigit():
         qs = qs.filter(voucher_date__year=int(year))
     if month.isdigit() and 1 <= int(month) <= 12:
@@ -2703,8 +2799,10 @@ def _filtered_check_vouchers(request):
             | Q(check_number__icontains=search)
             | Q(bank__icontains=search),
         )
-    if category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment'):
+    if category in ('purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment', 'salaries'):
         qs = qs.filter(**{f'{category}__gt': 0})
+    if company in _CHECK_VOUCHER_COMPANY_KEYS:
+        qs = qs.filter(company=company)
     return qs
 
 
@@ -2722,19 +2820,23 @@ def check_voucher_monitoring_xlsx(request):
     headers = [
         'DATE', 'CV NO:', 'ISSUED TO:', 'PAYMENT FOR', 'AMOUNT',
         'PURCHASES', 'EXPENSES', 'COMMISSION', 'CONTRIBUTIONS',
-        'MISC', 'PAYMENT', 'CHECK DATE', 'BANK', 'CHECK NO.',
+        'MISC', 'PAYMENT', 'SALARIES', 'CHECK DATE', 'BANK', 'CHECK NO.', 'COMPANY',
     ]
     header_fill = PatternFill('solid', fgColor='1F4E78')
     header_font = Font(bold=True, color='FFFFFF', size=9)
+    hl_header_fill = PatternFill('solid', fgColor='B45309')
+    hl_fill = PatternFill('solid', fgColor='FFF2CC')
+    hl_columns = {5, 6, 7, 11, 12}
     thin = Side(style='thin', color='B0B0B0')
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
     for col, header in enumerate(headers, start=1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.font = header_font
-        cell.fill = header_fill
+        cell.fill = hl_header_fill if col in hl_columns else header_fill
         cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
         cell.border = border
     money_fmt = '#,##0.00'
+    company_labels = dict(CheckVoucher.COMPANY_CHOICES)
     for row_idx, voucher in enumerate(qs, start=2):
         values = [
             voucher.voucher_date,
@@ -2748,31 +2850,37 @@ def check_voucher_monitoring_xlsx(request):
             float(voucher.contributions or 0) or None,
             float(voucher.misc or 0) or None,
             float(voucher.payment or 0) or None,
+            float(voucher.salaries or 0) or None,
             voucher.check_date,
             voucher.bank,
             voucher.check_number,
+            company_labels.get(getattr(voucher, 'company', 'mdspii') or 'mdspii', ''),
         ]
         for col_idx, value in enumerate(values, start=1):
             cell = ws.cell(row=row_idx, column=col_idx, value=value)
             cell.border = border
             cell.alignment = Alignment(vertical='center', wrap_text=True)
-            if col_idx in (1, 12):
+            if col_idx in hl_columns:
+                cell.fill = hl_fill
+            if col_idx in (1, 13):
                 cell.number_format = 'YYYY-MM-DD'
-            if col_idx in (5, 6, 7, 8, 9, 10, 11) and isinstance(value, (int, float)):
+            if col_idx in (5, 6, 7, 8, 9, 10, 11, 12) and isinstance(value, (int, float)):
                 cell.number_format = money_fmt
     total_row = len(qs) + 2
     ws.cell(row=total_row, column=4, value='TOTAL').font = Font(bold=True)
-    for col_idx, field in ((5, 'check_amount'), (6, 'purchases'), (7, 'expenses'), (8, 'commission'), (9, 'contributions'), (10, 'misc'), (11, 'payment')):
+    for col_idx, field in ((5, 'check_amount'), (6, 'purchases'), (7, 'expenses'), (8, 'commission'), (9, 'contributions'), (10, 'misc'), (11, 'payment'), (12, 'salaries')):
         total = sum(float(getattr(v, field) or 0) for v in qs)
         cell = ws.cell(row=total_row, column=col_idx, value=total if total else None)
         cell.font = Font(bold=True)
         cell.number_format = money_fmt
         cell.border = border
-    widths = [12, 14, 30, 45, 14, 13, 13, 13, 15, 12, 13, 12, 12, 12]
+        if col_idx in hl_columns:
+            cell.fill = hl_fill
+    widths = [12, 14, 30, 45, 14, 13, 13, 13, 15, 12, 13, 13, 12, 12, 12, 22]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[ws.cell(row=1, column=idx).column_letter].width = width
     ws.freeze_panes = 'A2'
-    ws.auto_filter.ref = f'A1:N{max(total_row - 1, 1)}'
+    ws.auto_filter.ref = f'A1:P{max(total_row - 1, 1)}'
     ws.sheet_properties.pageSetUpPr = None
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -6927,6 +7035,17 @@ def _water_weekly_report_context(request, source=None):
     cash_collection = weekly_totals.get('cash_in_bank') or Decimal('0.00')
     gcash_collection = weekly_totals.get('gcash') or Decimal('0.00')
     aid_received_total = weekly_totals.get('cash_received_by_aid') or Decimal('0.00')
+    deduction_lines = list(weekly_report.deduction_lines.all()) if weekly_report else []
+    if not deduction_lines:
+        deduction_lines = [WaterWeeklyDeductionLine(line_no=1)]
+    other_deduction_total = sum(
+        (
+            max(Decimal('0.00'), line.amount)
+            for line in deduction_lines
+            if line.amount is not None
+        ),
+        Decimal('0.00'),
+    )
     # Gross Sales = merged cash in bank + GCash + Cash Received by AID + refill cash
     weekly_gross_sales = (
         cash_collection
@@ -6939,6 +7058,7 @@ def _water_weekly_report_context(request, source=None):
         - gcash_collection
         - aid_received_total
         - weekly_parcel_total
+        - other_deduction_total
     )
     weekly_billing_collection_total = cash_collection + gcash_collection + aid_received_total
     weekly_refill_collection_total = refill_cash_total + refill_total
@@ -6979,6 +7099,8 @@ def _water_weekly_report_context(request, source=None):
         'weekly_gross_sales': weekly_gross_sales,
         'weekly_gcash_collection': gcash_collection,
         'weekly_cash_remittance': weekly_cash_remittance,
+        'weekly_deduction_lines': deduction_lines,
+        'weekly_other_deduction_total': other_deduction_total,
         'weekly_denom_billing_rows': denom_billing_rows,
         'weekly_denom_billing_total': denom_billing_total,
         'weekly_billing_cash': billing_cash,
@@ -7006,6 +7128,31 @@ def _water_save_weekly_report(request):
     report.audited_by = request.POST.get('audited_by', '').strip()
     report.approved_by = request.POST.get('approved_by', '').strip()
     report.save()
+    try:
+        deduction_count = int(request.POST.get('weekly_deduction_count', '0') or 0)
+    except ValueError:
+        deduction_count = 0
+    report.deduction_lines.all().delete()
+    saved_deductions = 0
+    for index in range(deduction_count):
+        prefix = f'weekly_deduction-{index}-'
+        label = request.POST.get(prefix + 'label', '').strip()[:120]
+        amount_raw = request.POST.get(prefix + 'amount', '').strip()
+        if not any([label, amount_raw]):
+            continue
+        try:
+            amount = _dec(amount_raw) if amount_raw else None
+        except Exception:
+            amount = None
+        if amount is not None and amount < Decimal('0.00'):
+            amount = Decimal('0.00')
+        saved_deductions += 1
+        WaterWeeklyDeductionLine.objects.create(
+            report=report,
+            line_no=saved_deductions,
+            label=label,
+            amount=amount,
+        )
     try:
         count = int(request.POST.get('weekly_refill_count', '0') or 0)
     except ValueError:
@@ -7067,7 +7214,7 @@ def _water_save_weekly_report(request):
 
     _water_audit(
         request, 'Saved weekly report', 'WaterWeeklyReport', report.pk,
-        f'{week_start} to {week_end} refill_lines={saved}',
+        f'{week_start} to {week_end} refill_lines={saved} deduction_lines={saved_deductions}',
     )
     messages.success(request, f'Weekly report {week_start} to {week_end} saved.')
     return _water_redirect('reportsTab', extra)
@@ -7681,6 +7828,60 @@ def _water_format_receipt_date(value):
     return value.strftime('%B %d, %Y').upper()
 
 
+def _water_statement_display_for(bill):
+    """Display-only recompute of a Statement of Account after payments.
+
+    Applies ``amount_paid`` oldest-first (previous → installment → current
+    → other fees) to the charge rows so a paid/partial bill shows what is
+    still due. Stored bill/reading fields are never mutated here, and the
+    reading box (previous/present/consumption) is unaffected.
+    A negative previous (advance/overpayment credit) is preserved as-is.
+    """
+    def _num(value):
+        try:
+            return Decimal(str(value or '0'))
+        except (InvalidOperation, ValueError, TypeError):
+            return Decimal('0.00')
+    current = _num(getattr(bill, 'consumption_charge', None))
+    previous = _num(getattr(bill, 'previous_bill_unpaid', None))
+    installment = _num(getattr(bill, 'installment_balance', None))
+    fees_net = (
+        _num(getattr(bill, 'fixed_charge', None))
+        + _num(getattr(bill, 'environmental_fee', None))
+        + _num(getattr(bill, 'maintenance_fee', None))
+        + _num(getattr(bill, 'tax', None))
+        + _num(getattr(bill, 'penalty', None))
+        - _num(getattr(bill, 'discount', None))
+    )
+    paid = _num(getattr(bill, 'amount_paid', None))
+    if paid < Decimal('0.00'):
+        paid = Decimal('0.00')
+    if installment < Decimal('0.00'):
+        installment = Decimal('0.00')
+    if current < Decimal('0.00'):
+        current = Decimal('0.00')
+    rest = paid
+    if previous < Decimal('0.00'):
+        previous_remaining = previous
+    else:
+        previous_remaining = max(previous - rest, Decimal('0.00'))
+        rest = max(rest - previous, Decimal('0.00'))
+    installment_remaining = max(installment - rest, Decimal('0.00'))
+    rest = max(rest - installment, Decimal('0.00'))
+    current_remaining = max(current - rest, Decimal('0.00'))
+    rest = max(rest - current, Decimal('0.00'))
+    fees_remaining = max(fees_net - rest, Decimal('0.00'))
+    total = (
+        previous_remaining + installment_remaining + current_remaining + fees_remaining
+    ).quantize(Decimal('0.01'))
+    return {
+        'current': current_remaining.quantize(Decimal('0.01')),
+        'previous': previous_remaining.quantize(Decimal('0.01')),
+        'installment': installment_remaining.quantize(Decimal('0.01')),
+        'total': total,
+    }
+
+
 def _water_bill_statement_context(bill, is_preview=False):
     billing_end_date = getattr(bill.meter_reading, 'reading_date', None) or getattr(bill, 'bill_date', None)
     billing_start_date, billing_end_date = _water_bill_period_dates(bill.billing_period, billing_end_date)
@@ -7695,6 +7896,7 @@ def _water_bill_statement_context(bill, is_preview=False):
         'billing_end_label': _water_format_receipt_date(billing_end_date),
         'location_header': 'Purok Batong, Nanyo, Panabo City',
         'is_preview': is_preview,
+        'stmt': _water_statement_display_for(bill),
     }
 
 
@@ -7869,6 +8071,7 @@ def view_water_reading_preview(request, reading_id):
         'billing_end_label': _water_format_receipt_date(billing_end_date),
         'location_header': 'Purok Batong, Nanyo, Panabo City',
         'is_preview': True,
+        'stmt': _water_statement_display_for(preview),
     })
 
 def _water_bill_payment_split(bill, payment_amount, prior_applied):

@@ -1,11 +1,14 @@
 <div id="itemViewModal" class="modal-overlay item-view-overlay">
   <div class="item-view-card" role="dialog" aria-modal="true" aria-labelledby="itemViewTitle">
+    <button type="button" class="item-view-x" data-close-item-view aria-label="Close dialog" title="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
     <div class="item-view-media" id="itemViewPicture">No image</div>
     <div class="item-view-body">
       <p class="item-view-code" id="itemViewCode"></p>
       <h3 id="itemViewTitle"></h3>
       <p class="item-view-category" id="itemViewCategory"></p>
-      <p class="item-view-stock">Stocks available: <strong id="itemViewStock"></strong></p>
+      <p class="item-view-stock">Stocks available: <span class="stock-pill" id="itemViewStockPill"><strong id="itemViewStock"></strong></span></p>
       <div class="item-view-block">
         <h4>Description</h4>
         <p id="itemViewDescription"></p>
@@ -15,7 +18,10 @@
         <p id="itemViewNotes"></p>
       </div>
       <div class="item-view-actions">
-        <button type="button" class="copy" id="itemViewCloseBtn">Close</button>
+        <button type="button" class="copy modal-close-btn" id="itemViewCloseBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          Close
+        </button>
       </div>
     </div>
   </div>
