@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sky3">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sales-summary1">
 <link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
 <script>
   try {
@@ -23,325 +23,110 @@
 <div class="sales-page dashboard-wrapper" data-sidebar-key="salesSidebarCollapsed">
 
     <!-- ─── SIDEBAR ─── -->
-    {% include "includes/_app_chrome.html" with chrome_nav_template="includes/chrome_nav_sales.html" sidebar_id="salesSidebar" sidebar_key="salesSidebarCollapsed" chrome_title="Sales Dashboard" chrome_subtitle="Record sales from shared inventory items. Stock levels update automatically." %}
-
-        <!-- Stats -->
-        <div class="hero-stats">
-            <div class="stat-card">
-                <div class="stat-label">Recent Sales</div>
-                <div class="stat-value">{{ sales_orders|length }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Items Sold</div>
-                <div class="stat-value">{{ total_quantity_sold }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Revenue</div>
-                <div class="stat-value"><span class="currency">₱</span>{{ total_sales }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Inventory Items</div>
-                <div class="stat-value">{{ inventory_items|length }}</div>
-            </div>
-        </div>
+    {% include "includes/_app_chrome.html" with chrome_nav_template="includes/chrome_nav_sales.html" sidebar_id="salesSidebar" sidebar_key="salesSidebarCollapsed" chrome_title="Sales Dashboard" chrome_subtitle="Monthly sales summary from water billing collections." %}
 
         <!-- ─── TAB PANELS ─── -->
 
-        <!-- 1️⃣ SALES TAB (Record Sale) -->
+        <!-- 1️⃣ SALES TAB (Sales Summary) -->
         <div id="sales-tab" class="tab-panel {% if active_tab == 'sales-tab' %}is-active{% endif %}">
-            <div class="panel-header">
-                <h2>Record a Sale</h2>
-                <p>Select an inventory item and enter the quantity sold.</p>
-            </div>
+            <div class="sales-summary">
+                <div class="sales-summary-toolbar no-print">
+                    <div>
+                        <h2>Sales Summary</h2>
+                        <p>Water billing collections by month, based on cash in bank, GCash, and cash received by AID.</p>
+                    </div>
+                    <button type="button" class="action primary" onclick="window.print()">🖨️ Print</button>
+                </div>
 
-            <div class="grid-2">
-                <!-- Form -->
-                <section class="panel">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="field">
-                            <label for="customerName">Customer name</label>
-                            <input id="customerName" name="customerName" type="text" required
-                                placeholder="e.g. ABC Construction">
-                        </div>
-                        <div class="field">
-                            <label for="inventoryItem">Inventory item</label>
-                            <select id="inventoryItem" name="inventoryItem" required>
-                                <option value="">Select item from inventory</option>
-                                {% for item in inventory_items %}
-                                <option value="{{ item.id }}" data-price="{{ item.price }}"
-                                    data-stock="{{ item.stock_available }}" data-code="{{ item.product_code }}" {% if item.stock_available == 0 %}disabled{% endif %}>
-                                    {{ item.name }}{% if item.product_code %} - {{ item.product_code }}{% endif %} ({{ item.stock_available }} stock)
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="field">
-                            <label for="quantity">Quantity sold</label>
-                            <input id="quantity" name="quantity" type="number" min="1" value="1" required>
-                        </div>
-                        <div class="field">
-                            <label for="customerContact">Customer Contact (Email / Phone)</label>
-                            <input id="customerContact" name="customerContact" type="text"
-                                placeholder="e.g. john@example.com or 09171234567">
-                        </div>
+                {% if sales_summary_months %}
+                <nav class="sales-month-tabs no-print" aria-label="Sales summary months">
+                    {% for month in sales_summary_months %}
+                    <a class="sales-month-tab{% if sales_summary and month.key == sales_summary.key %} is-active{% endif %}"
+                        href="?tab=sales-tab&amp;sales_month={{ month.key }}">{{ month.short_label }}</a>
+                    {% endfor %}
+                </nav>
 
-                        <div class="field">
-                            <label for="paymentMethod">Payment Method</label>
-                            <select id="paymentMethod" name="paymentMethod">
-                                <option value="cash">Cash</option>
-                                <option value="credit_card">Credit Card</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                                <option value="account_receivable">Account Receivable</option>
-                            </select>
-                        </div>
-                        <div class="help-grid" aria-label="Selected item details">
-                            <div>
-                                <strong>Stock available</strong>
-                                <span id="selectedStock">-</span>
-                            </div>
-                            <div>
-                                <strong>Unit price</strong>
-                                <span id="selectedPrice">-</span>
-                            </div>
-                            <div>
-                                <strong>Total amount</strong>
-                                <span id="selectedTotal">-</span>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="notes">Notes</label>
-                            <textarea id="notes" name="notes"
-                                placeholder="Invoice number, delivery notes, or payment terms"></textarea>
-                        </div>
-                        <button type="submit">💳 Record Sale</button>
-                    </form>
-                </section>
+                {% if sales_summary %}
+                <div class="sales-summary-sheet">
+                    <header class="sales-summary-head">
+                        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation letterhead"
+                            class="sales-summary-letterhead">
+                        <h1>SALES SUMMARY</h1>
+                        <p class="sales-summary-month">{{ sales_summary.label }}</p>
+                    </header>
 
-                <!-- Inventory availability -->
-                <section class="panel">
-                    <h2>Inventory Availability</h2>
-                    <p>Live stock from inventory records. Quantities update here when you record a sale or process a refund.</p>
-                    <div class="table-wrap" style="margin-top:14px;">
-                        <table aria-label="Inventory availability for sales">
+                    <div class="sales-summary-table-wrap">
+                        <table class="sales-summary-table">
                             <thead>
+                                <tr class="sales-summary-group">
+                                    <th colspan="5">INFORMATION</th>
+                                    <th colspan="3"></th>
+                                    <th class="no-print"></th>
+                                </tr>
                                 <tr>
-                                    <th>Item</th>
-                                    <th>Code</th>
-                                    <th>Stock</th>
-                                    <th>Unit price</th>
+                                    <th>DATE</th>
+                                    <th>PARTICULARS</th>
+                                    <th>OR</th>
+                                    <th>NO.</th>
+                                    <th>AMOUNT</th>
+                                    <th>GROSS OF VAT</th>
+                                    <th>OUTPUT VAT</th>
+                                    <th>NET OF VAT</th>
+                                    <th class="no-print">ACTION</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for item in inventory_availability_page %}
-                                <tr>
-                                    <td>{{ item.name }}</td>
-                                    <td>{{ item.product_code|default:"-" }}</td>
-                                    <td class="{% if item.stock_available %}stock-ok{% else %}stock-empty{% endif %}">{{ item.stock_available }}</td>
-                                    <td>₱{{ item.price }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" style="text-align:center;color:#667085;padding:24px;">No inventory
-                                        items yet.</td>
+                                {% for row in sales_summary.rows %}
+                                <tr class="sales-summary-row"
+                                    data-gross="{{ row.gross|floatformat:2 }}"
+                                    data-output-vat="{{ row.output_vat|floatformat:2 }}"
+                                    data-net="{{ row.net|floatformat:2 }}">
+                                    <td class="col-date">{{ row.date|date:"d/m/Y" }}</td>
+                                    <td class="col-particulars">{{ row.particulars }}</td>
+                                    <td class="col-or">{{ row.or_type }}</td>
+                                    <td class="col-no">{{ row.display_ar_number }}</td>
+                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.output_vat|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.net|floatformat:2|intcomma }}</td>
+                                    <td class="no-print sales-summary-action">
+                                        <button type="button"
+                                            class="action sales-summary-delete"
+                                            data-source-type="{{ row.source_type }}"
+                                            data-source-id="{{ row.source_id }}"
+                                            style="font-size:0.72rem;padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
+                            <tfoot>
+                                <tr class="sales-summary-totals">
+                                    <td colspan="4">TOTAL</td>
+                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="output_vat">{{ sales_summary.totals.output_vat|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="net">{{ sales_summary.totals.net|floatformat:2|intcomma }}</td>
+                                    <td class="no-print"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
-                    {% if inventory_availability_page.paginator.count %}
-                    <div class="pagination" aria-label="Inventory availability pagination">
-                        {% if inventory_availability_page.has_previous %}
-                        <a class="action" href="?tab=sales-tab&inv_page=1">First</a>
-                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.previous_page_number }}">Previous</a>
-                        {% endif %}
-                        <span>Page {{ inventory_availability_page.number }} of {{ inventory_availability_page.paginator.num_pages }} · {{ inventory_availability_page.paginator.count }} items</span>
-                        {% if inventory_availability_page.has_next %}
-                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.next_page_number }}">Next</a>
-                        <a class="action" href="?tab=sales-tab&inv_page={{ inventory_availability_page.paginator.num_pages }}">Last</a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </section>
-            </div>
-        </div>
 
-        <!-- 2️⃣ HISTORY TAB (Sales History with filters, refund controls, and pagination) -->
-        <div id="history-tab" class="tab-panel {% if active_tab == 'history-tab' %}is-active{% endif %}">
-            <div class="panel-header">
-                <h2>Sales History</h2>
-                <p>Latest recorded sales with refund controls and receipt access.</p>
-            </div>
-
-            <!-- Filter Form -->
-            <div class="panel" style="margin-bottom:20px;">
-                <form method="get" class="filter-form"
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:12px;">
-                    <input type="hidden" name="tab" value="history-tab"> <!-- retain tab -->
-                    <div class="field">
-                        <label>From</label>
-                        <input type="date" name="start_date" value="{{ request.GET.start_date }}">
+                    <div class="sales-summary-prepared">
+                        <div class="sales-summary-prepared-label">PREPARED BY:</div>
+                        <div class="sales-summary-prepared-space"></div>
+                        <div class="sales-summary-prepared-name">ANGELMARIE M. DAPAR</div>
+                        <div class="sales-summary-prepared-title">ADMIN &amp; FINANCE</div>
                     </div>
-                    <div class="field">
-                        <label>To</label>
-                        <input type="date" name="end_date" value="{{ request.GET.end_date }}">
-                    </div>
-                    <div class="field">
-                        <label>Customer</label>
-                        <input type="text" name="customer" placeholder="Search customer"
-                            value="{{ request.GET.customer }}">
-                    </div>
-                    <div class="field">
-                        <label>Item</label>
-                        <input type="text" name="item" placeholder="Search item" value="{{ request.GET.item }}">
-                    </div>
-                    <div class="field">
-                        <label>Refund status</label>
-                        <select name="refund_status">
-                            <option value="all" {% if request.GET.refund_status == 'all' %}selected{% endif %}>All
-                            </option>
-                            <option value="none" {% if request.GET.refund_status == 'none' %}selected{% endif %}>No refund
-                            </option>
-                            <option value="partial" {% if request.GET.refund_status == 'partial' %}selected{% endif %}>
-                                Partial</option>
-                            <option value="full" {% if request.GET.refund_status == 'full' %}selected{% endif %}>Full
-                            </option>
-                        </select>
-                    </div>
-                    <div style="display:flex; align-items:flex-end; gap:8px;">
-                        <button type="submit" style="padding:8px 16px;">Apply</button>
-                        <a href="?tab=history-tab" class="action" style="padding:6px 14px;">Clear</a>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Table -->
-            <div class="table-wrap">
-                <table aria-label="Sales history with refund and receipt">
-                    <thead>
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th>Contact</th>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Unit price</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Notes</th>
-                            <th>Refund</th>
-                            <th>Receipt</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in sales_history_page_obj %}
-                        <tr>
-                            <td>#{{ order.invoice_number }}</td>
-                            <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
-                            <td>{{ order.customer_name }}</td>
-                            <td>{{ order.customer_contact|default:"-" }}</td>
-                            <td>{{ order.inventory_item.name }}{% if order.inventory_item.product_code %} - {{ order.inventory_item.product_code }}{% endif %}</td>
-                            <td>{{ order.quantity }}</td>
-                            <td>₱{{ order.unit_price }}</td>
-                            <td>₱{{ order.total_amount }}</td>
-                            <td>{{ order.get_payment_method_display }}</td>
-                            <td>{{ order.notes|default:"-" }}</td>
-                            <td>
-                                {% if order.refund_quantity %}
-                                <div class="stock-empty" style="margin-bottom:4px;font-size:0.8rem;">{{
-                                    order.refund_status|title }} refund: {{ order.refund_quantity }} / {{ order.quantity }}</div>
-                                {% endif %}
-                                {% if order.remaining_quantity > 0 %}
-                                <form method="post" class="refund-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="refund">
-                                    <input type="hidden" name="orderId" value="{{ order.id }}">
-                                    <input type="number" name="refundQuantity" min="1"
-                                        max="{{ order.remaining_quantity }}" value="1" required>
-                                    <input type="text" name="reason" placeholder="Reason (Optional)">
-                                    <button type="submit">Refund</button>
-                                </form>
-                                {% else %}
-                                <span class="stock-empty">Fully refunded</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a class="action" href="{% url 'sales_receipt' order.id %}"
-                                    style="font-size:0.75rem;padding:4px 12px;">View</a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="9" style="text-align:center;color:#667085;padding:24px;">No sales match your
-                                filters.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="pagination">
-                {% if sales_history_page_obj.has_previous %}
-                <a href="?history_page=1&{{ request.GET.urlencode }}&tab=history-tab">First</a>
-                <a
-                    href="?history_page={{ sales_history_page_obj.previous_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Previous</a>
+                </div>
                 {% endif %}
-                <span>Page {{ sales_history_page_obj.number }} of {{ sales_history_page_obj.paginator.num_pages }}</span>
-                {% if sales_history_page_obj.has_next %}
-                <a
-                    href="?history_page={{ sales_history_page_obj.next_page_number }}&{{ request.GET.urlencode }}&tab=history-tab">Next</a>
-                <a
-                    href="?history_page={{ sales_history_page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}&tab=history-tab">Last</a>
+                {% else %}
+                <div class="empty-state-sm">No water billing transactions recorded yet.</div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- 3️⃣ REFUND HISTORY TAB -->
-        <div id="refund-tab" class="tab-panel {% if active_tab == 'refund-tab' %}is-active{% endif %}">
-            <div class="panel-header">
-                <h2>Refund History</h2>
-                <p>All refund transactions recorded against sales orders.</p>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Order ID</th>
-                            <th>Customer</th>
-                            <th>Item</th>
-                            <th>Quantity Refunded</th>
-                            <th>Amount</th>
-                            <th>Reason</th>
-                            <th>Processed By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for refund in refund_history %}
-                        <tr>
-                            <td>{{ refund.refund_date|date:"Y-m-d H:i" }}</td>
-                            <td>#{{ refund.sales_order.id }}</td>
-                            <td>{{ refund.sales_order.customer_name }}</td>
-                            <td>{{ refund.sales_order.inventory_item.name }}</td>
-                            <td>{{ refund.refund_quantity }}</td>
-                            <td>₱{{ refund.refund_amount }}</td>
-                            <td>{{ refund.reason|default:"-" }}</td>
-                            <td>{{ refund.processed_by.get_full_name|default:refund.processed_by.username }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No refunds recorded
-                                yet.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 4️⃣ ANALYTICS TAB -->
+        <!-- 2️⃣ ANALYTICS TAB -->
         <div id="analytics-tab" class="tab-panel {% if active_tab == 'analytics-tab' %}is-active{% endif %}">
             <div class="panel-header">
                 <h2>Reporting &amp; Analytics</h2>
@@ -1968,7 +1753,11 @@
 
         <!-- CHECK VOUCHER -->
         <div id="check-voucher-tab" class="tab-panel {% if active_tab == 'check-voucher-tab' %}is-active{% endif %}">
-            <div class="panel no-print" style="margin-bottom:20px;">
+            <div class="cv-subtabs no-print" role="tablist" aria-label="Check voucher views">
+                <button type="button" class="cv-subtab{% if cv_view != 'monitoring' %} is-active{% endif %}" role="tab" id="cvTabForm" aria-selected="{% if cv_view != 'monitoring' %}true{% else %}false{% endif %}" aria-controls="cvFormPanel cvPreviewPanel" data-cv-view="form">Check Voucher</button>
+                <button type="button" class="cv-subtab{% if cv_view == 'monitoring' %} is-active{% endif %}" role="tab" id="cvTabMonitoring" aria-selected="{% if cv_view == 'monitoring' %}true{% else %}false{% endif %}" aria-controls="cvReportPanel" data-cv-view="monitoring">CV Monitoring Report</button>
+            </div>
+            <div class="panel no-print cv-subpanel cv-subpanel-form{% if cv_view != 'monitoring' %} is-active{% endif %}" id="cvFormPanel" role="tabpanel" aria-labelledby="cvTabForm" style="margin-bottom:20px;">
                 <h1 style="margin-top:0;">Check Voucher</h1>
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                     <button class="action brand-link" type="button" id="cvSave" style="padding:10px 16px;">Save</button>
@@ -1987,16 +1776,19 @@
                             <option value="mdspii" selected>METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</option>
                             <option value="versatec">VERSATEC INDUSTRIAL CORPORATION</option>
                             <option value="mdtcii">METRO DAVAO TRADE &amp; CONSTRUCTION INDUSTRIES, INC.</option>
+                            <option value="dai">DAI HOLDINGS, INC.</option>
                         </select>
                     </div>
                     <div><label>CVNO</label><input type="text" id="cvNumber" value="{{ next_cv_number }}" placeholder="2026-M-380"></div>
                     <div><label>Date</label><input type="date" id="cvDate"></div>
                     <div><label>Payee</label><input type="text" id="cvPayee"></div>
+                    <div><label>Payee address</label><input type="text" id="cvPayeeAddress" placeholder="DAVAO CITY"></div>
                     <div><label>Payment for</label><input type="text" id="cvPaymentFor"></div>
                     <div><label>Bank</label><input type="text" id="cvBank" placeholder="PBB"></div>
                     <div><label>Check no.</label><input type="text" id="cvCheckNumber"></div>
                     <div><label>Check date</label><input type="date" id="cvCheckDate"></div>
                     <div><label>Received by</label><input type="text" id="cvReceivedBy"></div>
+                    <div class="cv-span-full"><label>Particulars (DAI HOLDINGS layout)</label><textarea id="cvParticulars" rows="3" placeholder="DAI HOLDINGS HDMF, PHIC &amp; SSS CONTRIBUTION &amp; HDMF &amp; SSS LOAN FOR SEPTEMBER 2026"></textarea></div>
                 </div>
 
                 <fieldset class="cv-fieldset">
@@ -2060,15 +1852,36 @@
                     </div>
                 </fieldset>
 
+                <fieldset class="cv-fieldset">
+                    <legend>Account distribution (DAI HOLDINGS layout)</legend>
+                    <div class="table-wrap">
+                        <table class="cv-form-table" aria-label="Check voucher account distribution">
+                            <thead><tr><th>Account</th><th style="text-align:right;">DR</th><th style="text-align:right;">CR</th><th></th></tr></thead>
+                            <tbody id="cvAccountLinesBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin:8px 0;">
+                        <button class="action" type="button" id="cvAddAccountRow" style="padding:8px 14px;">Add account row</button>
+                    </div>
+                    <div class="cv-total-strip">
+                        <span>Total DR: <strong id="cvAccountDebitTotal">PHP 0.00</strong></span>
+                        <span>Total CR: <strong id="cvAccountCreditTotal">PHP 0.00</strong></span>
+                    </div>
+                </fieldset>
+
                 <div class="cv-editor-grid cv-sign-grid">
                     <div><label>Prepared</label><input type="text" id="cvSignPrepared" value="ANGELMARIE M. DAPAR"></div>
                     <div><label>Checked</label><input type="text" id="cvSignChecked" value="Ms. BEVERLY TAN"></div>
-                    <div><label>Checked</label><input type="text" id="cvSignApproved" value="CHRISTINE JOY ILOGON"></div>
-                    <div><label>Approved</label><input type="text" id="cvSignApprover" value="ENGR. ARTURO I DAVIS, PME"></div>
+                    <div><label>Approved</label><input type="text" id="cvSignApproved" value="CHRISTINE JOY ILOGON"></div>
+                    <div><label>Received</label><input type="text" id="cvSignApprover" value="ENGR. ARTURO I DAVIS, PME"></div>
+                    <div><label>Prepared title</label><input type="text" id="cvSignPreparedTitle" value="Executive Asst."></div>
+                    <div><label>Checked title</label><input type="text" id="cvSignCheckedTitle" value="Asst. Head"></div>
+                    <div><label>Approved title</label><input type="text" id="cvSignApprovedTitle" value="President/CEO"></div>
+                    <div><label>Received title</label><input type="text" id="cvSignReceivedTitle" value=""></div>
                 </div>
             </div>
 
-            <div class="panel cv-print-panel">
+            <div class="panel cv-print-panel cv-subpanel cv-subpanel-form{% if cv_view != 'monitoring' %} is-active{% endif %}" id="cvPreviewPanel" role="tabpanel" aria-labelledby="cvTabForm">
                 <h2 style="margin-top:0;">Document Preview</h2>
                 <article class="cv-doc" id="cvDocument" aria-label="Check voucher preview">
                     <div class="cv-letterhead">
@@ -2119,13 +1932,88 @@
                         </tbody>
                     </table>
                 </article>
+
+                <article class="cv-doc cv-doc-dai" id="cvDocumentDai" aria-label="DAI Holdings check voucher preview" style="display:none;">
+                    <div class="cv-dai-head">
+                        <div class="cv-dai-company" id="cvDaiCompany">DAI HOLDINGS, INC.</div>
+                        <div class="cv-dai-address" id="cvDaiCompanyAddress">#406 St. San Juan Subdivision, Diamond St., Panacan, Bunawan Dist., Davao City</div>
+                    </div>
+                    <div class="cv-dai-title">CHECK VOUCHER</div>
+                    <table class="cv-dai-meta">
+                        <tbody>
+                            <tr>
+                                <td class="cv-dai-lbl">Payee:</td>
+                                <td class="cv-dai-payee" id="cvDaiPayee"></td>
+                                <td class="cv-dai-lbl">CV#</td>
+                                <td class="cv-dai-cvno" id="cvDaiNumber"></td>
+                            </tr>
+                            <tr>
+                                <td class="cv-dai-lbl">Address:</td>
+                                <td id="cvDaiAddress"></td>
+                                <td class="cv-dai-lbl">Date:</td>
+                                <td id="cvDaiDate"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="cv-dai-part">
+                        <tbody>
+                            <tr>
+                                <td class="cv-dai-inpay">In payment of:</td>
+                                <td class="cv-dai-part-head">PARTICULARS</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="cv-dai-part-text" id="cvDaiParticulars"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="cv-dai-items">
+                        <tbody id="cvDaiItems"></tbody>
+                        <tfoot>
+                            <tr class="cv-dai-total-row"><td class="cv-dai-total-lbl">TOTAL:</td><td class="cv-dai-total" id="cvDaiTotal">0.00</td></tr>
+                        </tfoot>
+                    </table>
+                    <table class="cv-dai-phpline"><tbody><tr><td class="cv-dai-php-lbl">Php</td><td class="cv-dai-php-amt" id="cvDaiPhp">0.00</td></tr></tbody></table>
+                    <table class="cv-dai-check">
+                        <tbody>
+                            <tr>
+                                <td class="cv-dai-lbl">Check #</td>
+                                <td id="cvDaiCheckNumber"></td>
+                                <td id="cvDaiCheckDate"></td>
+                                <td class="cv-dai-lbl">Bank:</td>
+                                <td id="cvDaiBank"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table class="cv-dai-dist">
+                        <tbody>
+                            <tr><td class="cv-dai-dist-head" colspan="3">ACCOUNT DISTRIBUTION</td></tr>
+                            <tr><td></td><td class="cv-dai-dr">DR</td><td class="cv-dai-cr">CR</td></tr>
+                        </tbody>
+                        <tbody id="cvDaiDistLines"></tbody>
+                        <tfoot>
+                            <tr class="cv-dai-dist-total"><td class="cv-dai-total-lbl">TOTAL</td><td id="cvDaiDistDebitTotal"></td><td id="cvDaiDistCreditTotal"></td></tr>
+                        </tfoot>
+                    </table>
+                    <table class="cv-dai-sign">
+                        <tbody>
+                            <tr class="cv-dai-sign-labels"><td>Prepared by:</td><td>Checked by:</td><td>Approved by:</td><td>Received by:</td></tr>
+                            <tr class="cv-dai-sign-names">
+                                <td><span id="cvDaiSignPrepared"></span><span class="cv-dai-sig-title" id="cvDaiSignPreparedTitle"></span></td>
+                                <td><span id="cvDaiSignChecked"></span><span class="cv-dai-sig-title" id="cvDaiSignCheckedTitle"></span></td>
+                                <td><span id="cvDaiSignApproved"></span><span class="cv-dai-sig-title" id="cvDaiSignApprovedTitle"></span></td>
+                                <td><span id="cvDaiSignApprover"></span><span class="cv-dai-sig-title" id="cvDaiSignReceivedTitle"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
             </div>
 
-            <div class="panel cv-report-panel" style="margin-top:20px;">
+            <div class="panel cv-report-panel cv-subpanel cv-subpanel-report{% if cv_view == 'monitoring' %} is-active{% endif %}" id="cvReportPanel" role="tabpanel" aria-labelledby="cvTabMonitoring" style="margin-top:20px;">
                 <h2 style="margin:0 0 8px; font-size:1rem;">CV Monitoring Report</h2>
                 <p class="cv-report-blurb" style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">Mirrors the <strong>CV MONITORING</strong> sheet in the monthly workbook. Filter by month, search payee / CV no., then export to Excel.</p>
                 <form method="get" class="cv-filter-form" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px;">
                     <input type="hidden" name="tab" value="check-voucher-tab">
+                    <input type="hidden" name="cv_view" id="cvViewInput" value="{{ cv_view|default:'form' }}">
                     <div>
                         <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Year</label>
                         <select name="cv_year" style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:110px;">
@@ -2180,7 +2068,7 @@
                         <input type="text" name="cv_search" value="{{ cv_filters.search }}" placeholder="Payee, CV no., check no." style="padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:220px;">
                     </div>
                     <button type="submit" class="action" style="padding:8px 16px;">Apply</button>
-                    <a href="?tab=check-voucher-tab" class="action" style="padding:8px 16px;">Clear</a>
+                    <a href="?tab=check-voucher-tab&cv_view=monitoring" class="action" style="padding:8px 16px;">Clear</a>
                     <a href="{% url 'check_voucher_monitoring_xlsx' %}?cv_year={{ cv_filters.year }}&cv_month={{ cv_filters.month }}&cv_category={{ cv_filters.category }}&cv_company={{ cv_filters.company }}&cv_search={{ cv_filters.search|urlencode }}" class="action brand-link" style="padding:8px 16px;">Export Excel</a>
                     <button type="button" class="action" id="cvPrintMonitoring" style="padding:8px 16px;">Print report</button>
                 </form>
@@ -2198,18 +2086,18 @@
                 <div class="table-wrap" id="cvMonitoringWrap">
                     <table class="cv-monitoring-table" aria-label="CV Monitoring">
                         <thead>
-                            <tr><th>Date</th><th>CV No</th><th>Company</th><th>Issued To</th><th>Payment For</th><th class="cv-hl">Amount</th><th class="cv-breakdown-col cv-hl">Purchases</th><th class="cv-breakdown-col cv-hl">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col cv-hl">Payment</th><th class="cv-breakdown-col">Salaries</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
+                            <tr><th>Date</th><th>CV No</th><th>Company</th><th>Issued To</th><th>Payment For</th><th class="cv-hl">Amount</th><th class="cv-breakdown-col cv-hl">Purchases</th><th class="cv-breakdown-col cv-hl">Expenses</th><th class="cv-breakdown-col">Commission</th><th class="cv-breakdown-col">Contributions</th><th class="cv-breakdown-col">Misc</th><th class="cv-breakdown-col cv-hl">Payment</th><th class="cv-breakdown-col">Salaries</th><th>Check Date</th><th>Bank</th><th>Check No.</th><th>Status</th><th class="cv-actions-col" style="text-align:right;">Actions</th></tr>
                         </thead>
                         <tbody>
                             {% for voucher in recent_check_vouchers %}
                             <tr data-cv-row="{{ voucher.id }}">
                                 <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="voucher_date" value="{{ voucher.voucher_date|date:'Y-m-d' }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="cv_number" value="{{ voucher.cv_number }}"></td>
-                                <td><select class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="company" style="padding:6px 8px;min-width:110px;">
+                                <td><span class="cv-company-cell"><select class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="company" style="padding:6px 8px;min-width:110px;">
                                     {% for value, label in cv_company_choices %}
                                     <option value="{{ value }}" {% if voucher.company == value %}selected{% endif %}>{{ label|truncatechars:24 }}</option>
                                     {% endfor %}
-                                </select></td>
+                                </select><span class="cv-company-acronym">{{ voucher.company|upper }}</span></span></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payee" value="{{ voucher.payee }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="payment_for" value="{{ voucher.payment_for|default:'' }}" placeholder="-"></td>
                                 <td class="cv-hl"><div class="cv-peso-wrap"><span class="cv-peso-sign">₱</span><input type="text" inputmode="decimal" placeholder="0.00" class="cv-cell-input cv-money-input" data-voucher-id="{{ voucher.id }}" data-field="check_amount" data-money-col="check_amount" value="{{ voucher.check_amount|floatformat:2|intcomma }}"></div></td>
@@ -2223,13 +2111,18 @@
                                 <td><input type="date" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_date" value="{{ voucher.check_date|date:'Y-m-d'|default:'' }}"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="bank" value="{{ voucher.bank|default:'' }}" placeholder="-"></td>
                                 <td><input type="text" class="cv-cell-input" data-voucher-id="{{ voucher.id }}" data-field="check_number" value="{{ voucher.check_number|default:'' }}" placeholder="-"></td>
+                                <td><select class="cv-cell-input cv-status-select" data-voucher-id="{{ voucher.id }}" data-field="liquidation_status" style="padding:6px 8px;min-width:130px;">
+                                    {% for value, label in cv_liquidation_choices %}
+                                    <option value="{{ value }}" {% if voucher.liquidation_status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select><span class="cv-status-text">{{ voucher.get_liquidation_status_display }}</span></td>
                                 <td class="cv-actions-col" style="text-align:right; white-space:nowrap;">
                                     <button type="button" class="action cv-load-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
                                     <button type="button" class="action cv-delete-voucher" data-voucher-id="{{ voucher.id }}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="17" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
+                            <tr><td colspan="18" style="text-align:center;color:#667085;padding:24px;">No check vouchers match these filters. Import an Excel file or enter one manually.</td></tr>
                             {% endfor %}
                         </tbody>
                         {% if recent_check_vouchers %}
@@ -2244,7 +2137,7 @@
                                 <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="misc">₱{{ cv_totals.total_misc|default:0|floatformat:2|intcomma }}</td>
                                 <td class="cv-breakdown-col cv-hl" style="font-weight:700;" data-money-total="payment">₱{{ cv_totals.total_payment|default:0|floatformat:2|intcomma }}</td>
                                 <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="salaries">₱{{ cv_totals.total_salaries|default:0|floatformat:2|intcomma }}</td>
-                                <td colspan="3"></td>
+                                <td colspan="4"></td>
                                 <td class="cv-actions-col"></td>
                             </tr>
                         </tfoot>
@@ -2350,6 +2243,7 @@
     savePdfUrl: "{% url 'save_sales_document_pdf' %}",
     savedDocumentDeleteUrlTemplate: "{% url 'delete_sales_document_pdf' 0 %}",
     dashboardUrl: "{% url 'sales_dashboard' %}",
+    salesSummaryDeleteUrl: "{% url 'delete_sales_summary_row' %}",
     activeTab: "{{ active_tab|default:'sales-tab' }}",
     saveQuotationUrl: "{% url 'save_quotation' %}",
     quotationJsonUrlTemplate: "{% url 'quotation_json' 0 %}",
@@ -2385,5 +2279,5 @@
   };
 </script>
 <script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=cv-live6"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=sales-summary3"></script>
 {% endblock %}

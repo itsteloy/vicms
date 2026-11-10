@@ -168,3 +168,47 @@
   flex: 0 0 auto;
   min-height: 0.02in;
 }
+
+/* Per-statement red theme (keeps the same layout, only colors change). */
+.sheet.sheet-theme-red {
+  background:
+    linear-gradient(transparent 13px, rgba(185, 28, 28, 0.08) 14px),
+    #fff5f5;
+  border-color: #fca5a5;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.sheet.sheet-theme-red::after {
+  background: #b91c1c;
+}
+
+.sheet.sheet-theme-red .title {
+  color: #991b1b;
+  text-decoration-color: #991b1b;
+}
+
+.sheet.sheet-theme-red .month-line .fill {
+  border-bottom-color: #991b1b;
+  color: #b91c1c;
+}
+
+.sheet.sheet-theme-red .party-name {
+  background: #fecaca;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.sheet.sheet-theme-red .reading-box,
+.sheet.sheet-theme-red .reading-box .head,
+.sheet.sheet-theme-red .reading-box td,
+.sheet.sheet-theme-red .charges td {
+  border-color: #b91c1c;
+}
+
+.sheet.sheet-theme-red .reading-box td.val,
+.sheet.sheet-theme-red .charges tr.total td {
+  color: #b91c1c;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}

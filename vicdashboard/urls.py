@@ -14,6 +14,7 @@ urlpatterns = [
     path('dashboard/inventory/withdrawal-slips/<int:slip_id>/edit/', views.edit_withdrawal_slip, name='edit_withdrawal_slip'),
     path('dashboard/inventory/withdrawal-slips/<int:slip_id>/delete/', views.delete_withdrawal_slip, name='delete_withdrawal_slip'),
     path('dashboard/sales/', views.sales_dashboard, name='sales_dashboard'),
+    path('dashboard/sales/summary/row/delete/', views.delete_sales_summary_row, name='delete_sales_summary_row'),
     path('dashboard/sales/quotation/save/', views.save_quotation, name='save_quotation'),
     path('dashboard/sales/quotation/<int:quotation_id>/json/', views.quotation_json, name='quotation_json'),
     path('dashboard/sales/quotation/<int:quotation_id>/view/', views.view_quotation_pdf, name='view_quotation_pdf'),
@@ -67,6 +68,7 @@ urlpatterns = [
     path('dashboard/water-billing/weekly-report/print/', views.print_water_weekly_report, name='print_water_weekly_report'),
     path('dashboard/water-billing/bills/print-batch/', views.print_water_bills_batch, name='print_water_bills_batch'),
     path('dashboard/water-billing/bills/<int:bill_id>/', views.view_water_bill, name='view_water_bill'),
+    path('dashboard/water-billing/bills/<int:bill_id>/color/', views.update_water_bill_color, name='update_water_bill_color'),
     path('dashboard/water-billing/customers/<int:customer_id>/', views.view_water_customer, name='view_water_customer'),
     path(
         'dashboard/water-billing/customers/<int:customer_id>/billing-history/print/',

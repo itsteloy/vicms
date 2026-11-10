@@ -11,7 +11,7 @@
   <div class="table-wrap">
     <table class="data">
       <thead>
-        <tr><th style="width:2.2rem;"></th><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th></tr>
+        <tr><th style="width:2.2rem;"></th><th>Bill #</th><th>Account</th><th>Customer</th><th>Due</th><th>Total</th><th>Balance</th><th>Status</th><th>Color</th></tr>
       </thead>
       <tbody>
         {% for b in unpaid_bills %}
@@ -26,9 +26,10 @@
           <td>₱{{ b.total_amount|floatformat:2|intcomma }}</td>
           <td><strong>₱{{ b.balance_due|floatformat:2|intcomma }}</strong></td>
           <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span>{% if b.print_count %} <span class="badge printed" title="{% if b.last_printed_at %}Last printed {{ b.last_printed_at|date:'M d, Y h:i A' }}{% else %}Printed{% endif %}">PRINTED</span>{% endif %}</td>
+          <td>{% include "includes/water_bill_color_select.html" with bill=b %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="empty">No outstanding balances.</td></tr>
+        <tr><td colspan="9" class="empty">No outstanding balances.</td></tr>
         {% endfor %}
       </tbody>
     </table>

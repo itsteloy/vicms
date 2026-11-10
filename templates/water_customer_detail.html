@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_detail.css' %}?v=hist1">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_customer_detail.css' %}?v=statement-color1">
 {% endblock %}
 
 {% block content %}
@@ -152,6 +152,7 @@
             <th>Paid</th>
             <th>Balance</th>
             <th>Status</th>
+            <th>Color</th>
             <th></th>
           </tr>
         </thead>
@@ -168,10 +169,11 @@
             <td>₱{{ b.amount_paid|floatformat:2|intcomma }}</td>
             <td>₱{{ b.balance_due|floatformat:2|intcomma }}</td>
             <td><span class="badge {{ b.status }}">{{ b.get_status_display }}</span></td>
+            <td>{% include "includes/water_bill_color_select.html" with bill=b %}</td>
             <td><a class="action" href="{% url 'view_water_bill' b.id %}">View</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="11" class="empty">No bills yet for this customer.</td></tr>
+          <tr><td colspan="12" class="empty">No bills yet for this customer.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -344,4 +346,5 @@
   }
 })();
 </script>
+<script src="{% static 'js/dashboards/water_bill_color.js' %}?v=statement-color2"></script>
 {% endblock %}

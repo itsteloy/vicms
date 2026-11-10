@@ -3,7 +3,7 @@
   <div class="panel-head" style="align-items:flex-start; gap:12px;">
     <div>
       <h2>Water service contract</h2>
-      <p class="sub">Save the contract first, then print. New applications start with a blank form; choose a customer when reconnecting or transferring to prefill once.</p>
+      <p class="sub">Save the contract first, then print. New applications are automatically added to the customer list; choose a customer when reconnecting or transferring to prefill once.</p>
     </div>
     {% if edit_contract %}
     <a class="action" href="?tab=disconnectTab">New contract</a>
@@ -91,6 +91,7 @@
           <input name="original_registered_name" id="contractOriginalName" value="{{ edit_contract.original_registered_name|default:'' }}">
         </div>
         <div class="field"><label>Meter size</label><input name="meter_size" id="contractMeterSize" value="{{ edit_contract.meter_size|default:'' }}"></div>
+        <div class="field"><label>Meter number</label><input name="meter_number" id="contractMeterNumber" value="{{ edit_contract.meter_number|default:'' }}"></div>
         <div class="field full"><label>Connection location</label><input name="connection_location" id="contractConnectionLocation" value="{{ edit_contract.connection_location|default:'' }}"></div>
         <div class="field full"><label>Near / beside</label><input name="near_beside" id="contractNearBeside" value="{{ edit_contract.near_beside|default:'' }}"></div>
         <div class="field full">
@@ -112,6 +113,7 @@
       <summary>2. Acknowledgement receipt</summary>
       <div class="form-grid">
         <div class="field full"><label>Payee name</label><input name="ack_payee_name" id="contractAckPayee" value="{{ edit_contract.ack_payee_name|default:'' }}"></div>
+        <div class="field"><label>AR No.</label><input name="ack_ar_number" id="contractAckArNumber" value="{{ edit_contract.ack_ar_number|default:'' }}"></div>
         <div class="field"><label>Amount (P)</label><input name="ack_amount" type="number" step="0.01" min="0" value="{% if edit_contract %}{{ edit_contract.ack_amount }}{% else %}0{% endif %}"></div>
         <div class="field"><label>Received by</label><input name="ack_received_by" value="{{ edit_contract.ack_received_by|default:'' }}"></div>
         <div class="field"><label>Date</label><input type="date" name="ack_date" value="{% if edit_contract.ack_date %}{{ edit_contract.ack_date|date:'Y-m-d' }}{% endif %}"></div>

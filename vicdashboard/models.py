@@ -504,10 +504,18 @@ class CheckVoucher(models.Model):
     COMPANY_MDSPII = 'mdspii'
     COMPANY_VERSATEC = 'versatec'
     COMPANY_MDTCII = 'mdtcii'
+    COMPANY_DAI = 'dai'
+    LIQUIDATION_UNLIQUIDATED = 'unliquidated'
+    LIQUIDATION_LIQUIDATED = 'liquidated'
+    LIQUIDATION_STATUS_CHOICES = [
+        (LIQUIDATION_UNLIQUIDATED, 'Unliquidated'),
+        (LIQUIDATION_LIQUIDATED, 'Liquidated'),
+    ]
     COMPANY_CHOICES = [
         (COMPANY_MDSPII, 'METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.'),
         (COMPANY_VERSATEC, 'VERSATEC INDUSTRIAL CORPORATION'),
         (COMPANY_MDTCII, 'METRO DAVAO TRADE & CONSTRUCTION INDUSTRIES, INC.'),
+        (COMPANY_DAI, 'DAI HOLDINGS, INC.'),
     ]
     # Extensible registry: add a new key + choice above to support more
     # companies. `header_kind` drives the printed letterhead (text vs image).
@@ -534,6 +542,14 @@ class CheckVoucher(models.Model):
             'header_kind': 'text',
             'address': '#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY',
         },
+        COMPANY_DAI: {
+            'name': 'DAI HOLDINGS, INC.',
+            'short_label': 'DAI',
+            'received_from': 'Received from DAI HOLDINGS, INC.',
+            'header_kind': 'text',
+            'address': '#406 St. San Juan Subdivision, Diamond St., Panacan, Bunawan Dist., Davao City',
+            'layout': 'dai',
+        },
     }
 
     company = models.CharField(
@@ -545,6 +561,8 @@ class CheckVoucher(models.Model):
     cv_number = models.CharField(max_length=50, unique=True)
     voucher_date = models.DateField()
     payee = models.CharField(max_length=300)
+    payee_address = models.CharField(max_length=255, blank=True, default='')
+    particulars = models.TextField(blank=True, default='')
     payment_for = models.TextField(blank=True, default='')
     check_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     cash_in_bank = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -553,11 +571,21 @@ class CheckVoucher(models.Model):
     bank = models.CharField(max_length=120, blank=True, default='')
     check_number = models.CharField(max_length=60, blank=True, default='')
     check_date = models.DateField(null=True, blank=True)
+    liquidation_status = models.CharField(
+        max_length=20,
+        choices=LIQUIDATION_STATUS_CHOICES,
+        default=LIQUIDATION_UNLIQUIDATED,
+        db_index=True,
+    )
     received_by = models.CharField(max_length=200, blank=True, default='')
     signatory_prepared = models.CharField(max_length=200, blank=True, default='Angel Marie')
     signatory_checked = models.CharField(max_length=200, blank=True, default='Beverly')
     signatory_approved = models.CharField(max_length=200, blank=True, default='Christine Joy')
     signatory_approver = models.CharField(max_length=200, blank=True, default='Engr. Arturo Davis')
+    signatory_prepared_title = models.CharField(max_length=120, blank=True, default='Executive Asst.')
+    signatory_checked_title = models.CharField(max_length=120, blank=True, default='Asst. Head')
+    signatory_approved_title = models.CharField(max_length=120, blank=True, default='President/CEO')
+    signatory_received_title = models.CharField(max_length=120, blank=True, default='')
     purchases = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     commission = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -607,6 +635,26 @@ class CheckVoucherCreditLine(models.Model):
         related_name='credit_lines',
     )
     description = models.CharField(max_length=500, blank=True, default='')
+    credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.description or self.pk} ({self.voucher_id})'
+
+
+class CheckVoucherAccountLine(models.Model):
+    """Account distribution (DR/CR) rows for the DAI HOLDINGS voucher layout."""
+
+    voucher = models.ForeignKey(
+        CheckVoucher,
+        on_delete=models.CASCADE,
+        related_name='account_lines',
+    )
+    description = models.CharField(max_length=500, blank=True, default='')
+    debit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -2167,6 +2215,11 @@ WATER_BILL_STATUS = [
     ('cancelled', 'Cancelled'),
 ]
 
+WATER_BILL_STATEMENT_COLORS = [
+    ('default', 'Default'),
+    ('red', 'Red'),
+]
+
 WATER_SERVICE_ACTION_TYPES = [
     ('disconnection', 'Disconnection'),
     ('reconnection', 'Reconnection'),
@@ -2217,58 +2270,37 @@ class WaterZone(models.Model):
         super().save(*args, **kwargs)
 
 
-def net_water_bill_outstanding(bills, seed=None, signed=False):
-    """Net collectible across a customer's non-cancelled bills.
+def _water_ledger_net(bills, seed=None, signed=False, include_installment=False):
+    """Net collectible from the underlying ledger, not frozen carry snapshots.
 
-    Later statements embed a frozen ``previous_bill_unpaid`` snapshot of older
-    debt, so summing live balances double-counts the carried amount. Walk
-    oldest-first; each bill's snapshot duplicates at most the still-open older
-    balances, and only that overlap is subtracted.
+    Each statement stores ``previous_bill_unpaid`` as a presentation snapshot.
+    Only the oldest snapshot is an opening balance; later snapshots repeat
+    older debt/credit that is already represented by earlier bills' charges
+    and payments. Summing live bill balances therefore recharges carry that a
+    later payment already settled.
 
-    signed=False floors per-bill balances and the result (display rollups);
-    signed=True preserves advance/overpayment credit (prefill flows).
-    Settled (zero-balance) bills are skipped: they carry nothing open, and
-    their own snapshot is reconciled through the reading refresh flow.
+    Compute from the ledger instead:
+
+        oldest previous_bill_unpaid
+        + all current-period charges/fees
+        - all payments
+        + optional installation installments
+        + external seed
+
+    ``signed=False`` floors the final result at zero for display rollups;
+    ``signed=True`` preserves advance/overpayment credit for prefill flows.
     """
     zero = Decimal('0.00')
-    rows = []
-    for bill in bills:
-        raw = (bill.total_amount or zero) - (bill.amount_paid or zero)
-        if raw == 0 or (not signed and raw < 0):
-            continue
-        rows.append((bill, raw))
-    rows.sort(key=lambda item: ((item[0].bill_date or date.min).isoformat(), item[0].pk or 0))
-    balances = [raw if signed else max(raw, zero) for _bill, raw in rows]
-    dup = zero
-    for index, (bill, _raw) in enumerate(rows):
-        prev = max(bill.previous_bill_unpaid or zero, zero)
-        if prev <= 0:
-            continue
-        older_open = sum(balances[:index], zero)
-        if older_open < zero:
-            older_open = zero
-        dup += min(prev, older_open)
-    net = sum(balances, zero) - dup + (seed or zero)
-    if not signed:
-        net = max(net, zero)
-    return net
-
-
-def net_water_only_outstanding(bills, seed=None, signed=False):
-    """Net WATER-ONLY collectible (excludes installation installment).
-
-    Same carry de-duplication as net_water_bill_outstanding, but each bill
-    contributes water-only (unfloored total − installment − paid) instead of
-    total − paid. Use for previous_bill_unpaid so the installment column
-    is not duplicated when it is added again on the next statement.
-    Unfloored components preserve advance/overpayment credit when signed.
-    """
-    zero = Decimal('0.00')
-    rows = []
-    for bill in bills:
-        raw = (
+    ordered = sorted(
+        bills,
+        key=lambda bill: ((bill.bill_date or date.min).isoformat(), bill.pk or 0),
+    )
+    net = zero
+    if ordered:
+        net += ordered[0].previous_bill_unpaid or zero
+    for bill in ordered:
+        net += (
             (bill.consumption_charge or zero)
-            + (bill.previous_bill_unpaid or zero)
             + (bill.fixed_charge or zero)
             + (bill.environmental_fee or zero)
             + (bill.maintenance_fee or zero)
@@ -2277,24 +2309,36 @@ def net_water_only_outstanding(bills, seed=None, signed=False):
             - (bill.discount or zero)
             - (bill.amount_paid or zero)
         )
-        if raw == 0 or (not signed and raw < 0):
-            continue
-        rows.append((bill, raw))
-    rows.sort(key=lambda item: ((item[0].bill_date or date.min).isoformat(), item[0].pk or 0))
-    balances = [raw if signed else max(raw, zero) for _bill, raw in rows]
-    dup = zero
-    for index, (bill, _raw) in enumerate(rows):
-        prev = max(bill.previous_bill_unpaid or zero, zero)
-        if prev <= 0:
-            continue
-        older_open = sum(balances[:index], zero)
-        if older_open < zero:
-            older_open = zero
-        dup += min(prev, older_open)
-    net = sum(balances, zero) - dup + (seed or zero)
+        if include_installment:
+            net += bill.installment_balance or zero
+    net += seed or zero
     if not signed:
         net = max(net, zero)
-    return net
+    return net.quantize(Decimal('0.01'))
+
+
+def net_water_bill_outstanding(bills, seed=None, signed=False):
+    """Net collectible from charges/payments, including installation installments."""
+    return _water_ledger_net(
+        bills,
+        seed=seed,
+        signed=signed,
+        include_installment=True,
+    )
+
+
+def net_water_only_outstanding(bills, seed=None, signed=False):
+    """Net WATER-ONLY collectible (excludes installation installment).
+
+    Use for ``previous_bill_unpaid`` so the installment column is not
+    duplicated when it is added again on the next statement.
+    """
+    return _water_ledger_net(
+        bills,
+        seed=seed,
+        signed=signed,
+        include_installment=False,
+    )
 
 
 def water_bill_carry_flags(bills):
@@ -2591,6 +2635,11 @@ class WaterBill(models.Model):
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=WATER_BILL_STATUS, default='unpaid')
+    statement_color = models.CharField(
+        max_length=20,
+        choices=WATER_BILL_STATEMENT_COLORS,
+        default='default',
+    )
     print_count = models.PositiveIntegerField(default=0)
     last_printed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2605,6 +2654,14 @@ class WaterBill(models.Model):
     @property
     def is_printed(self):
         return (self.print_count or 0) > 0
+
+    @property
+    def statement_color_options(self):
+        return WATER_BILL_STATEMENT_COLORS
+
+    @property
+    def statement_theme_class(self):
+        return 'sheet-theme-red' if self.statement_color == 'red' else ''
 
     @classmethod
     def generate_bill_number(cls):
@@ -2791,9 +2848,11 @@ class WaterServiceContract(models.Model):
     )
     original_registered_name = models.CharField(max_length=200, blank=True, default='')
     meter_size = models.CharField(max_length=50, blank=True, default='')
+    meter_number = models.CharField(max_length=50, blank=True, default='')
     connection_location = models.TextField(blank=True, default='')
     near_beside = models.CharField(max_length=200, blank=True, default='')
     ack_payee_name = models.CharField(max_length=200, blank=True, default='')
+    ack_ar_number = models.CharField(max_length=50, blank=True, default='')
     ack_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     ack_received_by = models.CharField(max_length=200, blank=True, default='')
     ack_date = models.DateField(null=True, blank=True)
@@ -2870,6 +2929,20 @@ class WaterServiceContract(models.Model):
 
 class WaterOtherPayment(models.Model):
     """Miscellaneous water-office receipts not tied to a bill or installation balance."""
+
+    PAYMENT_TYPE_OTHER = 'other'
+    PAYMENT_TYPE_RECONNECTION = 'reconnection'
+    PAYMENT_TYPE_CHOICES = [
+        (PAYMENT_TYPE_OTHER, 'Other payment'),
+        (PAYMENT_TYPE_RECONNECTION, 'Reconnection fee'),
+    ]
+
+    payment_type = models.CharField(
+        max_length=20,
+        choices=PAYMENT_TYPE_CHOICES,
+        default=PAYMENT_TYPE_OTHER,
+        db_index=True,
+    )
     payment_date = models.DateField()
     ar_number = models.CharField(max_length=50, null=True, blank=True, db_index=True)
     received_from = models.CharField(max_length=200)
@@ -2890,7 +2963,12 @@ class WaterOtherPayment(models.Model):
         ordering = ['-payment_date', '-created_at']
 
     def __str__(self):
-        return f'Other {self.ar_number or self.pk} – {self.received_from} ({self.amount})'
+        kind = (
+            'Reconnection'
+            if self.payment_type == self.PAYMENT_TYPE_RECONNECTION
+            else 'Other'
+        )
+        return f'{kind} {self.ar_number or self.pk} – {self.received_from} ({self.amount})'
 
     @property
     def effective_amount_received(self):
@@ -2905,6 +2983,30 @@ class WaterOtherPayment(models.Model):
         self.payment_of = (self.payment_of or '').strip()
         self.remarks = (self.remarks or '').strip()
         super().save(*args, **kwargs)
+
+
+class WaterSalesSummaryExclusion(models.Model):
+    """Rows hidden from the Sales Summary without deleting the source payment."""
+
+    SOURCE_WATER_PAYMENT = 'water_payment'
+    SOURCE_SERVICE_ACTION = 'service_action'
+    SOURCE_OTHER_PAYMENT = 'other_payment'
+    SOURCE_CHOICES = [
+        (SOURCE_WATER_PAYMENT, 'Water payment'),
+        (SOURCE_SERVICE_ACTION, 'Service action'),
+        (SOURCE_OTHER_PAYMENT, 'Other payment'),
+    ]
+
+    source_type = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    source_id = models.PositiveBigIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('source_type', 'source_id')
+
+    def __str__(self):
+        return f'{self.get_source_type_display()} #{self.source_id}'
 
 
 class WaterWeeklyReport(models.Model):

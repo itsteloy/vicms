@@ -156,6 +156,27 @@ table.data tr:last-child td { border-bottom: none; }
 }
 .action:hover { border-color: var(--brand); background: var(--soft); color: var(--brand); }
 .muted { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.bill-color-select {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 8px;
+  min-width: 88px;
+  cursor: pointer;
+}
+.bill-color-select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+.bill-color-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 @media (max-width: 900px) {
   .kpi-grid, .info-grid, .form-grid { grid-template-columns: 1fr 1fr; }
 }

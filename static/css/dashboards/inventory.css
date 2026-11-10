@@ -1070,7 +1070,7 @@ table {
 }
 
 thead {
-  background: var(--soft);
+  background: var(--brand);
 }
 
 .item-price {
@@ -1288,7 +1288,7 @@ td {
 }
 
 th {
-  color: #475467;
+  color: #fff;
   font-weight: 700;
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -2950,7 +2950,8 @@ table.po-items .col-unit input {
 #allItemsPanel thead th {
   position: sticky;
   top: 0;
-  background: var(--soft, #f8fafc);
+  background: var(--brand, #0284c7);
+  color: #fff;
   z-index: 1;
   white-space: nowrap;
 }

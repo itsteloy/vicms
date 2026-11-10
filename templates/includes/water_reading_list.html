@@ -11,6 +11,7 @@
           <th>Charges</th>
           <th>Total</th>
           <th>Status</th>
+          <th>Color</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -46,6 +47,13 @@
             {% endif %}
             {% else %}
             <span class="badge scheduled">Reading only</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.bill %}
+            {% include "includes/water_bill_color_select.html" with bill=r.bill %}
+            {% else %}
+            <span class="cell-muted">—</span>
             {% endif %}
           </td>
           <td>
@@ -92,7 +100,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="empty">{% if reading_paid == 'only' %}No paid bills found.{% elif reading_printed == 'only' %}No printed bills found.{% elif reading_paid == 'show' %}No bills found.{% elif reading_printed == 'hide' %}No unpaid bills found. Printed bills are hidden — choose “Show printed” to unhide them.{% else %}No unpaid bills found. Paid bills are hidden — choose “Show paid” to unhide them.{% endif %}</td></tr>
+        <tr><td colspan="9" class="empty">{% if reading_paid == 'only' %}No paid bills found.{% elif reading_printed == 'only' %}No printed bills found.{% elif reading_paid == 'show' %}No bills found.{% elif reading_printed == 'hide' %}No unpaid bills found. Printed bills are hidden — choose “Show printed” to unhide them.{% else %}No unpaid bills found. Paid bills are hidden — choose “Show paid” to unhide them.{% endif %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

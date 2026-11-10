@@ -549,6 +549,28 @@ button.primary:hover,
 .action-group { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .action-group .action,
 .action-group button { padding: 7px 10px; font-size: 0.78rem; }
+
+.bill-color-select {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 8px;
+  min-width: 88px;
+  cursor: pointer;
+}
+.bill-color-select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+.bill-color-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 .generate-bill-form {
   display: inline-flex;
   flex-wrap: wrap;
@@ -587,8 +609,8 @@ table.data td {
   vertical-align: top;
 }
 table.data th {
-  background: var(--soft);
-  color: #475467;
+  background: var(--brand);
+  color: #fff;
   font-weight: 700;
   font-size: 0.78rem;
   text-transform: uppercase;

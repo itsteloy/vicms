@@ -1,0 +1,13 @@
+<select
+  class="bill-color-select"
+  data-bill-id="{{ bill.id }}"
+  data-color-url="{% url 'update_water_bill_color' bill.id %}"
+  data-saved-color="{{ bill.statement_color }}"
+  data-csrf-token="{{ csrf_token }}"
+  aria-label="Statement color for {{ bill.bill_number }}"
+  title="Statement color"
+>
+  {% for value, label in bill.statement_color_options %}
+  <option value="{{ value }}"{% if bill.statement_color == value %} selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+</select>

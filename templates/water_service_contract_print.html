@@ -145,6 +145,7 @@
           <div class="contract-divider"></div>
           <h2 class="contract-subtitle">ACKNOWLEDGEMENT RECEIPT</h2>
           <p class="contract-paragraph"><strong>TO:</strong> <span class="contract-inline-underline contract-inline-wide">{% if contract.ack_payee_name %}{{ contract.ack_payee_name }}{% else %}&nbsp;{% endif %}</span></p>
+          <p class="contract-paragraph"><strong>AR No.:</strong> <span class="contract-inline-underline contract-inline-short">{% if contract.ack_ar_number %}{{ contract.ack_ar_number }}{% else %}&nbsp;{% endif %}</span></p>
           <p class="contract-paragraph">
             VERSATEC INDUSTRIAL CORP. hereby acknowledge the amount of P
             <span class="contract-inline-underline contract-inline-short">{% if ack_amount_display %}{{ ack_amount_display }}{% else %}&nbsp;{% endif %}</span>

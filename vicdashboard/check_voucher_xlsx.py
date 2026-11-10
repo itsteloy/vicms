@@ -50,6 +50,8 @@ HEADER_ALIASES = {
     'check no.': 'check_number',
     'company': 'company',
     'company:': 'company',
+    'liquidation status': 'liquidation_status',
+    'liquidation status:': 'liquidation_status',
     'withholding tax': 'withholding_tax',
     'withholding tax:': 'withholding_tax',
     'less withholding tax': 'withholding_tax',
@@ -772,6 +774,7 @@ def _parse_monitoring_sheet(rows: list[list[Any]], source_filename: str) -> list
             'misc': '',
             'payment': '',
             'salaries': '',
+            'liquidation_status': '',
             'source_filename': source_filename,
         }
         for col_idx, field in col_map.items():

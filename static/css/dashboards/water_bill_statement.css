@@ -82,6 +82,38 @@ body {
   border-color: #0e7490;
 }
 
+.bill-color-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5b6b76;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.toolbar .bill-color-select {
+  appearance: none;
+  border: 1px solid #d7e2e8;
+  border-radius: 10px;
+  background: #fff;
+  color: #155e75;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.84rem;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.toolbar .bill-color-select:focus {
+  outline: 2px solid #0e7490;
+  outline-offset: 1px;
+}
+
+.toolbar .bill-color-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .sheet-wrap {
   display: flex;
   justify-content: center;

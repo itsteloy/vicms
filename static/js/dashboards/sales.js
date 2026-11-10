@@ -3,8 +3,6 @@
         const tabs = document.querySelectorAll('.sidebar-nav .tab-button');
         const panels = {
             'sales-tab': document.getElementById('sales-tab'),
-            'history-tab': document.getElementById('history-tab'),
-            'refund-tab': document.getElementById('refund-tab'),
             'analytics-tab': document.getElementById('analytics-tab'),
             'product-quotation-tab': document.getElementById('product-quotation-tab'),
             'service-quotation-tab': document.getElementById('service-quotation-tab'),
@@ -3623,6 +3621,41 @@
             const linesBody = document.getElementById('cvLinesBody');
             if (!linesBody) return;
             const creditLinesBody = document.getElementById('cvCreditLinesBody');
+            const accountLinesBody = document.getElementById('cvAccountLinesBody');
+
+            const cvSubtabButtons = document.querySelectorAll('.cv-subtab[data-cv-view]');
+            const cvSubpanels = document.querySelectorAll('.cv-subpanel');
+            const cvViewInput = document.getElementById('cvViewInput');
+
+            function activateCvView(view, pushUrl) {
+                const target = view === 'monitoring' ? 'monitoring' : 'form';
+                cvSubtabButtons.forEach((btn) => {
+                    const isActive = btn.dataset.cvView === target;
+                    btn.classList.toggle('is-active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+                cvSubpanels.forEach((panel) => {
+                    const isFormPanel = panel.classList.contains('cv-subpanel-form');
+                    const isActive = target === 'form' ? isFormPanel : !isFormPanel;
+                    panel.classList.toggle('is-active', isActive);
+                });
+                if (cvViewInput) {
+                    cvViewInput.value = target;
+                }
+                if (pushUrl) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', 'check-voucher-tab');
+                    url.searchParams.set('cv_view', target);
+                    window.history.pushState({}, '', url);
+                }
+            }
+
+            cvSubtabButtons.forEach((btn) => {
+                btn.addEventListener('click', () => activateCvView(btn.dataset.cvView, true));
+            });
+
+            const initialCvView = new URLSearchParams(window.location.search).get('cv_view') === 'monitoring' ? 'monitoring' : 'form';
+            activateCvView(initialCvView, false);
 
             const fields = {
                 id: document.getElementById('cvVoucherId'),
@@ -3630,6 +3663,8 @@
                 cv_number: document.getElementById('cvNumber'),
                 voucher_date: document.getElementById('cvDate'),
                 payee: document.getElementById('cvPayee'),
+                payee_address: document.getElementById('cvPayeeAddress'),
+                particulars: document.getElementById('cvParticulars'),
                 payment_for: document.getElementById('cvPaymentFor'),
                 bank: document.getElementById('cvBank'),
                 check_number: document.getElementById('cvCheckNumber'),
@@ -3639,6 +3674,10 @@
                 signatory_checked: document.getElementById('cvSignChecked'),
                 signatory_approved: document.getElementById('cvSignApproved'),
                 signatory_approver: document.getElementById('cvSignApprover'),
+                signatory_prepared_title: document.getElementById('cvSignPreparedTitle'),
+                signatory_checked_title: document.getElementById('cvSignCheckedTitle'),
+                signatory_approved_title: document.getElementById('cvSignApprovedTitle'),
+                signatory_received_title: document.getElementById('cvSignReceivedTitle'),
                 category: document.getElementById('cvCategory'),
                 categoryAmount: document.getElementById('cvCategoryAmount'),
                 withholding_tax: document.getElementById('cvWithholdingTax'),
@@ -3660,6 +3699,12 @@
                     name: 'METRO DAVAO TRADE & CONSTRUCTION INDUSTRIES, INC.',
                     address: '#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY',
                     receivedFrom: 'Received from MDTCII',
+                },
+                dai: {
+                    name: 'DAI HOLDINGS, INC.',
+                    address: '#406 St. San Juan Subdivision, Diamond St., Panacan, Bunawan Dist., Davao City',
+                    receivedFrom: 'Received from DAI HOLDINGS, INC.',
+                    layout: 'dai',
                 },
             };
             function normalizeCompany(value) {
@@ -3720,6 +3765,13 @@
                 return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             }
 
+            function formatDaiCheckDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                if (Number.isNaN(d.getTime())) return iso;
+                return `${d.getMonth() + 1}-${d.getDate()}-${String(d.getFullYear()).slice(-2)}`;
+            }
+
             function createLine(data = {}) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -3736,6 +3788,17 @@
                     <td><input type="text" class="cv-credit-line-description" value="${escapeHtml(data.description || '')}" placeholder="HDMF CONTRIBUTION"></td>
                     <td><input type="text" class="cv-credit-line-amount cv-money-input" value="${escapeHtml(data.credit_amount || '')}" inputmode="decimal" style="text-align:right;"></td>
                     <td style="text-align:center;"><button type="button" class="cv-credit-line-remove" style="padding:4px 8px; border:1px solid var(--line); border-radius:4px; color:var(--danger);">x</button></td>
+                `;
+                return tr;
+            }
+
+            function createAccountLine(data = {}) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="cv-account-line-description" value="${escapeHtml(data.description || '')}" placeholder="LOANS PAYABLE"></td>
+                    <td><input type="text" class="cv-account-line-debit cv-money-input" value="${escapeHtml(data.debit_amount || '')}" inputmode="decimal" style="text-align:right;"></td>
+                    <td><input type="text" class="cv-account-line-credit cv-money-input" value="${escapeHtml(data.credit_amount || '')}" inputmode="decimal" style="text-align:right;"></td>
+                    <td style="text-align:center;"><button type="button" class="cv-account-line-remove" style="padding:4px 8px; border:1px solid var(--line); border-radius:4px; color:var(--danger);">x</button></td>
                 `;
                 return tr;
             }
@@ -3777,6 +3840,27 @@
                 })).filter((line) => line.description || line.credit_amount);
             }
 
+            function collectAccountLines() {
+                if (!accountLinesBody) return [];
+                return Array.from(accountLinesBody.querySelectorAll('tr')).map((row) => ({
+                    description: row.querySelector('.cv-account-line-description')?.value.trim() || '',
+                    debit_amount: row.querySelector('.cv-account-line-debit')?.value.trim() || '',
+                    credit_amount: row.querySelector('.cv-account-line-credit')?.value.trim() || '',
+                })).filter((line) => line.description || line.debit_amount || line.credit_amount);
+            }
+
+            function accountDebitTotal() {
+                if (!accountLinesBody) return 0;
+                return Array.from(accountLinesBody.querySelectorAll('.cv-account-line-debit'))
+                    .reduce((sum, input) => sum + parseMoney(input.value), 0);
+            }
+
+            function accountCreditTotal() {
+                if (!accountLinesBody) return 0;
+                return Array.from(accountLinesBody.querySelectorAll('.cv-account-line-credit'))
+                    .reduce((sum, input) => sum + parseMoney(input.value), 0);
+            }
+
             function payloadFromForm() {
                 const withholding = withholdingTotal();
                 const cash = cashTotal();
@@ -3787,6 +3871,8 @@
                     cv_number: fields.cv_number.value.trim(),
                     voucher_date: fields.voucher_date.value || todayISO(),
                     payee: fields.payee.value.trim(),
+                    payee_address: fields.payee_address?.value.trim() || '',
+                    particulars: fields.particulars?.value.trim() || '',
                     payment_for: fields.payment_for.value.trim(),
                     bank: fields.bank.value.trim(),
                     check_number: fields.check_number.value.trim(),
@@ -3796,6 +3882,10 @@
                     signatory_checked: fields.signatory_checked.value.trim(),
                     signatory_approved: fields.signatory_approved.value.trim(),
                     signatory_approver: fields.signatory_approver.value.trim(),
+                    signatory_prepared_title: fields.signatory_prepared_title?.value.trim() || '',
+                    signatory_checked_title: fields.signatory_checked_title?.value.trim() || '',
+                    signatory_approved_title: fields.signatory_approved_title?.value.trim() || '',
+                    signatory_received_title: fields.signatory_received_title?.value.trim() || '',
                     withholding_tax: String(withholding),
                     withholding_label: (fields.withholding_label?.value.trim() || 'WITHHOLDING TAX'),
                     cash_in_bank: String(cash),
@@ -3803,6 +3893,7 @@
                     category: selectedCategory,
                     lines: collectLines(),
                     credit_lines: collectCreditLines(),
+                    account_lines: collectAccountLines(),
                 };
                 if (!cvCategoryDirty && isSplitBreakdown(cvOriginalBreakdown)) {
                     // Preserve an imported / previously split breakdown unless
@@ -3824,6 +3915,8 @@
                 fields.cv_number.value = data.cv_number || cfg.nextCvNumber || '';
                 fields.voucher_date.value = data.voucher_date || todayISO();
                 fields.payee.value = data.payee || '';
+                if (fields.payee_address) fields.payee_address.value = data.payee_address || '';
+                if (fields.particulars) fields.particulars.value = data.particulars || '';
                 fields.payment_for.value = data.payment_for || data.payee || '';
                 fields.bank.value = data.bank || '';
                 fields.check_number.value = data.check_number || '';
@@ -3833,6 +3926,10 @@
                 fields.signatory_checked.value = data.signatory_checked || 'Ms. BEVERLY TAN';
                 fields.signatory_approved.value = data.signatory_approved || 'CHRISTINE JOY ILOGON';
                 fields.signatory_approver.value = data.signatory_approver || 'ENGR. ARTURO I DAVIS, PME';
+                if (fields.signatory_prepared_title) fields.signatory_prepared_title.value = data.signatory_prepared_title || 'Executive Asst.';
+                if (fields.signatory_checked_title) fields.signatory_checked_title.value = data.signatory_checked_title || 'Asst. Head';
+                if (fields.signatory_approved_title) fields.signatory_approved_title.value = data.signatory_approved_title || 'President/CEO';
+                if (fields.signatory_received_title) fields.signatory_received_title.value = data.signatory_received_title || '';
                 if (fields.withholding_tax) fields.withholding_tax.value = data.withholding_tax || '';
                 if (fields.withholding_label) fields.withholding_label.value = data.withholding_label || 'WITHHOLDING TAX';
                 cvOriginalBreakdown = {};
@@ -3858,6 +3955,11 @@
                     (data.credit_lines && data.credit_lines.length ? data.credit_lines : [{}, {}]).forEach((line) => creditLinesBody.appendChild(createCreditLine(line)));
                     bindMoneyInputs(creditLinesBody, '.cv-money-input');
                 }
+                if (accountLinesBody) {
+                    accountLinesBody.innerHTML = '';
+                    (data.account_lines && data.account_lines.length ? data.account_lines : [{}, {}]).forEach((line) => accountLinesBody.appendChild(createAccountLine(line)));
+                    bindMoneyInputs(accountLinesBody, '.cv-money-input');
+                }
                 refreshPreview();
             }
 
@@ -3875,6 +3977,10 @@
                 const withholdingTotalEl = document.getElementById('cvWithholdingTotal');
                 if (withholdingTotalEl) withholdingTotalEl.textContent = 'PHP ' + formatMoney(withholding);
                 document.getElementById('cvCreditTotal').textContent = 'PHP ' + formatMoney(cash);
+                const acctDebitEl = document.getElementById('cvAccountDebitTotal');
+                if (acctDebitEl) acctDebitEl.textContent = 'PHP ' + formatMoney(accountDebitTotal());
+                const acctCreditEl = document.getElementById('cvAccountCreditTotal');
+                if (acctCreditEl) acctCreditEl.textContent = 'PHP ' + formatMoney(accountCreditTotal());
                 if (fields.categoryAmount) {
                     const label = (fields.category?.selectedOptions?.[0]?.textContent || fields.category?.value || '').trim();
                     fields.categoryAmount.value = cash > 0 && label ? `${label} — PHP ${formatMoney(cash)}` : `PHP ${formatMoney(cash)}`;
@@ -3931,6 +4037,66 @@
                     tr.innerHTML = '<td colspan="2" class="cv-desc">&nbsp;</td><td class="cv-money">&nbsp;</td><td class="cv-money">&nbsp;</td>';
                     preview.appendChild(tr);
                 }
+
+                renderDaiPreview(companyKey, { cash, total });
+            }
+
+            function renderDaiPreview(companyKey, amounts = {}) {
+                const isDai = companyKey === 'dai';
+                const stdDoc = document.getElementById('cvDocument');
+                const daiDoc = document.getElementById('cvDocumentDai');
+                if (stdDoc) stdDoc.style.display = isDai ? 'none' : '';
+                if (daiDoc) daiDoc.style.display = isDai ? '' : 'none';
+                document.body.classList.toggle('is-cv-dai', isDai);
+                if (!isDai || !daiDoc) return;
+                const profile = CV_COMPANIES.dai;
+                const setText = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = val == null ? '' : String(val);
+                };
+                setText('cvDaiCompany', profile.name);
+                setText('cvDaiCompanyAddress', profile.address);
+                setText('cvDaiPayee', (fields.payee.value || '').toUpperCase());
+                setText('cvDaiNumber', fields.cv_number.value.trim() || cfg.nextCvNumber || '');
+                setText('cvDaiAddress', (fields.payee_address?.value || '').toUpperCase());
+                setText('cvDaiDate', formatLongDate(fields.voucher_date.value));
+                const particulars = fields.particulars?.value?.trim() || fields.payment_for.value || '';
+                setText('cvDaiParticulars', particulars.toUpperCase());
+                setText('cvDaiCheckNumber', fields.check_number.value || '');
+                setText('cvDaiCheckDate', formatDaiCheckDate(fields.check_date.value));
+                setText('cvDaiBank', fields.bank.value || '');
+                setText('cvDaiPhp', formatMoney(amounts.cash || 0));
+                setText('cvDaiTotal', formatMoney(amounts.total || 0));
+                setText('cvDaiSignPrepared', fields.signatory_prepared.value || '');
+                setText('cvDaiSignPreparedTitle', fields.signatory_prepared_title?.value || '');
+                setText('cvDaiSignChecked', fields.signatory_checked.value || '');
+                setText('cvDaiSignCheckedTitle', fields.signatory_checked_title?.value || '');
+                setText('cvDaiSignApproved', fields.signatory_approved.value || '');
+                setText('cvDaiSignApprovedTitle', fields.signatory_approved_title?.value || '');
+                setText('cvDaiSignApprover', fields.signatory_approver.value || '');
+                setText('cvDaiSignReceivedTitle', fields.signatory_received_title?.value || '');
+                const items = document.getElementById('cvDaiItems');
+                if (items) {
+                    items.innerHTML = '';
+                    (collectLines().length ? collectLines() : [{}]).forEach((line) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td class="cv-dai-item-desc">${escapeHtml((line.description || '').toUpperCase())}</td><td class="cv-dai-item-amt">${line.debit_amount ? formatMoney(parseMoney(line.debit_amount)) : ''}</td>`;
+                        items.appendChild(tr);
+                    });
+                }
+                const dist = document.getElementById('cvDaiDistLines');
+                if (dist) {
+                    dist.innerHTML = '';
+                    collectAccountLines().forEach((line) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td class="cv-dai-dist-line-desc">${escapeHtml((line.description || '').toUpperCase())}</td><td class="cv-dai-dist-line-dr">${line.debit_amount ? formatMoney(parseMoney(line.debit_amount)) : ''}</td><td class="cv-dai-dist-line-cr">${line.credit_amount ? formatMoney(parseMoney(line.credit_amount)) : ''}</td>`;
+                        dist.appendChild(tr);
+                    });
+                }
+                const distDebit = accountDebitTotal();
+                const distCredit = accountCreditTotal();
+                setText('cvDaiDistDebitTotal', distDebit ? formatMoney(distDebit) : '');
+                setText('cvDaiDistCreditTotal', distCredit ? formatMoney(distCredit) : '');
             }
 
             async function loadVoucher(id) {
@@ -4074,8 +4240,10 @@
                 url.searchParams.set('tab', 'check-voucher-tab');
                 window.history.pushState({}, '', url);
                 activateTab('check-voucher-tab');
+                activateCvView('form', false);
 
-                const docEl = document.getElementById('cvDocument');
+                const isDaiLayout = normalizeCompany(fields.company?.value) === 'dai';
+                const docEl = document.getElementById(isDaiLayout ? 'cvDocumentDai' : 'cvDocument');
                 if (!docEl) return;
                 if (typeof html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) {
                     await showCvModal('PDF libraries failed to load. Please refresh and try again.', 'error');
@@ -4101,6 +4269,7 @@
                     const sheet = docEl.cloneNode(true);
                     sheet.style.width = '1200px';
                     sheet.style.maxWidth = 'none';
+                    sheet.style.display = '';
                     holder.appendChild(sheet);
                     document.body.appendChild(holder);
                     const pdfBlob = await landscapePdfFromSheet(sheet, { width: 1200, margin: 8, maxPages: 2, jpegQuality: 0.98 });
@@ -4137,7 +4306,7 @@
                         // Always land back on this tab with the table re-rendered
                         // server-side, so the new entry is visible without a
                         // manual refresh. The cv_edit id highlights its row.
-                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab&cv_edit=${encodeURIComponent(String(savedId || ''))}#cvMonitoringWrap`;
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab&cv_view=monitoring&cv_edit=${encodeURIComponent(String(savedId || ''))}#cvMonitoringWrap`;
                         return;
                     } else {
                         printPdfBlob(pdfBlob);
@@ -4209,11 +4378,38 @@
                     refreshPreview();
                 });
             }
+            if (accountLinesBody) {
+                accountLinesBody.addEventListener('input', refreshPreview);
+                accountLinesBody.addEventListener('change', refreshPreview);
+                accountLinesBody.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.cv-account-line-remove');
+                    if (!btn) return;
+                    if (accountLinesBody.querySelectorAll('tr').length <= 1) {
+                        accountLinesBody.innerHTML = '';
+                        accountLinesBody.appendChild(createAccountLine());
+                    } else {
+                        btn.closest('tr').remove();
+                    }
+                    refreshPreview();
+                });
+            }
+            const cvAddAccountRow = document.getElementById('cvAddAccountRow');
+            if (cvAddAccountRow) {
+                cvAddAccountRow.addEventListener('click', () => {
+                    if (!accountLinesBody) return;
+                    accountLinesBody.appendChild(createAccountLine());
+                    bindMoneyInputs(accountLinesBody, '.cv-money-input');
+                    refreshPreview();
+                });
+            }
             function nativePrint(bodyClass) {
+                const cvView = bodyClass === 'cv-print-monitoring' ? 'monitoring' : 'form';
                 const url = new URL(window.location);
                 url.searchParams.set('tab', 'check-voucher-tab');
+                url.searchParams.set('cv_view', cvView);
                 window.history.pushState({}, '', url);
                 activateTab('check-voucher-tab');
+                activateCvView(cvView, false);
                 refreshPreview();
                 // Voucher = letter portrait (1/2 crosswise); monitoring = A4 landscape.
                 try {
@@ -4264,7 +4460,7 @@
                         if (!response.ok) throw new Error(body?.error || 'Import failed.');
                         populateForm(body);
                         alert(`Imported ${body.imported_count || 1} check voucher(s) from ${file.name}.`);
-                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab`;
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab&cv_view=monitoring`;
                     } catch (error) {
                         alert(error.message || 'Could not import Excel file.');
                     }
@@ -4284,9 +4480,11 @@
                     try {
                         await loadVoucher(vid);
                         activateTab('check-voucher-tab');
+                        activateCvView('form', false);
                         try {
                             const url = new URL(window.location);
                             url.searchParams.set('tab', 'check-voucher-tab');
+                            url.searchParams.set('cv_view', 'form');
                             url.searchParams.set('cv_edit', String(vid));
                             window.history.pushState({}, '', url);
                         } catch (e) { /* ignore URL errors */ }
@@ -4329,7 +4527,7 @@
                         });
                         const body = await response.json();
                         if (!response.ok) throw new Error(body?.error || 'Delete failed.');
-                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab`;
+                        window.location.href = `${cfg.dashboardUrl || ''}?tab=check-voucher-tab&cv_view=monitoring`;
                     } catch (error) {
                         alert(error.message || 'Could not delete check voucher.');
                     }
@@ -4376,7 +4574,7 @@
                     <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="misc">₱0.00</td>
                     <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="payment">₱0.00</td>
                     <td class="cv-breakdown-col" style="font-weight:700;" data-money-total="salaries">₱0.00</td>
-                    <td colspan="3"></td>
+                    <td colspan="4"></td>
                     <td class="cv-actions-col"></td>
                 </tr>`;
                 table.appendChild(tfoot);
@@ -4427,6 +4625,20 @@
                 }
                 input.dataset.initial = input.value;
                 input.addEventListener('change', () => handleMonitoringCellChange(input));
+                if (input.dataset.field === 'company') {
+                    input.addEventListener('change', () => {
+                        const badge = input.closest('.cv-company-cell')?.querySelector('.cv-company-acronym');
+                        if (badge) badge.textContent = String(input.value || '').toUpperCase();
+                    });
+                }
+                if (input.dataset.field === 'liquidation_status') {
+                    const syncStatusText = () => {
+                        const label = input.closest('td')?.querySelector('.cv-status-text');
+                        if (label) label.textContent = input.selectedOptions?.[0]?.textContent || input.value;
+                    };
+                    syncStatusText();
+                    input.addEventListener('change', syncStatusText);
+                }
             }
 
             function attachMonitoringRowButtons(tr) {
@@ -4442,9 +4654,11 @@
                         try {
                             await loadVoucher(vid);
                             activateTab('check-voucher-tab');
+                            activateCvView('form', false);
                             try {
                                 const url = new URL(window.location);
                                 url.searchParams.set('tab', 'check-voucher-tab');
+                                url.searchParams.set('cv_view', 'form');
                                 url.searchParams.set('cv_edit', String(vid));
                                 window.history.pushState({}, '', url);
                             } catch (e) { /* ignore URL errors */ }
@@ -4491,7 +4705,16 @@
                 const mdspii = value === 'mdspii' ? ' selected' : '';
                 const versatec = value === 'versatec' ? ' selected' : '';
                 const mdtcii = value === 'mdtcii' ? ' selected' : '';
-                return `<select class="cv-cell-input" data-voucher-id="${escapeHtml(String(id))}" data-field="company" style="padding:6px 8px;min-width:110px;"><option value="mdspii"${mdspii}>METRO DAVAO SUPREME …</option><option value="versatec"${versatec}>VERSATEC INDUSTRIAL …</option><option value="mdtcii"${mdtcii}>METRO DAVAO TRADE …</option></select>`;
+                const dai = value === 'dai' ? ' selected' : '';
+                return `<span class="cv-company-cell"><select class="cv-cell-input" data-voucher-id="${escapeHtml(String(id))}" data-field="company" style="padding:6px 8px;min-width:110px;"><option value="mdspii"${mdspii}>METRO DAVAO SUPREME …</option><option value="versatec"${versatec}>VERSATEC INDUSTRIAL …</option><option value="mdtcii"${mdtcii}>METRO DAVAO TRADE …</option><option value="dai"${dai}>DAI HOLDINGS, INC.</option></select><span class="cv-company-acronym">${escapeHtml(String(value).toUpperCase())}</span></span>`;
+            }
+
+            function monitoringStatusCell(id, raw) {
+                const value = String(raw || 'unliquidated').toLowerCase() === 'liquidated' ? 'liquidated' : 'unliquidated';
+                const unliquidated = value === 'unliquidated' ? ' selected' : '';
+                const liquidated = value === 'liquidated' ? ' selected' : '';
+                const label = value === 'liquidated' ? 'Liquidated' : 'Unliquidated';
+                return `<select class="cv-cell-input cv-status-select" data-voucher-id="${escapeHtml(String(id))}" data-field="liquidation_status" style="padding:6px 8px;min-width:130px;"><option value="unliquidated"${unliquidated}>Unliquidated</option><option value="liquidated"${liquidated}>Liquidated</option></select><span class="cv-status-text">${label}</span>`;
             }
 
             function upsertMonitoringRow(data) {
@@ -4527,6 +4750,7 @@
                     <td><input type="date" class="cv-cell-input" data-voucher-id="${escapeHtml(id)}" data-field="check_date" value="${escapeHtml(cDate)}"></td>
                     <td><input type="text" class="cv-cell-input" data-voucher-id="${escapeHtml(id)}" data-field="bank" value="${escapeHtml(data.bank || '')}" placeholder="-"></td>
                     <td><input type="text" class="cv-cell-input" data-voucher-id="${escapeHtml(id)}" data-field="check_number" value="${escapeHtml(data.check_number || '')}" placeholder="-"></td>
+                    <td>${monitoringStatusCell(id, data.liquidation_status)}</td>
                     <td class="cv-actions-col" style="text-align:right; white-space:nowrap;">
                         <button type="button" class="action cv-load-voucher" data-voucher-id="${escapeHtml(id)}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
                         <button type="button" class="action cv-delete-voucher" data-voucher-id="${escapeHtml(id)}" style="font-size:0.75rem;padding:4px 12px;color:var(--danger);">Delete</button>
@@ -4585,6 +4809,69 @@
                         window.location.href = `${cfg.dashboardUrl || ''}?tab=saved-documents-tab`;
                     } catch (error) {
                         alert(error.message || 'Could not delete saved document.');
+                    }
+                });
+            });
+        })();        // ── Sales summary row delete ──
+        (function initSalesSummaryDelete() {
+            const cfg = window.__SALES_CONFIG__ || {};
+            const table = document.querySelector('.sales-summary-table');
+            if (!table) return;
+            const deleteUrl = cfg.salesSummaryDeleteUrl || '';
+            const formatAmount = (value) => Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+
+            function recomputeTotals() {
+                let gross = 0;
+                let outputVat = 0;
+                let net = 0;
+                table.querySelectorAll('tbody .sales-summary-row').forEach((row) => {
+                    gross += Number(row.dataset.gross || 0);
+                    outputVat += Number(row.dataset.outputVat || 0);
+                    net += Number(row.dataset.net || 0);
+                });
+                table.querySelectorAll('tfoot [data-total="gross"]').forEach((cell) => {
+                    cell.textContent = formatAmount(gross);
+                });
+                table.querySelectorAll('tfoot [data-total="output_vat"]').forEach((cell) => {
+                    cell.textContent = formatAmount(outputVat);
+                });
+                table.querySelectorAll('tfoot [data-total="net"]').forEach((cell) => {
+                    cell.textContent = formatAmount(net);
+                });
+            }
+
+            table.querySelectorAll('.sales-summary-delete').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const sourceType = button.dataset.sourceType;
+                    const sourceId = button.dataset.sourceId;
+                    if (!sourceType || !sourceId || !deleteUrl) return;
+                    if (!confirm('Remove this row from the Sales Summary? The water billing payment record will remain.')) return;
+
+                    button.disabled = true;
+                    try {
+                        const formData = new FormData();
+                        formData.append('source_type', sourceType);
+                        formData.append('source_id', sourceId);
+                        const response = await fetch(deleteUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRFToken': getCsrfToken() },
+                            body: formData,
+                        });
+                        const body = await response.json();
+                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
+
+                        button.closest('tr')?.remove();
+                        recomputeTotals();
+                        if (!table.querySelector('tbody .sales-summary-row')) {
+                            window.location.href = `${cfg.dashboardUrl || ''}?tab=sales-tab`;
+                        }
+                    } catch (error) {
+                        alert(error.message || 'Could not remove this sales summary row.');
+                        button.disabled = false;
                     }
                 });
             });

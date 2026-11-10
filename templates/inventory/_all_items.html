@@ -69,7 +69,6 @@
           {% for item in inventory_items %}
           <tr data-id="{{ item.id }}">
             <td class="item-code" data-label="Item">
-              <span class="item-code-pill">{{ item.product_code|default:"-" }}</span>
               <strong class="item-name">{{ item.name }}</strong>
             </td>
             <td class="item-picture" data-label="Picture">

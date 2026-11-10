@@ -1,21 +1,9 @@
         <nav class="sidebar-nav" aria-label="Sales sections">
             <div class="nav-label">Sales</div>
-            <button class="tab-button" type="button" role="tab" title="Record Sale"
+            <button class="tab-button" type="button" role="tab" title="Sales"
                 aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="sales-tab">
-                <span class="tab-icon">🛒</span> <span class="tab-label">Record Sale</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Sales History"
-                aria-selected="{% if active_tab == 'history-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="history-tab">
-                <span class="tab-icon">📜</span> <span class="tab-label">Sales History</span>
-                <span class="tab-badge">{{ sales_orders|length }}</span>
-            </button>
-            <button class="tab-button" type="button" role="tab" title="Refund History"
-                aria-selected="{% if active_tab == 'refund-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="refund-tab">
-                <span class="tab-icon">↩️</span> <span class="tab-label">Refund History</span>
-                <span class="tab-badge">{{ refund_history|length }}</span>
+                <span class="tab-icon">🧾</span> <span class="tab-label">Sales</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Reporting & Analytics"
                 aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}"

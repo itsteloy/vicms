@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
-from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, CheckVoucherCreditLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDeductionLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer, net_water_bill_outstanding, net_water_only_outstanding, water_bill_carry_flags
+from .models import InventoryItem, InventoryCategory, SalesOrder, HRDocument, Employee, Company, Position, PayPeriod, PayrollRun, PayrollLine, DeductionConfig, EmployeeDeduction,TaxBracket, AttendanceLog, AttendanceSheet, AttendanceSheetEntry, AttendanceSheetPunch, ShiftSchedule, LeaveBalance, LeaveRequest, Holiday, RefundRecord, Delivery, DeliveryLine, Quotation, QuotationLine, ServiceQuotation, ServiceQuotationLine, SalesDocumentArchive, AgeingOfAccountsReport, AgeingOfAccountsLine, RetentionSummaryReport, RetentionSummaryLine, PettyCashReport, PettyCashLine, CheckVoucher, CheckVoucherLine, CheckVoucherCreditLine, CheckVoucherAccountLine, ServiceRepairReport, JobOrder, JobOrderIdlePeriod, estimated_daily_rate, idle_calendar_days, MaterialBorrow, MaterialBorrowLine, OfficialBusinessForm, DeliveryReceipt, DeliveryReceiptLine, WithdrawalSlip, WithdrawalSlipLine, ServiceInvoice, ServiceInvoiceLine, TravelOrderForm, WorkspaceAccount, Account, JournalEntry, JournalEntryLine, BankAccount, BankTransaction, Customer, Invoice, InvoicePayment, Supplier, Bill, BillPayment, PayrollExpenseEntry, TaxDeadline, WaterZone, WaterCustomer, WaterMeterReading, WaterBill, WaterPayment, WaterServiceAction, WaterServiceContract, WaterWeeklyReport, WaterWeeklyRefillLine, WaterWeeklyDeductionLine, WaterWeeklyDenominationLine, WaterOtherPayment, WaterSalesSummaryExclusion, WaterAuditLog, InventoryStockDelivery, WATER_CUSTOMER_TYPES, WATER_CONNECTION_STATUS, WATER_PAYMENT_METHODS, WATER_BILL_STATUS, WATER_BILL_STATEMENT_COLORS, WATER_SERVICE_ACTION_TYPES, WATER_SERVICE_ACTION_STATUS, WATER_CONTRACT_APPLICATION_STATUS, WATER_CONTRACT_HOME_OWNERSHIP, WATER_CONTRACT_CLASSIFICATION, WATER_CONTRACT_CIVIL_STATUS, WATER_WEEKLY_DENOMS, water_rate_for_customer, net_water_bill_outstanding, net_water_only_outstanding, water_bill_carry_flags
 from . import accounting_engine
 from . import accounting_reports
 from .attendance_sheet_parser import AttendanceSheetParseError, parse_attendance_sheet_file
@@ -975,15 +975,6 @@ def sales_dashboard(request):
         return redirect('sales_dashboard')
 
     inventory_items = InventoryItem.objects.all().order_by('name', 'product_code')
-    inventory_availability_paginator = Paginator(inventory_items, 20)
-    try:
-        inventory_availability_page_number = int(request.GET.get('inv_page') or 1)
-    except (TypeError, ValueError):
-        inventory_availability_page_number = 1
-    inventory_availability_page = inventory_availability_paginator.get_page(inventory_availability_page_number)
-    sales_orders = SalesOrder.objects.select_related('inventory_item').all()[:5]
-    total_sales = sum(order.total_amount for order in sales_orders)
-    total_quantity_sold = sum(order.quantity for order in sales_orders)
 
     sales_for_analytics = SalesOrder.objects.select_related('inventory_item').all()
     total_revenue = sum(order.total_amount for order in sales_for_analytics)
@@ -1102,38 +1093,10 @@ def sales_dashboard(request):
         hourly_groups[order.created_at.strftime('%H:00')] += int(order.total_amount)
 
     peak_hour = max(hourly_groups.items(), key=lambda pair: pair[1], default=(None, 0))[0]
-    refund_history = RefundRecord.objects.select_related('sales_order', 'processed_by').order_by('-refund_date')[:10]
-    sales_history_qs = SalesOrder.objects.select_related('inventory_item').all()
-
-    # Apply filters from GET parameters
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    customer = request.GET.get('customer')
-    item_name = request.GET.get('item')
-    refund_status = request.GET.get('refund_status')
-
-    if start_date and end_date:
-        sales_history_qs = sales_history_qs.filter(created_at__date__range=[start_date, end_date])
-    if customer:
-        sales_history_qs = sales_history_qs.filter(customer_name__icontains=customer)
-    if item_name:
-        sales_history_qs = sales_history_qs.filter(inventory_item__name__icontains=item_name)
-    if refund_status and refund_status != 'all':
-        if refund_status == 'none':
-            sales_history_qs = sales_history_qs.filter(refund_status='none')
-        elif refund_status == 'partial':
-            sales_history_qs = sales_history_qs.filter(refund_status='partial')
-        elif refund_status == 'full':
-            sales_history_qs = sales_history_qs.filter(refund_status='full')
-
-    # Paginate
-    history_paginator = Paginator(sales_history_qs, 20)
-    history_page = request.GET.get('history_page', 1)
-    history_page_obj = history_paginator.get_page(history_page)
     active_tab = 'sales-tab'  # default
     tab_param = (request.GET.get('tab') or '').strip()
     valid_sales_tabs = {
-        'sales-tab', 'history-tab', 'refund-tab', 'analytics-tab',
+        'sales-tab', 'analytics-tab',
         'category-performance-tab',
         'product-quotation-tab', 'service-quotation-tab', 'collection-form-tab',
         'ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab',
@@ -1142,8 +1105,12 @@ def sales_dashboard(request):
     }
     if tab_param in valid_sales_tabs:
         active_tab = tab_param
-    elif any([start_date, end_date, customer, item_name, refund_status]):
-        active_tab = 'history-tab'
+
+    cv_view = (request.GET.get('cv_view') or 'form').strip().lower()
+    if cv_view not in ('form', 'monitoring'):
+        cv_view = 'form'
+    if cv_view == 'monitoring' and tab_param in ('', 'check-voucher-tab'):
+        active_tab = 'check-voucher-tab'
 
     recent_quotations = Quotation.objects.all()[:10]
     recent_service_quotations = ServiceQuotation.objects.all()[:10]
@@ -1220,14 +1187,10 @@ def sales_dashboard(request):
         'sales_dashboard.html',
         {
             'inventory_items': inventory_items,
-            'inventory_availability_page': inventory_availability_page,
             'recent_quotations': recent_quotations,
             'recent_service_quotations': recent_service_quotations,
             'next_product_quotation_number': Quotation.generate_quotation_number(),
             'next_service_quotation_number': ServiceQuotation.generate_quotation_number(),
-            'sales_orders': sales_orders,
-            'total_sales': total_sales,
-            'total_quantity_sold': total_quantity_sold,
             'daily_summary': daily_summary,
             'weekly_summary': weekly_summary,
             'monthly_summary': monthly_summary,
@@ -1240,9 +1203,9 @@ def sales_dashboard(request):
             'total_revenue': total_revenue,
             'total_profit': total_profit,
             'modules': MANAGEMENT_MODULES,
-            'refund_history': refund_history,
             'active_tab': active_tab,
-            'sales_history_page_obj': history_page_obj,
+            'cv_view': cv_view,
+            **_sales_summary_context(request),
             'saved_documents_page': saved_documents_page,
             'saved_document_types': SalesDocumentArchive.DOCUMENT_TYPES,
             'saved_doc_type_filter': doc_type_filter,
@@ -1263,6 +1226,7 @@ def sales_dashboard(request):
                 'company': cv_company,
             },
             'cv_company_choices': CheckVoucher.COMPANY_CHOICES,
+            'cv_liquidation_choices': CheckVoucher.LIQUIDATION_STATUS_CHOICES,
             'cv_years': cv_years,
             'cv_totals': cv_totals,
             'cv_result_count': cv_totals.get('count') or 0,
@@ -2365,6 +2329,7 @@ _CHECK_VOUCHER_MONEY_FIELDS = (
     'purchases', 'expenses', 'commission', 'contributions', 'misc', 'payment', 'salaries',
 )
 _CHECK_VOUCHER_COMPANY_KEYS = tuple(key for key, _label in CheckVoucher.COMPANY_CHOICES)
+_CHECK_VOUCHER_LIQUIDATION_KEYS = tuple(key for key, _label in CheckVoucher.LIQUIDATION_STATUS_CHOICES)
 
 
 def _check_voucher_line_to_dict(line):
@@ -2378,6 +2343,15 @@ def _check_voucher_line_to_dict(line):
 def _check_voucher_credit_line_to_dict(line):
     return {
         'description': line.description or '',
+        'credit_amount': str(line.credit_amount) if line.credit_amount is not None else '',
+        'sort_order': line.sort_order,
+    }
+
+
+def _check_voucher_account_line_to_dict(line):
+    return {
+        'description': line.description or '',
+        'debit_amount': str(line.debit_amount) if line.debit_amount is not None else '',
         'credit_amount': str(line.credit_amount) if line.credit_amount is not None else '',
         'sort_order': line.sort_order,
     }
@@ -2413,6 +2387,8 @@ def _check_voucher_to_payload(voucher):
         'cv_number': voucher.cv_number,
         'voucher_date': voucher.voucher_date.isoformat(),
         'payee': voucher.payee,
+        'payee_address': getattr(voucher, 'payee_address', '') or '',
+        'particulars': getattr(voucher, 'particulars', '') or '',
         'payment_for': voucher.payment_for,
         'check_amount': str(voucher.check_amount),
         'cash_in_bank': str(voucher.cash_in_bank),
@@ -2421,16 +2397,22 @@ def _check_voucher_to_payload(voucher):
         'bank': voucher.bank,
         'check_number': voucher.check_number,
         'check_date': voucher.check_date.isoformat() if voucher.check_date else '',
+        'liquidation_status': getattr(voucher, 'liquidation_status', '') or 'unliquidated',
         'received_by': voucher.received_by,
         'signatory_prepared': voucher.signatory_prepared,
         'signatory_checked': voucher.signatory_checked,
         'signatory_approved': voucher.signatory_approved,
         'signatory_approver': voucher.signatory_approver,
+        'signatory_prepared_title': getattr(voucher, 'signatory_prepared_title', '') or '',
+        'signatory_checked_title': getattr(voucher, 'signatory_checked_title', '') or '',
+        'signatory_approved_title': getattr(voucher, 'signatory_approved_title', '') or '',
+        'signatory_received_title': getattr(voucher, 'signatory_received_title', '') or '',
         'source_filename': voucher.source_filename,
         'created_at': voucher.created_at.isoformat(),
         'updated_at': voucher.updated_at.isoformat(),
         'lines': [_check_voucher_line_to_dict(line) for line in voucher.lines.all()],
         'credit_lines': [_check_voucher_credit_line_to_dict(line) for line in voucher.credit_lines.all()],
+        'account_lines': [_check_voucher_account_line_to_dict(line) for line in voucher.account_lines.all()],
         'category': _check_voucher_dominant_category(voucher),
         **breakdown,
     }
@@ -2474,6 +2456,27 @@ def _replace_check_voucher_credit_lines(voucher, items):
     return len(lines)
 
 
+def _replace_check_voucher_account_lines(voucher, items):
+    voucher.account_lines.all().delete()
+    lines = []
+    for index, item in enumerate(items or []):
+        description = (item.get('description') or '').strip()
+        debit_amount = _parse_ageing_decimal(item.get('debit_amount'))
+        credit_amount = _parse_ageing_decimal(item.get('credit_amount'))
+        if not (description or debit_amount or credit_amount):
+            continue
+        lines.append(CheckVoucherAccountLine(
+            voucher=voucher,
+            description=description,
+            debit_amount=debit_amount,
+            credit_amount=credit_amount,
+            sort_order=index,
+        ))
+    if lines:
+        CheckVoucherAccountLine.objects.bulk_create(lines)
+    return len(lines)
+
+
 def _check_voucher_fields_from_payload(payload, request_user=None):
     total_debit = sum(
         [
@@ -2511,6 +2514,8 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
         'cv_number': (payload.get('cv_number') or '').strip()[:50],
         'voucher_date': _parse_iso_date(payload.get('voucher_date')),
         'payee': (payload.get('payee') or '').strip()[:300],
+        'payee_address': (payload.get('payee_address') or '').strip()[:255],
+        'particulars': (payload.get('particulars') or '').strip(),
         'payment_for': (payload.get('payment_for') or '').strip(),
         'check_amount': check_amount,
         'cash_in_bank': cash_in_bank,
@@ -2524,8 +2529,15 @@ def _check_voucher_fields_from_payload(payload, request_user=None):
         'signatory_checked': (payload.get('signatory_checked') or '').strip()[:200] or 'Beverly',
         'signatory_approved': (payload.get('signatory_approved') or '').strip()[:200] or 'Christine Joy',
         'signatory_approver': (payload.get('signatory_approver') or '').strip()[:200] or 'Engr. Arturo Davis',
+        'signatory_prepared_title': (payload.get('signatory_prepared_title') or '').strip()[:120] or 'Executive Asst.',
+        'signatory_checked_title': (payload.get('signatory_checked_title') or '').strip()[:120] or 'Asst. Head',
+        'signatory_approved_title': (payload.get('signatory_approved_title') or '').strip()[:120] or 'President/CEO',
+        'signatory_received_title': (payload.get('signatory_received_title') or '').strip()[:120],
         'source_filename': (payload.get('source_filename') or '').strip()[:255],
     }
+    liquidation_status = (payload.get('liquidation_status') or '').strip().lower()
+    if liquidation_status in _CHECK_VOUCHER_LIQUIDATION_KEYS:
+        fields['liquidation_status'] = liquidation_status
     for field in _CHECK_VOUCHER_MONEY_FIELDS:
         fields[field] = _parse_ageing_decimal(payload.get(field)) or Decimal('0')
     explicit_nonzero = [field for field in _CHECK_VOUCHER_MONEY_FIELDS if fields[field] > Decimal('0')]
@@ -2613,9 +2625,10 @@ def save_check_voucher(request):
             if not line_count:
                 return JsonResponse({'error': 'At least one debit line with content is required.'}, status=400)
             _replace_check_voucher_credit_lines(voucher, payload.get('credit_lines') or [])
+            _replace_check_voucher_account_lines(voucher, payload.get('account_lines') or [])
         return JsonResponse({
             'ok': True,
-            **_check_voucher_to_payload(CheckVoucher.objects.prefetch_related('lines', 'credit_lines').get(pk=voucher.id)),
+            **_check_voucher_to_payload(CheckVoucher.objects.prefetch_related('lines', 'credit_lines', 'account_lines').get(pk=voucher.id)),
         })
     except Exception:
         logger.exception('save_check_voucher error')
@@ -2624,13 +2637,13 @@ def save_check_voucher(request):
 
 @login_required
 def check_voucher_json(request, voucher_id):
-    voucher = get_object_or_404(CheckVoucher.objects.prefetch_related('lines', 'credit_lines'), pk=voucher_id)
+    voucher = get_object_or_404(CheckVoucher.objects.prefetch_related('lines', 'credit_lines', 'account_lines'), pk=voucher_id)
     return JsonResponse(_check_voucher_to_payload(voucher))
 
 
 @login_required
 def check_voucher_latest_json(request):
-    voucher = CheckVoucher.objects.prefetch_related('lines', 'credit_lines').first()
+    voucher = CheckVoucher.objects.prefetch_related('lines', 'credit_lines', 'account_lines').first()
     if not voucher:
         return JsonResponse({'id': None, 'lines': [], 'credit_lines': []})
     return JsonResponse(_check_voucher_to_payload(voucher))
@@ -2672,10 +2685,11 @@ def import_check_voucher_upload(request):
                 )
                 _replace_check_voucher_lines(voucher, item.get('lines') or [])
                 _replace_check_voucher_credit_lines(voucher, item.get('credit_lines') or [])
+                _replace_check_voucher_account_lines(voucher, item.get('account_lines') or [])
                 saved.append(voucher.id)
         if not saved:
             return JsonResponse({'error': 'No complete check vouchers found in the workbook.'}, status=400)
-        latest = CheckVoucher.objects.prefetch_related('lines', 'credit_lines').get(pk=saved[-1])
+        latest = CheckVoucher.objects.prefetch_related('lines', 'credit_lines', 'account_lines').get(pk=saved[-1])
         return JsonResponse({
             'ok': True,
             'imported_count': len(saved),
@@ -2748,6 +2762,11 @@ def update_check_voucher_cell(request, voucher_id):
             if company not in _CHECK_VOUCHER_COMPANY_KEYS:
                 return JsonResponse({'error': 'Invalid company.'}, status=400)
             voucher.company = company
+        elif field == 'liquidation_status':
+            status_value = str(raw_value or '').strip().lower()
+            if status_value not in _CHECK_VOUCHER_LIQUIDATION_KEYS:
+                return JsonResponse({'error': 'Invalid liquidation status.'}, status=400)
+            voucher.liquidation_status = status_value
         elif field in _CV_CELL_TEXT_FIELDS:
             text = '' if raw_value is None else str(raw_value)
             if field == 'cv_number' and not text.strip():
@@ -2821,6 +2840,7 @@ def check_voucher_monitoring_xlsx(request):
         'DATE', 'CV NO:', 'ISSUED TO:', 'PAYMENT FOR', 'AMOUNT',
         'PURCHASES', 'EXPENSES', 'COMMISSION', 'CONTRIBUTIONS',
         'MISC', 'PAYMENT', 'SALARIES', 'CHECK DATE', 'BANK', 'CHECK NO.', 'COMPANY',
+        'LIQUIDATION STATUS',
     ]
     header_fill = PatternFill('solid', fgColor='1F4E78')
     header_font = Font(bold=True, color='FFFFFF', size=9)
@@ -2837,6 +2857,7 @@ def check_voucher_monitoring_xlsx(request):
         cell.border = border
     money_fmt = '#,##0.00'
     company_labels = dict(CheckVoucher.COMPANY_CHOICES)
+    liquidation_labels = dict(CheckVoucher.LIQUIDATION_STATUS_CHOICES)
     for row_idx, voucher in enumerate(qs, start=2):
         values = [
             voucher.voucher_date,
@@ -2855,6 +2876,7 @@ def check_voucher_monitoring_xlsx(request):
             voucher.bank,
             voucher.check_number,
             company_labels.get(getattr(voucher, 'company', 'mdspii') or 'mdspii', ''),
+            liquidation_labels.get(getattr(voucher, 'liquidation_status', '') or 'unliquidated', ''),
         ]
         for col_idx, value in enumerate(values, start=1):
             cell = ws.cell(row=row_idx, column=col_idx, value=value)
@@ -2876,11 +2898,11 @@ def check_voucher_monitoring_xlsx(request):
         cell.border = border
         if col_idx in hl_columns:
             cell.fill = hl_fill
-    widths = [12, 14, 30, 45, 14, 13, 13, 13, 15, 12, 13, 13, 12, 12, 12, 22]
+    widths = [12, 14, 30, 45, 14, 13, 13, 13, 15, 12, 13, 13, 12, 12, 12, 22, 18]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[ws.cell(row=1, column=idx).column_letter].width = width
     ws.freeze_panes = 'A2'
-    ws.auto_filter.ref = f'A1:P{max(total_row - 1, 1)}'
+    ws.auto_filter.ref = f'A1:Q{max(total_row - 1, 1)}'
     ws.sheet_properties.pageSetUpPr = None
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2939,6 +2961,51 @@ def delete_sales_document_pdf(request, document_id):
         except Exception:
             pass
     archive.delete()
+    return JsonResponse({'ok': True})
+
+
+@require_dashboard('sales_dashboard')
+@require_POST
+def delete_sales_summary_row(request):
+    source_type = (request.POST.get('source_type') or '').strip()
+    source_id = (request.POST.get('source_id') or '').strip()
+    if not source_id.isdigit():
+        return JsonResponse({'error': 'Invalid sales summary row.'}, status=400)
+
+    entity_type = ''
+    label = ''
+    detail = ''
+    if source_type == WaterSalesSummaryExclusion.SOURCE_WATER_PAYMENT:
+        payment = get_object_or_404(
+            WaterPayment.objects.select_related('customer'),
+            pk=source_id,
+        )
+        entity_type = 'WaterPayment'
+        label = payment.receipt_number
+        detail = f'{payment.customer.account_number if payment.customer_id else ""} amount={payment.amount}'
+    elif source_type == WaterSalesSummaryExclusion.SOURCE_OTHER_PAYMENT:
+        other = get_object_or_404(WaterOtherPayment, pk=source_id)
+        entity_type = 'WaterOtherPayment'
+        label = other.ar_number or str(other.pk)
+        detail = f'{other.received_from} amount={other.amount}'
+    elif source_type == WaterSalesSummaryExclusion.SOURCE_SERVICE_ACTION:
+        action = get_object_or_404(
+            WaterServiceAction.objects.select_related('customer'),
+            pk=source_id,
+            action_type='reconnection',
+        )
+        entity_type = 'WaterServiceAction'
+        label = action.pk
+        detail = action.customer.account_number if action.customer_id else ''
+    else:
+        return JsonResponse({'error': 'Unknown sales summary row type.'}, status=400)
+
+    _, created = WaterSalesSummaryExclusion.objects.get_or_create(
+        source_type=source_type,
+        source_id=int(source_id),
+    )
+    if created:
+        _water_audit(request, 'Hidden from sales summary', entity_type, label, detail)
     return JsonResponse({'ok': True})
 
 
@@ -6058,6 +6125,22 @@ def _water_bill_carry_cover(bill):
     return flag.get('superseded_by')
 
 
+def _water_previous_unpaid_balance(customer, bills=None):
+    """Previous-bill carry for the next statement, without double-counted credit.
+
+    A negative account seed mirrors the newest credit bill after that bill is
+    saved. When both the bills and the seed are negative, the bills already
+    contain the credit, so adding the seed again would double it.
+    """
+    seed = customer.previous_unpaid_balance or Decimal('0.00')
+    if bills is None:
+        bills = list(customer.bills.exclude(status='cancelled'))
+    net = net_water_only_outstanding(bills, signed=True)
+    if seed < 0 and net < 0:
+        return net
+    return net + seed
+
+
 def _water_annotate_outstanding(qs):
     """Attach net outstanding per customer (evaluates the queryset).
 
@@ -6076,10 +6159,9 @@ def _water_annotate_outstanding(qs):
         bills = getattr(customer, 'outstanding_bills', None)
         if bills is None:
             bills = list(customer.bills.exclude(status='cancelled').order_by('bill_date', 'pk'))
-        customer.annotated_water_unpaid = net_water_only_outstanding(
-            bills,
-            seed=customer.previous_unpaid_balance or Decimal('0.00'),
-            signed=True,
+        customer.annotated_water_unpaid = _water_previous_unpaid_balance(
+            customer,
+            bills=bills,
         )
         customer.annotated_outstanding = customer.annotated_water_unpaid + (
             customer.installment_balance or Decimal('0.00')
@@ -6629,13 +6711,20 @@ def _water_tab_context(request, tab):
                 | Q(payment_of__icontains=payment_q)
                 | Q(remarks__icontains=payment_q)
             )
+        other_payments = other_qs.filter(
+            payment_type=WaterOtherPayment.PAYMENT_TYPE_OTHER,
+        )
+        reconnection_payments = other_qs.filter(
+            payment_type=WaterOtherPayment.PAYMENT_TYPE_RECONNECTION,
+        )
         ctx.update({
             'payments': page_obj,
             'page_obj': page_obj,
             'payment_q': payment_q,
             'payment_month': payment_month,
             'payment_months': _water_billing_month_options(),
-            'other_payments': other_qs[:100],
+            'other_payments': other_payments[:100],
+            'reconnection_payments': reconnection_payments[:100],
             'open_bills_for_payment': _water_payment_bill_options(),
             'installment_customers': WaterCustomer.objects.filter(
                 installment_balance__gt=0,
@@ -6921,6 +7010,8 @@ def _water_weekly_collection_rows(week_start, week_end):
             'other_id': None,
             'other_amount': None,
             'is_parcel': False,
+            'source_type': 'water_payment',
+            'source_id': payment.pk,
         })
     reconnects = (
         WaterServiceAction.objects.select_related('customer')
@@ -6953,6 +7044,8 @@ def _water_weekly_collection_rows(week_start, week_end):
             'other_id': None,
             'other_amount': None,
             'is_parcel': False,
+            'source_type': 'service_action',
+            'source_id': action.pk,
         })
 
     other_payments = list(
@@ -6963,6 +7056,9 @@ def _water_weekly_collection_rows(week_start, week_end):
         amount = payment.amount or Decimal('0.00')
         received = payment.amount_received
         payment_of = payment.payment_of or ''
+        is_reconnection = (
+            payment.payment_type == WaterOtherPayment.PAYMENT_TYPE_RECONNECTION
+        )
         is_parcel = 'parcel' in payment_of.lower()
         if received is None:
             cash_in_bank = amount
@@ -6989,16 +7085,163 @@ def _water_weekly_collection_rows(week_start, week_end):
             'cash_received_by_aid': cash_received_by_aid,
             'water_bill': None,
             'installation_fee': None,
-            'reconnection_fee': None,
+            'reconnection_fee': row_value if is_reconnection else None,
             'other_id': payment.pk,
             'other_amount': amount,
             'is_parcel': is_parcel,
+            'source_type': 'other_payment',
+            'source_id': payment.pk,
         })
 
     # Installation fees only appear when recorded as WaterPayment rows above
     # (do not infer from new customer registration — those are not Payments).
     rows, totals = _water_weekly_finalize_rows(rows)
     return rows, totals, parcel_total
+
+
+SALES_SUMMARY_VAT_RATE = Decimal('12')
+SALES_SUMMARY_VAT_DIVISOR = Decimal('112')
+SALES_SUMMARY_SI_PARTICULARS = frozenset({
+    'MINDANAO INTEGRATED LOGISTICS SERVICES',
+})
+
+
+def _sales_summary_or_type(particulars, ar_number):
+    key = (particulars or '').strip().upper()
+    raw_ar = (ar_number or '').strip().upper()
+    if raw_ar.startswith('SI') or key in SALES_SUMMARY_SI_PARTICULARS:
+        return 'SI'
+    return 'AR'
+
+
+def _sales_summary_display_ar_number(particulars, ar_number):
+    raw = (ar_number or '').strip()
+    key = (particulars or '').strip().upper()
+    if key in SALES_SUMMARY_SI_PARTICULARS:
+        digits = re.sub(r'\D', '', raw)
+        return digits[-3:] if digits else ''
+    if raw.upper().startswith('SI'):
+        digits = re.sub(r'\D', '', raw)
+        if digits:
+            return digits.lstrip('0') or '0'
+        return ''
+    digits = re.sub(r'\D', '', raw)
+    if len(digits) > 4:
+        return digits[-4:]
+    return raw
+
+
+def _sales_summary_row_sort_key(row):
+    return (
+        row.get('date') or date.min,
+        _water_ar_sort_key(row.get('display_ar_number') or row.get('ar_number')),
+        row.get('particulars') or '',
+        row.get('ar_number') or '',
+    )
+
+
+def _sales_summary_month_span(year, month):
+    start = date(year, month, 1)
+    next_month = date(year + (month // 12), (month % 12) + 1, 1)
+    return start, next_month - timedelta(days=1)
+
+
+def _sales_summary_months():
+    """Distinct year/month pairs that have weekly-report collection rows."""
+    months = set()
+    for value in WaterPayment.objects.dates('payment_date', 'month'):
+        months.add((value.year, value.month))
+    for value in WaterOtherPayment.objects.dates('payment_date', 'month'):
+        months.add((value.year, value.month))
+    for value in (
+        WaterServiceAction.objects
+        .filter(action_type='reconnection', fee_paid=True)
+        .dates('action_date', 'month')
+    ):
+        months.add((value.year, value.month))
+    return sorted(months)
+
+
+def _sales_summary_excluded_keys():
+    return set(
+        WaterSalesSummaryExclusion.objects.values_list('source_type', 'source_id')
+    )
+
+
+def _sales_summary_for_month(year, month, excluded_keys=None):
+    if excluded_keys is None:
+        excluded_keys = _sales_summary_excluded_keys()
+    start, end = _sales_summary_month_span(year, month)
+    weekly_rows, _weekly_totals, _parcel_total = _water_weekly_collection_rows(start, end)
+    rows = []
+    gross_total = Decimal('0.00')
+    vat_total = Decimal('0.00')
+    net_total = Decimal('0.00')
+    for row in weekly_rows:
+        source_type = row.get('source_type') or ''
+        source_id = row.get('source_id')
+        if source_id is not None and (source_type, source_id) in excluded_keys:
+            continue
+        amount = (
+            (row.get('cash_in_bank') or Decimal('0.00'))
+            + (row.get('gcash') or Decimal('0.00'))
+            + (row.get('cash_received_by_aid') or Decimal('0.00'))
+        )
+        if amount <= 0:
+            continue
+        gross = amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        output_vat = (
+            gross * SALES_SUMMARY_VAT_RATE / SALES_SUMMARY_VAT_DIVISOR
+        ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        net = (gross - output_vat).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        particulars = row.get('name') or row.get('received_from') or ''
+        ar_number = row.get('ar_number') or ''
+        rows.append({
+            'date': row.get('row_date'),
+            'particulars': particulars,
+            'or_type': _sales_summary_or_type(particulars, ar_number),
+            'ar_number': ar_number,
+            'display_ar_number': _sales_summary_display_ar_number(particulars, ar_number),
+            'gross': gross,
+            'output_vat': output_vat,
+            'net': net,
+            'source_type': row.get('source_type') or '',
+            'source_id': row.get('source_id'),
+        })
+        gross_total += gross
+        vat_total += output_vat
+        net_total += net
+    rows.sort(key=_sales_summary_row_sort_key)
+    return rows, {
+        'gross': gross_total,
+        'output_vat': vat_total,
+        'net': net_total,
+    }
+
+
+def _sales_summary_context(request):
+    excluded_keys = _sales_summary_excluded_keys()
+    months = []
+    for year, month in _sales_summary_months():
+        rows, totals = _sales_summary_for_month(year, month, excluded_keys)
+        if not rows:
+            continue
+        start = date(year, month, 1)
+        months.append({
+            'key': f'{year}-{month:02d}',
+            'label': start.strftime('%B, %Y').upper(),
+            'short_label': start.strftime('%b %Y'),
+            'rows': rows,
+            'totals': totals,
+        })
+    selected_key = (request.GET.get('sales_month') or '').strip()
+    selected = next((month for month in months if month['key'] == selected_key), None)
+    if selected is None and months:
+        selected = months[-1]
+    return {
+        'sales_summary_months': months,
+        'sales_summary': selected,
+    }
 
 
 def _water_weekly_billing_cash_gcash(week_start, week_end):
@@ -7290,7 +7533,13 @@ def _water_resolve_zone(request):
     return None
 
 
-def _water_record_registration_installation_payment(customer, amount, payment_date=None):
+def _water_record_registration_installation_payment(
+    customer,
+    amount,
+    payment_date=None,
+    remarks='Installation fee (customer registration)',
+    ar_number=None,
+):
     """
     Create a WaterPayment for installation collected at customer registration.
     Does not change customer.installment_balance (caller already set fee − paid).
@@ -7307,13 +7556,14 @@ def _water_record_registration_installation_payment(customer, amount, payment_da
         return None
     return WaterPayment.objects.create(
         receipt_number=WaterPayment.generate_receipt_number(),
+        ar_number=(ar_number or '').strip() or None,
         bill=None,
         customer=customer,
         purpose=WaterPayment.PURPOSE_INSTALLATION,
         payment_date=payment_date or customer.registration_date or date.today(),
         amount=amount,
         payment_method='cash',
-        remarks='Installation fee (customer registration)',
+        remarks=remarks,
     )
 
 
@@ -7441,7 +7691,7 @@ def _water_create_reading(request):
         # must not be folded into previous unpaid (avoids double-count).
         outstanding = _water_signed_water_balance(customer)
         old_seed = customer.previous_unpaid_balance or Decimal('0.00')
-        default_unpaid = outstanding + old_seed
+        default_unpaid = _water_previous_unpaid_balance(customer)
         unpaid_raw = request.POST.get('previous_bill_unpaid', '').strip()
         if unpaid_raw != '':
             unpaid = _dec(unpaid_raw, str(default_unpaid))
@@ -7697,6 +7947,26 @@ def view_water_bill(request, bill_id):
     return render(request, 'water_bill_statement.html', _water_bill_statement_context(bill))
 
 
+@require_dashboard('water_billing_dashboard')
+@require_POST
+def update_water_bill_color(request, bill_id):
+    """Save the statement color for one billing statement only."""
+    bill = get_object_or_404(WaterBill, pk=bill_id)
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+    color = (payload.get('color') or 'default').strip().lower()
+    valid_colors = {value for value, _label in WATER_BILL_STATEMENT_COLORS}
+    if color not in valid_colors:
+        return JsonResponse({'error': 'Invalid statement color.'}, status=400)
+    WaterBill.objects.filter(pk=bill.pk).update(
+        statement_color=color,
+        updated_at=timezone.now(),
+    )
+    return JsonResponse({'ok': True, 'id': bill.id, 'color': color})
+
+
 def _water_bill_month_name(billing_period):
     month_name = ''
     if billing_period and len(billing_period) >= 7:
@@ -7829,13 +8099,11 @@ def _water_format_receipt_date(value):
 
 
 def _water_statement_display_for(bill):
-    """Display-only recompute of a Statement of Account after payments.
+    """Return the billed Statement of Account amounts for display.
 
-    Applies ``amount_paid`` oldest-first (previous → installment → current
-    → other fees) to the charge rows so a paid/partial bill shows what is
-    still due. Stored bill/reading fields are never mutated here, and the
-    reading box (previous/present/consumption) is unaffected.
-    A negative previous (advance/overpayment credit) is preserved as-is.
+    Payments are tracked separately on the bill (``amount_paid``/balance) and
+    must not reduce the statement's billed charge rows. Showing the stored
+    billed amounts keeps the statement aligned with the Water Billing table.
     """
     def _num(value):
         try:
@@ -7845,40 +8113,26 @@ def _water_statement_display_for(bill):
     current = _num(getattr(bill, 'consumption_charge', None))
     previous = _num(getattr(bill, 'previous_bill_unpaid', None))
     installment = _num(getattr(bill, 'installment_balance', None))
-    fees_net = (
-        _num(getattr(bill, 'fixed_charge', None))
-        + _num(getattr(bill, 'environmental_fee', None))
-        + _num(getattr(bill, 'maintenance_fee', None))
-        + _num(getattr(bill, 'tax', None))
-        + _num(getattr(bill, 'penalty', None))
-        - _num(getattr(bill, 'discount', None))
-    )
-    paid = _num(getattr(bill, 'amount_paid', None))
-    if paid < Decimal('0.00'):
-        paid = Decimal('0.00')
-    if installment < Decimal('0.00'):
-        installment = Decimal('0.00')
-    if current < Decimal('0.00'):
-        current = Decimal('0.00')
-    rest = paid
-    if previous < Decimal('0.00'):
-        previous_remaining = previous
+    total_value = getattr(bill, 'total_amount', None)
+    if total_value is None:
+        total = (
+            current
+            + previous
+            + installment
+            + _num(getattr(bill, 'fixed_charge', None))
+            + _num(getattr(bill, 'environmental_fee', None))
+            + _num(getattr(bill, 'maintenance_fee', None))
+            + _num(getattr(bill, 'tax', None))
+            + _num(getattr(bill, 'penalty', None))
+            - _num(getattr(bill, 'discount', None))
+        )
     else:
-        previous_remaining = max(previous - rest, Decimal('0.00'))
-        rest = max(rest - previous, Decimal('0.00'))
-    installment_remaining = max(installment - rest, Decimal('0.00'))
-    rest = max(rest - installment, Decimal('0.00'))
-    current_remaining = max(current - rest, Decimal('0.00'))
-    rest = max(rest - current, Decimal('0.00'))
-    fees_remaining = max(fees_net - rest, Decimal('0.00'))
-    total = (
-        previous_remaining + installment_remaining + current_remaining + fees_remaining
-    ).quantize(Decimal('0.01'))
+        total = _num(total_value)
     return {
-        'current': current_remaining.quantize(Decimal('0.01')),
-        'previous': previous_remaining.quantize(Decimal('0.01')),
-        'installment': installment_remaining.quantize(Decimal('0.01')),
-        'total': total,
+        'current': current.quantize(Decimal('0.01')),
+        'previous': previous.quantize(Decimal('0.01')),
+        'installment': installment.quantize(Decimal('0.01')),
+        'total': total.quantize(Decimal('0.01')),
     }
 
 
@@ -8147,6 +8401,7 @@ def _water_create_payment(request):
         WaterPayment.PURPOSE_INSTALLATION,
         'combined',
         'other',
+        'reconnection',
     ):
         payment_purpose = WaterPayment.PURPOSE_BILL
     payment_date = request.POST.get('payment_date', '').strip()
@@ -8168,23 +8423,32 @@ def _water_create_payment(request):
         messages.error(request, 'Please enter a valid payment date.')
         return _water_redirect('paymentsTab')
 
-    if payment_purpose == 'other':
+    if payment_purpose in ('other', 'reconnection'):
+        is_reconnection = payment_purpose == 'reconnection'
         received_from = request.POST.get('received_from', '').strip()
         address = request.POST.get('address', '').strip()
         payment_of = request.POST.get('payment_of', '').strip()
+        if is_reconnection and not payment_of:
+            payment_of = 'Reconnection fee'
         amount_raw = (request.POST.get('amount') or '').strip()
         remarks = request.POST.get('remarks', '').strip()
         received_status = (request.POST.get('amount_received_status') or 'not_received').strip()
         amount = _dec(amount_raw) if amount_raw != '' else None
         amount_received = amount if received_status == 'already_received' and amount is not None else None
         if not (payment_date and received_from and payment_of and amount_raw != '' and amount is not None and amount >= 0):
+            label = 'Reconnection fee' if is_reconnection else 'Other payment'
             messages.error(
                 request,
-                'Other payment requires date, received from, payment of, and an amount of zero or more.',
+                f'{label} requires date, received from, payment of, and an amount of zero or more.',
             )
             return _water_redirect('paymentsTab')
         try:
             other = WaterOtherPayment.objects.create(
+                payment_type=(
+                    WaterOtherPayment.PAYMENT_TYPE_RECONNECTION
+                    if is_reconnection
+                    else WaterOtherPayment.PAYMENT_TYPE_OTHER
+                ),
                 payment_date=parsed_payment_date,
                 ar_number=ar_number,
                 received_from=received_from,
@@ -8194,16 +8458,18 @@ def _water_create_payment(request):
                 payment_of=payment_of,
                 remarks=remarks,
             )
+            label = 'reconnection fee' if is_reconnection else 'other payment'
             _water_audit(
-                request, 'Recorded other payment', 'WaterOtherPayment', other.pk,
+                request, f'Recorded {label}', 'WaterOtherPayment', other.pk,
                 f'AR={ar_number} from={received_from} amount={amount} received={amount_received} of={payment_of}',
             )
             messages.success(
                 request,
-                f'Other payment AR {ar_number} recorded (PHP {amount} from {received_from}).',
+                f'{label.capitalize()} AR {ar_number} recorded (PHP {amount} from {received_from}).',
             )
         except Exception as exc:
-            messages.error(request, f'Could not record other payment: {exc}')
+            label = 'reconnection fee' if is_reconnection else 'other payment'
+            messages.error(request, f'Could not record {label}: {exc}')
         return _water_redirect('paymentsTab')
 
     payment_method = request.POST.get('payment_method', 'cash').strip()
@@ -8492,9 +8758,11 @@ def _water_contract_from_post(request):
         'customer_classification': customer_classification,
         'original_registered_name': request.POST.get('original_registered_name', '').strip(),
         'meter_size': request.POST.get('meter_size', '').strip(),
+        'meter_number': request.POST.get('meter_number', '').strip(),
         'connection_location': request.POST.get('connection_location', '').strip(),
         'near_beside': request.POST.get('near_beside', '').strip(),
         'ack_payee_name': request.POST.get('ack_payee_name', '').strip(),
+        'ack_ar_number': request.POST.get('ack_ar_number', '').strip(),
         'ack_amount': _dec(request.POST.get('ack_amount'), '0'),
         'ack_received_by': request.POST.get('ack_received_by', '').strip(),
         'ack_date': _water_parse_date(request.POST.get('ack_date')),
@@ -8531,16 +8799,170 @@ def _water_apply_contract_fields(contract, data):
         setattr(contract, key, value)
 
 
+def _water_contract_customer_type(contract):
+    return {
+        'government': 'government',
+        'commercial': 'commercial',
+        'residential': 'residential',
+    }.get(contract.customer_classification, 'residential')
+
+
+def _water_contract_service_address(contract):
+    return (
+        contract.connection_location or contract.contract_address or ''
+    ).strip().upper()
+
+
+def _water_contract_zone(contract):
+    name = (contract.zone_purok or '').strip().upper()
+    if not name:
+        return None
+    zone = WaterZone.objects.filter(name__iexact=name).first()
+    return zone or WaterZone.objects.create(name=name)
+
+
+def _water_find_customer_for_contract(contract):
+    if contract.customer_id:
+        return contract.customer
+    last_name = (contract.last_name or '').strip()
+    first_name = (contract.first_name or '').strip()
+    if not (last_name and first_name):
+        return None
+    matches = WaterCustomer.objects.filter(
+        last_name__iexact=last_name,
+        first_name__iexact=first_name,
+    )
+    meter_number = (contract.meter_number or '').strip().upper()
+    if meter_number and meter_number != '—':
+        customer = matches.filter(meter_number__iexact=meter_number).first()
+        if customer:
+            return customer
+    contact_number = (contract.contact_number or '').strip()
+    if contact_number:
+        customer = matches.filter(contact_number__iexact=contact_number).first()
+        if customer:
+            return customer
+    address = _water_contract_service_address(contract)
+    if address:
+        customer = matches.filter(service_address__iexact=address).first()
+        if customer:
+            return customer
+    first_matches = list(matches[:2])
+    return first_matches[0] if len(first_matches) == 1 else None
+
+
+def _water_ensure_customer_for_contract(request, contract):
+    """Create or link a customer for a new service connection application."""
+    customer = _water_find_customer_for_contract(contract)
+    created = False
+    if customer is None:
+        paid = contract.ack_amount or Decimal('0.00')
+        if paid < 0:
+            paid = Decimal('0.00')
+        if paid > WATER_INSTALLATION_FEE:
+            paid = WATER_INSTALLATION_FEE
+        customer = WaterCustomer.objects.create(
+            account_number=WaterCustomer.generate_account_number(),
+            first_name=contract.first_name,
+            last_name=contract.last_name,
+            service_address=_water_contract_service_address(contract),
+            contact_number=contract.contact_number,
+            customer_type=_water_contract_customer_type(contract),
+            zone=_water_contract_zone(contract),
+            meter_number=(contract.meter_number or '').strip().upper() or '—',
+            connection_status='active',
+            registration_date=contract.contract_date or date.today(),
+            installment_balance=max(WATER_INSTALLATION_FEE - paid, Decimal('0.00')),
+            notes=f'Created from service connection application #{contract.pk}',
+        )
+        created = True
+        _water_audit(
+            request,
+            'Created customer',
+            'WaterCustomer',
+            customer.account_number,
+            f'{customer.display_name} | auto-created from service contract #{contract.pk}',
+        )
+        if paid > 0:
+            payment = _water_record_registration_installation_payment(
+                customer,
+                paid,
+                payment_date=contract.ack_date or contract.contract_date or date.today(),
+                remarks='Installation fee (service connection application)',
+                ar_number=contract.ack_ar_number,
+            )
+            if payment:
+                _water_audit(
+                    request,
+                    'Recorded payment',
+                    'WaterPayment',
+                    payment.receipt_number,
+                    f'installation customer={customer.account_number} amount={paid} '
+                    f'method={payment.payment_method} (service contract #{contract.pk})',
+                )
+    else:
+        changed = []
+        address = _water_contract_service_address(contract)
+        if not customer.service_address and address:
+            customer.service_address = address
+            changed.append('service_address')
+        if not customer.contact_number and contract.contact_number:
+            customer.contact_number = contract.contact_number.strip()
+            changed.append('contact_number')
+        meter_number = (contract.meter_number or '').strip().upper()
+        if (
+            (not customer.meter_number or customer.meter_number == '—')
+            and meter_number
+            and meter_number != '—'
+        ):
+            customer.meter_number = meter_number
+            changed.append('meter_number')
+        if not customer.zone_id:
+            zone = _water_contract_zone(contract)
+            if zone:
+                customer.zone = zone
+                changed.append('zone')
+        if changed:
+            customer.save(update_fields=changed + ['updated_at'])
+    if contract.customer_id != customer.id:
+        contract.customer = customer
+        contract.save(update_fields=['customer', 'updated_at'])
+    return customer, created
+
+
 def _water_create_service_contract(request):
     data = _water_contract_from_post(request)
     if not (data['last_name'] and data['first_name']):
         messages.error(request, 'Applicant last name and first name are required.')
         return _water_redirect('disconnectTab')
-    contract = WaterServiceContract()
-    _water_apply_contract_fields(contract, data)
-    contract.save()
+    ack_amount = data['ack_amount'] or Decimal('0.00')
+    ack_ar_number = data['ack_ar_number']
+    if ack_amount > 0:
+        if not ack_ar_number:
+            messages.error(request, 'Enter the AR No. for the acknowledgement receipt payment.')
+            return _water_redirect('disconnectTab')
+        if (
+            WaterPayment.objects.filter(ar_number=ack_ar_number).exists()
+            or WaterOtherPayment.objects.filter(ar_number=ack_ar_number).exists()
+        ):
+            messages.error(request, f'AR No. {ack_ar_number} is already in use.')
+            return _water_redirect('disconnectTab')
+    created = False
+    customer = None
+    with transaction.atomic():
+        contract = WaterServiceContract()
+        _water_apply_contract_fields(contract, data)
+        contract.save()
+        if contract.application_status == 'new':
+            customer, created = _water_ensure_customer_for_contract(request, contract)
     _water_audit(request, 'Saved service contract', 'WaterServiceContract', contract.pk, contract.applicant_display_name)
-    messages.success(request, f'Service contract saved for {contract.applicant_display_name}.')
+    message = f'Service contract saved for {contract.applicant_display_name}.'
+    if customer:
+        if created:
+            message += f' Customer {customer.account_number} added to the customer list.'
+        else:
+            message += f' Linked to customer {customer.account_number}.'
+    messages.success(request, message)
     return redirect(f"{reverse('water_billing_dashboard')}?tab=disconnectTab&contract_id={contract.pk}")
 
 
@@ -8717,7 +9139,12 @@ def _water_delete_payment(request):
     amount = payment.amount
     purpose = payment.purpose
     label = payment.receipt_number
+    payment_pk = payment.pk
     with transaction.atomic():
+        WaterSalesSummaryExclusion.objects.filter(
+            source_type=WaterSalesSummaryExclusion.SOURCE_WATER_PAYMENT,
+            source_id=payment_pk,
+        ).delete()
         if purpose == WaterPayment.PURPOSE_INSTALLATION and customer:
             payment.delete()
             customer.installment_balance = (customer.installment_balance or Decimal('0')) + amount
@@ -8738,9 +9165,25 @@ def _water_delete_other_payment(request):
     other = get_object_or_404(WaterOtherPayment, pk=request.POST.get('other_payment_id'))
     label = other.ar_number or str(other.pk)
     detail = f'{other.received_from} amount={other.amount}'
-    other.delete()
-    _water_audit(request, 'Deleted other payment', 'WaterOtherPayment', label, detail)
-    messages.success(request, f'Other payment AR {label} deleted.')
+    is_reconnection = (
+        other.payment_type == WaterOtherPayment.PAYMENT_TYPE_RECONNECTION
+    )
+    other_pk = other.pk
+    with transaction.atomic():
+        WaterSalesSummaryExclusion.objects.filter(
+            source_type=WaterSalesSummaryExclusion.SOURCE_OTHER_PAYMENT,
+            source_id=other_pk,
+        ).delete()
+        other.delete()
+    _water_audit(
+        request,
+        'Deleted reconnection fee' if is_reconnection else 'Deleted other payment',
+        'WaterOtherPayment', label, detail,
+    )
+    messages.success(
+        request,
+        f'{"Reconnection fee" if is_reconnection else "Other payment"} AR {label} deleted.',
+    )
     return _water_redirect('paymentsTab', {'payment_view': 'history'})
 
 

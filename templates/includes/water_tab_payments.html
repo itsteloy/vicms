@@ -14,7 +14,7 @@
       <div class="panel-head">
         <div>
           <h2>Record payment</h2>
-          <p class="sub">Apply cash or GCash to open bills and/or installation balance. Use <strong>Bill + Installation</strong> for one AR covering both. Use <strong>Other Payments</strong> for miscellaneous receipts (shown on the weekly report Other Payments table).</p>
+          <p class="sub">Apply cash or GCash to open bills and/or installation balance. Use <strong>Bill + Installation</strong> for one AR covering both. Use <strong>Other Payments</strong> for miscellaneous receipts and <strong>Reconnection Fee</strong> for reconnection charges.</p>
         </div>
       </div>
       <form method="post" id="paymentRecordForm">
@@ -39,6 +39,10 @@
               <label class="payment-purpose-option">
                 <input type="radio" name="payment_purpose" value="other" id="paymentPurposeOther">
                 <span>Other Payments</span>
+              </label>
+              <label class="payment-purpose-option">
+                <input type="radio" name="payment_purpose" value="reconnection" id="paymentPurposeReconnect">
+                <span>Reconnection Fee</span>
               </label>
             </div>
           </div>
@@ -237,6 +241,8 @@
       {% include "includes/water_payment_list.html" %}
       <h3 class="payment-history-heading">Other payments</h3>
       {% include "includes/water_other_payment_list.html" %}
+      <h3 class="payment-history-heading">Reconnection fees</h3>
+      {% include "includes/water_reconnection_payment_list.html" %}
     </div>
   </div>
 </div>

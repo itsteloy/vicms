@@ -4,6 +4,7 @@
   let serviceChromeBound = false;
   let contractChromeBound = false;
   const BATCH_PRINT_MAX = 6;
+  const selectedBillIds = new Set();
   const INSTALLATION_FEE = 5900;
   const INSTALLATION_PARTIAL = 3000;
   const DEFAULT_RATE_PER_CUM = 20;
@@ -814,6 +815,7 @@
     const paymentPurposeInstall = document.getElementById('paymentPurposeInstall');
     const paymentPurposeCombined = document.getElementById('paymentPurposeCombined');
     const paymentPurposeOther = document.getElementById('paymentPurposeOther');
+    const paymentPurposeReconnect = document.getElementById('paymentPurposeReconnect');
     const payBalanceLabel = document.getElementById('payBalanceLabel');
     const paymentAmount = document.getElementById('paymentAmount');
     const paymentAmountField = document.getElementById('paymentAmountField');
@@ -844,6 +846,7 @@
 
     function paymentPurpose() {
       if (paymentPurposeOther?.checked) return 'other';
+      if (paymentPurposeReconnect?.checked) return 'reconnection';
       if (paymentPurposeCombined?.checked) return 'combined';
       if (paymentPurposeInstall?.checked) return 'installation';
       return 'bill';
@@ -856,6 +859,12 @@
     }
     function isOtherPurpose() {
       return paymentPurpose() === 'other';
+    }
+    function isReconnectPurpose() {
+      return paymentPurpose() === 'reconnection';
+    }
+    function isOtherLikePurpose() {
+      return isOtherPurpose() || isReconnectPurpose();
     }
     function formatPeso(value) {
       return fmtPeso(value);
@@ -978,20 +987,22 @@
       const install = purpose === 'installation';
       const combined = purpose === 'combined';
       const other = purpose === 'other';
-      const showBill = !install && !other;
+      const reconnect = purpose === 'reconnection';
+      const otherLike = other || reconnect;
+      const showBill = !install && !otherLike;
       const showInstall = install || combined;
 
-      if (paymentReceiptField) paymentReceiptField.hidden = other;
-      if (paymentMethodField) paymentMethodField.hidden = other;
-      if (paymentReferenceField) paymentReferenceField.hidden = other;
-      if (paymentReceivedByField) paymentReceivedByField.hidden = other;
-      if (paymentOtherReceivedFromField) paymentOtherReceivedFromField.hidden = !other;
-      if (paymentOtherAddressField) paymentOtherAddressField.hidden = !other;
-      if (paymentOtherPaymentOfField) paymentOtherPaymentOfField.hidden = !other;
+      if (paymentReceiptField) paymentReceiptField.hidden = otherLike;
+      if (paymentMethodField) paymentMethodField.hidden = otherLike;
+      if (paymentReferenceField) paymentReferenceField.hidden = otherLike;
+      if (paymentReceivedByField) paymentReceivedByField.hidden = otherLike;
+      if (paymentOtherReceivedFromField) paymentOtherReceivedFromField.hidden = !otherLike;
+      if (paymentOtherAddressField) paymentOtherAddressField.hidden = !otherLike;
+      if (paymentOtherPaymentOfField) paymentOtherPaymentOfField.hidden = !otherLike;
       if (paymentAmountReceivedStatus) {
-        paymentAmountReceivedStatus.hidden = !other;
-        paymentAmountReceivedStatus.disabled = !other;
-        if (!other) paymentAmountReceivedStatus.value = 'not_received';
+        paymentAmountReceivedStatus.hidden = !otherLike;
+        paymentAmountReceivedStatus.disabled = !otherLike;
+        if (!otherLike) paymentAmountReceivedStatus.value = 'not_received';
       }
 
       if (paymentBillField) paymentBillField.hidden = !showBill;
@@ -1000,8 +1011,8 @@
       if (paymentBillAmountField) paymentBillAmountField.hidden = !combined;
       if (paymentInstallAmountField) paymentInstallAmountField.hidden = !combined;
       if (paymentSummarySingle) {
-        paymentSummarySingle.hidden = combined || other;
-        paymentSummarySingle.setAttribute('aria-hidden', (combined || other) ? 'true' : 'false');
+        paymentSummarySingle.hidden = combined || otherLike;
+        paymentSummarySingle.setAttribute('aria-hidden', (combined || otherLike) ? 'true' : 'false');
       }
       if (paymentSummaryCombined) {
         paymentSummaryCombined.hidden = !combined;
@@ -1014,11 +1025,11 @@
         payBalanceLabel.textContent = install ? 'Installment balance' : 'Bill balance';
       }
 
-      if (paymentBill) paymentBill.disabled = install || other;
+      if (paymentBill) paymentBill.disabled = install || otherLike;
       if (paymentBillSearch) {
-        paymentBillSearch.disabled = install || other;
+        paymentBillSearch.disabled = install || otherLike;
         paymentBillSearch.required = showBill;
-        if (install || other) paymentBillSearch.setCustomValidity('');
+        if (install || otherLike) paymentBillSearch.setCustomValidity('');
         else if (!paymentBill.value) {
           paymentBillSearch.setCustomValidity('Please select a bill from the list.');
         }
@@ -1039,18 +1050,21 @@
         if (!combined) paymentInstallAmount.value = '';
       }
       if (paymentReceivedFrom) {
-        paymentReceivedFrom.disabled = !other;
-        paymentReceivedFrom.required = other;
-        if (!other) paymentReceivedFrom.value = '';
+        paymentReceivedFrom.disabled = !otherLike;
+        paymentReceivedFrom.required = otherLike;
+        if (!otherLike) paymentReceivedFrom.value = '';
       }
       if (paymentAddress) {
-        paymentAddress.disabled = !other;
-        if (!other) paymentAddress.value = '';
+        paymentAddress.disabled = !otherLike;
+        if (!otherLike) paymentAddress.value = '';
       }
       if (paymentOf) {
-        paymentOf.disabled = !other;
-        paymentOf.required = other;
-        if (!other) paymentOf.value = '';
+        paymentOf.disabled = !otherLike;
+        paymentOf.required = otherLike;
+        if (!otherLike) paymentOf.value = '';
+        else if (reconnect && !paymentOf.value.trim()) {
+          paymentOf.value = 'Reconnection fee';
+        }
       }
 
       // Installation picker: interactive only in install-only mode; locked in combined.
@@ -1065,12 +1079,12 @@
         }
       }
 
-      if (other) {
+      if (otherLike) {
         closePaymentBillList();
         closePaymentInstallList();
         clearPaymentBill();
         clearPaymentInstall();
-        if (paymentRemarks) paymentRemarks.placeholder = 'Optional';
+        if (paymentRemarks) paymentRemarks.placeholder = reconnect ? 'Reconnection fee' : 'Optional';
       } else if (install) {
         closePaymentBillList();
         clearPaymentBill();
@@ -1178,7 +1192,7 @@
       paymentInstallList.style.width = `${Math.max(rect.width, 280)}px`;
     }
     function openPaymentBillList() {
-      if (isInstallPurpose() || isOtherPurpose()) return;
+      if (isInstallPurpose() || isOtherLikePurpose()) return;
       filterPaymentBills();
       positionPaymentBillList();
       if (paymentBillList.parentElement !== document.body) {
@@ -1211,6 +1225,7 @@
     paymentPurposeInstall?.addEventListener('change', syncPaymentPurpose);
     paymentPurposeCombined?.addEventListener('change', syncPaymentPurpose);
     paymentPurposeOther?.addEventListener('change', syncPaymentPurpose);
+    paymentPurposeReconnect?.addEventListener('change', syncPaymentPurpose);
     if (paymentBillSearch && paymentBillList && paymentBill) {
       paymentBillSearch.setCustomValidity('Please select a bill from the list.');
       paymentBillSearch.addEventListener('focus', openPaymentBillList);
@@ -1592,6 +1607,7 @@
       setContractField('contractAddress', contractAddressFrom(item.dataset.zone, item.dataset.address));
       setContractField('contractContactNumber', item.dataset.contact);
       setContractField('contractMeterSize', item.dataset.meter);
+      setContractField('contractMeterNumber', item.dataset.meter);
       setContractField('contractAckPayee', item.dataset.displayName);
       const classification = document.getElementById('contractClassification');
       if (classification && item.dataset.classification) {
@@ -1714,25 +1730,17 @@
   }
 
   function selectedBatchIds() {
-    const ids = [];
-    const seen = new Set();
-    document.querySelectorAll('.batch-bill-check').forEach((cb) => {
-      if (!cb.checked) return;
-      if (seen.has(cb.value)) return;
-      seen.add(cb.value);
-      ids.push(cb.value);
-    });
-    return ids;
+    return Array.from(selectedBillIds);
   }
 
-  function syncBatchCheckmates(changed) {
-    if (!changed) return;
+  function applyBatchSelectionState() {
     document.querySelectorAll('.batch-bill-check').forEach((cb) => {
-      if (cb !== changed && cb.value === changed.value) cb.checked = changed.checked;
+      cb.checked = selectedBillIds.has(cb.value);
     });
   }
 
   function refreshBatchPrintBars(showLimitNote) {
+    applyBatchSelectionState();
     const ids = selectedBatchIds();
     document.querySelectorAll('[data-batch-bar]').forEach((bar) => {
       const countEl = bar.querySelector('[data-batch-count]');
@@ -2173,21 +2181,26 @@
   document.addEventListener('change', (event) => {
     const cb = event.target.closest('.batch-bill-check');
     if (!cb) return;
-      let showLimitNote = false;
-    if (cb.checked && selectedBatchIds().length > BATCH_PRINT_MAX) {
+    let showLimitNote = false;
+    if (cb.checked) {
+      if (!selectedBillIds.has(cb.value) && selectedBillIds.size >= BATCH_PRINT_MAX) {
         cb.checked = false;
         showLimitNote = true;
+      } else {
+        selectedBillIds.add(cb.value);
       }
-      syncBatchCheckmates(cb);
-      refreshBatchPrintBars(showLimitNote);
+    } else {
+      selectedBillIds.delete(cb.value);
+    }
+    refreshBatchPrintBars(showLimitNote);
   });
 
   document.addEventListener('click', (event) => {
     const bar = event.target.closest('[data-batch-bar]');
     if (!bar) return;
     if (event.target.closest('[data-batch-clear]')) {
-      document.querySelectorAll('.batch-bill-check').forEach((cb) => { cb.checked = false; });
-        refreshBatchPrintBars(false);
+      selectedBillIds.clear();
+      refreshBatchPrintBars(false);
       return;
     }
     if (event.target.closest('[data-batch-print]')) {

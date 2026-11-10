@@ -666,8 +666,8 @@ h1, h2, h3, h4,
   }
 
   thead {
-      background: var(--soft);
-      color: #000;
+      background: linear-gradient(180deg, var(--brand) 0%, var(--brand-dark) 100%);
+      color: #fff;
   }
 
   th,
@@ -679,7 +679,7 @@ h1, h2, h3, h4,
   }   
 
   th {
-      color: #000;
+      color: #fff;
       font-weight: 700;
       font-size: 0.78rem;
       text-transform: uppercase;
@@ -687,7 +687,7 @@ h1, h2, h3, h4,
   }
 
   thead th {
-      color: #000;
+      color: #fff;
   }
 
   /* Keep white text on teal quotation item headers */
@@ -1674,6 +1674,44 @@ h1, h2, h3, h4,
       min-width: 0;
   }
 
+  .cv-subtabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+  }
+  .cv-subtab {
+      appearance: none;
+      border: 1px solid var(--line, #eaecf0);
+      background: #fff;
+      color: var(--ink, #101828);
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.15s ease;
+  }
+  .cv-subtab:hover {
+      background: var(--soft, #f8fafc);
+      border-color: #98a2b3;
+  }
+  .cv-subtab.is-active,
+  .cv-subtab[aria-selected="true"] {
+      background: var(--brand, #0f766e);
+      border-color: var(--brand, #0f766e);
+      color: #fff;
+      box-shadow: none;
+  }
+  .cv-subpanel {
+      display: none;
+  }
+  .cv-subpanel.is-active {
+      display: block;
+  }
+
   .cv-editor-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(160px, 1fr));
@@ -1690,6 +1728,7 @@ h1, h2, h3, h4,
       margin-bottom: 4px;
   }
   .cv-editor-grid input,
+  .cv-editor-grid textarea,
   .cv-form-table input {
       width: 100%;
       padding: 8px 10px;
@@ -1697,6 +1736,14 @@ h1, h2, h3, h4,
       border-radius: 6px;
       font-family: inherit;
       box-sizing: border-box;
+  }
+  .cv-editor-grid textarea {
+      resize: vertical;
+      background: var(--panel, #fff);
+      color: var(--ink, #101828);
+  }
+  .cv-editor-grid .cv-span-full {
+      grid-column: 1 / -1;
   }
   .cv-fieldset {
       border: 1px solid var(--line);
@@ -1952,6 +1999,142 @@ h1, h2, h3, h4,
       text-transform: uppercase;
       vertical-align: middle !important;
   }
+  /* ── DAI HOLDINGS voucher layout ── */
+  .cv-doc-dai {
+      font-family: "Century Gothic", CenturyGothic, "AppleGothic", sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.3;
+  }
+  .cv-doc-dai table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+  }
+  .cv-doc-dai td {
+      border: 1px solid #000;
+      padding: 4px 7px;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+  }
+  .cv-dai-head {
+      text-align: center;
+      padding: 2px 0 6px;
+  }
+  .cv-dai-company {
+      font-size: 20pt;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+  }
+  .cv-dai-address {
+      font-size: 9pt;
+      font-style: italic;
+  }
+  .cv-dai-title {
+      text-align: center;
+      font-size: 13pt;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      border: 1px solid #000;
+      padding: 4px;
+      margin-bottom: 0;
+  }
+  .cv-dai-meta td { font-size: 10pt; }
+  .cv-dai-lbl { font-weight: 700; white-space: nowrap; }
+  .cv-dai-payee { font-weight: 700; text-transform: uppercase; }
+  .cv-dai-cvno { font-weight: 700; }
+  .cv-dai-meta .cv-dai-cvno { text-align: center; }
+  .cv-dai-part .cv-dai-inpay { font-weight: 700; font-style: italic; width: 35%; }
+  .cv-dai-part-head {
+      text-align: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+  }
+  .cv-dai-part-text {
+      text-transform: uppercase;
+      font-weight: 700;
+      min-height: 34px;
+      white-space: pre-wrap;
+  }
+  .cv-dai-items td { padding: 5px 8px; }
+  .cv-dai-item-desc { text-transform: uppercase; }
+  .cv-dai-item-amt { text-align: right; width: 30%; font-variant-numeric: tabular-nums; }
+  .cv-dai-total-row .cv-dai-total-lbl { text-align: right; font-weight: 700; }
+  .cv-dai-total-row .cv-dai-total { text-align: right; font-weight: 700; width: 30%; }
+  .cv-dai-phpline .cv-dai-php-lbl {
+      text-align: right;
+      width: 60%;
+      border: none;
+      font-weight: 700;
+      border-bottom: 1px solid #000;
+  }
+  .cv-dai-phpline .cv-dai-php-amt {
+      width: 40%;
+      text-align: right;
+      font-weight: 700;
+      border: none;
+      border-bottom: 1px solid #000;
+      font-variant-numeric: tabular-nums;
+  }
+  .cv-dai-check td { font-size: 10pt; }
+  .cv-dai-check #cvDaiCheckNumber,
+  .cv-dai-check #cvDaiCheckDate,
+  .cv-dai-check #cvDaiBank { border: none; border-bottom: 1px solid #000; }
+  .cv-dai-dist-head {
+      text-align: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+  }
+  .cv-dai-dist .cv-dai-dr,
+  .cv-dai-dist .cv-dai-cr { text-align: right; font-weight: 700; width: 24%; }
+  .cv-dai-dist-line-desc { text-transform: uppercase; }
+  .cv-dai-dist-line-dr,
+  .cv-dai-dist-line-cr {
+      text-align: right;
+      width: 24%;
+      font-variant-numeric: tabular-nums;
+  }
+  .cv-dai-dist-total .cv-dai-total-lbl { font-weight: 700; }
+  .cv-dai-dist-total #cvDaiDistDebitTotal,
+  .cv-dai-dist-total #cvDaiDistCreditTotal {
+      text-align: right;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+  }
+  .cv-dai-sign { margin-top: 6px; }
+  .cv-dai-sign td {
+      border: none;
+      text-align: left;
+      font-size: 9.5pt;
+      padding: 2px 6px;
+  }
+  .cv-dai-sign-labels td {
+      font-weight: 400;
+      padding-top: 10px;
+      border-bottom: 0;
+  }
+  .cv-dai-sign-names td {
+      height: 42px;
+      vertical-align: bottom;
+      text-transform: uppercase;
+  }
+  .cv-dai-sign-names #cvDaiSignPrepared,
+  .cv-dai-sign-names #cvDaiSignChecked,
+  .cv-dai-sign-names #cvDaiSignApproved,
+  .cv-dai-sign-names #cvDaiSignApprover {
+      display: block;
+      font-weight: 700;
+      border-bottom: 1px solid #000;
+      padding-bottom: 2px;
+  }
+  .cv-dai-sig-title {
+      display: block;
+      font-size: 8.5pt;
+      text-transform: none;
+      color: #000;
+  }
   .cv-monitoring-table {
       font-family: "Century Gothic", CenturyGothic, "AppleGothic", sans-serif;
       font-size: 10pt;
@@ -1975,6 +2158,18 @@ h1, h2, h3, h4,
   /* All breakdown columns visible on screen — scroll sideways to see them. */
   .cv-monitoring-table .cv-breakdown-col {
       display: table-cell;
+  }
+  /* Company column: on screen show the company dropdown; when printed swap it
+     for the plain acronym (no dropdown chrome). */
+  .cv-monitoring-table .cv-company-cell {
+      display: block;
+      width: 100%;
+  }
+  .cv-monitoring-table .cv-company-acronym {
+      display: none;
+  }
+  .cv-monitoring-table .cv-status-text {
+      display: none;
   }
   .cv-monitoring-table .cv-cell-input {
       width: 100%;
@@ -2130,6 +2325,55 @@ h1, h2, h3, h4,
           break-inside: avoid !important;
           page-break-inside: avoid !important;
       }
+      /* Only the layout matching the selected company prints. */
+      body.cv-print-voucher #cvDocumentDai {
+          display: none !important;
+      }
+      body.cv-print-voucher.is-cv-dai #cvDocument {
+          display: none !important;
+      }
+      body.cv-print-voucher.is-cv-dai #cvDocumentDai {
+          display: block !important;
+      }
+      /* DAI HOLDINGS layout: compact to fit the 1/2-crosswise voucher. */
+      body.cv-print-voucher .cv-doc-dai {
+          font-size: 8pt !important;
+      }
+      body.cv-print-voucher .cv-doc-dai td {
+          padding: 2px 4px !important;
+      }
+      body.cv-print-voucher .cv-dai-head {
+          padding: 0 0 4px !important;
+      }
+      body.cv-print-voucher .cv-dai-company {
+          font-size: 15pt !important;
+      }
+      body.cv-print-voucher .cv-dai-address {
+          font-size: 7pt !important;
+      }
+      body.cv-print-voucher .cv-dai-title {
+          font-size: 10pt !important;
+          padding: 2px !important;
+      }
+      body.cv-print-voucher .cv-dai-meta td,
+      body.cv-print-voucher .cv-dai-check td {
+          font-size: 8pt !important;
+      }
+      body.cv-print-voucher .cv-dai-part-text {
+          min-height: 22px !important;
+      }
+      body.cv-print-voucher .cv-dai-items td {
+          padding: 3px 5px !important;
+      }
+      body.cv-print-voucher .cv-dai-sign td {
+          font-size: 7.5pt !important;
+      }
+      body.cv-print-voucher .cv-dai-sign-labels td {
+          padding-top: 6px !important;
+      }
+      body.cv-print-voucher .cv-dai-sign-names td {
+          height: 28px !important;
+      }
       body.cv-print-voucher .cv-sheet {
           table-layout: fixed !important;
       }
@@ -2229,18 +2473,37 @@ h1, h2, h3, h4,
           min-width: 0 !important;
           width: 100% !important;
           table-layout: fixed !important;
-          font-size: 7pt !important;
+          font-size: 6pt !important;
       }
       body.cv-print-monitoring .cv-monitoring-table .cv-breakdown-col {
           display: table-cell !important;
       }
+      /* Explicit column widths so fixed-layout columns don't collapse/overlap.
+         Date / Check Date / Check No. are wide enough to print untrimmed. */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(1) { width: 7%; }   /* Date */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(2) { width: 7%; }   /* CV No */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(3) { width: 6%; }   /* Company */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(4) { width: 7%; }   /* Issued To */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(5) { width: 7%; }   /* Payment For */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(6) { width: 7%; }   /* Amount */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(7) { width: 6%; }   /* Purchases */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(8) { width: 6%; }   /* Expenses */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(9) { width: 5%; }   /* Commission */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(10) { width: 5%; }  /* Contributions */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(11) { width: 4%; }  /* Misc */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(12) { width: 6%; }  /* Payment */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(13) { width: 5%; }  /* Salaries */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(14) { width: 7%; }  /* Check Date */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(15) { width: 4%; }  /* Bank */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(16) { width: 6%; }  /* Check No. */
+      body.cv-print-monitoring .cv-monitoring-table thead tr th:nth-child(17) { width: 5%; }  /* Status */
       body.cv-print-monitoring .cv-monitoring-table th,
       body.cv-print-monitoring .cv-monitoring-table td {
           color: #000 !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          font-size: 7pt !important;
-          padding: 3px 4px !important;
+          font-size: 6pt !important;
+          padding: 2px 3px !important;
           white-space: normal !important;
           word-break: break-word !important;
           overflow-wrap: anywhere !important;
@@ -2259,6 +2522,60 @@ h1, h2, h3, h4,
       body.cv-print-monitoring .cv-monitoring-table tr {
           break-inside: avoid !important;
           page-break-inside: avoid !important;
+      }
+      /* Company column: print the acronym instead of the dropdown, and drop
+         the select arrow/box entirely. */
+      body.cv-print-monitoring .cv-company-cell select {
+          display: none !important;
+      }
+      body.cv-print-monitoring .cv-company-cell .cv-company-acronym {
+          display: inline !important;
+          font-weight: 600;
+          white-space: nowrap;
+      }
+      /* Status column: print the selected label as plain centered text, not a
+         native dropdown box. */
+      body.cv-print-monitoring .cv-monitoring-table select.cv-status-select {
+          display: none !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table .cv-status-text {
+          display: inline !important;
+          font-weight: 600;
+          text-align: center;
+      }
+      body.cv-print-monitoring .cv-monitoring-table td:nth-child(17) {
+          text-align: center !important;
+      }
+      /* Keep cell text inside its column: kill the inputs' min-widths (which
+         otherwise overflow the fixed-layout columns) and clip any overflow. */
+      body.cv-print-monitoring .cv-monitoring-table td {
+          overflow: hidden !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table .cv-cell-input {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-sizing: border-box !important;
+          text-overflow: ellipsis !important;
+      }
+      body.cv-print-monitoring .cv-monitoring-table .cv-peso-wrap {
+          min-width: 0 !important;
+      }
+      /* Remove the native date-picker (calendar) icon when printing. */
+      body.cv-print-monitoring input[type="date"] {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+      }
+      body.cv-print-monitoring input[type="date"]::-webkit-calendar-picker-indicator,
+      body.cv-print-monitoring input[type="date"]::-webkit-inner-spin-button,
+      body.cv-print-monitoring input[type="date"]::-webkit-clear-button {
+          display: none !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
       }
   }
 
@@ -2439,4 +2756,251 @@ h1, h2, h3, h4,
 }
 [data-theme="dark"] .cv-category-amount::placeholder {
   color: var(--muted);
+}
+
+/* -- Sales Summary (water billing collections by month) -- */
+.sales-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sales-summary-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sales-summary-toolbar h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.sales-summary-toolbar p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.sales-month-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.sales-month-tab {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sales-month-tab:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.sales-month-tab.is-active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.sales-summary-sheet {
+  background: #fff;
+  color: #111;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  padding: 24px;
+  font-family: Arial, "IBM Plex Sans", sans-serif;
+  overflow-x: auto;
+}
+
+.sales-summary-letterhead {
+  display: block;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 14px;
+}
+
+.sales-summary-head {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.sales-summary-head h1 {
+  margin: 0;
+  color: #111;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.sales-summary-month {
+  margin: 4px 0 0;
+  color: #111;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.sales-summary-table-wrap {
+  overflow-x: auto;
+}
+
+.sales-summary-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  background: #fff;
+  color: #111;
+  font-size: 0.82rem;
+}
+
+.sales-summary-table th,
+.sales-summary-table td {
+  border: 1px solid #222;
+  padding: 6px 8px;
+  color: #111;
+  vertical-align: middle;
+}
+
+.sales-summary-table thead,
+.sales-summary-table thead tr {
+  background: #fff;
+  color: #111;
+}
+
+.sales-summary-table thead th {
+  background: #f3f4f6;
+  color: #111;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.sales-summary-table thead .sales-summary-group th {
+  background: #fff;
+  font-weight: 800;
+}
+
+.sales-summary-table .amt {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-summary-table .col-date {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sales-summary-table .col-or,
+.sales-summary-table .col-no {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sales-summary-table .col-particulars {
+  text-transform: uppercase;
+}
+
+.sales-summary-table tfoot td {
+  background: #fafafa;
+  font-weight: 800;
+}
+
+.sales-summary-prepared {
+  max-width: 340px;
+  margin-top: 28px;
+}
+
+.sales-summary-prepared-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sales-summary-prepared-space {
+  height: 46px;
+}
+
+.sales-summary-prepared-name {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sales-summary-prepared-title {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+@media (max-width: 768px) {
+  .sales-summary-sheet {
+    padding: 14px;
+  }
+
+  .sales-summary-head h1 {
+    font-size: 1.25rem;
+  }
+}
+
+@media print {
+  .sales-summary-toolbar,
+  .sales-month-tabs {
+    display: none !important;
+  }
+
+  .sales-summary {
+    gap: 0;
+  }
+
+  .sales-summary-sheet {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .sales-summary-letterhead {
+    max-width: 100% !important;
+  }
+
+  .sales-summary-table {
+    min-width: 0 !important;
+    font-size: 9pt;
+  }
+
+  .sales-summary-table thead {
+    display: table-header-group;
+  }
+
+  .sales-summary-table tr {
+    page-break-inside: avoid;
+  }
+
+  .sales-summary-table th,
+  .sales-summary-table td {
+    border: 1px solid #000 !important;
+    padding: 3px 5px !important;
+  }
+
+  .sales-summary-table thead th {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

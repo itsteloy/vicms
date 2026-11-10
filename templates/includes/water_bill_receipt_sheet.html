@@ -1,5 +1,5 @@
 {% load humanize %}
-<article class="sheet" aria-label="4 by 4 inch statement of account">
+<article class="sheet{% if bill.statement_theme_class %} {{ bill.statement_theme_class }}{% endif %}" aria-label="4 by 4 inch statement of account" data-statement-sheet data-bill-id="{{ bill.id|default:'' }}">
   <div class="loc">{{ location_header }}</div>
   <h1 class="title">STATEMENT OF ACCOUNT</h1>
   <div class="month-line">BILL FOR THE MONTH OF <span class="fill">{{ month_name|default:"________" }}</span></div>
