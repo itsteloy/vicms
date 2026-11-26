@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import re
-import zipfile
-import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
+from zipfile import BadZipFile
 
-NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 HEADER_ALIASES = {
     'date': 'line_date',
@@ -35,16 +35,6 @@ HEADER_ALIASES = {
 }
 
 TERMS_OF_PAYMENT_VALUES = {'7', '15', '30', '60'}
-
-
-def _col_row(cell_ref: str) -> tuple[int, int]:
-    match = re.match(r'([A-Z]+)(\d+)', cell_ref)
-    if not match:
-        raise ValueError(f'Invalid cell reference: {cell_ref}')
-    col = 0
-    for ch in match.group(1):
-        col = col * 26 + (ord(ch) - 64)
-    return col, int(match.group(2))
 
 
 def _normalize_header(value: Any) -> str:
@@ -118,40 +108,35 @@ def _normalize_terms_of_payment(value: Any) -> str:
 
 
 def _read_xlsx_rows(path: Path) -> list[list[Any]]:
-    with zipfile.ZipFile(path) as zf:
-        shared: list[str] = []
-        if 'xl/sharedStrings.xml' in zf.namelist():
-            shared_root = ET.fromstring(zf.read('xl/sharedStrings.xml'))
-            for si in shared_root.findall('m:si', NS):
-                texts = [t.text or '' for t in si.findall('.//m:t', NS)]
-                shared.append(''.join(texts))
+    try:
+        workbook = load_workbook(path, data_only=True, read_only=True)
+    except (BadZipFile, InvalidFileException, OSError, ValueError, KeyError) as exc:
+        raise ValueError('Unable to read this Excel workbook. Please upload a valid .xlsx file.') from exc
+    try:
+        return [list(row) for row in workbook.active.iter_rows(values_only=True)]
+    finally:
+        workbook.close()
 
-        sheet = ET.fromstring(zf.read('xl/worksheets/sheet1.xml'))
-        cells: dict[int, dict[int, Any]] = {}
-        for cell in sheet.findall('.//m:c', NS):
-            ref = cell.get('r')
-            if not ref:
+
+def _extract_as_of_date(rows: list[list[Any]]) -> date | None:
+    for row in rows[:12]:
+        text = ' '.join(str(value) for value in row if value is not None)
+        match = re.search(
+            r'\b([A-Za-z]+)\s+(\d{1,2})\s*,?\s+(\d{4})\b',
+            text,
+        )
+        if not match:
+            continue
+        month, day, year = match.groups()
+        for month_format in ('%B', '%b'):
+            try:
+                return datetime.strptime(
+                    f'{month} {day} {year}',
+                    f'{month_format} %d %Y',
+                ).date()
+            except ValueError:
                 continue
-            col, row = _col_row(ref)
-            value_el = cell.find('m:v', NS)
-            if value_el is None or value_el.text is None:
-                val = ''
-            elif cell.get('t') == 's':
-                val = shared[int(value_el.text)]
-            else:
-                val = value_el.text
-            cells.setdefault(row, {})[col] = val
-
-    if not cells:
-        return []
-
-    max_row = max(cells)
-    max_col = max(max(row.keys()) for row in cells.values())
-    rows = []
-    for row_num in range(1, max_row + 1):
-        row_data = [cells.get(row_num, {}).get(col, '') for col in range(1, max_col + 1)]
-        rows.append(row_data)
-    return rows
+    return None
 
 
 def parse_ageing_accounts_xlsx(path: Path) -> dict:
@@ -161,21 +146,37 @@ def parse_ageing_accounts_xlsx(path: Path) -> dict:
             'lines': [],
             'total_amount': Decimal('0'),
             'total_amount_paid': Decimal('0'),
+            'as_of_date': None,
             'source_filename': path.name,
         }
 
-    header_row = rows[0]
+    header_index = None
     col_map: dict[int, str] = {}
-    for index, header in enumerate(header_row):
-        key = HEADER_ALIASES.get(_normalize_header(header))
-        if key:
-            col_map[index] = key
+    for row_index, row in enumerate(rows):
+        candidate = {}
+        for index, header in enumerate(row):
+            key = _normalize_header(header)
+            if key in HEADER_ALIASES:
+                candidate[index] = HEADER_ALIASES[key]
+        fields = set(candidate.values())
+        if 'customer_name' in fields and 'amount' in fields:
+            header_index = row_index
+            col_map = candidate
+            break
+    if header_index is None:
+        return {
+            'lines': [],
+            'total_amount': Decimal('0'),
+            'total_amount_paid': Decimal('0'),
+            'as_of_date': _extract_as_of_date(rows),
+            'source_filename': path.name,
+        }
 
     lines = []
-    total_amount = Decimal('0')
-    total_amount_paid = Decimal('0')
+    total_amount: Decimal | None = None
+    total_amount_paid: Decimal | None = None
 
-    for row in rows[1:]:
+    for row in rows[header_index + 1:]:
         if not row:
             continue
         record: dict[str, Any] = {field: '' for field in HEADER_ALIASES.values()}
@@ -233,8 +234,9 @@ def parse_ageing_accounts_xlsx(path: Path) -> dict:
             'sort_order': len(lines),
         })
 
-    if not total_amount and not total_amount_paid:
+    if total_amount is None:
         total_amount = sum((line['amount'] or Decimal('0') for line in lines), Decimal('0'))
+    if total_amount_paid is None:
         total_amount_paid = sum((line['amount_paid'] or Decimal('0') for line in lines), Decimal('0'))
 
     total_amount = Decimal(total_amount).quantize(Decimal('0.01'))
@@ -244,5 +246,6 @@ def parse_ageing_accounts_xlsx(path: Path) -> dict:
         'lines': lines,
         'total_amount': total_amount,
         'total_amount_paid': total_amount_paid,
+        'as_of_date': _extract_as_of_date(rows),
         'source_filename': path.name,
     }

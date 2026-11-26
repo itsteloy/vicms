@@ -1,31 +1,40 @@
 (function () {
-        // ── Tab switching (now using URL parameter or active_tab) ──
-        const tabs = document.querySelectorAll('.sidebar-nav .tab-button');
-        const panels = {
-            'sales-tab': document.getElementById('sales-tab'),
-            'analytics-tab': document.getElementById('analytics-tab'),
-            'product-quotation-tab': document.getElementById('product-quotation-tab'),
-            'service-quotation-tab': document.getElementById('service-quotation-tab'),
-            'collection-form-tab': document.getElementById('collection-form-tab'),
-            'ageing-accounts-tab': document.getElementById('ageing-accounts-tab'),
-            'retention-summary-tab': document.getElementById('retention-summary-tab'),
-            'petty-cash-tab': document.getElementById('petty-cash-tab'),
-            'check-voucher-tab': document.getElementById('check-voucher-tab'),
-            'saved-documents-tab': document.getElementById('saved-documents-tab'),
-        };
+        // Tab switching (DOM-driven so new tabs/panels stay in sync)
+        const tabs = Array.from(document.querySelectorAll('.sidebar-nav .tab-button[data-tab-target]'));
+        const panels = {};
+        tabs.forEach((btn) => {
+            const id = btn.dataset.tabTarget;
+            if (!id) return;
+            const panel = document.getElementById(id);
+            if (panel) panels[id] = panel;
+        });
+        Object.keys(panels).forEach((id) => {
+            const linkedBtn = tabs.find((btn) => btn.dataset.tabTarget === id);
+            if (linkedBtn) linkedBtn.setAttribute('aria-selected', panels[id].classList.contains('is-active') ? 'true' : 'false');
+        });
+
+        function resolveActiveTab(preferredId) {
+            if (preferredId && panels[preferredId]) return preferredId;
+            const serverTab = window.__SALES_CONFIG__ && window.__SALES_CONFIG__.activeTab;
+            if (serverTab && panels[serverTab]) return serverTab;
+            const domActive = Object.keys(panels).find((id) => panels[id].classList.contains('is-active'));
+            if (domActive) return domActive;
+            if (panels['sales-tab']) return 'sales-tab';
+            return Object.keys(panels)[0] || null;
+        }
 
         // Function to activate a tab
         function activateTab(targetId) {
+            const activeId = resolveActiveTab(targetId);
+            if (!activeId) return;
             tabs.forEach((btn) => {
-                const isTarget = btn.dataset.tabTarget === targetId;
+                const isTarget = btn.dataset.tabTarget === activeId;
                 btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
             });
             Object.keys(panels).forEach((id) => {
-                if (panels[id]) {
-                    panels[id].classList.toggle('is-active', id === targetId);
-                }
+                panels[id].classList.toggle('is-active', id === activeId);
             });
-            const landscapePrint = ['ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab', 'check-voucher-tab'].includes(targetId);
+            const landscapePrint = ['ageing-accounts-tab', 'retention-summary-tab', 'petty-cash-tab', 'check-voucher-tab'].includes(activeId);
             document.body.classList.toggle('sales-print-landscape', landscapePrint);
             let pageStyle = document.getElementById('sales-print-page-style');
             if (!pageStyle) {
@@ -37,7 +46,6 @@
                 ? '@media print { @page { size: A4 landscape; margin: 6mm; } }'
                 : '';
         }
-
         function getCsrfToken() {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; csrftoken=`);
@@ -359,19 +367,8 @@
             });
         }
 
-        // Set initial active tab based on server-side active_tab (already set in HTML)
-        // We'll also ensure the URL has ?tab=... if missing
-        const urlParams = new URLSearchParams(window.location.search);
-        const tabParam = urlParams.get('tab');
-        if (tabParam && panels[tabParam]) {
-            activateTab(tabParam);
-        } else {
-            // If no tab param, use the active_tab from template (which is set by server)
-            const activeTab = (window.__SALES_CONFIG__ && window.__SALES_CONFIG__.activeTab) || 'sales-tab';
-            if (panels[activeTab]) {
-                activateTab(activeTab);
-            }
-        }
+        const initialTab = new URLSearchParams(window.location.search).get('tab');
+        activateTab(initialTab);
 
         // Click handlers: update URL with tab parameter
         tabs.forEach((btn) => {
@@ -380,12 +377,15 @@
                 // Update URL without reload
                 const url = new URL(window.location);
                 url.searchParams.set('tab', targetId);
-                window.history.pushState({}, '', url);
+                window.history.replaceState({}, '', url);
                 activateTab(targetId);
             });
         });
 
-        // ── Category performance select sync (unchanged) ──
+        window.addEventListener('popstate', function () {
+            const tabParam = new URLSearchParams(window.location.search).get('tab');
+            activateTab(tabParam);
+        });        // ── Category performance select sync (unchanged) ──
         document.querySelectorAll('.product-code-select').forEach((select) => {
             const card = select.closest('[data-category-card]');
             if (!card) return;
@@ -4788,95 +4788,235 @@
             } catch (_) { /* ignore highlight errors */ }
         })();
 
-        // ── Saved Documents delete ──
-        (function initSavedDocumentsDelete() {
-            const cfg = window.__SALES_CONFIG__ || {};
-            function savedDocDeleteUrl(id) {
-                return (cfg.savedDocumentDeleteUrlTemplate || '').replace('/0/', `/${id}/`);
-            }
-            document.querySelectorAll('.sd-delete-doc').forEach((button) => {
-                button.addEventListener('click', async () => {
-                    const id = button.dataset.documentId;
-                    if (!id || !confirm('Delete this saved document? This cannot be undone.')) return;
-                    try {
-                        const response = await fetch(savedDocDeleteUrl(id), {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: { 'X-CSRFToken': getCsrfToken() },
-                        });
-                        const body = await response.json();
-                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
-                        window.location.href = `${cfg.dashboardUrl || ''}?tab=saved-documents-tab`;
-                    } catch (error) {
-                        alert(error.message || 'Could not delete saved document.');
-                    }
-                });
-            });
-        })();        // ── Sales summary row delete ──
+        // Sales summary row delete
         (function initSalesSummaryDelete() {
             const cfg = window.__SALES_CONFIG__ || {};
-            const table = document.querySelector('.sales-summary-table');
-            if (!table) return;
             const deleteUrl = cfg.salesSummaryDeleteUrl || '';
             const formatAmount = (value) => Number(value || 0).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
             });
+            document.querySelectorAll('.sales-summary-table').forEach((table) => {
+                function recomputeTotals() {
+                    let gross = 0;
+                    let outputVat = 0;
+                    let net = 0;
+                    table.querySelectorAll('tbody .sales-summary-row').forEach((row) => {
+                        gross += Number(row.dataset.gross || 0);
+                        outputVat += Number(row.dataset.outputVat || 0);
+                        net += Number(row.dataset.net || 0);
+                    });
+                    table.querySelectorAll('tfoot [data-total="gross"]').forEach((cell) => {
+                        cell.textContent = formatAmount(gross);
+                    });
+                    table.querySelectorAll('tfoot [data-total="output_vat"]').forEach((cell) => {
+                        cell.textContent = formatAmount(outputVat);
+                    });
+                    table.querySelectorAll('tfoot [data-total="net"]').forEach((cell) => {
+                        cell.textContent = formatAmount(net);
+                    });
+                }
 
-            function recomputeTotals() {
-                let gross = 0;
-                let outputVat = 0;
-                let net = 0;
-                table.querySelectorAll('tbody .sales-summary-row').forEach((row) => {
-                    gross += Number(row.dataset.gross || 0);
-                    outputVat += Number(row.dataset.outputVat || 0);
-                    net += Number(row.dataset.net || 0);
-                });
-                table.querySelectorAll('tfoot [data-total="gross"]').forEach((cell) => {
-                    cell.textContent = formatAmount(gross);
-                });
-                table.querySelectorAll('tfoot [data-total="output_vat"]').forEach((cell) => {
-                    cell.textContent = formatAmount(outputVat);
-                });
-                table.querySelectorAll('tfoot [data-total="net"]').forEach((cell) => {
-                    cell.textContent = formatAmount(net);
-                });
-            }
+                table.querySelectorAll('.sales-summary-delete').forEach((button) => {
+                    button.addEventListener('click', async () => {
+                        const sourceType = button.dataset.sourceType;
+                        const sourceId = button.dataset.sourceId;
+                        if (!sourceType || !sourceId || !deleteUrl) return;
+                        if (!confirm('Remove this row from the Sales Summary? The water billing payment record will remain.')) return;
 
-            table.querySelectorAll('.sales-summary-delete').forEach((button) => {
-                button.addEventListener('click', async () => {
-                    const sourceType = button.dataset.sourceType;
-                    const sourceId = button.dataset.sourceId;
-                    if (!sourceType || !sourceId || !deleteUrl) return;
-                    if (!confirm('Remove this row from the Sales Summary? The water billing payment record will remain.')) return;
+                        button.disabled = true;
+                        try {
+                            const formData = new FormData();
+                            formData.append('source_type', sourceType);
+                            formData.append('source_id', sourceId);
+                            const response = await fetch(deleteUrl, {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: { 'X-CSRFToken': getCsrfToken() },
+                                body: formData,
+                            });
+                            const body = await response.json();
+                            if (!response.ok) throw new Error(body?.error || 'Delete failed.');
 
-                    button.disabled = true;
-                    try {
-                        const formData = new FormData();
-                        formData.append('source_type', sourceType);
-                        formData.append('source_id', sourceId);
-                        const response = await fetch(deleteUrl, {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: { 'X-CSRFToken': getCsrfToken() },
-                            body: formData,
-                        });
-                        const body = await response.json();
-                        if (!response.ok) throw new Error(body?.error || 'Delete failed.');
-
-                        button.closest('tr')?.remove();
-                        recomputeTotals();
-                        if (!table.querySelector('tbody .sales-summary-row')) {
-                            window.location.href = `${cfg.dashboardUrl || ''}?tab=sales-tab`;
+                            button.closest('tr')?.remove();
+                            recomputeTotals();
+                            if (!table.querySelector('tbody .sales-summary-row')) {
+                                const tab = table.closest('.tab-panel')?.id || 'sales-tab';
+                                window.location.href = `${cfg.dashboardUrl || ''}?tab=${tab}`;
+                            }
+                        } catch (error) {
+                            alert(error.message || 'Could not remove this sales summary row.');
+                            button.disabled = false;
                         }
-                    } catch (error) {
-                        alert(error.message || 'Could not remove this sales summary row.');
-                        button.disabled = false;
-                    }
+                    });
                 });
             });
         })();
 
+        // Modern line charts for analytics period cards
+        (function initSalesLineCharts() {
+            const charts = Array.from(document.querySelectorAll('.sales-line-chart'));
+            if (!charts.length) return;
+
+            function formatMoney(value) {
+                const n = Number(value || 0);
+                return '₱' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            function compactMoney(value) {
+                const n = Number(value || 0);
+                const abs = Math.abs(n);
+                if (abs >= 1000000) return '₱' + (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                if (abs >= 1000) return '₱' + (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                return '₱' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            }
+
+            charts.forEach((el, idx) => {
+                const valuesId = el.dataset.valuesId;
+                const dataScript = valuesId ? document.getElementById(valuesId) : null;
+                let data = [];
+                try { data = dataScript ? JSON.parse(dataScript.textContent || '[]') : []; } catch (_) { data = []; }
+                data = (Array.isArray(data) ? data : []).map((d) => ({
+                    label: String(d && d.label != null ? d.label : ''),
+                    amount: Number(d && d.amount != null ? d.amount : 0) || 0,
+                }));
+                if (!data.length) return;
+
+                const w = 640;
+                const h = 220;
+                const pad = { t: 18, r: 18, b: 34, l: 58 };
+                const plotW = w - pad.l - pad.r;
+                const plotH = h - pad.t - pad.b;
+                const values = data.map((d) => d.amount);
+                let maxV = Math.max.apply(null, values.concat([0]));
+                if (!(maxV > 0)) maxV = 1;
+                const niceMax = maxV * 1.15;
+                const minV = 0;
+                const xFor = (i) => pad.l + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW);
+                const yFor = (v) => pad.t + plotH - ((v - minV) / (niceMax - minV || 1)) * plotH;
+
+                function linePath(pts) {
+                    if (!pts.length) return '';
+                    if (pts.length === 1) return 'M ' + pts[0].x + ' ' + pts[0].y;
+                    let d = 'M ' + pts[0].x + ' ' + pts[0].y;
+                    for (let i = 0; i < pts.length - 1; i++) {
+                        const p0 = pts[i - 1] || pts[i];
+                        const p1 = pts[i];
+                        const p2 = pts[i + 1];
+                        const p3 = pts[i + 2] || p2;
+                        const cp1x = p1.x + (p2.x - p0.x) / 6;
+                        const cp1y = p1.y + (p2.y - p0.y) / 6;
+                        const cp2x = p2.x - (p3.x - p1.x) / 6;
+                        const cp2y = p2.y - (p3.y - p1.y) / 6;
+                        d += ' C ' + cp1x + ' ' + cp1y + ', ' + cp2x + ' ' + cp2y + ', ' + p2.x + ' ' + p2.y;
+                    }
+                    return d;
+                }
+
+                const pts = data.map((d, i) => ({ x: xFor(i), y: yFor(d.amount), label: d.label, amount: d.amount }));
+                const dLine = linePath(pts);
+                const baseY = yFor(0);
+                const dArea = dLine + ' L ' + pts[pts.length - 1].x + ' ' + baseY + ' L ' + pts[0].x + ' ' + baseY + ' Z';
+
+                const uid = (el.dataset.chartId || ('slc-' + idx)) + '-' + Math.random().toString(36).slice(2, 7);
+                const gradId = 'slc-grad-' + uid;
+                const stroke = '#0f766e';
+                const stroke2 = '#14b8a6';
+
+                const gridLines = 4;
+                let gridSvg = '';
+                for (let i = 0; i <= gridLines; i++) {
+                    const v = (niceMax / gridLines) * i;
+                    const y = yFor(v);
+                    gridSvg += '<line class="slc-grid" x1="' + pad.l + '" y1="' + y + '" x2="' + (w - pad.r) + '" y2="' + y + '" />';
+                    gridSvg += '<text class="slc-axis-label" x="' + (pad.l - 8) + '" y="' + (y + 4) + '" text-anchor="end">' + compactMoney(v) + '</text>';
+                }
+
+                const labelStep = Math.max(1, Math.ceil(data.length / 4));
+                let xLabels = '';
+                data.forEach((d, i) => {
+                    if (i === 0 || i === data.length - 1 || i % labelStep === 0) {
+                        const short = d.label.length > 7 ? d.label.slice(5) : d.label;
+                        xLabels += '<text class="slc-axis-label" x="' + pts[i].x + '" y="' + (h - 10) + '" text-anchor="middle">' + short + '</text>';
+                    }
+                });
+
+                const pointsSvg = pts.map((p, i) =>
+                    '<circle class="slc-point" cx="' + p.x + '" cy="' + p.y + '" r="4" stroke="' + stroke + '" data-i="' + i + '" />'
+                ).join('');
+
+                el.innerHTML = ''
+                    + '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+                    +   '<defs>'
+                    +     '<linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
+                    +       '<stop offset="0%" stop-color="' + stroke2 + '" stop-opacity="0.45" />'
+                    +       '<stop offset="100%" stop-color="' + stroke2 + '" stop-opacity="0.02" />'
+                    +     '</linearGradient>'
+                    +   '</defs>'
+                    +   gridSvg
+                    +   '<path class="slc-area" d="' + dArea + '" fill="url(#' + gradId + ')"></path>'
+                    +   '<path class="slc-line" d="' + dLine + '" stroke="' + stroke + '"></path>'
+                    +   pointsSvg
+                    +   '<line class="slc-focus-line" x1="0" y1="' + pad.t + '" x2="0" y2="' + (pad.t + plotH) + '" style="display:none"></line>'
+                    +   xLabels
+                    + '</svg>'
+                    + '<div class="slc-tooltip"><span class="slc-tip-label"></span><span class="slc-tip-value"></span></div>';
+
+                const svg = el.querySelector('svg');
+                const tip = el.querySelector('.slc-tooltip');
+                const tipLabel = el.querySelector('.slc-tip-label');
+                const tipValue = el.querySelector('.slc-tip-value');
+                const focusLine = el.querySelector('.slc-focus-line');
+                const circles = Array.from(el.querySelectorAll('.slc-point'));
+                if (!svg || !tip || !tipLabel || !tipValue || !focusLine) return;
+
+                function showTip(i) {
+                    const p = pts[i];
+                    if (!p) return;
+                    circles.forEach((c, ci) => {
+                        c.classList.toggle('is-active', ci === i);
+                        c.setAttribute('r', ci === i ? '5.5' : '4');
+                    });
+                    tipLabel.textContent = p.label;
+                    tipValue.textContent = formatMoney(p.amount);
+                    tip.style.display = 'block';
+                    const svgRect = svg.getBoundingClientRect();
+                    const px = (p.x / w) * svgRect.width;
+                    const py = (p.y / h) * svgRect.height;
+                    let left = px;
+                    left = Math.max(44, Math.min(svgRect.width - 44, left));
+                    tip.style.left = left + 'px';
+                    tip.style.top = py + 'px';
+                    focusLine.setAttribute('x1', String(p.x));
+                    focusLine.setAttribute('x2', String(p.x));
+                    focusLine.style.display = 'block';
+                }
+                function hideTip() {
+                    tip.style.display = 'none';
+                    focusLine.style.display = 'none';
+                    circles.forEach((c) => { c.classList.remove('is-active'); c.setAttribute('r', '4'); });
+                }
+                function nearestIndex(clientX) {
+                    const rect = svg.getBoundingClientRect();
+                    const mx = ((clientX - rect.left) / rect.width) * w;
+                    let best = 0;
+                    let bestD = Infinity;
+                    pts.forEach((p, i) => {
+                        const d = Math.abs(p.x - mx);
+                        if (d < bestD) { bestD = d; best = i; }
+                    });
+                    return best;
+                }
+
+                el.addEventListener('mousemove', (e) => { showTip(nearestIndex(e.clientX)); });
+                el.addEventListener('mouseleave', hideTip);
+                el.addEventListener('touchstart', (e) => {
+                    if (e.touches && e.touches[0]) showTip(nearestIndex(e.touches[0].clientX));
+                }, { passive: true });
+                el.addEventListener('touchmove', (e) => {
+                    if (e.touches && e.touches[0]) showTip(nearestIndex(e.touches[0].clientX));
+                }, { passive: true });
+            });
+        })();
 
     })();
 

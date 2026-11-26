@@ -37,12 +37,14 @@
           <th>WATER BILL</th>
           <th>Installation fee</th>
           <th>Reconnection fee</th>
+          <th>WATER REFILL</th>
+          <th>OTHER PAYMENTS</th>
         </tr>
       </thead>
       <tbody id="weeklyBillingBody">
         {% for row in weekly_rows %}
         <tr class="weekly-billing-row{% if row.other_id %} weekly-other-row{% endif %}"
-            {% if row.other_id %}data-other-id="{{ row.other_id }}" data-amount="{{ row.other_amount }}" data-payment-of="{{ row.payment_of|default:'' }}"{% endif %}>
+            {% if row.other_id %}data-other-id="{{ row.other_id }}" data-amount="{{ row.other_amount }}" data-payment-of="{{ row.payment_of|default:'' }}" data-breakdown="{{ row.breakdown|default:'none' }}"{% endif %}>
           <td class="num">{{ row.row_no }}</td>
           <td>{{ row.row_date|date:"m-d-Y" }}</td>
           <td class="name">{{ row.name }}</td>
@@ -68,21 +70,25 @@
               ₱{{ row.cash_received_by_aid|floatformat:2|intcomma }}
             {% endif %}
           </td>
-          <td class="amt">{% if row.water_bill %}₱{{ row.water_bill|floatformat:2|intcomma }}{% endif %}</td>
-          <td class="amt">{% if row.installation_fee %}₱{{ row.installation_fee|floatformat:2|intcomma }}{% endif %}</td>
-          <td class="amt">{% if row.reconnection_fee %}₱{{ row.reconnection_fee|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="amt weekly-bd-water-bill">{% if row.water_bill %}₱{{ row.water_bill|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="amt weekly-bd-installation">{% if row.installation_fee %}₱{{ row.installation_fee|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="amt weekly-bd-reconnection">{% if row.reconnection_fee %}₱{{ row.reconnection_fee|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="amt weekly-bd-water-refill">{% if row.water_refill %}₱{{ row.water_refill|floatformat:2|intcomma }}{% endif %}</td>
+          <td class="amt weekly-bd-other-payments">{% if row.other_payments %}₱{{ row.other_payments|floatformat:2|intcomma }}{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="13" class="empty">No billing or other payments in this date range.</td></tr>
+        <tr><td colspan="15" class="empty">No billing or other payments in this date range.</td></tr>
         {% endfor %}
         <tr class="totals">
           <td colspan="7">TOTAL</td>
           <td class="amt col-cash-bank" id="weeklyCollectionCashTotal">₱{{ weekly_totals.cash_in_bank|floatformat:2|intcomma }}</td>
           <td class="amt col-gcash" id="weeklyCollectionGcashTotal">₱{{ weekly_totals.gcash|floatformat:2|intcomma }}</td>
           <td class="amt col-aid" id="weeklyCollectionAidTotal">₱{{ weekly_totals.cash_received_by_aid|floatformat:2|intcomma }}</td>
-          <td class="amt highlight">₱{{ weekly_totals.water_bill|floatformat:2|intcomma }}</td>
-          <td class="amt highlight">₱{{ weekly_totals.installation_fee|floatformat:2|intcomma }}</td>
-          <td class="amt highlight">₱{{ weekly_totals.reconnection_fee|floatformat:2|intcomma }}</td>
+          <td class="amt highlight" id="weeklyWaterBillTotal">₱{{ weekly_totals.water_bill|floatformat:2|intcomma }}</td>
+          <td class="amt highlight" id="weeklyInstallationFeeTotal">₱{{ weekly_totals.installation_fee|floatformat:2|intcomma }}</td>
+          <td class="amt highlight" id="weeklyReconnectionFeeTotal">₱{{ weekly_totals.reconnection_fee|floatformat:2|intcomma }}</td>
+          <td class="amt highlight" id="weeklyWaterRefillTotal">₱{{ weekly_totals.water_refill|floatformat:2|intcomma }}</td>
+          <td class="amt highlight" id="weeklyOtherPaymentsTotal">₱{{ weekly_totals.other_payments|floatformat:2|intcomma }}</td>
         </tr>
       </tbody>
     </table>

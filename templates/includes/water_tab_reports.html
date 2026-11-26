@@ -13,6 +13,7 @@
           <option value="outstanding" {% if report_type == 'outstanding' %}selected{% endif %}>Outstanding Balance</option>
           <option value="consumption" {% if report_type == 'consumption' %}selected{% endif %}>Consumption</option>
           <option value="customers" {% if report_type == 'customers' %}selected{% endif %}>Customer</option>
+          <option value="customer_ledger" {% if report_type == 'customer_ledger' %}selected{% endif %}>Customer Monthly Ledger</option>
           <option value="revenue" {% if report_type == 'revenue' %}selected{% endif %}>Revenue</option>
           <option value="disconnection" {% if report_type == 'disconnection' %}selected{% endif %}>Disconnection</option>
           <option value="reconnection" {% if report_type == 'reconnection' %}selected{% endif %}>Reconnection</option>
@@ -29,10 +30,26 @@
         <label for="weekEnd">Weekly report end</label>
         <input type="date" name="week_end" id="weekEnd" value="{{ week_end|date:'Y-m-d' }}">
       </div>
+      <div class="field" id="ledgerYearFields" {% if report_type != 'customer_ledger' %}hidden{% endif %}>
+        <label for="ledgerYear">Year</label>
+        <input type="number" name="ledger_year" id="ledgerYear" min="2000" max="2100" value="{{ ledger_year|default:'' }}">
+      </div>
+      <div class="field" id="ledgerZoneFields" {% if report_type != 'customer_ledger' %}hidden{% endif %}>
+        <label for="ledgerZone">Zone</label>
+        <select name="ledger_zone" id="ledgerZone">
+          <option value="">All zones</option>
+          {% for zone in water_zones %}
+          <option value="{{ zone.id }}" {% if ledger_zone == zone.id|stringformat:"s" %}selected{% endif %}>{{ zone.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <button type="submit" class="action primary">Show</button>
       {% if report_type == 'weekly' %}
       <a class="action" href="{% url 'water_billing_export_csv' %}?report=weekly&week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Export CSV</a>
       <a class="action" href="{% url 'print_water_weekly_report' %}?week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Print</a>
+      {% elif report_type == 'customer_ledger' %}
+      <a class="action" href="{% url 'water_customer_ledger_xlsx' %}?year={{ ledger_year }}{% if ledger_zone %}&zone={{ ledger_zone }}{% endif %}">Export Excel</a>
+      <button type="button" class="action" onclick="window.print()">Print</button>
       {% else %}
       <a class="action" href="{% url 'water_billing_export_csv' %}?report={{ report_type }}">Export CSV</a>
       <button type="button" class="action" onclick="window.print()">Print</button>
@@ -80,7 +97,35 @@
   {% else %}
   <div class="table-wrap">
     <table class="data">
-      {% if report_type == 'customers' %}
+      {% if report_type == 'customer_ledger' %}
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+          <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+          <th>Current Water Bill Balance</th>
+          <th>Installment Balance</th>
+          <th>Total Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report_rows %}
+        <tr>
+          <td>{{ row.name }}</td>
+          {% for m in row.months %}
+          <td class="ledger-month">
+            {% if m.previous_reading is not None %}<span class="ledger-reading">Rdg {{ m.previous_reading }}&#8594;{{ m.current_reading }}</span>{% endif %}
+            {% if m.has_bill %}<span class="ledger-cum">{{ m.consumption }} cu.m</span>{% endif %}
+            {% if m.payment %}<span class="ledger-payment">&#8369;{{ m.payment|floatformat:2|intcomma }}</span>{% endif %}
+          </td>
+          {% endfor %}
+          <td>&#8369;{{ row.current_water_balance|floatformat:2|intcomma }}</td>
+          <td>&#8369;{{ row.installment_balance|floatformat:2|intcomma }}</td>
+          <td>&#8369;{{ row.total_balance|floatformat:2|intcomma }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="16" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% elif report_type == 'customers' %}
       <thead><tr><th>Account</th><th>Name</th><th>Type</th><th>Meter</th><th>Status</th><th>Address</th></tr></thead>
       <tbody>
         {% for c in report_rows %}

@@ -621,6 +621,16 @@ table.data tr:last-child td { border-bottom: none; }
 table.data tr:hover td { background: #f8fafc; }
 .cell-muted { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
 
+.ledger-month span {
+  display: block;
+  line-height: 1.3;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-reading { color: #475467; }
+.ledger-cum { color: #027a48; font-weight: 600; }
+.ledger-payment { color: #1d4ed8; font-weight: 600; }
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -840,6 +850,17 @@ table.data tr:hover td { background: #f8fafc; }
   height: 18px;
   accent-color: var(--brand);
   cursor: pointer;
+}
+.red-bill-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0;
+}
+.red-bill-pick .action {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 .batch-print-bar {
   position: sticky;
@@ -1146,6 +1167,9 @@ body.wb-modal-open {
 [data-theme="dark"] table.data tr:hover td {
   background: #1f2a38;
 }
+[data-theme="dark"] .ledger-reading { color: #b6bfcc; }
+[data-theme="dark"] .ledger-cum { color: #6ee7b7; }
+[data-theme="dark"] .ledger-payment { color: #93c5fd; }
 
 /* buttons / options */
 [data-theme="dark"] button,

@@ -7,13 +7,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
-<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sales-summary1">
-<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/sales.css' %}?v=sales-summary3">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=5">
 <script>
   try {
     if (localStorage.getItem('salesSidebarCollapsed') === '1') {
       document.documentElement.classList.add('sidebar-pref-collapsed');
     }
+    var _sidebarW = parseInt(localStorage.getItem('salesSidebarCollapsed:width'), 10);
+    if (!isNaN(_sidebarW)) document.documentElement.style.setProperty('--sidebar-w', _sidebarW + 'px');
   } catch (e) {}
 </script>
 {% endblock %}
@@ -27,200 +29,86 @@
 
         <!-- ─── TAB PANELS ─── -->
 
-        <!-- 1️⃣ SALES TAB (Sales Summary) -->
+        <!-- 1?? SALES TAB (Sales Summary) -->
         <div id="sales-tab" class="tab-panel {% if active_tab == 'sales-tab' %}is-active{% endif %}">
-            <div class="sales-summary">
-                <div class="sales-summary-toolbar no-print">
-                    <div>
-                        <h2>Sales Summary</h2>
-                        <p>Water billing collections by month, based on cash in bank, GCash, and cash received by AID.</p>
-                    </div>
-                    <button type="button" class="action primary" onclick="window.print()">🖨️ Print</button>
-                </div>
-
-                {% if sales_summary_months %}
-                <nav class="sales-month-tabs no-print" aria-label="Sales summary months">
-                    {% for month in sales_summary_months %}
-                    <a class="sales-month-tab{% if sales_summary and month.key == sales_summary.key %} is-active{% endif %}"
-                        href="?tab=sales-tab&amp;sales_month={{ month.key }}">{{ month.short_label }}</a>
-                    {% endfor %}
-                </nav>
-
-                {% if sales_summary %}
-                <div class="sales-summary-sheet">
-                    <header class="sales-summary-head">
-                        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation letterhead"
-                            class="sales-summary-letterhead">
-                        <h1>SALES SUMMARY</h1>
-                        <p class="sales-summary-month">{{ sales_summary.label }}</p>
-                    </header>
-
-                    <div class="sales-summary-table-wrap">
-                        <table class="sales-summary-table">
-                            <thead>
-                                <tr class="sales-summary-group">
-                                    <th colspan="5">INFORMATION</th>
-                                    <th colspan="3"></th>
-                                    <th class="no-print"></th>
-                                </tr>
-                                <tr>
-                                    <th>DATE</th>
-                                    <th>PARTICULARS</th>
-                                    <th>OR</th>
-                                    <th>NO.</th>
-                                    <th>AMOUNT</th>
-                                    <th>GROSS OF VAT</th>
-                                    <th>OUTPUT VAT</th>
-                                    <th>NET OF VAT</th>
-                                    <th class="no-print">ACTION</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in sales_summary.rows %}
-                                <tr class="sales-summary-row"
-                                    data-gross="{{ row.gross|floatformat:2 }}"
-                                    data-output-vat="{{ row.output_vat|floatformat:2 }}"
-                                    data-net="{{ row.net|floatformat:2 }}">
-                                    <td class="col-date">{{ row.date|date:"d/m/Y" }}</td>
-                                    <td class="col-particulars">{{ row.particulars }}</td>
-                                    <td class="col-or">{{ row.or_type }}</td>
-                                    <td class="col-no">{{ row.display_ar_number }}</td>
-                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
-                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
-                                    <td class="amt">{{ row.output_vat|floatformat:2|intcomma }}</td>
-                                    <td class="amt">{{ row.net|floatformat:2|intcomma }}</td>
-                                    <td class="no-print sales-summary-action">
-                                        <button type="button"
-                                            class="action sales-summary-delete"
-                                            data-source-type="{{ row.source_type }}"
-                                            data-source-id="{{ row.source_id }}"
-                                            style="font-size:0.72rem;padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr class="sales-summary-totals">
-                                    <td colspan="4">TOTAL</td>
-                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
-                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
-                                    <td class="amt" data-total="output_vat">{{ sales_summary.totals.output_vat|floatformat:2|intcomma }}</td>
-                                    <td class="amt" data-total="net">{{ sales_summary.totals.net|floatformat:2|intcomma }}</td>
-                                    <td class="no-print"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <div class="sales-summary-prepared">
-                        <div class="sales-summary-prepared-label">PREPARED BY:</div>
-                        <div class="sales-summary-prepared-space"></div>
-                        <div class="sales-summary-prepared-name">ANGELMARIE M. DAPAR</div>
-                        <div class="sales-summary-prepared-title">ADMIN &amp; FINANCE</div>
-                    </div>
-                </div>
-                {% endif %}
-                {% else %}
-                <div class="empty-state-sm">No water billing transactions recorded yet.</div>
-                {% endif %}
-            </div>
+            {% include "includes/sales_summary_block.html" with summary_tab="sales-tab" %}
         </div>
 
         <!-- 2️⃣ ANALYTICS TAB -->
         <div id="analytics-tab" class="tab-panel {% if active_tab == 'analytics-tab' %}is-active{% endif %}">
             <div class="panel-header">
-                <h2>Reporting &amp; Analytics</h2>
+                <h2>Sales Analytics Overview</h2>
                 <p>Sales totals by day, week, month, peak hour, and per-purchase performance.</p>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:16px;">
+                <article class="card">
+                    <h2>Sales Summary</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">
+                        {% if sales_summary_months %}₱{{ sales_summary_all_totals.gross|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </p>
+                    <p style="color:var(--muted);font-size:0.85rem;">Gross of VAT · All months{% if sales_summary_months %} ({{ sales_summary_months|length }}){% endif %}</p>
+                </article>
+                <article class="card">
+                    <h2>Output VAT</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">
+                        {% if sales_summary_months %}₱{{ sales_summary_all_totals.output_vat|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </p>
+                    <p style="color:var(--muted);font-size:0.85rem;">Sales Summary · All months</p>
+                </article>
+                <article class="card">
+                    <h2>Net of VAT</h2>
+                    <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">
+                        {% if sales_summary_months %}₱{{ sales_summary_all_totals.net|floatformat:2|intcomma }}{% else %}—{% endif %}
+                    </p>
+                    <p style="color:var(--muted);font-size:0.85rem;">Sales Summary · All months</p>
+                </article>
             </div>
 
             <!-- Chart cards -->
             <div class="grid-3">
                 <article class="card chart-card">
-                    <h2>📅 Daily Sales</h2>
-                    <p>{{ daily_summary|length }} day(s)</p>
+                    <h2>Daily Sales</h2>
                     {% if daily_summary %}
-                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Daily sales line chart">
-                        <path d="M 20 100 C 60 85, 80 70, 120 78 S 180 105, 220 70 S 280 40, 300 30" fill="none"
-                            stroke="#0f766e" stroke-width="3" />
-                        <circle cx="300" cy="30" r="5" fill="#0f766e" />
-                    </svg>
-                    <div class="chart-labels">
-                        {% for item in daily_summary %}
-                        <span>{{ item.label }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="chart-rows">
-                        {% for item in daily_summary %}
-                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
-                        {% endfor %}
-                    </div>
+                    <div class="sales-line-chart" data-chart-id="daily-sales-chart" data-values-id="daily-sales-data" role="img" aria-label="Daily sales line chart"></div>
+                    {{ daily_summary|json_script:"daily-sales-data" }}
                     {% else %}
                     <p style="margin-top:12px;">No daily sales yet.</p>
                     {% endif %}
                 </article>
 
                 <article class="card chart-card">
-                    <h2>📆 Weekly Sales</h2>
-                    <p>{{ weekly_summary|length }} week(s)</p>
+                    <h2>Weekly Sales</h2>
                     {% if weekly_summary %}
-                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Weekly sales line chart">
-                        <path d="M 20 95 C 65 80, 90 65, 125 70 S 185 90, 220 60 S 275 35, 300 30" fill="none"
-                            stroke="#0f766e" stroke-width="3" />
-                        <circle cx="300" cy="30" r="5" fill="#0f766e" />
-                    </svg>
-                    <div class="chart-labels">
-                        {% for item in weekly_summary %}
-                        <span>{{ item.label }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="chart-rows">
-                        {% for item in weekly_summary %}
-                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
-                        {% endfor %}
-                    </div>
+                    <div class="sales-line-chart" data-chart-id="weekly-sales-chart" data-values-id="weekly-sales-data" role="img" aria-label="Weekly sales line chart"></div>
+                    {{ weekly_summary|json_script:"weekly-sales-data" }}
                     {% else %}
                     <p style="margin-top:12px;">No weekly sales yet.</p>
                     {% endif %}
                 </article>
 
                 <article class="card chart-card">
-                    <h2>📊 Monthly Sales</h2>
-                    <p>{{ monthly_summary|length }} month(s)</p>
+                    <h2>Monthly Sales</h2>
                     {% if monthly_summary %}
-                    <svg class="chart-svg" viewBox="0 0 320 120" role="img" aria-label="Monthly sales line chart">
-                        <path d="M 20 90 C 60 78, 95 55, 125 62 S 185 88, 220 55 S 285 28, 300 20" fill="none"
-                            stroke="#134e4a" stroke-width="3" />
-                        <circle cx="300" cy="20" r="5" fill="#134e4a" />
-                    </svg>
-                    <div class="chart-labels">
-                        {% for item in monthly_summary %}
-                        <span>{{ item.label }}</span>
-                        {% endfor %}
-                    </div>
-                    <div class="chart-rows">
-                        {% for item in monthly_summary %}
-                        <div class="row"><span>{{ item.label }}</span><strong>₱{{ item.amount }}</strong></div>
-                        {% endfor %}
-                    </div>
+                    <div class="sales-line-chart" data-chart-id="monthly-sales-chart" data-values-id="monthly-sales-data" role="img" aria-label="Monthly sales line chart"></div>
+                    {{ monthly_summary|json_script:"monthly-sales-data" }}
                     {% else %}
                     <p style="margin-top:12px;">No monthly sales yet.</p>
                     {% endif %}
                 </article>
-            </div>
-
-            <!-- KPI cards -->
+            </div>            <!-- KPI cards -->
             <div class="grid-3" style="margin-top:16px;">
                 <article class="card">
-                    <h2>⏰ Peak Sales Hour</h2>
+                    <h2>Peak Sales Hour</h2>
                     <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">{{ peak_hour|default:"No sales yet" }}
                     </p>
                 </article>
                 <article class="card">
-                    <h2>💰 Total Revenue</h2>
+                    <h2>Total Revenue</h2>
                     <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">₱{{ total_revenue }}</p>
                 </article>
                 <article class="card">
-                    <h2>📈 Estimated Profit</h2>
+                    <h2>Estimated Profit</h2>
                     <p style="font-size:1.2rem;font-weight:700;color:var(--ink);">₱{{ total_profit }}</p>
                 </article>
             </div>
@@ -266,7 +154,7 @@
         <!-- Category Performance -->
         <div id="category-performance-tab" class="tab-panel {% if active_tab == 'category-performance-tab' %}is-active{% endif %}">
             <div class="panel-header">
-                <h2>Category Performance</h2>
+                <h2>Item Category Performance</h2>
                 <p>Item-led revenue, units sold, and orders by product category.</p>
             </div>
 
@@ -276,9 +164,9 @@
                     <span class="pill">Item-led</span>
                 </div>
 
-                {% if page_obj.object_list %}
+                {% if category_page_obj.object_list %}
                 <div class="perf-list">
-                    {% for category in page_obj.object_list %}
+                    {% for category in category_page_obj.object_list %}
                     <div class="perf-item" data-category-card>
                         <div class="perf-top">
                             <span class="perf-name">{{ category.name }}</span>
@@ -310,14 +198,14 @@
                     {% endfor %}
                 </div>
 
-                {% if show_pagination %}
+                {% if category_show_pagination %}
                 <div class="pagination" style="justify-content:center;margin-top:18px;">
-                    {% if page_obj.has_previous %}
-                    <a class="action" href="?tab=category-performance-tab&amp;page={{ page_obj.previous_page_number }}">‹ Prev</a>
+                    {% if category_page_obj.has_previous %}
+                    <a class="action" href="?tab=category-performance-tab&amp;page={{ category_page_obj.previous_page_number }}">‹ Prev</a>
                     {% endif %}
-                    <span style="color:var(--muted);font-size:0.85rem;">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
-                    {% if page_obj.has_next %}
-                    <a class="action" href="?tab=category-performance-tab&amp;page={{ page_obj.next_page_number }}">Next ›</a>
+                    <span style="color:var(--muted);font-size:0.85rem;">{{ category_page_obj.number }} / {{ category_paginator.num_pages }}</span>
+                    {% if category_page_obj.has_next %}
+                    <a class="action" href="?tab=category-performance-tab&amp;page={{ category_page_obj.next_page_number }}">Next ›</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -333,7 +221,7 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <div id="product-quotation-tab" class="tab-panel {% if active_tab == 'product-quotation-tab' %}is-active{% endif %}">
             <div class="panel" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;" id="pqFormTitle">📦 Create Product Quotation</h1>
+                <h1 style="margin-top:0;" id="pqFormTitle">Create Product Quotation</h1>
                 <div id="pqEditBanner" hidden
                     style="margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#ecfdf3; color:#166534; font-weight:600;">
                     Editing saved quotation.
@@ -342,9 +230,9 @@
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" id="pqSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" id="pqPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" id="pqReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" id="pqSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" id="pqPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" id="pqReset" style="padding:10px 16px;">Reset</button>
                 </div>
 
                 <!-- Quotation details section -->
@@ -610,7 +498,7 @@
 
             <!-- Tracking: Recent Product Quotations -->
             <div class="panel">
-                <h2>📊 Recent Product Quotations</h2>
+                <h2>Recent Product Quotations</h2>
                 <p>Track initial payments and outstanding balances for saved product quotations.</p>
                 <div class="table-wrap" style="margin-top:14px;">
                     <table aria-label="Recent product quotations">
@@ -663,7 +551,7 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <div id="service-quotation-tab" class="tab-panel {% if active_tab == 'service-quotation-tab' %}is-active{% endif %}">
             <div class="panel" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;" id="svqFormTitle">🛠️ Create Service Quotation</h1>
+                <h1 style="margin-top:0;" id="svqFormTitle">Create Service Quotation</h1>
                 <div id="svqEditBanner" hidden
                     style="margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#ecfdf3; color:#166534; font-weight:600;">
                     Editing saved quotation.
@@ -672,9 +560,9 @@
 
                 <!-- Top controls -->
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" id="svqSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" id="svqPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" id="svqReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" id="svqSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" id="svqPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" id="svqReset" style="padding:10px 16px;">Reset</button>
                 </div>
 
                 <!-- Quotation details section -->
@@ -974,12 +862,12 @@
         <!-- ─── COLLECTION FORM ─── -->
         <div id="collection-form-tab" class="tab-panel {% if active_tab == 'collection-form-tab' %}is-active{% endif %}">
             <div class="panel no-print" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">📄 Create Collection Form</h1>
+                <h1 style="margin-top:0;">Create Collection Form</h1>
 
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-                    <button class="action brand-link" type="button" id="cfSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" type="button" id="cfPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" type="button" id="cfReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" type="button" id="cfSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" type="button" id="cfPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" type="button" id="cfReset" style="padding:10px 16px;">Reset</button>
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
@@ -1157,15 +1045,23 @@
 
         <!-- ─── AGEING OF ACCOUNTS ─── -->
         <div id="ageing-accounts-tab" class="tab-panel {% if active_tab == 'ageing-accounts-tab' %}is-active{% endif %}">
-            <div class="panel no-print" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">📊 Create Ageing of Accounts</h1>
+            <nav class="aa-view-tabs no-print" role="tablist" aria-label="Ageing of Accounts">
+                <button class="aa-view-tab is-active" type="button" id="aa-create-tab" role="tab"
+                    aria-controls="aa-create-panel" aria-selected="true">Create Ageing of Accounts</button>
+                <button class="aa-view-tab" type="button" id="aa-preview-tab" role="tab"
+                    aria-controls="aa-preview-panel" aria-selected="false" tabindex="-1">Documents Preview</button>
+            </nav>
+
+            <div class="aa-view-panel" id="aa-create-panel" role="tabpanel" aria-labelledby="aa-create-tab">
+            <div class="panel no-print" id="aa-report-details" style="margin-bottom:20px;">
+                <h1 style="margin-top:0;">Create Ageing of Accounts</h1>
 
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-                    <button class="action brand-link" type="button" id="aaSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" type="button" id="aaPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" type="button" id="aaReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" type="button" id="aaSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" type="button" id="aaPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" type="button" id="aaReset" style="padding:10px 16px;">Reset</button>
                     <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
-                        📥 Import Excel
+                        Import Excel
                         <input type="file" id="aaImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
                     </label>
                     <input type="hidden" id="aaReportId" value="">
@@ -1183,7 +1079,7 @@
                     </div>
                 </div>
 
-                <fieldset style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
+                <fieldset id="aa-account-rows" style="border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px;">
                     <legend style="padding:0 8px; font-weight:700; color:var(--ink);">Account Rows</legend>
                     <div class="aa-row-search no-print" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:12px;">
                         <div class="field" style="flex:1 1 240px; margin:0; min-width:200px;">
@@ -1215,6 +1111,7 @@
                                     <th style="width:110px;">Terms of Payment</th>
                                     <th style="width:110px; text-align:right;">Amount</th>
                                     <th style="width:110px; text-align:right;">Amount Paid</th>
+                                    <th style="width:110px; text-align:right;">Balance Due</th>
                                     <th style="width:100px;">Paid Items</th>
                                     <th style="width:40px;"></th>
                                 </tr>
@@ -1242,6 +1139,7 @@
                                     </td>
                                     <td><input type="text" class="aa-item-amount" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
                                     <td><input type="text" class="aa-item-paid" value="0.00" placeholder="0.00" inputmode="decimal" style="text-align:right;"></td>
+                                    <td class="aa-num"><span class="aa-item-balance">0.00</span></td>
                                     <td><input type="text" class="aa-item-paid-items" placeholder="Paid items"></td>
                                     <td style="text-align:center;">
                                         <button type="button" class="aa-row-remove"
@@ -1263,62 +1161,14 @@
                         <div style="font-size:0.75rem; font-weight:700; opacity:0.9; margin-bottom:4px;">TOTAL AMOUNT PAID</div>
                         <div id="aaTotalPaid" style="font-size:1.15rem; font-weight:800;">PHP 0.00</div>
                     </div>
+                    <div style="background:#fef3f2; color:var(--danger); padding:12px 18px; border-radius:8px; min-width:180px; border:1px solid #fecdca;">
+                        <div style="font-size:0.75rem; font-weight:700; margin-bottom:4px;">TOTAL BALANCE DUE</div>
+                        <div id="aaTotalBalanceDue" style="font-size:1.15rem; font-weight:800;">PHP 0.00</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="panel">
-                <h2 style="margin-top:0;">📄 Document Preview</h2>
-                <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Ageing of Accounts preview (landscape).</p>
-                <article class="aa-doc" id="aaDocument" aria-label="Ageing of accounts preview">
-                    <div class="aa-doc-body">
-                        <div class="aa-letterhead">
-                            <div class="aa-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
-                            <div>#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
-                            <div>TIN# 453-813-356-000</div>
-                        </div>
-                        <h3 class="aa-title" id="aaPrevTitle">AGEING OF ACCOUNTS AS OF —.</h3>
-                        <p id="aaPrevNote" style="margin:0 0 12px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
-                        <table class="aa-items">
-                            <thead>
-                                <tr>
-                                    <th style="width:7%;">DATE</th>
-                                    <th style="width:15%;">CUSTOMERS NAME</th>
-                                    <th style="width:6%;">PO NO.</th>
-                                    <th style="width:5%;">AGENT</th>
-                                    <th style="width:5%;">BI#</th>
-                                    <th style="width:5%;">SI#</th>
-                                    <th style="width:5%;">CR#</th>
-                                    <th style="width:5%;">CI#</th>
-                                    <th style="width:5%;">AR#</th>
-                                    <th style="width:8%;">DR NO.</th>
-                                    <th style="width:8%;">TERMS OF PAYMENT</th>
-                                    <th style="width:8%;">AMOUNT</th>
-                                    <th style="width:8%;">AMOUNT PAID</th>
-                                    <th style="width:10%;">PAID ITEMS</th>
-                                </tr>
-                            </thead>
-                            <tbody id="aaPrevItemsBody">
-                                <tr>
-                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-                                    <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-                                    <td class="aa-center">&nbsp;</td>
-                                    <td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="aa-total-row">
-                                    <td colspan="11" class="aa-total-label">TOTAL</td>
-                                    <td class="aa-num" id="aaPrevTotalAmount">0.00</td>
-                                    <td class="aa-num" id="aaPrevTotalPaid">0.00</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </article>
-            </div>
-
-            <div class="panel no-print" style="margin-top:20px;">
+            <div class="panel no-print" id="aa-recent-reports" style="margin-top:20px;">
                 <h2 style="margin:0 0 8px; font-size:1rem;">Recent Ageing Reports</h2>
                 <p style="margin:0 0 12px; color:var(--muted); font-size:0.9rem;">Structured reports stored in the database. Saved Documents keeps PDF snapshots only.</p>
                 <div class="table-wrap">
@@ -1330,6 +1180,7 @@
                                 <th>Rows</th>
                                 <th>Total Amount</th>
                                 <th>Total Paid</th>
+                                <th>Balance Due</th>
                                 <th>Source</th>
                                 <th style="text-align:right;">Actions</th>
                             </tr>
@@ -1342,6 +1193,7 @@
                                 <td>{{ report.lines.count }}</td>
                                 <td>₱{{ report.total_amount|floatformat:2 }}</td>
                                 <td>₱{{ report.total_amount_paid|floatformat:2 }}</td>
+                                <td>₱{{ report.total_balance_due|floatformat:2 }}</td>
                                 <td>{{ report.source_filename|default:"—" }}</td>
                                 <td style="text-align:right; white-space:nowrap;">
                                     <button type="button" class="action aa-load-report" data-report-id="{{ report.id }}" style="font-size:0.75rem;padding:4px 12px;margin-right:6px;">Load</button>
@@ -1350,11 +1202,68 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" style="text-align:center;color:#667085;padding:24px;">No ageing reports saved yet. Import an Excel file or enter rows manually.</td>
+                                <td colspan="8" style="text-align:center;color:#667085;padding:24px;">No ageing reports saved yet. Import an Excel file or enter rows manually.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+            </div>
+
+            <div class="aa-view-panel" id="aa-preview-panel" role="tabpanel" aria-labelledby="aa-preview-tab" hidden>
+                <div class="panel" id="aa-document-preview">
+                    <h2 style="margin-top:0;">📄 Document Preview</h2>
+                    <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Ageing of Accounts preview (landscape). Balance Due is calculated as Amount minus Amount Paid.</p>
+                    <article class="aa-doc" id="aaDocument" aria-label="Ageing of accounts preview">
+                        <div class="aa-doc-body">
+                            <div class="aa-letterhead">
+                                <div class="aa-company">METRO DAVAO SUPREME PUMPS INDUSTRIES, INC.</div>
+                                <div>#406 DIAMOND ST., SAN JUAN SUBD., PANACAN, DAVAO CITY</div>
+                                <div>TIN# 453-813-365-000</div>
+                            </div>
+                            <h3 class="aa-title" id="aaPrevTitle">AGEING OF ACCOUNTS AS —.</h3>
+                            <p id="aaPrevNote" style="margin:0 0 12px; font-weight:700; text-transform:uppercase; min-height:1em;"></p>
+                            <table class="aa-items sales-summary-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:6%;">DATE</th>
+                                        <th style="width:13%;">CUSTOMERS NAME</th>
+                                        <th style="width:5%;">PO NO.</th>
+                                        <th style="width:4%;">AGENT</th>
+                                        <th style="width:4%;">BI#</th>
+                                        <th style="width:4%;">SI#</th>
+                                        <th style="width:4%;">CR#</th>
+                                        <th style="width:4%;">CI#</th>
+                                        <th style="width:4%;">AR#</th>
+                                        <th style="width:7%;">DR NO.</th>
+                                        <th style="width:8%;">TERMS OF PAYMENT</th>
+                                        <th style="width:8%;">AMOUNT</th>
+                                        <th style="width:8%;">AMOUNT PAID</th>
+                                        <th style="width:8%;">BALANCE DUE</th>
+                                        <th style="width:13%;">PAID ITEMS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aaPrevItemsBody">
+                                    <tr>
+                                        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                                        <td class="aa-center">&nbsp;</td>
+                                        <td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td class="aa-num">&nbsp;</td><td>&nbsp;</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="aa-total-row">
+                                        <td colspan="11" class="aa-total-label">TOTAL</td>
+                                        <td class="aa-num" id="aaPrevTotalAmount">0.00</td>
+                                        <td class="aa-num" id="aaPrevTotalPaid">0.00</td>
+                                        <td class="aa-num" id="aaPrevTotalBalanceDue">0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </article>
                 </div>
             </div>
         </div>
@@ -1363,12 +1272,12 @@
         <!-- ─── RETENTION SUMMARY ─── -->
         <div id="retention-summary-tab" class="tab-panel {% if active_tab == 'retention-summary-tab' %}is-active{% endif %}">
             <div class="panel no-print" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">📋 Create Retention Summary</h1>
+                <h1 style="margin-top:0;">Create Retention Summary</h1>
 
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-                    <button class="action brand-link" type="button" id="rsSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" type="button" id="rsPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" type="button" id="rsReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" type="button" id="rsSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" type="button" id="rsPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" type="button" id="rsReset" style="padding:10px 16px;">Reset</button>
                     <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
                         📥 Import Excel
                         <input type="file" id="rsImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
@@ -1443,7 +1352,7 @@
             </div>
 
             <div class="panel">
-                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <h2 style="margin-top:0;">Document Preview</h2>
                 <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Retention Summary preview (landscape).</p>
                 <article class="rs-doc" id="rsDocument" aria-label="Retention summary preview">
                     <div class="rs-doc-body">
@@ -1533,14 +1442,14 @@
         <!-- ─── PETTY CASH / REVOLVING FUND ─── -->
         <div id="petty-cash-tab" class="tab-panel {% if active_tab == 'petty-cash-tab' %}is-active{% endif %}">
             <div class="panel no-print" style="margin-bottom:20px;">
-                <h1 style="margin-top:0;">💵 Revolving Fund Replenishment Report</h1>
+                <h1 style="margin-top:0;">Revolving Fund Replenishment Report</h1>
 
                 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-                    <button class="action brand-link" type="button" id="pcSave" style="padding:10px 16px;">💾 Save</button>
-                    <button class="action" type="button" id="pcPrint" style="padding:10px 16px;">🖨️ Print</button>
-                    <button class="action" type="button" id="pcReset" style="padding:10px 16px;">🔄 Reset</button>
+                    <button class="action brand-link" type="button" id="pcSave" style="padding:10px 16px;">Save</button>
+                    <button class="action" type="button" id="pcPrint" style="padding:10px 16px;">Print</button>
+                    <button class="action" type="button" id="pcReset" style="padding:10px 16px;">Reset</button>
                     <label class="action" style="padding:10px 16px; cursor:pointer; margin:0;">
-                        📥 Import Excel
+                        Import Excel
                         <input type="file" id="pcImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
                     </label>
                     <input type="hidden" id="pcReportId" value="">
@@ -1637,7 +1546,7 @@
             </div>
 
             <div class="panel">
-                <h2 style="margin-top:0;">📄 Document Preview</h2>
+                <h2 style="margin-top:0;">Document Preview</h2>
                 <p style="margin:0 0 16px; color:var(--muted); font-size:0.9rem;">Live Revolving Fund Replenishment Report preview (landscape).</p>
                 <article class="pc-doc" id="pcDocument" aria-label="Petty cash preview">
                     <div class="pc-doc-body">
@@ -2278,6 +2187,6 @@
     nextCvNumber: "{{ next_cv_number|escapejs }}"
   };
 </script>
-<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
-<script src="{% static 'js/dashboards/sales.js' %}?v=sales-summary3"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=2"></script>
+<script src="{% static 'js/dashboards/sales.js' %}?v=sales-summary5"></script>
 {% endblock %}

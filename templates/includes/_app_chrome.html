@@ -13,9 +13,10 @@
     </button>
   </div>
   {% if chrome_nav_template %}{% include chrome_nav_template %}{% endif %}
+  <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
   <div class="sidebar-foot">
-    <button type="button" class="theme-toggle--sidebar" data-theme-toggle aria-pressed="false" title="Toggle dark mode"><span data-theme-toggle-icon aria-hidden="true">🌙</span> <span data-theme-toggle-label>Dark</span></button>
-    <a href="{% url 'logout' %}">🚪 Logout</a>
+    <button type="button" class="theme-toggle--sidebar" data-theme-toggle aria-pressed="false" title="Toggle dark mode"> <span data-theme-toggle-label>Dark</span></button>
+    <a href="{% url 'logout' %}">Logout</a>
   </div>
 </aside>
 <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>

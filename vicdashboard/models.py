@@ -345,6 +345,10 @@ class AgeingOfAccountsReport(models.Model):
     def __str__(self):
         return f'Ageing of Accounts as of {self.as_of_date}'
 
+    @property
+    def total_balance_due(self):
+        return self.total_amount - self.total_amount_paid
+
 
 class AgeingOfAccountsLine(models.Model):
     TERMS_OF_PAYMENT_CHOICES = [

@@ -11,6 +11,10 @@ from .ageing_accounts_xlsx import parse_ageing_accounts_xlsx
 from .retention_summary_xlsx import parse_retention_summary_xlsx
 from .petty_cash_xlsx import parse_petty_cash_xlsx
 from .check_voucher_xlsx import parse_check_voucher_xlsx
+from .water_customer_ledger_xlsx import (
+    build_water_customer_ledger,
+    build_water_customer_ledger_xlsx,
+)
 from .inventory_product_code import generate_inventory_product_code, next_product_codes_by_category
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -32,6 +36,7 @@ from .po_pdf import build_purchase_order_pdf
 from .forms import EmployeeForm, JobOrderForm, JobOrderIdlePeriodForm, MaterialBorrowForm, OfficialBusinessFormForm, DeliveryReceiptForm, WithdrawalSlipForm, ServiceInvoiceForm, TravelOrderFormForm, ServiceRepairReportForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.text import slugify
 from django.db.models import Sum, Count, Q, OuterRef, Subquery, F, Value, DecimalField, Min, ExpressionWrapper, Prefetch
 from django.db.models.functions import Coalesce, Greatest
 import traceback
@@ -975,38 +980,60 @@ def sales_dashboard(request):
         return redirect('sales_dashboard')
 
     inventory_items = InventoryItem.objects.all().order_by('name', 'product_code')
+    sales_summary_ctx = _sales_summary_context(request)
+    sales_summary_months = sales_summary_ctx.get('sales_summary_months') or []
+    sales_summary_all_totals = sales_summary_ctx.get('sales_summary_all_totals') or {
+        'gross': Decimal('0.00'),
+        'output_vat': Decimal('0.00'),
+        'net': Decimal('0.00'),
+    }
 
-    sales_for_analytics = SalesOrder.objects.select_related('inventory_item').all()
-    total_revenue = sum(order.total_amount for order in sales_for_analytics)
+    sales_for_analytics = list(SalesOrder.objects.select_related('inventory_item').all())
+    sales_orders_revenue = sum((order.total_amount for order in sales_for_analytics), Decimal('0.00'))
+    total_revenue = sales_orders_revenue + (sales_summary_all_totals.get('gross') or Decimal('0.00'))
     total_profit = sum((order.total_amount - (order.unit_price * order.refund_quantity)) for order in sales_for_analytics)
 
-    today = datetime.now().date()
-    daily_sales = sales_for_analytics.filter(created_at__date=today)
-    weekly_sales = sales_for_analytics.filter(created_at__date__gte=today - timedelta(days=7))
-    monthly_sales = sales_for_analytics.filter(created_at__date__gte=today - timedelta(days=30))
+    daily_buckets = defaultdict(Decimal)
+    weekly_buckets = defaultdict(Decimal)
+    monthly_buckets = defaultdict(Decimal)
+    water_row_count = 0
 
-    def build_period_summary(queryset, group_by):
-        grouped = defaultdict(Decimal)
-        for order in queryset:
-            if group_by == 'day':
-                key = order.created_at.strftime('%Y-%m-%d')
-            elif group_by == 'week':
-                key = f"W{order.created_at.isocalendar().week:02d}".format(k=order.created_at.isocalendar().week)
-            else:
-                key = order.created_at.strftime('%Y-%m')
-            grouped[key] += order.total_amount
+    for order in sales_for_analytics:
+        created = timezone.localtime(order.created_at) if timezone.is_aware(order.created_at) else order.created_at
+        day_key = created.strftime('%Y-%m-%d')
+        iso = created.isocalendar()
+        week_key = f"{iso.year}-W{iso.week:02d}"
+        month_key = created.strftime('%Y-%m')
+        daily_buckets[day_key] += order.total_amount
+        weekly_buckets[week_key] += order.total_amount
+        monthly_buckets[month_key] += order.total_amount
 
-        summary = []
-        for key in sorted(grouped):
-            summary.append({
-                'label': key,
-                'amount': float(grouped[key]),
-            })
-        return summary
+    for month in sales_summary_months:
+        for row in month.get('rows') or []:
+            row_date = row.get('date')
+            if not row_date:
+                continue
+            amount = row.get('gross') or Decimal('0.00')
+            day_key = row_date.strftime('%Y-%m-%d')
+            iso = row_date.isocalendar()
+            week_key = f"{iso.year}-W{iso.week:02d}"
+            month_key = row_date.strftime('%Y-%m')
+            daily_buckets[day_key] += amount
+            weekly_buckets[week_key] += amount
+            monthly_buckets[month_key] += amount
+            water_row_count += 1
 
-    daily_summary = build_period_summary(daily_sales, 'day')
-    weekly_summary = build_period_summary(weekly_sales, 'week')
-    monthly_summary = build_period_summary(monthly_sales, 'month')
+    def _period_summary_items(bucket, limit=None, latest=False):
+        keys = sorted(bucket)
+        if latest and limit:
+            keys = keys[-limit:]
+        elif limit:
+            keys = keys[:limit]
+        return [{'label': key, 'amount': float(bucket[key])} for key in keys]
+
+    daily_summary = _period_summary_items(daily_buckets, limit=14, latest=True)
+    weekly_summary = _period_summary_items(weekly_buckets, limit=12, latest=True)
+    monthly_summary = _period_summary_items(monthly_buckets)
 
     category_performance = []
     sales_by_category = defaultdict(lambda: {
@@ -1056,10 +1083,23 @@ def sales_dashboard(request):
             'stock': entry['stock'],
         })
 
-    category_performance.sort(key=lambda item: max(variant['revenue'] for variant in item['variants']), reverse=True)
+    water_gross = sales_summary_all_totals.get('gross') or Decimal('0.00')
+    if water_gross or water_row_count:
+        category_performance.append({
+            'name': 'Water Billing',
+            'variants': [{
+                'code': 'Collections',
+                'quantity': 0,
+                'revenue': float(water_gross),
+                'orders': water_row_count,
+                'stock': 0,
+            }],
+            'stock': 0,
+        })
+
+    category_performance.sort(key=lambda item: max((variant['revenue'] for variant in item['variants']), default=0), reverse=True)
 
     page_size = 8
-    paginator = Paginator(category_performance, page_size)
     page_number = request.GET.get('page', 1)
 
     category_chart_data = []
@@ -1081,16 +1121,18 @@ def sales_dashboard(request):
         cat['revenue_percent'] = (cat['revenue'] / max_revenue * 100) if max_revenue else 0
         cat['quantity_percent'] = (cat['quantity'] / max_quantity * 100) if max_quantity else 0
 
+    category_paginator = Paginator(category_performance, page_size)
     if len(category_performance) <= page_size:
-        page_obj = paginator.get_page(1)
-        show_pagination = False
+        category_page_obj = category_paginator.get_page(1)
+        category_show_pagination = False
     else:
-        page_obj = paginator.get_page(page_number)
-        show_pagination = page_obj.has_other_pages()
+        category_page_obj = category_paginator.get_page(page_number)
+        category_show_pagination = category_page_obj.has_other_pages()
 
     hourly_groups = defaultdict(int)
     for order in sales_for_analytics:
-        hourly_groups[order.created_at.strftime('%H:00')] += int(order.total_amount)
+        created = timezone.localtime(order.created_at) if timezone.is_aware(order.created_at) else order.created_at
+        hourly_groups[created.strftime('%H:00')] += int(order.total_amount)
 
     peak_hour = max(hourly_groups.items(), key=lambda pair: pair[1], default=(None, 0))[0]
     active_tab = 'sales-tab'  # default
@@ -1196,16 +1238,16 @@ def sales_dashboard(request):
             'monthly_summary': monthly_summary,
             'category_performance': category_performance,
             'category_chart_data': category_chart_data,
-            'page_obj': page_obj,
-            'paginator': paginator,
-            'show_pagination': show_pagination,
+            'category_page_obj': category_page_obj,
+            'category_paginator': category_paginator,
+            'category_show_pagination': category_show_pagination,
             'peak_hour': peak_hour,
             'total_revenue': total_revenue,
             'total_profit': total_profit,
             'modules': MANAGEMENT_MODULES,
             'active_tab': active_tab,
             'cv_view': cv_view,
-            **_sales_summary_context(request),
+            **sales_summary_ctx,
             'saved_documents_page': saved_documents_page,
             'saved_document_types': SalesDocumentArchive.DOCUMENT_TYPES,
             'saved_doc_type_filter': doc_type_filter,
@@ -1696,6 +1738,11 @@ def _parse_ageing_decimal(value):
 
 
 def _ageing_line_to_dict(line):
+    balance_due = (
+        line.amount - (line.amount_paid or Decimal('0'))
+        if line.amount is not None
+        else None
+    )
     return {
         'line_date': line.line_date.isoformat() if line.line_date else '',
         'line_date_raw': line.line_date_raw or '',
@@ -1713,6 +1760,7 @@ def _ageing_line_to_dict(line):
         'amount_raw': line.amount_raw or '',
         'amount_paid': str(line.amount_paid) if line.amount_paid is not None else '',
         'amount_paid_raw': line.amount_paid_raw or '',
+        'balance_due': str(balance_due) if balance_due is not None else '',
         'paid_items': line.paid_items or '',
         'sort_order': line.sort_order,
     }
@@ -1726,6 +1774,7 @@ def _ageing_report_to_payload(report):
         'source_filename': report.source_filename,
         'total_amount': str(report.total_amount),
         'total_amount_paid': str(report.total_amount_paid),
+        'total_balance_due': str(report.total_balance_due),
         'imported_at': report.imported_at.isoformat(),
         'lines': [_ageing_line_to_dict(line) for line in report.lines.all()],
     }
@@ -1866,7 +1915,7 @@ def import_ageing_accounts_upload(request):
     if not name.endswith('.xlsx'):
         return JsonResponse({'error': 'Uploaded file must be an .xlsx workbook.'}, status=400)
 
-    as_of_date = _parse_iso_date(request.POST.get('as_of_date')) or date.today()
+    requested_as_of_date = _parse_iso_date(request.POST.get('as_of_date'))
     note = (request.POST.get('note') or '').strip()[:255]
 
     tmp_path = None
@@ -1880,6 +1929,7 @@ def import_ageing_accounts_upload(request):
         if not parsed['lines']:
             return JsonResponse({'error': 'No ageing account rows found in the workbook.'}, status=400)
 
+        as_of_date = parsed['as_of_date'] or requested_as_of_date or date.today()
         report = AgeingOfAccountsReport.objects.create(
             as_of_date=as_of_date,
             note=note,
@@ -1895,6 +1945,8 @@ def import_ageing_accounts_upload(request):
         return JsonResponse(_ageing_report_to_payload(
             AgeingOfAccountsReport.objects.prefetch_related('lines').get(pk=report.id)
         ))
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
     except Exception as e:
         logger.exception('import_ageing_accounts_upload error')
         return JsonResponse({'error': str(e)}, status=500)
@@ -6570,26 +6622,46 @@ def _water_aging_buckets(unpaid_bills):
 
 
 def _water_disconnect_candidates():
-    qs = _water_annotate_outstanding(
+    unpaid_red = (
+        ~Q(bills__status__in=['paid', 'cancelled'])
+        & Q(bills__total_amount__gt=F('bills__amount_paid'))
+        & Q(bills__statement_color='red')
+    )
+    candidates = []
+    for customer in _water_annotate_outstanding(
         WaterCustomer.objects.filter(
             connection_status__in=['active', 'for_disconnection', 'inactive'],
         ).annotate(
-            oldest_unpaid=Min(
-                'bills__due_date',
-                filter=~Q(bills__status__in=['paid', 'cancelled']) & Q(bills__total_amount__gt=F('bills__amount_paid')),
-            ),
+            red_statements=Count('bills', filter=unpaid_red, distinct=True),
+        ).filter(
+            red_statements__gt=0,
         ).order_by('account_number')
-    )
-    candidates = []
-    for customer in qs:
-        months = _water_months_unpaid_from_date(getattr(customer, 'oldest_unpaid', None))
-        if months < 3:
+    ):
+        outstanding = customer.annotated_outstanding or Decimal('0.00')
+        if outstanding <= Decimal('0.00'):
             continue
-        customer.computed_months_unpaid = months
-        customer.computed_monitor = _water_monitor_label(customer, months)
         candidates.append(customer)
-        if len(candidates) >= 50:
-            break
+    candidate_ids = [customer.pk for customer in candidates]
+    if candidate_ids:
+        red_by_customer = {}
+        for bill in (
+            WaterBill.objects
+            .filter(
+                customer_id__in=candidate_ids,
+                statement_color='red',
+                total_amount__gt=F('amount_paid'),
+            )
+            .exclude(status__in=['paid', 'cancelled'])
+            .order_by('customer_id', 'billing_period', 'bill_date', 'pk')
+            .values('pk', 'customer_id', 'bill_number', 'billing_period')
+        ):
+            red_by_customer.setdefault(bill['customer_id'], []).append(bill)
+        for customer in candidates:
+            customer.red_bills = red_by_customer.get(customer.pk, [])
+            customer.red_statements = len(customer.red_bills)
+    else:
+        for customer in candidates:
+            customer.red_bills = []
     return candidates
 
 
@@ -6753,7 +6825,16 @@ def _water_tab_context(request, tab):
             )
         ctx.update({
             'all_customers': all_customers,
-            'disconnect_candidates': _water_disconnect_candidates(),
+            'disconnect_candidates': _water_paginate_param(
+                _water_disconnect_candidates(),
+                request,
+                param='dpage',
+                per_page=10,
+            ),
+            'disconnect_pager_qs': _water_pager_qs(
+                request,
+                drop=('tab', 'page', 'dpage', 'fragment', 'list_only'),
+            ),
             'service_actions': page_obj,
             'page_obj': page_obj,
             'service_contracts': _water_paginate_param(
@@ -6778,6 +6859,23 @@ def _water_tab_context(request, tab):
         })
         if report_type == 'weekly':
             ctx.update(_water_weekly_report_context(request))
+        elif report_type == 'customer_ledger':
+            ledger_year = _water_ledger_year_from_request(request)
+            ledger_zone = _water_ledger_zone_from_request(request)
+            page_obj = _water_paginate(
+                build_water_customer_ledger(
+                    ledger_year,
+                    zone_id=ledger_zone.id if ledger_zone else None,
+                ),
+                request,
+            )
+            ctx.update({
+                'report_rows': page_obj,
+                'page_obj': page_obj,
+                'ledger_year': ledger_year,
+                'ledger_zone': str(ledger_zone.id) if ledger_zone else '',
+                'water_zones': _water_zones_qs(),
+            })
         else:
             page_obj = _water_paginate(_water_report_rows(report_type), request)
             ctx.update({
@@ -6912,6 +7010,8 @@ def _water_weekly_empty_totals():
         'water_bill': Decimal('0.00'),
         'installation_fee': Decimal('0.00'),
         'reconnection_fee': Decimal('0.00'),
+        'water_refill': Decimal('0.00'),
+        'other_payments': Decimal('0.00'),
     }
 
 
@@ -6951,6 +7051,8 @@ def _water_weekly_finalize_rows(rows):
         totals['water_bill'] += row.get('water_bill') or Decimal('0.00')
         totals['installation_fee'] += row.get('installation_fee') or Decimal('0.00')
         totals['reconnection_fee'] += row.get('reconnection_fee') or Decimal('0.00')
+        totals['water_refill'] += row.get('water_refill') or Decimal('0.00')
+        totals['other_payments'] += row.get('other_payments') or Decimal('0.00')
     return rows, totals
 
 
@@ -7007,6 +7109,9 @@ def _water_weekly_collection_rows(week_start, week_end):
             'water_bill': water_bill,
             'installation_fee': installation_fee,
             'reconnection_fee': None,
+            'water_refill': None,
+            'other_payments': None,
+            'breakdown': '',
             'other_id': None,
             'other_amount': None,
             'is_parcel': False,
@@ -7041,6 +7146,9 @@ def _water_weekly_collection_rows(week_start, week_end):
             'water_bill': None,
             'installation_fee': None,
             'reconnection_fee': fee,
+            'water_refill': None,
+            'other_payments': None,
+            'breakdown': '',
             'other_id': None,
             'other_amount': None,
             'is_parcel': False,
@@ -7060,6 +7168,7 @@ def _water_weekly_collection_rows(week_start, week_end):
             payment.payment_type == WaterOtherPayment.PAYMENT_TYPE_RECONNECTION
         )
         is_parcel = 'parcel' in payment_of.lower()
+        is_water_refill = 'water refill' in payment_of.lower()
         if received is None:
             cash_in_bank = amount
             cash_received_by_aid = None
@@ -7070,6 +7179,26 @@ def _water_weekly_collection_rows(week_start, week_end):
             row_value = received
         if is_parcel:
             parcel_total += row_value
+        if is_water_refill:
+            breakdown = 'water-refill'
+            water_refill = row_value
+            other_payments_value = None
+            reconnection_fee = None
+        elif is_reconnection:
+            breakdown = 'reconnection'
+            water_refill = None
+            other_payments_value = None
+            reconnection_fee = row_value
+        elif is_parcel:
+            breakdown = 'none'
+            water_refill = None
+            other_payments_value = None
+            reconnection_fee = None
+        else:
+            breakdown = 'other-payments'
+            water_refill = None
+            other_payments_value = row_value
+            reconnection_fee = None
         rows.append({
             'sort_date': payment.payment_date,
             'sort_name': payment.received_from or '',
@@ -7085,7 +7214,10 @@ def _water_weekly_collection_rows(week_start, week_end):
             'cash_received_by_aid': cash_received_by_aid,
             'water_bill': None,
             'installation_fee': None,
-            'reconnection_fee': row_value if is_reconnection else None,
+            'reconnection_fee': reconnection_fee,
+            'water_refill': water_refill,
+            'other_payments': other_payments_value,
+            'breakdown': breakdown,
             'other_id': payment.pk,
             'other_amount': amount,
             'is_parcel': is_parcel,
@@ -7238,9 +7370,20 @@ def _sales_summary_context(request):
     selected = next((month for month in months if month['key'] == selected_key), None)
     if selected is None and months:
         selected = months[-1]
+    all_totals = {
+        'gross': Decimal('0.00'),
+        'output_vat': Decimal('0.00'),
+        'net': Decimal('0.00'),
+    }
+    for month in months:
+        totals = month.get('totals') or {}
+        all_totals['gross'] += totals.get('gross', Decimal('0.00'))
+        all_totals['output_vat'] += totals.get('output_vat', Decimal('0.00'))
+        all_totals['net'] += totals.get('net', Decimal('0.00'))
     return {
         'sales_summary_months': months,
         'sales_summary': selected,
+        'sales_summary_all_totals': all_totals,
     }
 
 
@@ -7632,6 +7775,36 @@ def _water_create_customer(request):
     return _water_redirect('customersTab')
 
 
+def _water_sync_installment_balance(request, customer):
+    """Push the account's installment balance onto the latest reading and bill.
+
+    Account Information, Readings, Bills, and the Statement of Account must
+    stay aligned, so after an installment balance edit the most recent
+    non-cancelled bill is re-synced (recompute_totals/refresh_status run via
+    bill.save()) along with the latest reading snapshot.
+    """
+    bal = customer.installment_balance or Decimal('0.00')
+    reading = customer.readings.order_by('-reading_date', '-created_at').first()
+    if reading and (reading.installment_balance or Decimal('0.00')) != bal:
+        reading.installment_balance = bal
+        reading.save(update_fields=['installment_balance'])
+    bill = (
+        customer.bills.exclude(status='cancelled')
+        .order_by('-bill_date', '-created_at')
+        .first()
+    )
+    if bill and (bill.installment_balance or Decimal('0.00')) != bal:
+        bill.installment_balance = bal
+        bill.save()
+        _water_audit(
+            request,
+            'Updated installment balance',
+            'WaterBill',
+            bill.bill_number,
+            f'customer={customer.account_number} installment={bal} period={bill.billing_period}',
+        )
+
+
 def _water_update_customer(request, customer):
     required = ('first_name', 'last_name', 'meter_number')
     if not all(request.POST.get(f, '').strip() for f in required):
@@ -7650,6 +7823,7 @@ def _water_update_customer(request, customer):
         reg_date = _water_parse_date(request.POST.get('registration_date'))
         if reg_date:
             customer.registration_date = reg_date
+        old_installment = customer.installment_balance or Decimal('0.00')
         if 'installment_balance' in request.POST:
             bal = _dec(request.POST.get('installment_balance'), str(customer.installment_balance or 0))
             if bal < 0:
@@ -7660,6 +7834,11 @@ def _water_update_customer(request, customer):
             customer.previous_unpaid_balance = seed
         customer.notes = request.POST.get('notes', '').strip()
         customer.save()
+        if (
+            'installment_balance' in request.POST
+            and (customer.installment_balance or Decimal('0.00')) != old_installment
+        ):
+            _water_sync_installment_balance(request, customer)
         _water_audit(request, 'Updated customer', 'WaterCustomer', customer.account_number, customer.display_name)
         messages.success(request, f'Customer {customer.account_number} updated.')
     except Exception as exc:
@@ -8259,6 +8438,45 @@ def view_water_customer(request, customer_id):
         'history_years': history_years,
         'history_year': current_year,
     })
+
+
+def _water_ledger_year_from_request(request):
+    raw = (request.GET.get('year') or request.GET.get('ledger_year') or '').strip()
+    try:
+        year = int(raw) if raw else date.today().year
+    except ValueError:
+        year = date.today().year
+    if year < 2000 or year > 2100:
+        year = date.today().year
+    return year
+
+
+def _water_ledger_zone_from_request(request):
+    raw = (request.GET.get('zone') or request.GET.get('ledger_zone') or '').strip()
+    if not raw.isdigit():
+        return None
+    return _water_zones_qs().filter(pk=raw).first()
+
+
+@require_dashboard('water_billing_dashboard')
+def download_water_customer_ledger_xlsx(request):
+    year = _water_ledger_year_from_request(request)
+    zone = _water_ledger_zone_from_request(request)
+    rows = build_water_customer_ledger(year, zone_id=zone.id if zone else None)
+    xlsx_bytes = build_water_customer_ledger_xlsx(
+        year, rows, zone_name=zone.name if zone else None,
+    )
+    response = HttpResponse(
+        xlsx_bytes,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    filename = f'water_customer_ledger_{year}'
+    if zone:
+        zone_slug = slugify(zone.name).replace('-', '_')
+        if zone_slug:
+            filename = f'{filename}_{zone_slug}'
+    response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+    return response
 
 
 @require_dashboard('water_billing_dashboard')
@@ -9217,7 +9435,7 @@ def water_billing_export_csv(request):
         writer.writerow([
             'NO.', 'DATE', 'NAME', 'RECEIVED FROM', 'REMARKS', 'PAYMENT OF', 'AR NO.',
             'CASH IN BANK', 'GCASH', 'CASH RECEIVED BY AID', 'WATER BILL',
-            'INSTALLATION FEE', 'RECONNECTION FEE',
+            'INSTALLATION FEE', 'RECONNECTION FEE', 'WATER REFILL', 'OTHER PAYMENTS',
         ])
         for row in ctx['weekly_rows']:
             writer.writerow([
@@ -9226,6 +9444,7 @@ def water_billing_export_csv(request):
                 row['cash_in_bank'] or '', row.get('gcash') or '',
                 row.get('cash_received_by_aid') or '',
                 row['water_bill'] or '', row.get('installation_fee') or '', row['reconnection_fee'] or '',
+                row.get('water_refill') or '', row.get('other_payments') or '',
             ])
         writer.writerow([])
         writer.writerow(['REFILLING COLLECTION'])

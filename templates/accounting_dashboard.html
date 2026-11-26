@@ -8,12 +8,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
 <link rel="stylesheet" href="{% static 'css/dashboards/accounting.css' %}?v=sky1">
-<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=5">
 <script>
   try {
     if (localStorage.getItem('accountingSidebarCollapsed') === '1') {
       document.documentElement.classList.add('sidebar-pref-collapsed');
     }
+    var _sidebarW = parseInt(localStorage.getItem('accountingSidebarCollapsed:width'), 10);
+    if (!isNaN(_sidebarW)) document.documentElement.style.setProperty('--sidebar-w', _sidebarW + 'px');
   } catch (e) {}
 </script>
 {% endblock %}
@@ -804,6 +806,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=2"></script>
 <script src="{% static 'js/dashboards/accounting.js' %}?v=1"></script>
 {% endblock %}

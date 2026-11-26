@@ -7,14 +7,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/dashboards/common.css' %}?v=sky1">
-<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=sky2">
+<link rel="stylesheet" href="{% static 'css/dashboards/water_billing.css' %}?v=sky3">
 <link rel="stylesheet" href="{% static 'css/dashboards/water_weekly_report.css' %}?v=26">
-<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=5">
 <script>
   try {
     if (localStorage.getItem('waterBillingSidebarCollapsed') === '1') {
       document.documentElement.classList.add('sidebar-pref-collapsed');
     }
+    var _sidebarW = parseInt(localStorage.getItem('waterBillingSidebarCollapsed:width'), 10);
+    if (!isNaN(_sidebarW)) document.documentElement.style.setProperty('--sidebar-w', _sidebarW + 'px');
   } catch (e) {}
 </script>
 {% endblock %}
@@ -64,7 +66,7 @@
     batchPrintUrl: "{% url 'print_water_bills_batch' %}"
   };
 </script>
-<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=2"></script>
 <script src="{% static 'js/dashboards/water_bill_color.js' %}?v=statement-color2"></script>
-<script src="{% static 'js/dashboards/water_billing.js' %}?v=batch-selection1"></script>
+<script src="{% static 'js/dashboards/water_billing.js' %}?v=weekly-breakdown2"></script>
 {% endblock %}

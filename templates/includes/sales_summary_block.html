@@ -1,0 +1,99 @@
+
+{% load static humanize %}
+
+
+<div class="sales-summary">
+                <div class="sales-summary-toolbar no-print">
+                    <div>
+                        <h2>Sales Overview</h2>
+                        <p>Water billing collections by month, based on cash in bank, GCash, and cash received by AID.</p>
+                    </div>
+                    <button type="button" class="action primary" onclick="window.print()">Print</button>
+                </div>
+
+                {% if sales_summary_months %}
+                <nav class="sales-month-tabs no-print" aria-label="Sales summary months">
+                    {% for month in sales_summary_months %}
+                    <a class="sales-month-tab{% if sales_summary and month.key == sales_summary.key %} is-active{% endif %}"
+                        href="?tab={{ summary_tab|default:'sales-tab' }}&amp;sales_month={{ month.key }}">{{ month.short_label }}</a>
+                    {% endfor %}
+                </nav>
+
+                {% if sales_summary %}
+                <div class="sales-summary-sheet">
+                    <header class="sales-summary-head">
+                        <img src="{% static 'versatec_header.jpg' %}" alt="Versatec Industrial Corporation letterhead"
+                            class="sales-summary-letterhead">
+                        <h1>SALES SUMMARY</h1>
+                        <p class="sales-summary-month">{{ sales_summary.label }}</p>
+                    </header>
+
+                    <div class="sales-summary-table-wrap">
+                        <table class="sales-summary-table">
+                            <thead>
+                                <tr class="sales-summary-group">
+                                    <th colspan="5">INFORMATION</th>
+                                    <th colspan="3"></th>
+                                    <th class="no-print"></th>
+                                </tr>
+                                <tr>
+                                    <th>DATE</th>
+                                    <th>PARTICULARS</th>
+                                    <th>OR</th>
+                                    <th>NO.</th>
+                                    <th>AMOUNT</th>
+                                    <th>GROSS OF VAT</th>
+                                    <th>OUTPUT VAT</th>
+                                    <th>NET OF VAT</th>
+                                    <th class="no-print">ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in sales_summary.rows %}
+                                <tr class="sales-summary-row"
+                                    data-gross="{{ row.gross|floatformat:2 }}"
+                                    data-output-vat="{{ row.output_vat|floatformat:2 }}"
+                                    data-net="{{ row.net|floatformat:2 }}">
+                                    <td class="col-date">{{ row.date|date:"d/m/Y" }}</td>
+                                    <td class="col-particulars">{{ row.particulars }}</td>
+                                    <td class="col-or">{{ row.or_type }}</td>
+                                    <td class="col-no">{{ row.display_ar_number }}</td>
+                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.output_vat|floatformat:2|intcomma }}</td>
+                                    <td class="amt">{{ row.net|floatformat:2|intcomma }}</td>
+                                    <td class="no-print sales-summary-action">
+                                        <button type="button"
+                                            class="action sales-summary-delete"
+                                            data-source-type="{{ row.source_type }}"
+                                            data-source-id="{{ row.source_id }}"
+                                            style="font-size:0.72rem;padding:4px 10px;color:var(--danger);border-color:var(--danger);">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="sales-summary-totals">
+                                    <td colspan="4">TOTAL</td>
+                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="gross">{{ sales_summary.totals.gross|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="output_vat">{{ sales_summary.totals.output_vat|floatformat:2|intcomma }}</td>
+                                    <td class="amt" data-total="net">{{ sales_summary.totals.net|floatformat:2|intcomma }}</td>
+                                    <td class="no-print"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="sales-summary-prepared">
+                        <div class="sales-summary-prepared-label">PREPARED BY:</div>
+                        <div class="sales-summary-prepared-space"></div>
+                        <div class="sales-summary-prepared-name">ANGELMARIE M. DAPAR</div>
+                        <div class="sales-summary-prepared-title">ADMIN &amp; FINANCE</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="empty-state-sm">No water billing transactions recorded yet.</div>
+                {% endif %}
+            </div>

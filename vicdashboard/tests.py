@@ -9,7 +9,9 @@ from . import views
 from .models import (
     InventoryItem,
     SalesOrder,
+    WaterBill,
     WaterCustomer,
+    WaterMeterReading,
     WaterOtherPayment,
     WaterPayment,
     WaterServiceContract,
@@ -547,3 +549,105 @@ class WaterReconnectionPaymentTests(TestCase):
             date(2026, 10, 25),
         )
         self.assertEqual(totals['reconnection_fee'], Decimal('0.00'))
+
+
+class WaterInstallmentBalanceSyncTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='water-manager',
+            password='test-password-123',
+        )
+        self.client.force_login(self.user)
+        self.customer = WaterCustomer.objects.create(
+            first_name='Emy',
+            last_name='Buenaluz',
+            meter_number='MTR-100',
+            installment_balance=Decimal('2700.00'),
+        )
+        old_reading = WaterMeterReading.objects.create(
+            customer=self.customer,
+            reading_date=date(2026, 8, 29),
+            billing_period='2026-08',
+            previous_reading=340,
+            current_reading=361,
+            installment_balance=Decimal('2500.00'),
+        )
+        self.old_bill = WaterBill.objects.create(
+            customer=self.customer,
+            meter_reading=old_reading,
+            billing_period='2026-08',
+            bill_date=date(2026, 8, 29),
+            due_date=date(2026, 9, 13),
+            consumption=21,
+            installment_balance=Decimal('2500.00'),
+        )
+        self.latest_reading = WaterMeterReading.objects.create(
+            customer=self.customer,
+            reading_date=date(2026, 9, 28),
+            billing_period='2026-09',
+            previous_reading=361,
+            current_reading=390,
+            installment_balance=Decimal('2700.00'),
+        )
+        self.latest_bill = WaterBill.objects.create(
+            customer=self.customer,
+            meter_reading=self.latest_reading,
+            billing_period='2026-09',
+            bill_date=date(2026, 9, 28),
+            due_date=date(2026, 10, 13),
+            consumption=29,
+            installment_balance=Decimal('2700.00'),
+            amount_paid=Decimal('580.00'),
+        )
+
+    def _post_update(self, **overrides):
+        payload = {
+            'action': 'update_customer',
+            'first_name': 'EMY',
+            'last_name': 'BUENALUZ',
+            'meter_number': 'MTR-100',
+            'installment_balance': '2530.00',
+            'previous_unpaid_balance': '0.00',
+        }
+        payload.update(overrides)
+        return self.client.post(
+            reverse('view_water_customer', args=[self.customer.id]),
+            payload,
+        )
+
+    def test_installment_edit_syncs_latest_bill_and_reading(self):
+        response = self._post_update()
+
+        self.assertEqual(response.status_code, 302)
+        self.customer.refresh_from_db()
+        latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
+        latest_reading = WaterMeterReading.objects.get(pk=self.latest_reading.pk)
+
+        self.assertEqual(self.customer.installment_balance, Decimal('2530.00'))
+        self.assertEqual(latest_bill.installment_balance, Decimal('2530.00'))
+        # 580.00 current + 0.00 prev unpaid + 2530.00 installment
+        self.assertEqual(latest_bill.total_amount, Decimal('3110.00'))
+        self.assertEqual(latest_bill.amount_paid, Decimal('580.00'))
+        self.assertEqual(latest_bill.status, 'partial')
+        self.assertEqual(latest_reading.installment_balance, Decimal('2530.00'))
+
+    def test_installment_edit_leaves_older_bills_untouched(self):
+        response = self._post_update()
+
+        self.assertEqual(response.status_code, 302)
+        old_bill = WaterBill.objects.get(pk=self.old_bill.pk)
+        old_reading = WaterMeterReading.objects.get(
+            pk=self.old_bill.meter_reading_id,
+        )
+
+        self.assertEqual(old_bill.installment_balance, Decimal('2500.00'))
+        self.assertEqual(old_bill.total_amount, Decimal('2920.00'))
+        self.assertEqual(old_reading.installment_balance, Decimal('2500.00'))
+
+    def test_installment_edit_without_change_leaves_bill_untouched(self):
+        response = self._post_update(installment_balance='2700.00')
+
+        self.assertEqual(response.status_code, 302)
+        latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
+        self.assertEqual(latest_bill.installment_balance, Decimal('2700.00'))
+        self.assertEqual(latest_bill.total_amount, Decimal('3280.00'))

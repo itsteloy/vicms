@@ -1,58 +1,69 @@
         <nav class="sidebar-nav" aria-label="Sales sections">
             <div class="nav-label">Sales</div>
-            <button class="tab-button" type="button" role="tab" title="Sales"
-                aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
-                data-tab-target="sales-tab">
-                <span class="tab-icon">🧾</span> <span class="tab-label">Sales</span>
-            </button>
             <button class="tab-button" type="button" role="tab" title="Reporting & Analytics"
                 aria-selected="{% if active_tab == 'analytics-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="analytics-tab">
-                <span class="tab-icon">📈</span> <span class="tab-label">Reporting & Analytics</span>
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">Sales Overview</span>
+            </button>
+            <button class="tab-button" type="button" role="tab" title="Sales"
+                aria-selected="{% if active_tab == 'sales-tab' %}true{% else %}false{% endif %}"
+                data-tab-target="sales-tab">
+                <span class="tab-icon">🧾</span>
+                <span class="tab-label">Sales Summary</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Category Performance"
                 aria-selected="{% if active_tab == 'category-performance-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="category-performance-tab">
-                <span class="tab-icon">🏷️</span> <span class="tab-label">Category Performance</span>
+                <span class="tab-icon">📈</span>
+                <span class="tab-label">Category Performance</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Product Quotation"
                 aria-selected="{% if active_tab == 'product-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="product-quotation-tab">
-                <span class="tab-icon">📦</span> <span class="tab-label">Product Quotation</span>
+                <span class="tab-icon">📝</span>
+                <span class="tab-label">Product Quotation</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Service Quotation"
                 aria-selected="{% if active_tab == 'service-quotation-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="service-quotation-tab">
-                <span class="tab-icon">🛠️</span> <span class="tab-label">Service Quotation</span>
+                <span class="tab-icon">🛠️</span>
+                <span class="tab-label">Service Quotation</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Collection Form"
                 aria-selected="{% if active_tab == 'collection-form-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="collection-form-tab">
-                <span class="tab-icon">📄</span> <span class="tab-label">Collection Form</span>
+                <span class="tab-icon">💰</span>
+                <span class="tab-label">Collection Form</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Ageing of Accounts"
                 aria-selected="{% if active_tab == 'ageing-accounts-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="ageing-accounts-tab">
-                <span class="tab-icon">📊</span> <span class="tab-label">Ageing of Accounts</span>
+                <span class="tab-icon">📅</span>
+                <span class="tab-label">Ageing of Accounts</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Retention Summary"
                 aria-selected="{% if active_tab == 'retention-summary-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="retention-summary-tab">
-                <span class="tab-icon">📋</span> <span class="tab-label">Retention Summary</span>
+                <span class="tab-icon">🧮</span>
+                <span class="tab-label">Retention Summary</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Petty Cash"
                 aria-selected="{% if active_tab == 'petty-cash-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="petty-cash-tab">
-                <span class="tab-icon">💵</span> <span class="tab-label">Petty Cash</span>
+                <span class="tab-icon">💵</span>
+                <span class="tab-label">Petty Cash</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Check Voucher"
                 aria-selected="{% if active_tab == 'check-voucher-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="check-voucher-tab">
-                <span class="tab-icon tab-icon-text">CV</span> <span class="tab-label">Check Voucher</span>
+                <span class="tab-icon">✅</span>
+                <span class="tab-label">Check Voucher</span>
             </button>
             <button class="tab-button" type="button" role="tab" title="Saved Documents"
                 aria-selected="{% if active_tab == 'saved-documents-tab' %}true{% else %}false{% endif %}"
                 data-tab-target="saved-documents-tab">
-                <span class="tab-icon">🗂️</span> <span class="tab-label">Saved Documents</span>
+                <span class="tab-icon">📁</span>
+                <span class="tab-label">Saved Documents</span>
             </button>
         </nav>

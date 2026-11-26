@@ -10,12 +10,14 @@
 <link rel="stylesheet" href="{% static 'css/dashboards/inventory.css' %}?v=sky2">
 <link rel="stylesheet" href="{% static 'css/dashboards/withdrawal_slip.css' %}?v=sky2">
 <link rel="stylesheet" href="{% static 'css/dashboards/theme.css' %}?v=1">
-<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/dashboards/chrome.css' %}?v=5">
 <script>
   try {
     if (localStorage.getItem('inventorySidebarCollapsed') === '1') {
       document.documentElement.classList.add('sidebar-pref-collapsed');
     }
+    var _sidebarW = parseInt(localStorage.getItem('inventorySidebarCollapsed:width'), 10);
+    if (!isNaN(_sidebarW)) document.documentElement.style.setProperty('--sidebar-w', _sidebarW + 'px');
   } catch (e) {}
 </script>
 {% endblock %}
@@ -48,6 +50,6 @@
     poPdfUrl: document.querySelector('.inventory-page')?.dataset.poPdfUrl || ''
   };
 </script>
-<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=1"></script>
+<script src="{% static 'js/dashboards/sidebar_chrome.js' %}?v=2"></script>
 <script src="{% static 'js/dashboards/inventory.js' %}?v=report-tabs1"></script>
 {% endblock %}

@@ -1131,6 +1131,48 @@ h1, h2, h3, h4,
   }
 
   /* ── Ageing of Accounts ── */
+  .aa-view-tabs {
+      position: sticky;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      margin: 0 0 16px;
+      padding: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+  }
+  .aa-view-tab {
+      flex: 0 0 auto;
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      background: var(--soft);
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+  }
+  .aa-view-tab:hover,
+  .aa-view-tab:focus-visible {
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      outline: none;
+  }
+  .aa-view-tab.is-active {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #fff;
+  }
+  .aa-view-panel[hidden] {
+      display: none !important;
+  }
+
   .aa-form-table {
       width: 100%;
       min-width: 1100px;
@@ -3003,4 +3045,82 @@ h1, h2, h3, h4,
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+
+/* ── Modern analytics line charts ───────────────────────── */
+.chart-card .sales-line-chart {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  margin-top: 12px;
+}
+.sales-line-chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+.sales-line-chart .slc-grid {
+  stroke: var(--line, #e7eaee);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.sales-line-chart .slc-axis-label {
+  fill: var(--muted, #667085);
+  font-size: 10px;
+}
+.sales-line-chart .slc-line {
+  fill: none;
+  stroke-width: 2.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sales-line-chart .slc-area {
+  opacity: 0.18;
+}
+.sales-line-chart .slc-point {
+  fill: #fff;
+  stroke-width: 2.25;
+}
+.sales-line-chart .slc-point.is-active {
+  r: 5.5;
+}
+.sales-line-chart .slc-focus-line {
+  stroke: var(--muted, #98a2b3);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+.sales-line-chart .slc-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--panel, #fff);
+  color: var(--ink, #101828);
+  border: 1px solid var(--line, #e7eaee);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.14);
+  transform: translate(-50%, calc(-100% - 12px));
+  white-space: nowrap;
+  z-index: 5;
+  display: none;
+}
+.sales-line-chart .slc-tooltip .slc-tip-label {
+  display: block;
+  color: var(--muted, #667085);
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+.sales-line-chart .slc-tooltip .slc-tip-value {
+  display: block;
+  font-weight: 700;
+  color: var(--ink, #101828);
+}
+.sales-line-chart .slc-empty {
+  color: var(--muted, #667085);
+  font-size: 0.9rem;
+  margin-top: 12px;
 }

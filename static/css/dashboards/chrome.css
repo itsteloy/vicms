@@ -29,8 +29,8 @@
 .sidebar {
   position: sticky;
   top: 0;
-  flex: 0 0 var(--sidebar-width);
-  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-w, var(--sidebar-width));
+  width: var(--sidebar-w, var(--sidebar-width));
   height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
@@ -42,6 +42,43 @@
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 100;
   transition: width 0.2s ease, flex-basis 0.2s ease;
+}
+
+.sidebar.is-resizing { transition: none; }
+
+/* drag handle for resizing the sidebar width */
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+  background: transparent;
+  touch-action: none;
+}
+
+.sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer.is-resizing::after {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+body.sidebar-resizing {
+  cursor: col-resize;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sidebar-brand {
@@ -171,7 +208,7 @@
 .sidebar-nav .tab-button .tab-icon {
   flex: 0 0 24px;
   width: 24px;
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   font-size: 1.05rem;
@@ -296,6 +333,17 @@ html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key],
   --sidebar-width: var(--sidebar-collapsed-width);
 }
 
+html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar,
+.dashboard-wrapper[data-sidebar-key].sidebar-is-collapsed .sidebar {
+  width: var(--sidebar-collapsed-width);
+  flex: 0 0 var(--sidebar-collapsed-width);
+}
+
+html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-resizer,
+.dashboard-wrapper[data-sidebar-key].sidebar-is-collapsed .sidebar-resizer {
+  display: none;
+}
+
 html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .logo-text,
 html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .nav-label,
 html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .tab-label,
@@ -327,6 +375,11 @@ html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-brand 
 html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-toggle-icon,
 .dashboard-wrapper[data-sidebar-key].sidebar-is-collapsed .sidebar-toggle-icon {
   transform: translateY(-1px) scaleX(-1);
+}
+
+html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-nav .tab-button .tab-icon,
+.dashboard-wrapper[data-sidebar-key].sidebar-is-collapsed .sidebar-nav .tab-button .tab-icon {
+  display: inline-flex;
 }
 
 html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-nav,
@@ -485,6 +538,7 @@ html.sidebar-pref-collapsed .dashboard-wrapper[data-sidebar-key] .sidebar-nav .t
     z-index: 1300 !important;
   }
   .dashboard-wrapper[data-sidebar-key] .sidebar-toggle { display: none !important; }
+  .dashboard-wrapper[data-sidebar-key] .sidebar-resizer { display: none !important; }
   .dashboard-wrapper[data-sidebar-key].sidebar-drawer-open .sidebar { transform: translateX(0) !important; }
   .dashboard-wrapper[data-sidebar-key] .sidebar-backdrop {
     display: block;

@@ -90,11 +90,13 @@
       url.searchParams.delete('report');
       url.searchParams.delete('week_start');
       url.searchParams.delete('week_end');
+      url.searchParams.delete('ledger_year');
+      url.searchParams.delete('ledger_zone');
     }
     if (extra && extra.page != null) url.searchParams.set('page', String(extra.page));
     else if (!extra || extra.keepPage !== true) url.searchParams.delete('page');
     if (extra) {
-      ['customer_q', 'customer_zone', 'customer_status', 'customer_view', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'reading_view', 'reading_printed', 'reading_paid', 'payment_q', 'payment_view', 'week_start', 'week_end'].forEach((key) => {
+      ['customer_q', 'customer_zone', 'customer_status', 'customer_view', 'report', 'revenue_period', 'reading_zone', 'reading_q', 'reading_view', 'reading_printed', 'reading_paid', 'payment_q', 'payment_view', 'week_start', 'week_end', 'ledger_year', 'ledger_zone'].forEach((key) => {
         if (extra[key] == null) return;
         if (extra[key] === '') url.searchParams.delete(key);
         else url.searchParams.set(key, extra[key]);
@@ -144,9 +146,13 @@
           const report = loc.searchParams.get('report');
           const weekStart = loc.searchParams.get('week_start');
           const weekEnd = loc.searchParams.get('week_end');
+          const ledgerYear = loc.searchParams.get('ledger_year');
+          const ledgerZone = loc.searchParams.get('ledger_zone');
           if (report) url.searchParams.set('report', report);
           if (weekStart) url.searchParams.set('week_start', weekStart);
           if (weekEnd) url.searchParams.set('week_end', weekEnd);
+          if (ledgerYear) url.searchParams.set('ledger_year', ledgerYear);
+          if (ledgerZone) url.searchParams.set('ledger_zone', ledgerZone);
         }
         if (tabId === 'readingsBillingTab') {
           const readingZone = loc.searchParams.get('reading_zone');
@@ -1760,13 +1766,26 @@
     const weekEnd = document.getElementById('weekEnd');
     const rangeStart = document.getElementById('weeklyRangeFields');
     const rangeEnd = document.getElementById('weeklyRangeEndFields');
+    const ledgerYear = document.getElementById('ledgerYear');
+    const ledgerZone = document.getElementById('ledgerZone');
+    const ledgerYearField = document.getElementById('ledgerYearFields');
+    const ledgerZoneField = document.getElementById('ledgerZoneFields');
     function syncWeeklyFields() {
       const isWeekly = reportSelect?.value === 'weekly';
       if (rangeStart) rangeStart.hidden = !isWeekly;
       if (rangeEnd) rangeEnd.hidden = !isWeekly;
     }
-    reportSelect?.addEventListener('change', syncWeeklyFields);
-    syncWeeklyFields();
+    function syncLedgerFields() {
+      const isLedger = reportSelect?.value === 'customer_ledger';
+      if (ledgerYearField) ledgerYearField.hidden = !isLedger;
+      if (ledgerZoneField) ledgerZoneField.hidden = !isLedger;
+    }
+    function syncReportFields() {
+      syncWeeklyFields();
+      syncLedgerFields();
+    }
+    reportSelect?.addEventListener('change', syncReportFields);
+    syncReportFields();
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
       const panel = panels.reportsTab;
@@ -1783,6 +1802,11 @@
         extra.week_end = weekEnd?.value || '';
         if (extra.week_start) url.searchParams.set('week_start', extra.week_start);
         if (extra.week_end) url.searchParams.set('week_end', extra.week_end);
+      } else if (report === 'customer_ledger') {
+        extra.ledger_year = ledgerYear?.value || '';
+        extra.ledger_zone = ledgerZone?.value || '';
+        if (extra.ledger_year) url.searchParams.set('ledger_year', extra.ledger_year);
+        if (extra.ledger_zone) url.searchParams.set('ledger_zone', extra.ledger_zone);
       }
       loadTabFragment('reportsTab', panel, url);
       updateTabUrl('reportsTab', extra);
@@ -1885,13 +1909,21 @@
       if (otherId) {
         const amount = Number(row.dataset.amount || 0);
         const raw = (row.querySelector('.weekly-other-received')?.value || '').trim();
+        let rowValue = amount;
         if (raw === '') {
           cashTotal += amount;
           if (isParcel) parcelPayment += amount;
         } else {
           const received = Number(raw || 0);
-          aidReceived += received;
-          if (isParcel) parcelPayment += received;
+          const effective = Number.isFinite(received) ? received : 0;
+          rowValue = effective;
+          aidReceived += effective;
+          if (isParcel) parcelPayment += effective;
+        }
+        const breakdown = row.dataset.breakdown || 'none';
+        if (breakdown !== 'none') {
+          const breakdownCell = row.querySelector(`.weekly-bd-${breakdown}`);
+          if (breakdownCell) breakdownCell.textContent = rowValue ? fmtPeso(rowValue) : '';
         }
       } else {
         cashTotal += parseWeeklyPesoText(row.querySelector('.weekly-row-cash')?.textContent);
@@ -1926,6 +1958,23 @@
     if (aidFooter) aidFooter.textContent = fmtPeso(aidReceived);
     if (collectionTotal) collectionTotal.textContent = fmtPeso((cashTotal + gcashTotal + aidReceived));
     if (block) block.dataset.cashTotal = String(cashTotal);
+
+    const sumBreakdown = (cls) => {
+      let total = 0;
+      document.querySelectorAll(`#weeklyBillingBody .weekly-billing-row .${cls}`).forEach((cell) => {
+        total += parseWeeklyPesoText(cell.textContent);
+      });
+      return total;
+    };
+    const setBreakdownTotal = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fmtPeso(value);
+    };
+    setBreakdownTotal('weeklyWaterBillTotal', sumBreakdown('weekly-bd-water-bill'));
+    setBreakdownTotal('weeklyInstallationFeeTotal', sumBreakdown('weekly-bd-installation'));
+    setBreakdownTotal('weeklyReconnectionFeeTotal', sumBreakdown('weekly-bd-reconnection'));
+    setBreakdownTotal('weeklyWaterRefillTotal', sumBreakdown('weekly-bd-water-refill'));
+    setBreakdownTotal('weeklyOtherPaymentsTotal', sumBreakdown('weekly-bd-other-payments'));
   }
 
   function initWeeklyDenominationTables() {
@@ -2072,7 +2121,7 @@
     if (tabId === 'readingsBillingTab') initReadingsTab();
     if (tabId === 'paymentsTab') initPaymentsTab();
     if (tabId === 'arTab') refreshBatchPrintBars(false);
-    if (tabId === 'disconnectTab') initServiceTab();
+    if (tabId === 'disconnectTab') { initServiceTab(); refreshBatchPrintBars(false); }
     if (tabId === 'reportsTab') initReportsTab();
   }
 

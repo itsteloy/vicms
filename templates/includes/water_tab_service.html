@@ -76,25 +76,61 @@
     </form>
   </div>
   <div class="panel">
-    <h2>For disconnection (3+ months unpaid)</h2>
-    <p class="sub">Accounts that meet the disconnection policy.</p>
+    <h2>For disconnection (red billing statement)</h2>
+    <p class="sub">Accounts with at least one unpaid red billing statement.</p>
     <div class="table-wrap" style="margin-bottom:18px;">
       <table class="data">
-        <thead><tr><th>Account</th><th>Name</th><th>Months unpaid</th><th>Outstanding</th><th>Monitor</th></tr></thead>
+        <thead><tr><th>Account</th><th>Name</th><th>Outstanding</th><th>Red statements</th><th>Monitor</th><th>Statement / Print</th></tr></thead>
         <tbody>
           {% for c in disconnect_candidates %}
           <tr>
             <td>{{ c.account_number }}</td>
             <td>{{ c.display_name }}</td>
-            <td>{{ c.computed_months_unpaid }}</td>
             <td>₱{{ c.annotated_outstanding|floatformat:2|intcomma }}</td>
-            <td><span class="badge for_disconnection">{{ c.computed_monitor }}</span></td>
+            <td>{{ c.red_statements }}</td>
+            <td><span class="badge for_disconnection">Subject for disconnection</span></td>
+            <td>
+              {% for b in c.red_bills %}
+              <div class="red-bill-pick">
+                <input class="batch-check batch-bill-check" type="checkbox" value="{{ b.pk }}" aria-label="Select bill {{ b.bill_number }}">
+                <a class="action" href="{% url 'view_water_bill' b.pk %}">{{ b.bill_number }} · {{ b.billing_period }}</a>
+              </div>
+              {% empty %}
+              <span class="cell-muted">—</span>
+              {% endfor %}
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="empty">No accounts with 3+ months unpaid.</td></tr>
+          <tr><td colspan="6" class="empty">No accounts with unpaid red billing statements.</td></tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+    {% if disconnect_candidates %}
+    <nav class="water-pager" aria-label="Pagination">
+      {% if disconnect_candidates.has_previous %}
+      <a class="action" href="?tab=disconnectTab&amp;dpage={{ disconnect_candidates.previous_page_number }}{{ disconnect_pager_qs }}" data-pager-link>Prev</a>
+      {% else %}
+      <span class="action is-disabled">Prev</span>
+      {% endif %}
+      <span class="pager-info">Page {{ disconnect_candidates.number }} of {{ disconnect_candidates.paginator.num_pages }}</span>
+      {% if disconnect_candidates.has_next %}
+      <a class="action" href="?tab=disconnectTab&amp;dpage={{ disconnect_candidates.next_page_number }}{{ disconnect_pager_qs }}" data-pager-link>Next</a>
+      {% else %}
+      <span class="action is-disabled">Next</span>
+      {% endif %}
+    </nav>
+    {% endif %}
+    <div class="batch-print-bar" id="batchPrintBarDisconnect" data-batch-bar>
+      <div>
+        <span class="count"><span data-batch-count>0</span> selected</span>
+        <span class="hint">Max 6 per long bond page</span>
+        <div class="batch-print-note" data-batch-note>Maximum 6 receipts per page.</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="clear-btn" data-batch-clear>Clear</button>
+        <button type="button" class="print-btn" data-batch-print disabled>Print selected (max 6)</button>
+      </div>
     </div>
     <h2>Service actions</h2>
     <div class="table-wrap">
