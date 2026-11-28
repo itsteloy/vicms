@@ -148,11 +148,13 @@
           const weekEnd = loc.searchParams.get('week_end');
           const ledgerYear = loc.searchParams.get('ledger_year');
           const ledgerZone = loc.searchParams.get('ledger_zone');
+          const reportYear = loc.searchParams.get('report_year');
           if (report) url.searchParams.set('report', report);
           if (weekStart) url.searchParams.set('week_start', weekStart);
           if (weekEnd) url.searchParams.set('week_end', weekEnd);
           if (ledgerYear) url.searchParams.set('ledger_year', ledgerYear);
           if (ledgerZone) url.searchParams.set('ledger_zone', ledgerZone);
+          if (reportYear) url.searchParams.set('report_year', reportYear);
         }
         if (tabId === 'readingsBillingTab') {
           const readingZone = loc.searchParams.get('reading_zone');
@@ -1770,6 +1772,8 @@
     const ledgerZone = document.getElementById('ledgerZone');
     const ledgerYearField = document.getElementById('ledgerYearFields');
     const ledgerZoneField = document.getElementById('ledgerZoneFields');
+    const reportYear = document.getElementById('reportYear');
+    const reportYearField = document.getElementById('reportYearFields');
     function syncWeeklyFields() {
       const isWeekly = reportSelect?.value === 'weekly';
       if (rangeStart) rangeStart.hidden = !isWeekly;
@@ -1780,9 +1784,14 @@
       if (ledgerYearField) ledgerYearField.hidden = !isLedger;
       if (ledgerZoneField) ledgerZoneField.hidden = !isLedger;
     }
+    function syncReportYearFields() {
+      const isByZone = reportSelect?.value === 'billing_by_zone';
+      if (reportYearField) reportYearField.hidden = !isByZone;
+    }
     function syncReportFields() {
       syncWeeklyFields();
       syncLedgerFields();
+      syncReportYearFields();
     }
     reportSelect?.addEventListener('change', syncReportFields);
     syncReportFields();
@@ -1807,6 +1816,9 @@
         extra.ledger_zone = ledgerZone?.value || '';
         if (extra.ledger_year) url.searchParams.set('ledger_year', extra.ledger_year);
         if (extra.ledger_zone) url.searchParams.set('ledger_zone', extra.ledger_zone);
+      } else if (report === 'billing_by_zone') {
+        extra.report_year = reportYear?.value || '';
+        if (extra.report_year) url.searchParams.set('report_year', extra.report_year);
       }
       loadTabFragment('reportsTab', panel, url);
       updateTabUrl('reportsTab', extra);

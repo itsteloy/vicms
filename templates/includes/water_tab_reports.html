@@ -9,6 +9,7 @@
         <label>Report type</label>
         <select name="report" id="reportTypeSelect">
           <option value="billing" {% if report_type == 'billing' %}selected{% endif %}>Monthly Billing</option>
+          <option value="billing_by_zone" {% if report_type == 'billing_by_zone' %}selected{% endif %}>Billing by Zone (Monthly)</option>
           <option value="collection" {% if report_type == 'collection' %}selected{% endif %}>Collection</option>
           <option value="outstanding" {% if report_type == 'outstanding' %}selected{% endif %}>Outstanding Balance</option>
           <option value="consumption" {% if report_type == 'consumption' %}selected{% endif %}>Consumption</option>
@@ -43,12 +44,25 @@
           {% endfor %}
         </select>
       </div>
+      <div class="field" id="reportYearFields" {% if report_type != 'billing_by_zone' %}hidden{% endif %}>
+        <label for="reportYear">Year</label>
+        <select name="report_year" id="reportYear">
+          {% for year in report_years %}
+          <option value="{{ year }}" {% if report_year == year %}selected{% endif %}>{{ year }}</option>
+          {% empty %}
+          <option value="{{ report_year }}">{{ report_year }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <button type="submit" class="action primary">Show</button>
       {% if report_type == 'weekly' %}
       <a class="action" href="{% url 'water_billing_export_csv' %}?report=weekly&week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Export CSV</a>
       <a class="action" href="{% url 'print_water_weekly_report' %}?week_start={{ week_start|date:'Y-m-d' }}&week_end={{ week_end|date:'Y-m-d' }}">Print</a>
       {% elif report_type == 'customer_ledger' %}
       <a class="action" href="{% url 'water_customer_ledger_xlsx' %}?year={{ ledger_year }}{% if ledger_zone %}&zone={{ ledger_zone }}{% endif %}">Export Excel</a>
+      <button type="button" class="action" onclick="window.print()">Print</button>
+      {% elif report_type == 'billing_by_zone' %}
+      <a class="action" href="{% url 'water_billing_export_csv' %}?report=billing_by_zone&amp;report_year={{ report_year }}">Export CSV</a>
       <button type="button" class="action" onclick="window.print()">Print</button>
       {% else %}
       <a class="action" href="{% url 'water_billing_export_csv' %}?report={{ report_type }}">Export CSV</a>
@@ -152,6 +166,37 @@
         {% for a in report_rows %}
         <tr><td>{{ a.get_action_type_display }}</td><td>{{ a.customer.account_number }}</td><td>{{ a.customer.display_name }}</td><td>{{ a.action_date }}</td><td>{{ a.status }}</td><td>{{ a.reason }}</td><td>₱{{ a.reconnection_fee|floatformat:2|intcomma }}</td></tr>
         {% empty %}<tr><td colspan="7" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+      {% elif report_type == 'billing_by_zone' %}
+      <thead>
+        <tr>
+          <th>Zone / Customer</th>
+          {% for m in zone_report.months %}<th>{{ m.label }}</th>{% endfor %}
+          <th>Grand Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for zone in zone_report.zone_rows %}
+        <tr class="zone-total-row">
+          <td><strong>{{ zone.zone_name }}</strong></td>
+          {% for amount in zone.month_totals %}<td><strong>&#8369;{{ amount|floatformat:2|intcomma }}</strong></td>{% endfor %}
+          <td><strong>&#8369;{{ zone.grand_total|floatformat:2|intcomma }}</strong></td>
+        </tr>
+        {% for customer in zone.customers %}
+        <tr class="zone-customer-row">
+          <td style="padding-left:1.5em;">{{ customer.name }}{% if customer.account_number %} <span class="sub">({{ customer.account_number }})</span>{% endif %}</td>
+          {% for amount in customer.month_amounts %}<td>{% if amount %}&#8369;{{ amount|floatformat:2|intcomma }}{% else %}&mdash;{% endif %}</td>{% endfor %}
+          <td>&#8369;{{ customer.total|floatformat:2|intcomma }}</td>
+        </tr>
+        {% endfor %}
+        {% empty %}<tr><td colspan="{{ zone_report.months|length|add:2 }}" class="empty">No data.</td></tr>{% endfor %}
+        {% if zone_report.zone_rows %}
+        <tr class="zone-grand-total-row">
+          <td><strong>GRAND TOTAL</strong></td>
+          {% for amount in zone_report.month_totals %}<td><strong>&#8369;{{ amount|floatformat:2|intcomma }}</strong></td>{% endfor %}
+          <td><strong>&#8369;{{ zone_report.grand_total|floatformat:2|intcomma }}</strong></td>
+        </tr>
+        {% endif %}
       </tbody>
       {% else %}
       <thead><tr><th>Bill #</th><th>Account</th><th>Name</th><th>Period</th><th>Consumption</th><th>Total</th><th>Balance</th><th>Status</th></tr></thead>

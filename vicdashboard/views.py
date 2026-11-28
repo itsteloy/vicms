@@ -6876,6 +6876,13 @@ def _water_tab_context(request, tab):
                 'ledger_zone': str(ledger_zone.id) if ledger_zone else '',
                 'water_zones': _water_zones_qs(),
             })
+        elif report_type == 'billing_by_zone':
+            report_year = _water_report_year_from_request(request)
+            ctx.update({
+                'report_year': report_year,
+                'report_years': _water_billing_years(),
+                'zone_report': _water_billing_by_zone_report(report_year),
+            })
         else:
             page_obj = _water_paginate(_water_report_rows(report_type), request)
             ctx.update({
@@ -6955,6 +6962,146 @@ def water_billing_dashboard(request):
     context.update(_water_revenue_from_request(request))
     context.update(_water_tab_context(request, tab))
     return render(request, 'water_billing_dashboard.html', context)
+
+
+def _water_report_year_from_request(request):
+    raw = (request.GET.get('report_year') or '').strip()
+    try:
+        year = int(raw) if raw else date.today().year
+    except ValueError:
+        year = date.today().year
+    if year < 2000 or year > 2100:
+        year = date.today().year
+    return year
+
+
+def _water_billing_years():
+    """Distinct billing years present in non-cancelled bills, newest first."""
+    years = set()
+    periods = (
+        WaterBill.objects.exclude(status='cancelled')
+        .exclude(billing_period='')
+        .values_list('billing_period', flat=True)
+        .distinct()
+    )
+    for value in periods:
+        year = (value or '')[:4]
+        if len(year) == 4 and year.isdigit():
+            years.add(int(year))
+    if not years:
+        years.add(date.today().year)
+    return sorted(years, reverse=True)
+
+
+def _water_billing_by_zone_report(year):
+    """Consumption-charge totals per zone for each billing month of ``year``.
+
+    Returns a matrix (zones x months) with the customers in each zone listed
+    underneath, plus per-zone grand totals, per-month totals, and an overall
+    grand total. Cancelled bills are excluded.
+    """
+    zero = Decimal('0.00')
+    prefix = f'{year}-'
+    bills = list(
+        WaterBill.objects.exclude(status='cancelled')
+        .filter(billing_period__startswith=prefix)
+        .values(
+            'customer_id',
+            'customer__account_number',
+            'customer__first_name',
+            'customer__last_name',
+            'customer__zone_id',
+            'customer__zone__name',
+            'billing_period',
+            'consumption_charge',
+        )
+        .order_by(
+            'customer__zone__name',
+            'customer__last_name',
+            'customer__first_name',
+            'billing_period',
+        )
+    )
+
+    periods = set()
+    zones = {}
+    for bill in bills:
+        period = (bill['billing_period'] or '')[:7]
+        if len(period) != 7:
+            continue
+        periods.add(period)
+        zone_id = bill['customer__zone_id']
+        zone_key = zone_id if zone_id is not None else '__unassigned__'
+        zone = zones.get(zone_key)
+        if zone is None:
+            zone = {
+                'zone_name': bill['customer__zone__name'] or 'UNASSIGNED',
+                'month_totals': {},
+                'customers': {},
+            }
+            zones[zone_key] = zone
+        customer_id = bill['customer_id']
+        customer = zone['customers'].get(customer_id)
+        if customer is None:
+            first = (bill['customer__first_name'] or '').strip()
+            last = (bill['customer__last_name'] or '').strip()
+            name = f'{last}, {first}'.strip(', ').strip() or (bill['customer__account_number'] or '')
+            customer = {
+                'account_number': bill['customer__account_number'] or '',
+                'name': name,
+                'month_amounts': {},
+            }
+            zone['customers'][customer_id] = customer
+        amount = bill['consumption_charge'] or zero
+        zone['month_totals'][period] = zone['month_totals'].get(period, zero) + amount
+        customer['month_amounts'][period] = customer['month_amounts'].get(period, zero) + amount
+
+    month_periods = sorted(periods)
+    months = []
+    for period in month_periods:
+        try:
+            label = date.fromisoformat(f'{period}-01').strftime('%b').upper()
+        except ValueError:
+            label = period
+        months.append({'period': period, 'label': label})
+
+    month_totals = [zero] * len(month_periods)
+    grand_total = zero
+    zone_rows = []
+    for zone_key in sorted(zones, key=lambda key: zones[key]['zone_name']):
+        zone = zones[zone_key]
+        zone_values = []
+        zone_grand = zero
+        for index, period in enumerate(month_periods):
+            value = zone['month_totals'].get(period, zero)
+            zone_values.append(value)
+            month_totals[index] += value
+            zone_grand += value
+        customers = []
+        for customer in sorted(
+            zone['customers'].values(), key=lambda item: (item['name'] or '').lower()
+        ):
+            values = [
+                customer['month_amounts'].get(period, zero) for period in month_periods
+            ]
+            customer['month_amounts'] = values
+            customer['total'] = sum(values, zero)
+            customers.append(customer)
+        grand_total += zone_grand
+        zone_rows.append({
+            'zone_name': zone['zone_name'],
+            'month_totals': zone_values,
+            'customers': customers,
+            'grand_total': zone_grand,
+        })
+
+    return {
+        'year': year,
+        'months': months,
+        'zone_rows': zone_rows,
+        'month_totals': month_totals,
+        'grand_total': grand_total,
+    }
 
 
 def _water_report_rows(report_type):
@@ -8768,6 +8915,7 @@ def _water_create_payment(request):
                 )
                 customer.installment_balance = max(install_balance - install_amount, Decimal('0.00'))
                 customer.save(update_fields=['installment_balance', 'updated_at'])
+                _water_sync_installment_balance(request, customer)
 
                 _water_audit(
                     request, 'Recorded payment', 'WaterPayment', bill_payment.receipt_number,
@@ -8842,6 +8990,7 @@ def _water_create_payment(request):
                     Decimal('0.00'),
                 )
                 customer.save(update_fields=['installment_balance', 'updated_at'])
+                _water_sync_installment_balance(request, customer)
                 _water_audit(
                     request, 'Recorded payment', 'WaterPayment', payment.receipt_number,
                     f'installation customer={customer.account_number} amount={amount} method={payment.payment_method}',
@@ -9367,6 +9516,7 @@ def _water_delete_payment(request):
             payment.delete()
             customer.installment_balance = (customer.installment_balance or Decimal('0')) + amount
             customer.save(update_fields=['installment_balance', 'updated_at'])
+            _water_sync_installment_balance(request, customer)
         elif bill:
             payment.delete()
             bill.amount_paid = max((bill.amount_paid or Decimal('0')) - amount, Decimal('0'))
@@ -9460,6 +9610,40 @@ def water_billing_export_csv(request):
             'Report',
             report_type,
             f'cash_rows={len(ctx["weekly_rows"])}',
+        )
+        return response
+    if report_type == 'billing_by_zone':
+        year = _water_report_year_from_request(request)
+        report = _water_billing_by_zone_report(year)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = (
+            f'attachment; filename="water_billing_by_zone_{year}.csv"'
+        )
+        writer = csv.writer(response)
+        writer.writerow(
+            ['Zone', 'Customer', 'Account']
+            + [month['label'] for month in report['months']]
+            + ['Grand Total']
+        )
+        for zone in report['zone_rows']:
+            writer.writerow(
+                [zone['zone_name'], '', ''] + zone['month_totals'] + [zone['grand_total']]
+            )
+            for customer in zone['customers']:
+                writer.writerow(
+                    [zone['zone_name'], customer['name'], customer['account_number']]
+                    + customer['month_amounts']
+                    + [customer['total']]
+                )
+        writer.writerow(
+            ['GRAND TOTAL', '', ''] + report['month_totals'] + [report['grand_total']]
+        )
+        _water_audit(
+            request,
+            'Exported report',
+            'Report',
+            report_type,
+            f'year={year} zones={len(report["zone_rows"])}',
         )
         return response
     rows = _water_report_rows(report_type)

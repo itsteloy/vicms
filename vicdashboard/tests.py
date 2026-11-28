@@ -651,3 +651,86 @@ class WaterInstallmentBalanceSyncTests(TestCase):
         latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
         self.assertEqual(latest_bill.installment_balance, Decimal('2700.00'))
         self.assertEqual(latest_bill.total_amount, Decimal('3280.00'))
+
+    def _post_payment(self, **overrides):
+        payload = {
+            'action': 'create_payment',
+            'payment_purpose': 'installation',
+            'customer_id': str(self.customer.id),
+            'payment_date': '2026-10-01',
+            'ar_number': 'AR-INST-1',
+            'amount': '200.00',
+            'payment_method': 'cash',
+        }
+        payload.update(overrides)
+        return self.client.post(reverse('water_billing_dashboard'), payload)
+
+    def test_installation_payment_syncs_latest_bill_and_reading(self):
+        response = self._post_payment()
+
+        self.assertEqual(response.status_code, 302)
+        self.customer.refresh_from_db()
+        latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
+        latest_reading = WaterMeterReading.objects.get(pk=self.latest_reading.pk)
+
+        self.assertEqual(self.customer.installment_balance, Decimal('2500.00'))
+        self.assertEqual(latest_bill.installment_balance, Decimal('2500.00'))
+        # 580.00 current + 0.00 prev unpaid + 2500.00 installment
+        self.assertEqual(latest_bill.total_amount, Decimal('3080.00'))
+        self.assertEqual(latest_bill.amount_paid, Decimal('580.00'))
+        self.assertEqual(latest_bill.status, 'partial')
+        self.assertEqual(latest_reading.installment_balance, Decimal('2500.00'))
+
+    def test_installation_payment_leaves_older_bill_untouched(self):
+        self._post_payment()
+
+        old_bill = WaterBill.objects.get(pk=self.old_bill.pk)
+        old_reading = WaterMeterReading.objects.get(
+            pk=self.old_bill.meter_reading_id,
+        )
+        self.assertEqual(old_bill.installment_balance, Decimal('2500.00'))
+        self.assertEqual(old_bill.total_amount, Decimal('2920.00'))
+        self.assertEqual(old_reading.installment_balance, Decimal('2500.00'))
+
+    def test_combined_payment_syncs_latest_bill_and_reading(self):
+        response = self._post_payment(
+            payment_purpose='combined',
+            bill_id=str(self.latest_bill.id),
+            bill_amount='100.00',
+            install_amount='300.00',
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.customer.refresh_from_db()
+        latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
+        latest_reading = WaterMeterReading.objects.get(pk=self.latest_reading.pk)
+
+        self.assertEqual(self.customer.installment_balance, Decimal('2400.00'))
+        self.assertEqual(latest_bill.installment_balance, Decimal('2400.00'))
+        # 580.00 current + 0.00 prev unpaid + 2400.00 installment
+        self.assertEqual(latest_bill.total_amount, Decimal('2980.00'))
+        self.assertEqual(latest_bill.amount_paid, Decimal('680.00'))
+        self.assertEqual(latest_bill.status, 'partial')
+        self.assertEqual(latest_reading.installment_balance, Decimal('2400.00'))
+
+    def test_deleting_installation_payment_restores_bill_installment(self):
+        self._post_payment()
+        payment = WaterPayment.objects.get(
+            purpose=WaterPayment.PURPOSE_INSTALLATION,
+        )
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.installment_balance, Decimal('2500.00'))
+
+        response = self.client.post(
+            reverse('water_billing_dashboard'),
+            {'action': 'delete_payment', 'payment_id': str(payment.id)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.customer.refresh_from_db()
+        latest_bill = WaterBill.objects.get(pk=self.latest_bill.pk)
+        latest_reading = WaterMeterReading.objects.get(pk=self.latest_reading.pk)
+        self.assertEqual(self.customer.installment_balance, Decimal('2700.00'))
+        self.assertEqual(latest_bill.installment_balance, Decimal('2700.00'))
+        self.assertEqual(latest_bill.total_amount, Decimal('3280.00'))
+        self.assertEqual(latest_reading.installment_balance, Decimal('2700.00'))
